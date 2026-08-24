@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import struct
 from pathlib import Path
+from typing import TypedDict
 
 import ecdsa
 
@@ -68,6 +69,24 @@ assert len(STAGE1_ROOT_VERIFYING_KEYS) == STAGE1_ROOT_KEY_COUNT
 assert all(len(pubkey) == 64 for pubkey in STAGE1_ROOT_PUBKEYS)
 
 
+class Stage1Header(TypedDict):
+    """Parsed fields from a stage1 image header."""
+
+    prefix: bytes
+    magic: int
+    flags: int
+    header_version: int
+    product_id: int
+    header_len: int
+    image_len: int
+    monotonic_version: int
+    stage1_marketing_version_len: int
+    stage1_marketing_version_field: bytes
+    stage1_marketing_version: str
+    reserved: bytes
+    signatures: list[bytes]
+
+
 def _parse_product_id(value: str) -> int:
     if value in PRODUCT_IDS:
         return PRODUCT_IDS[value]
@@ -94,7 +113,7 @@ def _decode_stage1_marketing_version(
     return version.decode("ascii")
 
 
-def _unpack_header(header: bytes) -> dict:
+def _unpack_header(header: bytes) -> Stage1Header:
     if len(header) != STAGE1_HEADER_LEN:
         raise RuntimeError("invalid header length")
     values = struct.unpack(STAGE1_HEADER_PREFIX_FORMAT, header[:STAGE1_HEADER_SIGNED_LEN])
@@ -119,7 +138,7 @@ def _unpack_header(header: bytes) -> dict:
     }
 
 
-def _pack_prefix(header: dict) -> bytes:
+def _pack_prefix(header: Stage1Header) -> bytes:
     return struct.pack(
         STAGE1_HEADER_PREFIX_FORMAT,
         STAGE1_HEADER_MAGIC,
@@ -154,11 +173,11 @@ def _stage1_signed_digest(image: bytes) -> bytes:
     return hasher.digest()
 
 
-def _signatures_are_zero(header: dict) -> bool:
+def _signatures_are_zero(header: Stage1Header) -> bool:
     return not any(byte for signature in header["signatures"] for byte in signature)
 
 
-def _verify_header_signatures(header: dict, image: bytes) -> None:
+def _verify_header_signatures(header: Stage1Header, image: bytes) -> None:
     digest = _stage1_signed_digest(image)
     valid = 0
     for verifying_key, signature in zip(STAGE1_ROOT_VERIFYING_KEYS, header["signatures"]):
@@ -176,7 +195,7 @@ def _verify_header_signatures(header: dict, image: bytes) -> None:
         raise RuntimeError("stage1 header signatures do not verify")
 
 
-def _validate_fixed_fields(header: dict, expected_product_id: int | None = None) -> None:
+def _validate_fixed_fields(header: Stage1Header, expected_product_id: int | None = None) -> None:
     if header["magic"] != STAGE1_HEADER_MAGIC:
         raise RuntimeError("invalid header magic")
     if header["header_version"] != STAGE1_HEADER_FORMAT_VERSION:
@@ -195,7 +214,7 @@ def _validate_fixed_fields(header: dict, expected_product_id: int | None = None)
         raise RuntimeError("reserved header bytes are not zero")
 
 
-def _validate_raw_stage1(image: bytes) -> dict:
+def _validate_raw_stage1(image: bytes) -> Stage1Header:
     header = _unpack_header(image[:STAGE1_HEADER_LEN])
     _validate_fixed_fields(header)
     if header["image_len"] != 0:
@@ -211,7 +230,7 @@ def _validate_complete_stage1(
     image: bytes,
     expected_product_id: int | None,
     require_signatures: bool,
-) -> dict:
+) -> Stage1Header:
     header = _unpack_header(image[:STAGE1_HEADER_LEN])
     _validate_fixed_fields(header, expected_product_id)
     if header["image_len"] != len(image):
@@ -232,7 +251,7 @@ def _write_if_changed(path: Path, data: bytes) -> None:
     path.write_bytes(data)
 
 
-def prepare_stage1_unsigned(args) -> None:
+def prepare_stage1_unsigned(args: argparse.Namespace) -> None:
     image = Path(args.raw_bin).read_bytes()
     header = _validate_raw_stage1(image)
     header["image_len"] = len(image)
@@ -267,7 +286,7 @@ def _update_payload(signed_stage1: bytes, product_id: int, development: bool) ->
     return signed_stage1 + b"\xff" * (BOOTLOADER_UPGRADE_PAYLOAD_LEN - len(signed_stage1))
 
 
-def create_stage1_fw_embedding(args) -> None:
+def create_stage1_fw_embedding(args: argparse.Namespace) -> None:
     payload = _update_payload(Path(args.signed_bin).read_bytes(), args.product_id, args.development)
     _write_if_changed(Path(args.out_bin), payload)
 
@@ -290,7 +309,7 @@ def _validate_stage0(stage0: bytes, product_id: int, development: bool) -> bytes
     return stage0
 
 
-def create_stage0_fw_embedding(args) -> None:
+def create_stage0_fw_embedding(args: argparse.Namespace) -> None:
     stage0 = _validate_stage0(
         Path(args.stage0_bin).read_bytes(),
         args.product_id,

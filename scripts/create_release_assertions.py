@@ -10,6 +10,7 @@ import hashlib
 import subprocess
 import sys
 from pathlib import Path
+from typing import TypedDict, cast
 from urllib import error, request
 
 
@@ -28,7 +29,17 @@ SIGNING_PUBKEYS_DATA_LEN = VERSION_FIELD_LEN + NUM_SIGNING_KEYS * 64 + NUM_ROOT_
 FIRMWARE_DATA_LEN = VERSION_FIELD_LEN + NUM_SIGNING_KEYS * 64
 SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
 
-PRODUCTS = (
+
+class Product(TypedDict):
+    """Release asset metadata for one firmware product."""
+
+    label: str
+    asset_name: str
+    filename: str
+    expected_magic: bytes
+
+
+PRODUCTS: tuple[Product, ...] = (
     {
         "label": "BitBox02 Multi",
         "asset_name": "firmware-bitbox02-multi.{version}.signed.bin",
@@ -112,7 +123,7 @@ def download_signed_firmware(version: str, asset_name: str) -> bytes:
     request_headers = {"User-Agent": "bitbox02-release-assertion-generator"}
     try:
         with request.urlopen(request.Request(url, headers=request_headers)) as response:
-            return response.read()
+            return cast(bytes, response.read())
     except error.HTTPError as exc:
         raise RuntimeError(
             f"Failed to download '{asset_name}' from {url}: HTTP {exc.code}"

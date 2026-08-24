@@ -16,6 +16,7 @@ command -v ${MYPY} >/dev/null 2>&1 || { echo >&2 "${MYPY} is missing"; exit 1; }
 
 # Store files as array in ARGS
 ARGS=($(find py releases -name '*.py' | grep -v -e generated -e old))
+SCRIPT_ARGS=($(find scripts -name '*.py'))
 
 # implicit-reexport: `from foo import bar` re-exports (normal Python3 behavior), otherwise mypy
 # expects `from foo import bar as bar`.
@@ -23,7 +24,7 @@ ARGS=($(find py releases -name '*.py' | grep -v -e generated -e old))
 # behavior).
 # We must typecheck the whole `py` directory even if only a few files are modified so that mypy
 # sees all types
-${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py/send_message.py py/bitbox02/bitbox02 releases/describe_signed_firmware.py
+${MYPY} --implicit-reexport --namespace-packages --ignore-missing-imports --strict py/send_message.py py/bitbox02/bitbox02 releases/describe_signed_firmware.py "${SCRIPT_ARGS[@]}"
 
 # Must run from root directory where .pylintrc is
 # We ignore refactor and convention messages because they can differ with `black`

@@ -310,18 +310,22 @@ static const memory_interface_functions_t* _interface_functions = NULL;
 
 /********* Exposed functions ****************/
 
-bool memory_set_device_name(const char* name)
+bool memory_set_device_name(const char* name, size_t name_len)
 {
-    if (name[0] == (char)0xFF || name[0] == 0x0) {
+    if (name == NULL || name_len == 0 || name[0] == (char)0xFF || name[0] == 0x0 ||
+        memchr(name, '\0', name_len) != NULL || name[name_len] != '\0') {
         // utf8 string can't start with 0xFF or be an empty string.
         return false;
     }
-
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
-    snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", name);
+    if (util_utf8_copy(
+            (char*)&chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, name, name_len) <
+        0) {
+        return false;
+    }
 
     if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
         return false;
@@ -993,7 +997,9 @@ memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, const char* nam
     multisig_configuration_t* multisig = &chunk.fields.multisig_configs[write_index];
     memcpy(multisig->hash, hash, sizeof(multisig->hash));
     memset(multisig->name, '\0', sizeof(multisig->name));
-    snprintf(multisig->name, sizeof(multisig->name), "%s", name);
+    if (util_utf8_strlcpy(multisig->name, name, sizeof(multisig->name)) < 0) {
+        return MEMORY_ERR_INVALID_INPUT;
+    }
     if (!_write_chunk(CHUNK_2, chunk.bytes)) {
         return MEMORY_ERR_UNKNOWN;
     }

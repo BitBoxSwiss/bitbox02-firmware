@@ -563,13 +563,28 @@ static void _set_device_name(const char* device_name)
     expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
     expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
     will_return(__wrap_memory_write_chunk_fake, true);
-    assert_true(memory_set_device_name(device_name));
+    assert_true(memory_set_device_name(device_name, strlen(device_name)));
 }
 
 static void _test_memory_device_name(void** state)
 {
+    assert_false(memory_set_device_name(NULL, 0));
+
+    const char mismatched_len[] = "name";
+    assert_false(memory_set_device_name(mismatched_len, sizeof(mismatched_len) - 2));
+
+    const char embedded_null[] = {'n', '\0', 'a', 'm', 'e', '\0'};
+    assert_false(memory_set_device_name(embedded_null, sizeof(embedded_null) - 1));
+
     const char invalid_name[] = "\xff";
-    assert_false(memory_set_device_name(invalid_name));
+    assert_false(memory_set_device_name(invalid_name, sizeof(invalid_name) - 1));
+
+    char truncated_suffix[MEMORY_DEVICE_MAX_LEN_WITH_NULL + 2];
+    memset(truncated_suffix, 'x', MEMORY_DEVICE_MAX_LEN_WITH_NULL - 1);
+    truncated_suffix[MEMORY_DEVICE_MAX_LEN_WITH_NULL - 1] = (char)0xC3;
+    truncated_suffix[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = (char)0xA4;
+    truncated_suffix[MEMORY_DEVICE_MAX_LEN_WITH_NULL + 1] = '\0';
+    _set_device_name(truncated_suffix);
 
     const char* device_name = "test name";
     _set_device_name(device_name);

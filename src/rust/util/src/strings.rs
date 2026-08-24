@@ -5,6 +5,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ffi::{CStr, c_char};
 
+use crate::bytes::Bytes;
+
 /// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
 /// is no null terminator or if the bytes before the null terminator is invalid UTF8.
 pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
@@ -25,10 +27,23 @@ pub unsafe fn str_from_null_terminated_ptr<'a>(
     unsafe { core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(())) }
 }
 
-/// truncate_str truncates string `s` to `len` chars. If `s` is
-/// shorter than `len`, the string is returned unchanged (no panics).
-pub fn truncate_str(s: &str, len: usize) -> &str {
-    if s.len() > len { &s[..len] } else { s }
+/// Truncates `s` to at most `max_bytes`, without splitting a UTF-8 code point.
+pub fn truncate_str(s: &str, max_bytes: usize) -> &str {
+    let mut len = core::cmp::min(s.len(), max_bytes);
+    while !s.is_char_boundary(len) {
+        len -= 1;
+    }
+    &s[..len]
+}
+
+/// Validates `input` as UTF-8 and returns the largest prefix that fits in `max_bytes` without
+/// splitting a code point, or -1 if `input` is not valid UTF-8.
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_util_utf8_truncate(input: Bytes, max_bytes: usize) -> isize {
+    match core::str::from_utf8(input.as_ref()) {
+        Ok(input) => truncate_str(input, max_bytes).len() as isize,
+        Err(_) => -1,
+    }
 }
 
 /// Converts a Rust string to a null terminated C string by appending a null
@@ -130,6 +145,29 @@ mod tests {
         assert_eq!(truncate_str("test", 4), "test");
         assert_eq!(truncate_str("test", 5), "test");
         assert_eq!(truncate_str("test", 6), "test");
+        assert_eq!(truncate_str("täst", 1), "t");
+        assert_eq!(truncate_str("täst", 2), "t");
+        assert_eq!(truncate_str("täst", 3), "tä");
+        assert_eq!(truncate_str("täst", 4), "täs");
+        assert_eq!(truncate_str("👌", 3), "");
+        assert_eq!(truncate_str("👌", 4), "👌");
+    }
+
+    #[test]
+    fn test_rust_util_utf8_truncate() {
+        let input = "täst".as_bytes();
+        let result = rust_util_utf8_truncate(
+            unsafe { crate::bytes::rust_util_bytes(input.as_ptr(), input.len()) },
+            2,
+        );
+        assert_eq!(result, 1);
+
+        let input = b"t\xffst";
+        let result = rust_util_utf8_truncate(
+            unsafe { crate::bytes::rust_util_bytes(input.as_ptr(), input.len()) },
+            input.len(),
+        );
+        assert_eq!(result, -1);
     }
 
     #[test]

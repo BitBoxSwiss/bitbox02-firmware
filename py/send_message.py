@@ -732,11 +732,11 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
-    def _sign_btc_locktime_rbf(self) -> None:
+    def _sign_btc_locktime(self, locktime: int) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
         inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
-        inputs[0]["sequence"] = 0xFFFFFFFF - 2
+        inputs[0]["sequence"] = 0xFFFFFFFF - 1
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
             [
@@ -755,10 +755,16 @@ class SendMessage:
             ],
             inputs=inputs,
             outputs=outputs,
-            locktime=10,
+            locktime=locktime,
         )
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
+
+    def _sign_btc_height_based_locktime(self) -> None:
+        self._sign_btc_locktime(963_832)
+
+    def _sign_btc_time_based_locktime(self) -> None:
+        self._sign_btc_locktime(1_800_000_000)
 
     def _sign_btc_taproot_inputs(self) -> None:
         # pylint: disable=no-member
@@ -989,7 +995,8 @@ class SendMessage:
             ("Send to self (different account)", self._sign_btc_send_to_self_different_account),
             ("High fee warning", self._sign_btc_high_fee),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
-            ("Locktime/RBF", self._sign_btc_locktime_rbf),
+            ("Height-based locktime", self._sign_btc_height_based_locktime),
+            ("Time-based locktime", self._sign_btc_time_based_locktime),
             ("Taproot inputs", self._sign_btc_taproot_inputs),
             ("Taproot output", self._sign_btc_taproot_output),
             ("Policy", self._sign_btc_policy),

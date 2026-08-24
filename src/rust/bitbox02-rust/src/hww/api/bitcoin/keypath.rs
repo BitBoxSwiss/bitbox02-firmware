@@ -160,7 +160,7 @@ pub fn validate_xpub(keypath: &[u32], expected_coin: u32, taproot_support: bool)
             return Ok(());
         }
     }
-    // m/45', used/exported by Unchained.
+    // m/45', used/exported by Unchained, Casa.
     if keypath == [45 + HARDENED] {
         return Ok(());
     }

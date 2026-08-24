@@ -136,6 +136,27 @@ async fn xpub(
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
+/// Derives a simple address without validating the keypath. Callers must validate the keypath
+/// according to the requirements of their workflow before calling this function.
+async fn derive_address_simple_unvalidated(
+    hal: &mut impl crate::hal::Hal,
+    coin: BtcCoin,
+    simple_type: SimpleType,
+    keypath: &[u32],
+    compute: crate::keystore::Compute,
+) -> Result<String, Error> {
+    let coin_params = params::get(coin);
+    Ok(common::Payload::from_simple(
+        hal,
+        &mut crate::xpubcache::XpubCache::new(compute),
+        coin_params,
+        simple_type,
+        keypath,
+    )
+    .await?
+    .address(coin_params)?)
+}
+
 pub async fn derive_address_simple(
     hal: &mut impl crate::hal::Hal,
     coin: BtcCoin,
@@ -152,15 +173,7 @@ pub async fn derive_address_simple(
         keypath::ReceiveSpend::Receive,
     )
     .or(Err(Error::InvalidInput))?;
-    Ok(common::Payload::from_simple(
-        hal,
-        &mut crate::xpubcache::XpubCache::new(compute),
-        coin_params,
-        simple_type,
-        keypath,
-    )
-    .await?
-    .address(coin_params)?)
+    derive_address_simple_unvalidated(hal, coin, simple_type, keypath, compute).await
 }
 
 /// Processes a SimpleType (single-sig) address api call.

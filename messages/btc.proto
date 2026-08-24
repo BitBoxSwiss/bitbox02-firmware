@@ -103,7 +103,8 @@ message BTCSignInitRequest {
   uint32 version = 4; // must be 1 or 2
   uint32 num_inputs = 5;
   uint32 num_outputs = 6;
-  uint32 locktime = 7; // must be <500000000
+  // Consensus nLockTime: values below 500000000 are block heights, otherwise Unix timestamps.
+  uint32 locktime = 7;
 
   enum FormatUnit {
     // According to `coin` (BTC, LTC, etc.).

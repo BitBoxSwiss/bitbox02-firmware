@@ -670,7 +670,7 @@ pub struct BtcSignInitRequest {
     pub num_inputs: u32,
     #[prost(uint32, tag = "6")]
     pub num_outputs: u32,
-    /// must be <500000000
+    /// Consensus nLockTime: values below 500000000 are block heights, otherwise Unix timestamps.
     #[prost(uint32, tag = "7")]
     pub locktime: u32,
     #[prost(enumeration = "btc_sign_init_request::FormatUnit", tag = "8")]

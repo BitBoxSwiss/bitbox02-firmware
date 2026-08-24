@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Add support for BitBoxSync
 - Display long transaction and swap amounts in full instead of truncating them
 - Bitcoin: allow signing messages with keys in the m/45' application namespace
+- Bitcoin: support timestamp-based absolute locktimes and remove the RBF status display
 
 ### v9.26.5
 - Security improvements

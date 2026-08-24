@@ -345,7 +345,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     num_inputs: builtins.int
     num_outputs: builtins.int
     locktime: builtins.int
-    """must be <500000000"""
+    """Consensus nLockTime: values below 500000000 are block heights, otherwise Unix timestamps."""
     format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
     contains_silent_payment_outputs: builtins.bool
     @property

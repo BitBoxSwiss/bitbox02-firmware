@@ -1,0 +1,8 @@
+By signing this file, the signer confirms that the BitBox02 Bitcoin-only firmware binary built from:
+
+git tag firmware/v9.26.5
+git commit hash 4745c8414e81cbb0cb0b6dc8e41c599490ab2621
+
+resulted, at the time of signing, in a firmware binary file with the following sha256sum:
+
+91804420ecfabfeb822fc1cf2ddbc470a929730a723d951c1b60ce15a9a35b97

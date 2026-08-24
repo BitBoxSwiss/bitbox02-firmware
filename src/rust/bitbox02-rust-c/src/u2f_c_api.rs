@@ -137,8 +137,22 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     title: *const core::ffi::c_char,
     body: *const core::ffi::c_char,
 ) -> bool {
-    let title: String = unsafe { CStr::from_ptr(title).to_str().unwrap().into() };
-    let body: String = unsafe { CStr::from_ptr(body).to_str().unwrap().into() };
+    if title.is_null() || body.is_null() {
+        return false;
+    }
+    let (Ok(title), Ok(body)) = (
+        unsafe { CStr::from_ptr(title) }.to_str(),
+        unsafe { CStr::from_ptr(body) }.to_str(),
+    ) else {
+        return false;
+    };
+    if !util::ascii::is_printable_ascii(title, util::ascii::Charset::AllNewline)
+        || !util::ascii::is_printable_ascii(body, util::ascii::Charset::AllNewline)
+    {
+        return false;
+    }
+    let title: String = title.into();
+    let body: String = body.into();
     let Some(active_workflow_guard) = (unsafe { try_start_workflow() }) else {
         return false;
     };

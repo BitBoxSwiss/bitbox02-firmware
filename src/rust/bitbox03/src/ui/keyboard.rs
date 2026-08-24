@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
-//! On-screen QWERTY keyboard used for BIP39 passphrase entry.
+//! On-screen QWERTY keyboard used for BIP39 passphrase entry, and its letters-only variant used
+//! for BIP39 wordlist (recovery word) entry.
 //!
-//! Four rows of outlined keys (a digit row and three character rows) above a function row with a
-//! caps-lock toggle, a space bar and a symbols toggle. Pressing a character key "jets out" a
-//! balloon-shaped enlarged preview of the key above the finger, so the user sees which key they
-//! hit; the character is inserted on release. Sliding off the pressed key cancels: the preview
-//! hides and nothing is typed (the buttonmatrix discards its selection when the pointer leaves
-//! the pressed button). The symbols layout reuses BitBox02's special character set
-//! (`_special_chars` in trinary_input_string.c), which — with space on its own key — fills the
-//! three character rows exactly (3 × 10); the digit row stays in place.
+//! The passphrase keyboard: four rows of outlined keys (a digit row and three character rows)
+//! above a function row with a caps-lock toggle, a space bar and a symbols toggle. Pressing a
+//! character key "jets out" a balloon-shaped enlarged preview of the key above the finger, so the
+//! user sees which key they hit; the character is inserted on release. Sliding off the pressed
+//! key cancels: the preview hides and nothing is typed (the buttonmatrix discards its selection
+//! when the pointer leaves the pressed button). The symbols layout reuses BitBox02's special
+//! character set (`_special_chars` in trinary_input_string.c), which — with space on its own key
+//! — fills the three character rows exactly (3 × 10); the digit row stays in place.
+//!
+//! The wordlist keyboard ([`build_wordlist_keyboard`]) is the same keyboard reduced to the three
+//! lowercase letter rows: no digit row and no function row, since no digit, space, capital or
+//! special character occurs in a BIP39 word. Its keys can be individually disabled
+//! ([`set_enabled_letters`]) so entry screens can gray out letters that cannot extend the input
+//! towards a valid word.
 //!
 //! Each key row is a single `lv_buttonmatrix` rather than per-key buttons: LVGL draws matrix
 //! buttons without allocating an object per key, which keeps the screen well inside LVGL's small
@@ -83,6 +90,18 @@ pub const CHILD_INDEX_SYMBOLS: i32 = CHILD_INDEX_CAPSLOCK + 2;
 /// Child index of the (initially hidden) pressed-key preview balloon.
 pub const CHILD_INDEX_PREVIEW: i32 = CHILD_INDEX_CAPSLOCK + 3;
 
+/// Number of key rows on the wordlist keyboard (the three lowercase letter rows).
+const WORDLIST_ROWS: usize = 3;
+/// Child index of the pressed-key preview balloon on the wordlist keyboard (after the
+/// `WORDLIST_ROWS` key-row buttonmatrices).
+pub const WORDLIST_CHILD_INDEX_PREVIEW: i32 = WORDLIST_ROWS as i32;
+/// Height of the wordlist keyboard: three key rows, no function row.
+pub const WORDLIST_KEYBOARD_HEIGHT: i32 = 2 * ROW_PITCH_Y + KEY_HEIGHT; // 220
+/// The wordlist keyboard's letters by (row, key id). Must match `MAP_LOWER_1..3` (checked by
+/// `test_wordlist_keyboard_layout`); kept as plain bytes so enabling/disabling keys does not
+/// have to read button texts back out of LVGL.
+const WORDLIST_ROW_LETTERS: [&[u8]; WORDLIST_ROWS] = [b"qwertyuiop", b"asdfghjkl", b"zxcvbnm"];
+
 /// Builds a `'static` single-row buttonmatrix map: the given keys plus the required terminator.
 macro_rules! key_row_map {
     ($name:ident, $count:literal, [$($key:expr),+ $(,)?]) => {
@@ -146,6 +165,28 @@ const ITEMS: u32 = LvPart::LV_PART_ITEMS as u32;
 /// Disabled/secondary gray, sampled from the mockup's inactive backspace button.
 pub(super) fn gray() -> lvgl::LvColor {
     lvgl::color::hex(0x777777)
+}
+
+/// A set of lowercase letters `a`..=`z`, as a bitmask (bit 0 = `a`). Which wordlist-keyboard
+/// keys are currently enabled.
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub struct LetterSet(u32);
+
+impl LetterSet {
+    pub const EMPTY: Self = Self(0);
+
+    fn bit(letter: u8) -> u32 {
+        debug_assert!(letter.is_ascii_lowercase());
+        1 << (letter - b'a')
+    }
+
+    pub fn insert(&mut self, letter: u8) {
+        self.0 |= Self::bit(letter);
+    }
+
+    pub fn contains(self, letter: u8) -> bool {
+        self.0 & Self::bit(letter) != 0
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -342,14 +383,16 @@ impl Preview {
     }
 
     /// Shows the balloon for the key `id` of `row` (labelled `text`), positioned over the key.
-    fn show(&self, mode: Mode, row: usize, id: u32, text: &str) {
+    /// `count` is the row's current key count (shorter rows are centred, so it shifts key
+    /// positions).
+    fn show(&self, count: usize, row: usize, id: u32, text: &str) {
         if self.shown.get() == Some((row, id)) {
             return;
         }
         self.shown.set(Some((row, id)));
         self.label.set_text(text).expect("key text contains no NUL");
         self.root.set_pos(
-            key_x(row_count(mode, row), id as usize) + PREVIEW_OFFSET_X,
+            key_x(count, id as usize) + PREVIEW_OFFSET_X,
             key_y(row) + PREVIEW_OFFSET_Y,
         );
         self.root.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
@@ -394,6 +437,15 @@ fn style_key_row(matrix: &LvButtonmatrix) {
         matrix.set_style_text_color(lvgl::color::white(), selector);
         matrix.set_style_text_font(lvgl::fonts::INTER_BOLD_32, selector);
     }
+
+    // Disabled keys (wordlist keyboard: letters that cannot extend the entry towards a valid
+    // word) are drawn gray. The default theme's disabled style would instead dim the key with a
+    // 50% grey recolor overlay; pin the recolor props so gray border/text is the whole
+    // difference (same reasoning as in `style_outline_button`).
+    matrix.set_style_border_color(gray(), ITEMS | DISABLED);
+    matrix.set_style_text_color(gray(), ITEMS | DISABLED);
+    matrix.set_style_recolor_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, ITEMS | DISABLED);
+    matrix.set_style_recolor(lvgl::color::black(), ITEMS | DISABLED);
 }
 
 /// A second handle to a key-row matrix, for use inside its own event callbacks.
@@ -405,14 +457,11 @@ fn matrix_handle(container: &LvObj, row: usize) -> LvButtonmatrix {
         .expect("key row is a buttonmatrix")
 }
 
-/// Builds the QWERTY keyboard as a `KEYBOARD_WIDTH`×`KEYBOARD_HEIGHT` container and appends it to
-/// `parent`. Typed characters are inserted into `textarea`.
-///
-/// Child order (see the `CHILD_INDEX_*` constants): `ROWS` key-row buttonmatrices, caps lock,
-/// space bar, symbols toggle, preview balloon.
-pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
+/// Builds the bare keyboard container: `KEYBOARD_WIDTH`×`height`, transparent, with the preview
+/// balloon's overhang beyond the top key row declared as ext draw size.
+fn build_container(parent: &LvObj, height: i32) -> LvObj {
     let container = LvObj::with_parent(parent).unwrap();
-    container.set_size(KEYBOARD_WIDTH, KEYBOARD_HEIGHT);
+    container.set_size(KEYBOARD_WIDTH, height);
     container.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
     container.set_style_border_width(0, 0);
     container.set_style_radius(0, 0);
@@ -423,7 +472,7 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
     container.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
     // The preview balloon overhangs the top row (by `PREVIEW_OVERHANG`) and the outermost
     // columns (by 16px). OVERFLOW_VISIBLE alone is not enough: it only widens the children clip
-    // rect to the container's own ext draw size, which is 0 for this plain container — so the
+    // rect to the container's own ext draw size, which is 0 for a plain container — so the
     // overhang must also be declared as ext draw size or the balloon head gets clipped away.
     container.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     unsafe extern "C" fn refresh_ext_draw_size_cb(event: *mut lvgl::ffi::lv_event_t) {
@@ -438,6 +487,102 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
         );
         lvgl::ffi::lv_obj_refresh_ext_draw_size(container.as_ptr());
     }
+    container
+}
+
+/// Wires a key-row buttonmatrix's input behaviour: the jet-out preview over the pressed key
+/// while pressed (hidden again if the finger slides off it, which also discards the selection),
+/// insertion of the selected key's character into `textarea` on release over it (`CLICK_TRIG`),
+/// and discarding the selection once the interaction ends. `count_of_row` resolves the row's
+/// current key count (layouts with mode switching change it per call); `after_insert` runs
+/// after each inserted character (and only then — not on deletions or programmatic changes).
+fn wire_key_row<F>(
+    container: &LvObj,
+    row: usize,
+    textarea: &Rc<LvTextarea>,
+    preview: &Rc<Preview>,
+    count_of_row: F,
+    after_insert: Option<Rc<dyn Fn()>>,
+) where
+    F: Fn(usize) -> usize + Clone + 'static,
+{
+    let matrix = matrix_handle(container, row);
+    {
+        let matrix_cb = matrix_handle(container, row);
+        let textarea = Rc::clone(textarea);
+        let count_of_row = count_of_row.clone();
+        matrix
+            .add_event_cb(LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
+                let id = matrix_cb.get_selected_button();
+                if (id as usize) < count_of_row(row)
+                    && let Some(text) = matrix_cb.get_button_text(id)
+                {
+                    let _ = textarea.add_text(text.to_str().expect("key text is ASCII"));
+                    if let Some(after_insert) = &after_insert {
+                        after_insert();
+                    }
+                }
+            })
+            .expect("failed to register key callback");
+    }
+    for code in [
+        LvEventCode::LV_EVENT_PRESSED,
+        LvEventCode::LV_EVENT_PRESSING,
+    ] {
+        let matrix_cb = matrix_handle(container, row);
+        let preview = Rc::clone(preview);
+        let count_of_row = count_of_row.clone();
+        matrix
+            .add_event_cb(code, move || {
+                let id = matrix_cb.get_selected_button();
+                let count = count_of_row(row);
+                if (id as usize) < count {
+                    // PRESSING fires every input period; skip the button-text lookup (which
+                    // allocates) while the preview already shows this key.
+                    if preview.shown.get() == Some((row, id)) {
+                        return;
+                    }
+                    match matrix_cb.get_button_text(id) {
+                        Some(text) => {
+                            preview.show(count, row, id, text.to_str().expect("key text is ASCII"))
+                        }
+                        None => preview.hide(),
+                    }
+                } else {
+                    // The finger slid off the keys (e.g. into a row gap).
+                    preview.hide();
+                }
+            })
+            .expect("failed to register key press callback");
+    }
+    for code in [
+        LvEventCode::LV_EVENT_RELEASED,
+        LvEventCode::LV_EVENT_PRESS_LOST,
+    ] {
+        let matrix_cb = matrix_handle(container, row);
+        let preview = Rc::clone(preview);
+        matrix
+            .add_event_cb(code, move || {
+                preview.hide();
+                // Discard the selection once the interaction ends (this callback runs after
+                // the class handler has fired VALUE_CHANGED for a legitimate click). LVGL
+                // keeps the lastly clicked key selected forever, and a press sliding in from
+                // a neighbouring key reaches the matrix without a PRESSED event (which is
+                // what re-derives the selection) but still gets RELEASED — a stale selection
+                // would type that key again.
+                matrix_cb.set_selected_button(lvgl::ffi::LV_BUTTONMATRIX_BUTTON_NONE);
+            })
+            .expect("failed to register key release callback");
+    }
+}
+
+/// Builds the QWERTY keyboard as a `KEYBOARD_WIDTH`×`KEYBOARD_HEIGHT` container and appends it to
+/// `parent`. Typed characters are inserted into `textarea`.
+///
+/// Child order (see the `CHILD_INDEX_*` constants): `ROWS` key-row buttonmatrices, caps lock,
+/// space bar, symbols toggle, preview balloon.
+pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
+    let container = build_container(parent, KEYBOARD_HEIGHT);
 
     let mode = Rc::new(RefCell::new(Mode {
         caps: false,
@@ -499,77 +644,18 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
     // The preview balloon is created last so it draws above every key.
     let preview = Rc::new(Preview::build(&container));
 
-    // Key-row behaviour: preview over the pressed key while pressed (hidden again if the finger
-    // slides off it, which also discards the selection); insert the selected key's character on
-    // release over it (`CLICK_TRIG`, set in `apply_mode`).
-    for (row, matrix) in key_rows.iter().enumerate() {
-        {
-            let matrix_cb = matrix_handle(&container, row);
-            let mode = Rc::clone(&mode);
-            let textarea = Rc::clone(&textarea);
-            matrix
-                .add_event_cb(LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
-                    let id = matrix_cb.get_selected_button();
-                    if (id as usize) < row_count(*mode.borrow(), row)
-                        && let Some(text) = matrix_cb.get_button_text(id)
-                    {
-                        let _ = textarea.add_text(text.to_str().expect("key text is ASCII"));
-                    }
-                })
-                .expect("failed to register key callback");
-        }
-        for code in [
-            LvEventCode::LV_EVENT_PRESSED,
-            LvEventCode::LV_EVENT_PRESSING,
-        ] {
-            let matrix_cb = matrix_handle(&container, row);
-            let mode = Rc::clone(&mode);
-            let preview = Rc::clone(&preview);
-            matrix
-                .add_event_cb(code, move || {
-                    let mode = *mode.borrow();
-                    let id = matrix_cb.get_selected_button();
-                    if (id as usize) < row_count(mode, row) {
-                        // PRESSING fires every input period; skip the button-text lookup (which
-                        // allocates) while the preview already shows this key.
-                        if preview.shown.get() == Some((row, id)) {
-                            return;
-                        }
-                        match matrix_cb.get_button_text(id) {
-                            Some(text) => preview.show(
-                                mode,
-                                row,
-                                id,
-                                text.to_str().expect("key text is ASCII"),
-                            ),
-                            None => preview.hide(),
-                        }
-                    } else {
-                        // The finger slid off the keys (e.g. into a row gap).
-                        preview.hide();
-                    }
-                })
-                .expect("failed to register key press callback");
-        }
-        for code in [
-            LvEventCode::LV_EVENT_RELEASED,
-            LvEventCode::LV_EVENT_PRESS_LOST,
-        ] {
-            let matrix_cb = matrix_handle(&container, row);
-            let preview = Rc::clone(&preview);
-            matrix
-                .add_event_cb(code, move || {
-                    preview.hide();
-                    // Discard the selection once the interaction ends (this callback runs after
-                    // the class handler has fired VALUE_CHANGED for a legitimate click). LVGL
-                    // keeps the lastly clicked key selected forever, and a press sliding in from
-                    // a neighbouring key reaches the matrix without a PRESSED event (which is
-                    // what re-derives the selection) but still gets RELEASED — a stale selection
-                    // would type that key again.
-                    matrix_cb.set_selected_button(lvgl::ffi::LV_BUTTONMATRIX_BUTTON_NONE);
-                })
-                .expect("failed to register key release callback");
-        }
+    // Key-row behaviour (`CLICK_TRIG` is set in `apply_mode`); the key counts change with the
+    // active layout, so they are resolved through the mode cell on every event.
+    for row in 0..ROWS {
+        let mode = Rc::clone(&mode);
+        wire_key_row(
+            &container,
+            row,
+            &textarea,
+            &preview,
+            move |row| row_count(*mode.borrow(), row),
+            None,
+        );
     }
 
     let widgets = Rc::new(Widgets {
@@ -630,4 +716,112 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
     apply_mode(&widgets, *mode.borrow());
 
     container
+}
+
+/// Builds the letters-only keyboard for BIP39 wordlist (recovery word) entry and appends it to
+/// `parent`: the three lowercase QWERTY letter rows, without the digit row and the caps-lock /
+/// space / symbols function row — no digit, space, capital or special character occurs in a
+/// BIP39 word. Typed characters are inserted into `textarea`; the jet-out preview and
+/// slide-off-to-cancel behave as on the passphrase keyboard. All keys start enabled; the caller
+/// filters them with [`set_enabled_letters`].
+///
+/// `after_insert` runs after each letter inserted by a key (and only then — the entry screen
+/// autocompletes there, which it must not do for deletions and cannot do from a textarea
+/// `VALUE_CHANGED` callback, where mutating the textarea would recursively re-enter that
+/// callback).
+///
+/// Child order: `WORDLIST_ROWS` key-row buttonmatrices, preview balloon
+/// ([`WORDLIST_CHILD_INDEX_PREVIEW`]).
+pub fn build_wordlist_keyboard(
+    parent: &LvObj,
+    textarea: Rc<LvTextarea>,
+    after_insert: Rc<dyn Fn()>,
+) -> LvObj {
+    let container = build_container(parent, WORDLIST_KEYBOARD_HEIGHT);
+
+    for (row, letters) in WORDLIST_ROW_LETTERS.iter().enumerate() {
+        let matrix = LvButtonmatrix::new(&container).unwrap();
+        style_key_row(&matrix);
+        // The maps never change on this keyboard, so unlike `apply_mode` this runs only once.
+        matrix.set_map(row_map(
+            Mode {
+                caps: false,
+                symbols: false,
+            },
+            row + 1,
+        ));
+        // Insert on release (click), not press: while pressed, the jet-out preview shows the key
+        // under the finger, and sliding off the key aborts instead of typing. CLICK_TRIG does
+        // not gate the long-press repeat path — NO_REPEAT keeps a held key from firing
+        // VALUE_CHANGED every repeat period.
+        matrix.set_button_ctrl_all(LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_CLICK_TRIG);
+        matrix.set_button_ctrl_all(LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_NO_REPEAT);
+        let count = letters.len();
+        matrix.set_size(row_width(count), KEY_HEIGHT);
+        matrix.set_pos(row_x(count), key_y(row));
+    }
+
+    // The preview balloon is created last so it draws above every key.
+    let preview = Rc::new(Preview::build(&container));
+
+    for row in 0..WORDLIST_ROWS {
+        wire_key_row(
+            &container,
+            row,
+            &textarea,
+            &preview,
+            |row| WORDLIST_ROW_LETTERS[row].len(),
+            Some(Rc::clone(&after_insert)),
+        );
+    }
+
+    container
+}
+
+/// Applies the set of currently-valid letters to a keyboard built by
+/// [`build_wordlist_keyboard`]: keys outside `enabled` are grayed out and inert. LVGL never
+/// selects a `LV_BUTTONMATRIX_CTRL_DISABLED` button on press, so a disabled key can neither pop
+/// the preview nor insert its character.
+pub fn set_enabled_letters(keyboard: &LvObj, enabled: LetterSet) {
+    for (row, letters) in WORDLIST_ROW_LETTERS.iter().enumerate() {
+        let matrix = matrix_handle(keyboard, row);
+        for (id, letter) in letters.iter().enumerate() {
+            if enabled.contains(*letter) {
+                matrix.clear_button_ctrl(
+                    id as u32,
+                    LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_DISABLED,
+                );
+            } else {
+                matrix
+                    .set_button_ctrl(id as u32, LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_DISABLED);
+            }
+        }
+    }
+}
+
+/// The wordlist-keyboard (row, key id) of `letter`, for tests.
+#[cfg(test)]
+pub(super) fn wordlist_letter_pos(letter: u8) -> (usize, usize) {
+    for (row, letters) in WORDLIST_ROW_LETTERS.iter().enumerate() {
+        if let Some(col) = letters.iter().position(|l| *l == letter) {
+            return (row, col);
+        }
+    }
+    panic!("not a wordlist keyboard letter: {}", letter as char);
+}
+
+/// Centre of wordlist-keyboard key (`row`, `col`), for tests.
+#[cfg(test)]
+pub(super) fn wordlist_key_center(row: usize, col: usize) -> (i32, i32) {
+    let count = WORDLIST_ROW_LETTERS[row].len();
+    (
+        key_x(count, col) + KEY_WIDTH / 2,
+        key_y(row) + KEY_HEIGHT / 2,
+    )
+}
+
+/// The letters of wordlist-keyboard row `row`, for tests (layout-sync check).
+#[cfg(test)]
+pub(super) fn wordlist_row_letters(row: usize) -> &'static [u8] {
+    WORDLIST_ROW_LETTERS[row]
 }

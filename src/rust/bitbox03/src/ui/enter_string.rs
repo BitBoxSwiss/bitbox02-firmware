@@ -2,7 +2,7 @@
 
 use alloc::{rc::Rc, string::String, vec::Vec};
 
-use bitbox_hal::ui::{CanCancel, EnterStringParams, UserAbort};
+use bitbox_hal::ui::{CanCancel, EnterStringParams, UserAbort, WordlistEntryAbort};
 use bitbox_lvgl::{
     self as lvgl, KeyboardExt, LabelExt, LvAlign, LvButton, LvButtonmatrixCtrl, LvKeyboard,
     LvKeyboardMapEntry, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, LvPart, LvTextarea,
@@ -367,8 +367,6 @@ pub fn build_passphrase_screen(
     preset: &str,
     responder: Responder<Result<zeroize::Zeroizing<String>, UserAbort>>,
 ) -> LvObj {
-    const DISABLED: u32 = lvgl::LvState::LV_STATE_DISABLED as u32;
-
     let screen = build_entry_screen_frame();
 
     add_title(&screen, params.title);
@@ -394,9 +392,7 @@ pub fn build_passphrase_screen(
     // Backspace (the mockup's left chevron): deletes the last character; gray and inert while
     // the input is empty.
     let backspace = build_nav_button(&actions, NavIcon::Back);
-    let backspace_icon = backspace.child(0).expect("backspace icon");
-    backspace.set_style_border_color(super::keyboard::gray(), DISABLED);
-    backspace_icon.set_style_image_recolor(super::keyboard::gray(), DISABLED);
+    let backspace_icon = style_nav_button_disabled(&backspace);
     let delete_textarea = Rc::clone(&textarea);
     backspace
         .add_click_cb(move || delete_textarea.delete_char())
@@ -404,15 +400,11 @@ pub fn build_passphrase_screen(
 
     let refresh_textarea = Rc::clone(&textarea);
     let refresh_backspace = Rc::new(move || {
-        if textarea_is_empty(refresh_textarea.as_ref()) {
-            backspace.add_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace_icon.add_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
-        } else {
-            backspace.remove_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace_icon.remove_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
-        }
+        set_nav_button_enabled(
+            &backspace,
+            &backspace_icon,
+            !textarea_is_empty(refresh_textarea.as_ref()),
+        );
     });
     refresh_backspace();
     let refresh_backspace_cb = Rc::clone(&refresh_backspace);
@@ -438,6 +430,271 @@ pub fn build_passphrase_screen(
             responder.resolve(Ok(snapshot_text(textarea.as_ref())));
         })
         .expect("failed to register confirm callback");
+
+    screen
+}
+
+/// The gray disabled look of a navigation icon button (border and icon); returns the icon for
+/// state toggling. Pairs with [`set_nav_button_enabled`].
+fn style_nav_button_disabled(button: &LvButton) -> LvObj {
+    const DISABLED: u32 = lvgl::LvState::LV_STATE_DISABLED as u32;
+    let icon = button.child(0).expect("nav button icon");
+    button.set_style_border_color(super::keyboard::gray(), DISABLED);
+    icon.set_style_image_recolor(super::keyboard::gray(), DISABLED);
+    icon
+}
+
+/// Enables/disables a navigation icon button: disabled renders the gray look from
+/// [`style_nav_button_disabled`] and makes the button inert.
+fn set_nav_button_enabled(button: &LvButton, icon: &LvObj, enabled: bool) {
+    if enabled {
+        button.remove_state(lvgl::LvState::LV_STATE_DISABLED);
+        icon.remove_state(lvgl::LvState::LV_STATE_DISABLED);
+        button.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+    } else {
+        button.add_state(lvgl::LvState::LV_STATE_DISABLED);
+        icon.add_state(lvgl::LvState::LV_STATE_DISABLED);
+        button.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+    }
+}
+
+/// Runs `f` on the textarea's content, borrowed in place from LVGL's buffer — unlike
+/// [`snapshot_text`] this makes no copy of the (possibly secret) content.
+fn with_textarea_text<R>(textarea: &LvTextarea, f: impl FnOnce(&str) -> R) -> R {
+    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
+    if text.is_null() {
+        return f("");
+    }
+    let text = unsafe { core::ffi::CStr::from_ptr(text) };
+    f(text.to_str().expect("textarea content must be valid UTF-8"))
+}
+
+/// The BIP39 English word at `idx`, or `None` if out of range. The wordlist is public
+/// compiled-in data, so the returned `&'static str` needs no zeroizing.
+fn bip39_word(idx: u16) -> Option<&'static str> {
+    bip39::Language::English
+        .word_list()
+        .get(idx as usize)
+        .copied()
+}
+
+/// Word-entry state derived from `wordlist` (BIP39 word indices; out-of-range indices are
+/// skipped) for the entered `prefix`.
+struct WordlistMatch {
+    /// The letters that can follow `prefix` towards one of the words.
+    next_letters: super::keyboard::LetterSet,
+    /// `prefix` is itself one of the words.
+    complete: bool,
+    /// The one word starting with `prefix`, if exactly one does (BitBox02 parity: a duplicated
+    /// index counts as two matches).
+    unique: Option<&'static str>,
+}
+
+fn wordlist_matches(wordlist: &[u16], prefix: &str) -> WordlistMatch {
+    let mut next_letters = super::keyboard::LetterSet::EMPTY;
+    let mut complete = false;
+    let mut last_match = None;
+    let mut match_count = 0usize;
+    for &idx in wordlist {
+        let Some(word) = bip39_word(idx) else {
+            continue;
+        };
+        if let Some(rest) = word.strip_prefix(prefix) {
+            match_count += 1;
+            last_match = Some(word);
+            match rest.as_bytes().first() {
+                Some(&letter) => next_letters.insert(letter),
+                None => complete = true,
+            }
+        }
+    }
+    WordlistMatch {
+        next_letters,
+        complete,
+        unique: if match_count == 1 { last_match } else { None },
+    }
+}
+
+/// Adds the visible word entry display: the standard entry field, centred (via a `flex_grow`
+/// wrapper, like the passphrase screen's masked display) in the space the screen's flex flow
+/// leaves between the title and the bottom-anchored keyboard region.
+///
+/// Returns the textarea (the display row's child 0) that the input widgets operate on.
+fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
+    let display = LvObj::with_parent(screen).unwrap();
+    display.set_size(380, 72);
+    display.set_style_flex_grow(1, 0);
+    display.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
+    display.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_ROW);
+    display.set_style_flex_main_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
+    display.set_style_flex_cross_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
+    // Centre the flex track too: cross-place only centres items within their (72px-tall) track,
+    // and the track itself defaults to the container's top.
+    display.set_style_flex_track_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
+    display.set_style_pad_top(0, 0);
+    display.set_style_pad_bottom(0, 0);
+    display.set_style_pad_left(0, 0);
+    display.set_style_pad_right(0, 0);
+    display.set_style_border_width(0, 0);
+    display.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
+    display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
+    display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+
+    let textarea = add_textarea(&display, preset, false);
+    // The field is display-only: a tap must not move the insertion cursor into the middle of
+    // the word (letters always append; backspace always deletes the last one).
+    textarea.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+    // No entry box on this screen: the letters sit directly on the background, centred, in the
+    // same bold 48px the mnemonic review screen shows the words in. The standard field's 72px
+    // box (16px paddings) cannot hold that line height, so the field sizes to its content.
+    textarea.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
+    textarea.set_style_border_width(0, 0);
+    textarea.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
+    textarea.set_style_text_font(
+        lvgl::fonts::INTER_BOLD_48,
+        lvgl::LvState::LV_STATE_DEFAULT as u32,
+    );
+    textarea.set_style_pad_top(0, 0);
+    textarea.set_style_pad_bottom(0, 0);
+    textarea.set_height(lvgl::ffi::LV_SIZE_CONTENT as i32);
+    Rc::new(textarea)
+}
+
+/// The BIP39 recovery-word entry screen: title ("x of y"), the word being typed in the standard
+/// entry field (recovery words are shown in plaintext — reading the word back is the point of
+/// the entry), the letters-only keyboard and a backspace/confirm navigation row.
+///
+/// The keyboard only ever offers letters that extend the entry towards one of the
+/// `params.wordlist` words (BIP39 word indices; must be set); all other keys are gray and
+/// inert, so no invalid word can be composed. A typed letter that leaves exactly one candidate
+/// autocompletes the whole word (BitBox02 parity; deleting never re-autocompletes, so backspace
+/// can undo it). Confirm is likewise gray until the entry exactly matches a wordlist word, so
+/// the workflow's "Invalid word" retry loop can never trigger. Back deletes the last letter; on
+/// an empty entry it rejects with [`WordlistEntryAbort::Back`] — the mnemonic workflow goes
+/// straight back to the previous word. With `CanCancel::Yes` (always set by that workflow) a
+/// corner close button rejects with [`WordlistEntryAbort::Cancel`] at any time — the workflow
+/// asks "Cancel restore?"; with `CanCancel::No` there is no close button and Back grays out on
+/// an empty entry.
+pub fn build_wordlist_screen(
+    params: &EnterStringParams<'_>,
+    can_cancel: CanCancel,
+    preset: &str,
+    responder: Responder<Result<zeroize::Zeroizing<String>, WordlistEntryAbort>>,
+) -> LvObj {
+    let wordlist = params
+        .wordlist
+        .expect("wordlist entry requires params.wordlist");
+    let screen = build_entry_screen_frame();
+
+    add_title(&screen, params.title);
+
+    let textarea = add_word_display(&screen, preset);
+    // Wordlist words are lowercase ASCII, at most 8 letters; refuse anything else at the widget
+    // level too (the key filtering already guarantees it for touch input).
+    textarea.set_accepted_chars(Some(c"abcdefghijklmnopqrstuvwxyz"));
+    textarea.set_max_length(8);
+
+    let wordlist: Rc<[u16]> = wordlist.into();
+
+    // BitBox02 parity: a typed letter that leaves exactly one candidate autocompletes the whole
+    // word. This runs from the keyboard's insert path, not the textarea change callback: only
+    // insertions may autocomplete (completing after a deletion would trap backspace in an
+    // undo-redo loop right after it deletes an autocompleted letter), and the textarea callback
+    // cannot mutate the textarea anyway (that would re-enter it). The `set_text` here fires the
+    // change callback below, which then relays the completed state to the keys and buttons.
+    let autocomplete_textarea = Rc::clone(&textarea);
+    let autocomplete_wordlist = Rc::clone(&wordlist);
+    let autocomplete: Rc<dyn Fn()> = Rc::new(move || {
+        let unique = with_textarea_text(autocomplete_textarea.as_ref(), |prefix| {
+            wordlist_matches(&autocomplete_wordlist, prefix)
+                .unique
+                .filter(|word| word.len() > prefix.len())
+        });
+        if let Some(word) = unique {
+            autocomplete_textarea
+                .set_text(word)
+                .expect("wordlist words contain no NUL");
+        }
+    });
+
+    // Keyboard and navigation row are bottom-anchored like on the passphrase screen (see
+    // `build_passphrase_screen`), with the keyboard sitting 50px higher over the navigation
+    // row here.
+    let keyboard =
+        super::keyboard::build_wordlist_keyboard(&screen, Rc::clone(&textarea), autocomplete);
+    keyboard.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    keyboard.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, -(82 + 20 + 50));
+
+    let actions = add_actions_row(&screen);
+    actions.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    actions.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    add_bottom_region_spacer(
+        &screen,
+        super::keyboard::WORDLIST_KEYBOARD_HEIGHT + 20 + 50 + 82,
+    );
+
+    // Back: deletes the last letter; on an empty entry it goes back to the previous word
+    // instead (the mnemonic workflow re-opens that word directly). With `CanCancel::No` (not
+    // used by the mnemonic workflow) there is nowhere to go back to, so the button grays out
+    // on an empty entry.
+    let allow_back_out = matches!(can_cancel, CanCancel::Yes);
+    let backspace = build_nav_button(&actions, NavIcon::Back);
+    let backspace_icon = style_nav_button_disabled(&backspace);
+    let delete_textarea = Rc::clone(&textarea);
+    let back_responder = responder.clone();
+    backspace
+        .add_click_cb(move || {
+            if !textarea_is_empty(delete_textarea.as_ref()) {
+                delete_textarea.delete_char();
+            } else if allow_back_out {
+                back_responder.resolve(Err(WordlistEntryAbort::Back));
+            }
+        })
+        .expect("failed to register backspace callback");
+
+    // The corner close button requests cancelling the whole restore; the workflow asks for
+    // confirmation before acting on it.
+    if matches!(can_cancel, CanCancel::Yes) {
+        let reject_responder = responder.clone();
+        let close = build_close_button(&screen);
+        // This screen has no side padding; re-anchor the corner button ~12px from the edges.
+        close.align(lvgl::LvAlign::LV_ALIGN_TOP_RIGHT, -12, -28);
+        close
+            .add_click_cb(move || reject_responder.resolve(Err(WordlistEntryAbort::Cancel)))
+            .expect("failed to register cancel callback");
+    }
+
+    // Confirm: gray and inert until the entry is a complete wordlist word.
+    let accept = build_nav_button(&actions, NavIcon::Confirm);
+    let accept_icon = style_nav_button_disabled(&accept);
+    {
+        let textarea = Rc::clone(&textarea);
+        accept
+            .add_click_cb(move || {
+                responder.resolve(Ok(snapshot_text(textarea.as_ref())));
+            })
+            .expect("failed to register confirm callback");
+    }
+
+    // Relay the word-entry state — which letters may come next and whether the entry is a
+    // complete word — from the wordlist to the keys and buttons on every content change.
+    let refresh_textarea = Rc::clone(&textarea);
+    let refresh = Rc::new(move || {
+        let (len, matches) = with_textarea_text(refresh_textarea.as_ref(), |prefix| {
+            (prefix.len(), wordlist_matches(&wordlist, prefix))
+        });
+        super::keyboard::set_enabled_letters(&keyboard, matches.next_letters);
+        set_nav_button_enabled(&backspace, &backspace_icon, len > 0 || allow_back_out);
+        set_nav_button_enabled(&accept, &accept_icon, matches.complete);
+    });
+    refresh();
+    let refresh_cb = Rc::clone(&refresh);
+    textarea
+        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
+            refresh_cb()
+        })
+        .expect("failed to register wordlist refresh callback");
 
     screen
 }
@@ -638,10 +895,16 @@ pub fn build_enter_string_screen(
     preset: &str,
     responder: Responder<Result<zeroize::Zeroizing<String>, UserAbort>>,
 ) -> LvObj {
-    if params.pin && params.wordlist.is_none() {
+    // Recovery-word entry goes through `build_wordlist_screen` (via the HAL's
+    // `enter_wordlist_word`), whose result distinguishes going back from cancelling.
+    debug_assert!(
+        params.wordlist.is_none(),
+        "wordlist entry must use build_wordlist_screen"
+    );
+    if params.pin {
         return build_pin_screen(params, can_cancel, preset, responder);
     }
-    if params.passphrase && params.wordlist.is_none() && !params.number_input {
+    if params.passphrase && !params.number_input {
         return build_passphrase_screen(params, can_cancel, preset, responder);
     }
 
@@ -675,10 +938,10 @@ pub fn build_enter_string_screen(
     // No extra margin: LVGL's flex sizing does not subtract margins when distributing
     // flex_grow space, so a margin here overflows the screen's bottom padding.
     keyboard.set_popovers(false);
-    let show_keyboard_switch = params.wordlist.is_none() && !params.number_input;
+    let show_keyboard_switch = !params.number_input;
     let initial_keyboard_mode = if params.number_input {
         None
-    } else if params.default_to_digits && params.wordlist.is_none() {
+    } else if params.default_to_digits {
         Some(KeyboardMode::Digits)
     } else {
         Some(KeyboardMode::LowerCase)
@@ -878,17 +1141,24 @@ mod tests {
         }
     }
 
-    struct Harness {
+    /// The wordlist screen resolves with a richer abort than the other entry screens.
+    type WordlistResult = Result<zeroize::Zeroizing<String>, WordlistEntryAbort>;
+
+    struct Harness<R = Result<zeroize::Zeroizing<String>, UserAbort>> {
         touch: ScriptedTouch,
         screen: LvObj,
-        result: completion::Result<Result<zeroize::Zeroizing<String>, UserAbort>>,
+        result: completion::Result<R>,
     }
 
     impl Harness {
-        fn with_params(params: &EnterStringParams<'_>, can_cancel: CanCancel) -> Self {
+        fn with_params(
+            params: &EnterStringParams<'_>,
+            can_cancel: CanCancel,
+            preset: &str,
+        ) -> Self {
             let touch = ScriptedTouch::new();
             let (responder, result) = completion::completion();
-            let screen = build_enter_string_screen(params, can_cancel, "", responder);
+            let screen = build_enter_string_screen(params, can_cancel, preset, responder);
             unsafe { ffi::lv_screen_load(screen.as_ptr()) };
             pump_for(60); // layout + first render
             Self {
@@ -899,13 +1169,37 @@ mod tests {
         }
 
         fn new(can_cancel: CanCancel) -> Self {
-            Self::with_params(&passphrase_params(), can_cancel)
+            Self::with_params(&passphrase_params(), can_cancel, "")
         }
 
         fn new_pin(can_cancel: CanCancel) -> Self {
-            Self::with_params(&pin_params(), can_cancel)
+            Self::with_params(&pin_params(), can_cancel, "")
         }
 
+        fn new_wordlist(
+            wordlist: &[u16],
+            can_cancel: CanCancel,
+            preset: &str,
+        ) -> Harness<WordlistResult> {
+            let params = EnterStringParams {
+                title: "1 of 24",
+                wordlist: Some(wordlist),
+                ..Default::default()
+            };
+            let touch = ScriptedTouch::new();
+            let (responder, result) = completion::completion();
+            let screen = build_wordlist_screen(&params, can_cancel, preset, responder);
+            unsafe { ffi::lv_screen_load(screen.as_ptr()) };
+            pump_for(60); // layout + first render
+            Harness {
+                touch,
+                screen,
+                result,
+            }
+        }
+    }
+
+    impl<R> Harness<R> {
         /// The PIN keypad container (screen child 2 on the PIN screen).
         fn keypad(&self) -> LvObj {
             self.screen.child(2).expect("keypad container")
@@ -949,7 +1243,7 @@ mod tests {
             (0..MASK_DOT_COUNT_MAX)
                 .filter(|i| {
                     let dot = display.child(1 + *i as i32).expect("masking dot");
-                    !Self::hidden(&dot)
+                    !Harness::hidden(&dot)
                 })
                 .count()
         }
@@ -960,7 +1254,7 @@ mod tests {
                 .entry_display()
                 .child(1 + MASK_DOT_COUNT_MAX as i32)
                 .expect("last-character label");
-            if Self::hidden(&label) {
+            if Harness::hidden(&label) {
                 return None;
             }
             let label = label
@@ -1027,6 +1321,56 @@ mod tests {
                 .expect("preview balloon")
         }
 
+        /// The preview balloon of the (letters-only) wordlist keyboard.
+        fn wordlist_preview(&self) -> LvObj {
+            self.keyboard()
+                .child(keyboard::WORDLIST_CHILD_INDEX_PREVIEW)
+                .expect("preview balloon")
+        }
+
+        /// The wordlist-keyboard key-row buttonmatrix `row`.
+        fn wordlist_row(&self, row: usize) -> bitbox_lvgl::LvButtonmatrix {
+            self.keyboard()
+                .child(row as i32)
+                .expect("key row")
+                .try_downcast::<class::ButtonmatrixTag>()
+                .expect("key row is a buttonmatrix")
+        }
+
+        /// Taps the wordlist-keyboard key for `letter`.
+        fn tap_wordlist_letter(&mut self, letter: u8) {
+            let (row, col) = keyboard::wordlist_letter_pos(letter);
+            let (x, y) = self.on_keyboard(keyboard::wordlist_key_center(row, col));
+            self.touch.tap(x, y);
+        }
+
+        /// Whether the wordlist-keyboard key for `letter` is disabled.
+        fn wordlist_letter_disabled(&self, letter: u8) -> bool {
+            use bitbox_lvgl::ButtonmatrixExt;
+            let (row, col) = keyboard::wordlist_letter_pos(letter);
+            self.wordlist_row(row).has_button_ctrl(
+                col as u32,
+                bitbox_lvgl::LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_DISABLED,
+            )
+        }
+
+        /// Asserts that exactly the letters in `expected` are enabled on the wordlist keyboard.
+        #[track_caller]
+        fn assert_enabled_letters(&self, expected: &[u8]) {
+            for letter in b'a'..=b'z' {
+                assert_eq!(
+                    !self.wordlist_letter_disabled(letter),
+                    expected.contains(&letter),
+                    "letter '{}' enabled state",
+                    letter as char
+                );
+            }
+        }
+    }
+
+    // Widget-state helpers: associated functions of the non-generic harness so call sites can
+    // stay `Harness::...` without turbofishing the (irrelevant) result type.
+    impl Harness {
         fn hidden(obj: &LvObj) -> bool {
             unsafe { ffi::lv_obj_has_flag(obj.as_ptr(), lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN) }
         }
@@ -1053,7 +1397,7 @@ mod tests {
         }
     }
 
-    impl Drop for Harness {
+    impl<R> Drop for Harness<R> {
         fn drop(&mut self) {
             // Swap in a fresh empty screen so the tested screen can be deleted.
             let blank = LvObj::new().unwrap();
@@ -1589,5 +1933,436 @@ mod tests {
             .tap((area.x1 + area.x2) / 2, (area.y1 + area.y2) / 2);
         let result = poll_once(&mut harness.result).expect("close resolves");
         assert!(result.is_err(), "close must reject with UserAbort");
+    }
+
+    /// The index of `word` in the BIP39 English wordlist.
+    fn word_idx(word: &str) -> u16 {
+        bip39::Language::English
+            .word_list()
+            .iter()
+            .position(|w| *w == word)
+            .unwrap_or_else(|| panic!("'{word}' is not a BIP39 word")) as u16
+    }
+
+    fn word_indices(words: &[&str]) -> Vec<u16> {
+        words.iter().map(|word| word_idx(word)).collect()
+    }
+
+    #[test]
+    fn test_wordlist_keyboard_layout() {
+        use bitbox_lvgl::ButtonmatrixExt;
+
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["abandon"]);
+        let harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // The keyboard carries exactly the three letter-row matrices plus the preview balloon —
+        // no digit row and no caps-lock/space/symbols function row.
+        let keyboard = harness.keyboard();
+        assert!(
+            keyboard
+                .child(keyboard::WORDLIST_CHILD_INDEX_PREVIEW)
+                .is_some()
+        );
+        assert!(
+            keyboard
+                .child(keyboard::WORDLIST_CHILD_INDEX_PREVIEW + 1)
+                .is_none(),
+            "unexpected extra child on the wordlist keyboard"
+        );
+        let area = coords(&keyboard);
+        assert_eq!(area.y2 - area.y1 + 1, keyboard::WORDLIST_KEYBOARD_HEIGHT);
+
+        // Each key's text matches the letter table the enable/disable logic works from.
+        for row in 0..3 {
+            let matrix = harness.wordlist_row(row);
+            let letters = keyboard::wordlist_row_letters(row);
+            for (id, letter) in letters.iter().enumerate() {
+                let text = matrix.get_button_text(id as u32).expect("key text");
+                assert_eq!(text.to_bytes(), &[*letter]);
+            }
+            assert!(
+                matrix.get_button_text(letters.len() as u32).is_none(),
+                "row {row} has more keys than letters"
+            );
+        }
+    }
+
+    #[test]
+    fn test_wordlist_typing_filters_keys() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["action", "actor", "zoo"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Empty entry: only the words' first letters are enabled.
+        harness.assert_enabled_letters(b"az");
+        harness.tap_wordlist_letter(b'b'); // disabled: types nothing
+        assert_eq!(harness.text().as_str(), "");
+
+        harness.tap_wordlist_letter(b'a');
+        assert_eq!(harness.text().as_str(), "a");
+        harness.assert_enabled_letters(b"c");
+        harness.tap_wordlist_letter(b'z'); // was valid before, no longer
+        assert_eq!(harness.text().as_str(), "a");
+
+        harness.tap_wordlist_letter(b'c');
+        harness.tap_wordlist_letter(b't');
+        assert_eq!(harness.text().as_str(), "act");
+        harness.assert_enabled_letters(b"io"); // action | actor
+
+        // 'o' leaves "actor" as the only candidate: the word autocompletes, every letter is
+        // disabled, confirm is enabled.
+        harness.tap_wordlist_letter(b'o');
+        assert_eq!(harness.text().as_str(), "actor");
+        harness.assert_enabled_letters(b"");
+        assert!(!Harness::disabled(&harness.confirm()));
+
+        let confirm = harness.confirm();
+        harness.tap_button(&confirm);
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "actor");
+    }
+
+    #[test]
+    fn test_wordlist_confirm_requires_complete_word() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["act", "action"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Confirm is gray and inert while the entry is no complete word.
+        assert!(Harness::disabled(&harness.confirm()));
+        let confirm = harness.confirm();
+        harness.tap_button(&confirm);
+        assert!(poll_once(&mut harness.result).is_none());
+
+        harness.tap_wordlist_letter(b'a');
+        harness.tap_wordlist_letter(b'c');
+        assert!(Harness::disabled(&harness.confirm()));
+        harness.tap_wordlist_letter(b't');
+
+        // "act" is a word itself AND a prefix of "action": confirm and 'i' are both live.
+        assert!(!Harness::disabled(&harness.confirm()));
+        harness.assert_enabled_letters(b"i");
+
+        harness.tap_button(&confirm);
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "act");
+    }
+
+    #[test]
+    fn test_wordlist_backspace_updates_filter() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone", "zebra"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        assert!(Harness::disabled(&harness.backspace()));
+        harness.assert_enabled_letters(b"z");
+        harness.tap_wordlist_letter(b'z');
+        harness.tap_wordlist_letter(b'o');
+        harness.assert_enabled_letters(b"no"); // zone | zoo
+        harness.tap_wordlist_letter(b'o');
+        assert_eq!(harness.text().as_str(), "zoo");
+        assert!(!Harness::disabled(&harness.confirm()));
+
+        // Deleting reverts both the letter filter and the confirm gating.
+        let backspace = harness.backspace();
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "zo");
+        harness.assert_enabled_letters(b"no");
+        assert!(Harness::disabled(&harness.confirm()));
+
+        harness.tap_button(&backspace);
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "");
+        assert!(Harness::disabled(&harness.backspace()));
+        harness.assert_enabled_letters(b"z");
+    }
+
+    #[test]
+    fn test_wordlist_back_on_empty_goes_back() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::Yes, "");
+
+        // With a cancellable screen the Back button is live even on an empty entry.
+        assert!(!Harness::disabled(&harness.backspace()));
+
+        // While the entry has letters, Back is backspace: it deletes and does not resolve.
+        harness.tap_wordlist_letter(b'z');
+        let backspace = harness.backspace();
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "");
+        assert!(poll_once(&mut harness.result).is_none());
+
+        // On the now-empty entry, Back goes back to the previous word.
+        harness.tap_button(&backspace);
+        let result = poll_once(&mut harness.result).expect("back resolves");
+        assert!(
+            matches!(result, Err(WordlistEntryAbort::Back)),
+            "back on an empty entry must reject with Back"
+        );
+    }
+
+    #[test]
+    fn test_wordlist_back_on_empty_inert_when_not_cancellable() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Without a cancel path there is nowhere to go back to: the button is gray and a tap
+        // neither types nor resolves.
+        assert!(Harness::disabled(&harness.backspace()));
+        let backspace = harness.backspace();
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "");
+        assert!(poll_once(&mut harness.result).is_none());
+    }
+
+    #[test]
+    fn test_wordlist_preset_starts_complete() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::Yes, "zoo");
+
+        // A preset word (re-editing a previously entered word) starts out confirmable.
+        assert_eq!(harness.text().as_str(), "zoo");
+        assert!(!Harness::disabled(&harness.confirm()));
+        assert!(!Harness::disabled(&harness.backspace()));
+        harness.assert_enabled_letters(b"");
+
+        let confirm = harness.confirm();
+        harness.tap_button(&confirm);
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "zoo");
+    }
+
+    #[test]
+    fn test_wordlist_disabled_key_no_preview_no_type() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Press and hold the disabled 'q': the preview must not pop up, and releasing must not
+        // type (LVGL never selects a disabled matrix button).
+        assert!(harness.wordlist_letter_disabled(b'q'));
+        let preview = harness.wordlist_preview();
+        let (row, col) = keyboard::wordlist_letter_pos(b'q');
+        let (x, y) = harness.on_keyboard(keyboard::wordlist_key_center(row, col));
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, true);
+        pump_for(120);
+        assert!(Harness::hidden(&preview));
+        harness.touch.push(x, y, false);
+        pump_for(120);
+        assert_eq!(harness.text().as_str(), "");
+
+        // The enabled 'z' still previews and types.
+        harness.tap_wordlist_letter(b'z');
+        assert_eq!(harness.text().as_str(), "z");
+    }
+
+    #[test]
+    fn test_wordlist_autocompletes_unique_match() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zebra", "zoo"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Two candidates left after 'z': no autocomplete yet.
+        harness.tap_wordlist_letter(b'z');
+        assert_eq!(harness.text().as_str(), "z");
+        assert!(Harness::disabled(&harness.confirm()));
+
+        // 'e' leaves only "zebra": the rest of the word fills in by itself.
+        harness.tap_wordlist_letter(b'e');
+        assert_eq!(harness.text().as_str(), "zebra");
+        harness.assert_enabled_letters(b"");
+        assert!(!Harness::disabled(&harness.confirm()));
+        assert!(!Harness::disabled(&harness.backspace()));
+
+        let confirm = harness.confirm();
+        harness.tap_button(&confirm);
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "zebra");
+    }
+
+    #[test]
+    fn test_wordlist_autocompletes_longest_word() {
+        let _lock = lock_and_init();
+        // "abstract" has 8 letters — exactly the entry's max length; the autocompleting
+        // `set_text` must not be truncated by it.
+        let wordlist = word_indices(&["abstract", "abandon"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        harness.tap_wordlist_letter(b'a');
+        harness.tap_wordlist_letter(b'b');
+        harness.tap_wordlist_letter(b's');
+        assert_eq!(harness.text().as_str(), "abstract");
+        assert!(!Harness::disabled(&harness.confirm()));
+    }
+
+    #[test]
+    fn test_wordlist_autocompletes_past_shorter_word() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["act", "action"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // "act" matches two candidates ("act", "action"): no autocomplete, even though the
+        // entry is itself a confirmable word.
+        harness.tap_wordlist_letter(b'a');
+        harness.tap_wordlist_letter(b'c');
+        harness.tap_wordlist_letter(b't');
+        assert_eq!(harness.text().as_str(), "act");
+        assert!(!Harness::disabled(&harness.confirm()));
+
+        // 'i' leaves only "action": autocompletes.
+        harness.tap_wordlist_letter(b'i');
+        assert_eq!(harness.text().as_str(), "action");
+        assert!(!Harness::disabled(&harness.confirm()));
+    }
+
+    #[test]
+    fn test_wordlist_backspace_undoes_autocomplete() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zebra", "zoo"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        harness.tap_wordlist_letter(b'z');
+        harness.tap_wordlist_letter(b'e');
+        assert_eq!(harness.text().as_str(), "zebra");
+
+        // Deleting never re-autocompletes (else backspace could not get past the completed
+        // part): each press removes exactly one letter, with the filter and confirm gating
+        // tracking along.
+        let backspace = harness.backspace();
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "zebr");
+        assert!(Harness::disabled(&harness.confirm()));
+        harness.assert_enabled_letters(b"a");
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "zeb");
+
+        // Typing again re-arms the autocomplete.
+        harness.tap_wordlist_letter(b'r');
+        assert_eq!(harness.text().as_str(), "zebra");
+    }
+
+    #[test]
+    fn test_wordlist_slide_off_key_cancels() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Press the enabled 'z', slide off it (onto the disabled 'x'), release: the buttonmatrix
+        // discards its selection when the pointer leaves the pressed key, so the preview hides
+        // and nothing is typed.
+        let preview = harness.wordlist_preview();
+        let (row, col) = keyboard::wordlist_letter_pos(b'z');
+        let (x, y) = harness.on_keyboard(keyboard::wordlist_key_center(row, col));
+        let (x_next, _) = harness.on_keyboard(keyboard::wordlist_key_center(row, col + 1));
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, true);
+        pump_for(120);
+        assert!(!Harness::hidden(&preview));
+
+        harness.touch.push(x_next, y, true);
+        harness.touch.push(x_next, y, true);
+        pump_for(120);
+        assert!(Harness::hidden(&preview));
+
+        harness.touch.push(x_next, y, false);
+        pump_for(120);
+        assert_eq!(harness.text().as_str(), "");
+    }
+
+    #[test]
+    fn test_wordlist_holding_key_types_once() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo", "zone"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // Hold 'z' well past LVGL's long-press threshold (400ms) and repeat period (100ms): the
+        // NO_REPEAT ctrl bit must keep the buttonmatrix from auto-repeating; exactly one letter
+        // is inserted, on release.
+        let (row, col) = keyboard::wordlist_letter_pos(b'z');
+        let (x, y) = harness.on_keyboard(keyboard::wordlist_key_center(row, col));
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, true);
+        pump_for(700);
+        assert_eq!(harness.text().as_str(), "");
+        harness.touch.push(x, y, false);
+        pump_for(120);
+        assert_eq!(harness.text().as_str(), "z");
+    }
+
+    #[test]
+    fn test_wordlist_preview_on_centred_rows() {
+        let _lock = lock_and_init();
+        // The full wordlist, so every row's first letters are enabled.
+        let wordlist: Vec<u16> = (0..2048).collect();
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::No, "");
+
+        // The 9-key and 7-key rows are centred, so the preview position depends on the row's
+        // key count: press-hold a key on each and check the balloon straddles it.
+        let preview = harness.wordlist_preview();
+        for (letter, expected_label) in [(b's', "s"), (b'c', "c")] {
+            let (row, col) = keyboard::wordlist_letter_pos(letter);
+            let (x, y) = harness.on_keyboard(keyboard::wordlist_key_center(row, col));
+            harness.touch.push(x, y, true);
+            harness.touch.push(x, y, true);
+            pump_for(120);
+            assert!(!Harness::hidden(&preview));
+            let balloon = coords(&preview);
+            // `x2` is inclusive (x1 + width - 1), so round the centre up.
+            assert_eq!(
+                (balloon.x1 + balloon.x2 + 1) / 2,
+                x,
+                "balloon not centred on '{}'",
+                letter as char
+            );
+            assert!(
+                balloon.y1 < y - 30 - 60,
+                "balloon head not above '{}'",
+                letter as char
+            );
+            let label = preview
+                .child(1)
+                .expect("preview label")
+                .try_downcast::<class::LabelTag>()
+                .expect("preview label class");
+            assert_eq!(label.get_text().unwrap().to_str().unwrap(), expected_label);
+            harness.touch.push(x, y, false);
+            pump_for(120);
+            assert!(Harness::hidden(&preview));
+        }
+        assert_eq!(harness.text().as_str(), "sc");
+    }
+
+    #[test]
+    fn test_wordlist_close_button_rejects() {
+        let _lock = lock_and_init();
+        let wordlist = word_indices(&["zoo"]);
+        let mut harness = Harness::new_wordlist(&wordlist, CanCancel::Yes, "");
+
+        // Same child order as the passphrase screen: title, display, keyboard, actions, spacer,
+        // corner close button.
+        let close = harness.screen.child(5).expect("corner close button");
+        harness.tap_button(&close);
+        let result = poll_once(&mut harness.result).expect("close resolves");
+        assert!(
+            matches!(result, Err(WordlistEntryAbort::Cancel)),
+            "close button must reject with Cancel"
+        );
     }
 }

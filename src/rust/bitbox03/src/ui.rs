@@ -164,6 +164,18 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         .await
     }
 
+    async fn enter_wordlist_word(
+        &mut self,
+        params: &bitbox_hal::ui::EnterStringParams<'_>,
+        can_cancel: bitbox_hal::ui::CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<alloc::string::String>, bitbox_hal::ui::WordlistEntryAbort> {
+        self.with_result_screen(|responder| {
+            enter_string::build_wordlist_screen(params, can_cancel, preset, responder)
+        })
+        .await
+    }
+
     async fn insert_sdcard(&mut self) -> Result<(), bitbox_hal::ui::UserAbort> {
         todo!()
     }

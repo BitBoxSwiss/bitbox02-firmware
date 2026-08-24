@@ -38,7 +38,11 @@ pub fn build_status_screen(title: &str, status_success: bool) -> LvObj {
     badge.set_style_border_color(lvgl::color::white(), 0);
 
     // `png_decoder` returns ARGB8888 pixels as RGBA; LVGL expects BGRA in memory.
-    let png = if status_success { SUCCESS_PNG } else { CANCEL_PNG };
+    let png = if status_success {
+        SUCCESS_PNG
+    } else {
+        CANCEL_PNG
+    };
     let (header, mut data) = png_decoder::decode(png).expect("valid status icon png");
     for px in data.iter_mut() {
         px.swap(0, 2);

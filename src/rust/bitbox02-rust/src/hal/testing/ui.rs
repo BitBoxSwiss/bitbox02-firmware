@@ -3,6 +3,7 @@
 use crate::hal::Ui;
 use crate::hal::ui::{
     CanCancel, ConfirmParams, Empty, EnterStringParams, Progress, TrinaryChoice, UserAbort,
+    WordlistEntryAbort,
 };
 
 use alloc::boxed::Box;
@@ -54,6 +55,8 @@ pub enum Screen {
 }
 
 type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
+type EnterWordlistWordCb<'a> =
+    Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, WordlistEntryAbort> + 'a>;
 type MenuCb<'a> = Box<dyn FnMut(&[&str], Option<&str>) -> Result<u8, UserAbort> + 'a>;
 type TrinaryChoiceCb<'a> =
     Box<dyn FnMut(&str, Option<&str>, Option<&str>, Option<&str>) -> TrinaryChoice + 'a>;
@@ -65,6 +68,7 @@ pub struct TestingUi<'a> {
     pub screens: Vec<Screen>,
     pub confirm_display_sizes: Vec<usize>,
     _enter_string: Option<EnterStringCb<'a>>,
+    _enter_wordlist_word: Option<EnterWordlistWordCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
     _quiz_choices: VecDeque<u8>,
@@ -207,6 +211,22 @@ impl Ui for TestingUi<'_> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
     }
 
+    async fn enter_wordlist_word(
+        &mut self,
+        params: &EnterStringParams<'_>,
+        can_cancel: CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
+        match self._enter_wordlist_word.as_mut() {
+            Some(cb) => cb(params).map(zeroize::Zeroizing::new),
+            // Mirror the trait default: a single abort control reports an unspecified abort.
+            None => self
+                .enter_string(params, can_cancel, preset)
+                .await
+                .map_err(|UserAbort| WordlistEntryAbort::Unspecified),
+        }
+    }
+
     async fn insert_sdcard(&mut self) -> Result<(), UserAbort> {
         Ok(())
     }
@@ -276,6 +296,7 @@ impl<'a> TestingUi<'a> {
             confirm_display_sizes: vec![],
             _abort_nth: None,
             _enter_string: None,
+            _enter_wordlist_word: None,
             _menu: None,
             _trinary_choice: None,
             _quiz_choices: VecDeque::new(),
@@ -297,6 +318,10 @@ impl<'a> TestingUi<'a> {
 
     pub fn set_enter_string(&mut self, cb: EnterStringCb<'a>) {
         self._enter_string = Some(cb);
+    }
+
+    pub fn set_enter_wordlist_word(&mut self, cb: EnterWordlistWordCb<'a>) {
+        self._enter_wordlist_word = Some(cb);
     }
 
     pub fn remove_enter_string(&mut self) {

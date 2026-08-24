@@ -11,7 +11,7 @@ use core::marker::PhantomData;
 use tracing::info;
 use util::futures::completion;
 
-mod choice;
+pub mod choice;
 pub mod confirm;
 pub mod demo;
 pub mod enter_string;

@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
-//! Headless renderer for the status (success / cancel) screen, for visual review through LVGL's
-//! real software renderer (no GPU / windowing needed). Renders on the real 480×800 geometry.
+//! Headless renderer for the BIP39 wordlist (recovery word) entry screen, for visual review
+//! through LVGL's real software renderer (no GPU / windowing needed). Renders on the real
+//! 480×800 geometry.
+//!
+//! The optional second argument pre-enters a word prefix (via the screen's preset mechanism), so
+//! the letter filtering and confirm gating are visible:
 //!
 //! ```sh
-//! cargo run -p bitbox03 --example render_status -- /tmp/status.bmp success
-//! cargo run -p bitbox03 --example render_status -- /tmp/status.bmp cancel
-//! sips -s format png /tmp/status.bmp --out /tmp/status.png   # macOS; or ImageMagick `convert`
+//! cargo run -p bitbox03 --example render_wordlist -- /tmp/wordlist.bmp          # empty entry
+//! cargo run -p bitbox03 --example render_wordlist -- /tmp/wordlist.bmp ac       # mid-word
+//! cargo run -p bitbox03 --example render_wordlist -- /tmp/wordlist.bmp action   # complete word
+//! sips -s format png /tmp/wordlist.bmp --out /tmp/wordlist.png   # macOS; or ImageMagick
 //! ```
 
 use std::cell::{Cell, RefCell};
@@ -15,8 +20,9 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
+use bitbox_hal::ui::{CanCancel, EnterStringParams, WordlistEntryAbort};
 use bitbox_lvgl::{self as lvgl, LvArea, LvDisplay, LvDisplayRenderMode};
-use bitbox03::ui::status::build_status_screen;
+use bitbox03::ui::enter_string::build_wordlist_screen;
 
 const WIDTH: usize = 480;
 const HEIGHT: usize = 800;
@@ -64,8 +70,8 @@ fn write_bmp(path: &str, bgr: &[u8]) -> std::io::Result<()> {
 fn main() {
     let out_path = std::env::args()
         .nth(1)
-        .unwrap_or_else(|| "status_preview.bmp".to_string());
-    let success = std::env::args().nth(2).as_deref() != Some("cancel");
+        .unwrap_or_else(|| "wordlist_preview.bmp".to_string());
+    let preset = std::env::args().nth(2).unwrap_or_default();
 
     lvgl::system::init();
     lvgl::tick::set_cb(Some(now_ms));
@@ -81,7 +87,7 @@ fn main() {
         .expect("set display buffers");
 
     let framebuffer = Rc::new(RefCell::new(vec![0u8; WIDTH * HEIGHT * 3]));
-    let flushed = Rc::new(Cell::new(false));
+    let flushed = Rc::new(Cell::new(0u32));
     {
         let framebuffer = Rc::clone(&framebuffer);
         let flushed = Rc::clone(&flushed);
@@ -106,31 +112,45 @@ fn main() {
                 }
             }
             if display.flush_is_last() {
-                flushed.set(true);
+                flushed.set(flushed.get() + 1);
             }
         });
     }
 
-    let title = if success {
-        "Device name changed"
-    } else {
-        "Transaction canceled"
+    // The full BIP39 wordlist, as the mnemonic workflow passes it for words 1..n-1.
+    let wordlist: Vec<u16> = (0..2048).collect();
+    let params = EnterStringParams {
+        title: "4 of 24",
+        wordlist: Some(&wordlist),
+        ..Default::default()
     };
-    let screen = build_status_screen(title, success);
+    let (responder, _result) = util::futures::completion::completion::<
+        Result<zeroize::Zeroizing<String>, WordlistEntryAbort>,
+    >();
+    let screen = build_wordlist_screen(&params, CanCancel::Yes, &preset, responder);
     display.screen_load(screen);
 
-    for _ in 0..2000 {
-        lvgl::timer::handler();
-        if flushed.get() {
-            break;
+    let pump_until = |frames: u32, deadline_ms: u32| {
+        for _ in 0..deadline_ms / 2 {
+            lvgl::timer::handler();
+            if flushed.get() >= frames {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(2));
         }
+        assert!(flushed.get() >= frames, "LVGL never produced a frame");
+    };
+    pump_until(1, 4000);
+    // Settle any style transitions kicked off by the initial disabled/enabled state, then force
+    // a full redraw and capture the settled frame.
+    for _ in 0..150 {
+        lvgl::timer::handler();
         std::thread::sleep(Duration::from_millis(2));
     }
-    assert!(flushed.get(), "LVGL never produced a frame");
+    unsafe { lvgl::ffi::lv_obj_invalidate(lvgl::ffi::lv_screen_active()) };
+    let already = flushed.get();
+    pump_until(already + 1, 4000);
 
     write_bmp(&out_path, &framebuffer.borrow()).expect("write bmp");
-    eprintln!(
-        "wrote {out_path} ({})",
-        if success { "success" } else { "cancel" }
-    );
+    eprintln!("wrote {out_path} (preset: {preset:?})");
 }

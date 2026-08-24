@@ -10,6 +10,17 @@ pub const MAX_CONFIRM_BODY_SIZE: usize = 640;
 
 pub struct UserAbort;
 
+/// How the user left a recovery-word entry screen without entering a word.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum WordlistEntryAbort {
+    /// A dedicated back control: return to the previous word.
+    Back,
+    /// A dedicated cancel control: abort the whole flow (the workflow asks for confirmation).
+    Cancel,
+    /// The UI offers a single abort control, so the workflow must ask the user what they meant.
+    Unspecified,
+}
+
 #[derive(Copy, Clone, Default)]
 pub enum Font {
     #[default]
@@ -143,6 +154,23 @@ pub trait Ui {
         can_cancel: CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort>;
+
+    /// Enter one recovery word from `params.wordlist` (which must be set). Like
+    /// [`Ui::enter_string`], but the error reports how the user left the screen, so a UI with
+    /// separate back and cancel controls (BitBox03) lets the mnemonic workflow go straight back
+    /// to the previous word. The default delegates to `enter_string`, whose single abort maps
+    /// to [`WordlistEntryAbort::Unspecified`] (BitBox02): the workflow then asks what the user
+    /// meant.
+    async fn enter_wordlist_word(
+        &mut self,
+        params: &EnterStringParams<'_>,
+        can_cancel: CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
+        self.enter_string(params, can_cancel, preset)
+            .await
+            .map_err(|UserAbort| WordlistEntryAbort::Unspecified)
+    }
 
     async fn insert_sdcard(&mut self) -> Result<(), UserAbort>;
 

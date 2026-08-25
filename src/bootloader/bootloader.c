@@ -850,7 +850,11 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         if (output[1] != OP_STATUS_OK) {
             bootloader_render_default_screen();
         } else {
-            _render_progress((float)chunk_num / (float)(_firmware_num_chunks - 1));
+            float progress = 1;
+            if (_firmware_num_chunks > 1) {
+                progress = (float)chunk_num / (float)(_firmware_num_chunks - 1);
+            }
+            _render_progress(progress);
         }
         break;
     }

@@ -21,7 +21,7 @@ CI Design guidelines
       \        \
        \        o <-- (HEAD)
         \      /
-         o----o <-- Pull requst branch (parent 2)
+         o----o <-- Pull request branch (parent 2)
 
   * On push events we get hashes of last commit before and after the push. When we look for what
     changed we can diff github.event.before with HEAD.

@@ -7,7 +7,10 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### v9.27.1
 - Ethereum: display the EIP-712 message type before signing
+- Bitcoin: allow signing messages with keys in the m/48' application namespace
 
 ### v9.27.0
 - Display long transaction and swap amounts in full instead of truncating them

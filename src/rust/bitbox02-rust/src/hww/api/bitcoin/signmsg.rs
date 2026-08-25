@@ -22,12 +22,17 @@ use util::bip32::HARDENED;
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 const MAX_KEYPATH_DEPTH: usize = 10;
-const EXTERNAL_SERVICE_PURPOSE: u32 = 45 + HARDENED;
+const EXTERNAL_SERVICE_PURPOSE_M45: u32 = 45 + HARDENED;
+const EXTERNAL_SERVICE_PURPOSE_M48: u32 = 48 + HARDENED;
+const EXTERNAL_SERVICE_PURPOSES: [u32; 2] =
+    [EXTERNAL_SERVICE_PURPOSE_M45, EXTERNAL_SERVICE_PURPOSE_M48];
 
 /// Validate a keypath in the external service application namespace.
 fn validate_external_service_keypath(keypath: &[u32]) -> Result<(), Error> {
     match keypath.first() {
-        Some(first) if *first == EXTERNAL_SERVICE_PURPOSE && keypath.len() <= MAX_KEYPATH_DEPTH => {
+        Some(first)
+            if EXTERNAL_SERVICE_PURPOSES.contains(first) && keypath.len() <= MAX_KEYPATH_DEPTH =>
+        {
             Ok(())
         }
         _ => Err(Error::InvalidInput),
@@ -181,10 +186,11 @@ mod tests {
 
     #[test]
     fn test_validate_external_service_keypath() {
-        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE]).is_ok());
+        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE_M45]).is_ok());
+        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE_M48]).is_ok());
         assert!(
             validate_external_service_keypath(&[
-                EXTERNAL_SERVICE_PURPOSE,
+                EXTERNAL_SERVICE_PURPOSE_M45,
                 0 + HARDENED,
                 0,
                 1 + HARDENED,
@@ -207,6 +213,10 @@ mod tests {
             Err(Error::InvalidInput)
         );
         assert_eq!(
+            validate_external_service_keypath(&[48]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
             validate_external_service_keypath(&[44 + HARDENED]),
             Err(Error::InvalidInput)
         );
@@ -215,7 +225,9 @@ mod tests {
             Err(Error::InvalidInput)
         );
         assert_eq!(
-            validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE; MAX_KEYPATH_DEPTH + 1]),
+            validate_external_service_keypath(
+                &[EXTERNAL_SERVICE_PURPOSE_M48; MAX_KEYPATH_DEPTH + 1]
+            ),
             Err(Error::InvalidInput)
         );
     }
@@ -265,14 +277,20 @@ mod tests {
     }
 
     #[async_test::test]
-    pub async fn test_p2wpkh_nonstandard_keypath() {
+    pub async fn test_p2wpkh_m45_keypath() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
                 script_config: Some(pb::BtcScriptConfig {
                     config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
                 }),
-                keypath: vec![EXTERNAL_SERVICE_PURPOSE, 0 + HARDENED, 0 + HARDENED, 0, 0],
+                keypath: vec![
+                    EXTERNAL_SERVICE_PURPOSE_M45,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    0,
+                    0,
+                ],
             }),
             msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
@@ -300,6 +318,59 @@ mod tests {
                 Screen::Confirm {
                     title: "Address".into(),
                     body: "bc1q y5mk a6rf x0ek uwfx 5nkk 098y kfec xxfn 6uja 5z".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_p2wpkh_m48_keypath() {
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
+                }),
+                keypath: vec![
+                    EXTERNAL_SERVICE_PURPOSE_M48,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    0,
+                    0,
+                ],
+            }),
+            msg: MESSAGE.as_bytes().to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            process(&mut mock_hal, &request).await,
+            Ok(Response::SignMessage(pb::BtcSignMessageResponse {
+                signature: hex!(
+                    "10be07206be68b250970f88faee73e666fa7cfc071965889617b68badef5291d2aee2404a36d5e2e43511b03825e146ade250a8a317accb93bfa2ca10dbbeb1301"
+                )
+                .to_vec(),
+            }))
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin\nExternal service key".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "bc1q unjs etyg npj5 fq08 74ex 9qgx d9ue tyk4 lgqf x3".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {

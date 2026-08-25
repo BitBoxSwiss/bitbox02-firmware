@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <bootloader_upgrade/bootloader_upgrade.h>
 #include <fake_memory.h>
 #include <flags.h>
 #include <memory/memory.h>
@@ -17,6 +18,7 @@
 static uint8_t _memory_shared_data[FLASH_SHARED_DATA_LEN] = {0};
 static uint8_t _memory_app_data[FLASH_APPDATA_LEN] = {0};
 static uint8_t _memory_smarteeprom[SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE] = {0};
+static bb02_stage1_header_t _bootloader_stage1_header = {0};
 
 static void _init_file_if_needed(
     const char* base_path,
@@ -51,6 +53,7 @@ void fake_memory_factoryreset(void)
     memset(_memory_shared_data, 0xff, sizeof(_memory_shared_data));
     memset(_memory_app_data, 0xff, sizeof(_memory_app_data));
     memset(_memory_smarteeprom, 0xff, sizeof(_memory_smarteeprom));
+    memset(&_bootloader_stage1_header, 0, sizeof(_bootloader_stage1_header));
 
     const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
     if (base_path) {
@@ -238,4 +241,16 @@ void memory_set_bootloader_hash_fake(const uint8_t* fake_hash)
 {
     // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
     memcpy(_bootloader_hash, fake_hash, sizeof(_bootloader_hash));
+}
+
+const uint8_t* memory_get_bootloader_stage1_header_fake(void)
+{
+    return (const uint8_t*)&_bootloader_stage1_header;
+}
+
+void memory_set_bootloader_stage1_header_fake(const uint8_t* header, size_t header_len)
+{
+    assert(header != NULL);
+    assert(header_len == sizeof(_bootloader_stage1_header));
+    memcpy(&_bootloader_stage1_header, header, sizeof(_bootloader_stage1_header));
 }

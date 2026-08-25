@@ -60,6 +60,22 @@ pub fn get_attestation_bootloader_hash() -> [u8; 32] {
     hash
 }
 
+pub fn get_bootloader_version() -> Option<String> {
+    let mut version = [0u8; bitbox02_sys::MEMORY_BOOTLOADER_VERSION_MAX_LEN as usize];
+    let mut version_len = 0usize;
+    if !unsafe {
+        bitbox02_sys::memory_get_bootloader_version(version.as_mut_ptr(), &mut version_len)
+    } {
+        return None;
+    }
+    assert!(version_len <= version.len());
+    Some(
+        core::str::from_utf8(&version[..version_len])
+            .unwrap()
+            .into(),
+    )
+}
+
 pub fn get_attestation_pubkey_and_certificate(
     device_pubkey: &mut [u8; 64],
     certificate: &mut [u8; 64],

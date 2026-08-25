@@ -139,6 +139,9 @@ pub struct DeviceInfoResponse {
     /// algorithm.
     #[prost(string, tag = "8")]
     pub password_stretching_algo: ::prost::alloc::string::String,
+    /// Marketing version of the installed stage1 bootloader. Not present on legacy bootloaders.
+    #[prost(string, optional, tag = "9")]
+    pub bootloader_version: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Nested message and enum types in `DeviceInfoResponse`.
 pub mod device_info_response {

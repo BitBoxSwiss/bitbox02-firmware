@@ -4,6 +4,7 @@
 #define _MEMORY_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "compiler_util.h"
@@ -13,6 +14,9 @@
 
 // How many multisig configurations (accounts) can be registered.
 #define MEMORY_MULTISIG_NUM_ENTRIES 25
+
+// Maximum length of the stage1 bootloader marketing version, excluding a null terminator.
+#define MEMORY_BOOTLOADER_VERSION_MAX_LEN 37
 
 typedef enum {
     // Legacy/initial value, corresponds to the original Optiga factorysetup config.
@@ -200,6 +204,17 @@ USE_RESULT bool memory_get_attestation_pubkey_and_certificate(
  * @param[out] hash_out must be 32 bytes and will contain the result.
  */
 void memory_bootloader_hash(uint8_t* hash_out);
+
+/**
+ * Retrieves the installed stage1 bootloader marketing version.
+ *
+ * @param[out] version_out Buffer that receives the version without a null terminator. Must fit
+ * MEMORY_BOOTLOADER_VERSION_MAX_LEN bytes.
+ * @param[out] version_len_out Number of bytes written to version_out.
+ * @return false if the arguments are invalid or the stage1 header is invalid (including for legacy
+ * bootloaders).
+ */
+USE_RESULT bool memory_get_bootloader_version(uint8_t* version_out, size_t* version_len_out);
 
 typedef struct {
     secbool_u8 value;

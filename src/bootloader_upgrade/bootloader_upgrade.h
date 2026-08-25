@@ -3,7 +3,6 @@
 #ifndef _BOOTLOADER_UPGRADE_H_
 #define _BOOTLOADER_UPGRADE_H_
 
-#include <bootloader/bootloader_product.h>
 #include <stddef.h>
 #include <stdint.h>
 

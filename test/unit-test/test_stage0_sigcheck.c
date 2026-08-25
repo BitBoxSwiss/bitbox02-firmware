@@ -8,6 +8,7 @@
 #include <string.h>
 #include <cmocka.h>
 
+#include "bootloader/bootloader_product.h"
 #include "bootloader/stage0/stage1_sigcheck.h"
 #include "hal_sha_sync.h"
 #include "pukcc/pukcc.h"

@@ -48,5 +48,33 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
             hal_memory::PasswordStretchAlgo::V0 => "V1".into(),
             hal_memory::PasswordStretchAlgo::V1 => "V2".into(),
         },
+        bootloader_version: hal.memory().get_bootloader_version(),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::hal::testing::TestingHal;
+
+    async fn _device_info(hal: &mut TestingHal<'_>) -> pb::DeviceInfoResponse {
+        match process(hal).await.unwrap() {
+            Response::DeviceInfo(response) => response,
+            _ => panic!("unexpected response"),
+        }
+    }
+
+    #[async_test::test]
+    async fn test_process_bootloader_version() {
+        let mut hal = TestingHal::new();
+        hal.memory.set_bootloader_version(Some("v1.2.2"));
+        assert_eq!(
+            _device_info(&mut hal).await.bootloader_version.as_deref(),
+            Some("v1.2.2")
+        );
+
+        hal.memory.set_bootloader_version(None);
+        assert_eq!(_device_info(&mut hal).await.bootloader_version, None);
+    }
 }

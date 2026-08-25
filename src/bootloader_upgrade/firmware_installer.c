@@ -14,6 +14,7 @@
     #include "stage1_pubkeys.h"
 #endif
 #include "system.h"
+#include <bootloader/bootloader_product.h>
 #include <hal_flash.h>
 #include <sam.h>
 #include <stdbool.h>

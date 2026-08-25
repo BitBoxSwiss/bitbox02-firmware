@@ -162,9 +162,14 @@ class BitBox02(BitBoxCommonAPI):
         device_info_request = bitbox02_system.DeviceInfoRequest()
         request.device_info.CopyFrom(device_info_request)
         response = self._msg_query(request, expected_response="device_info")
-        result = {
+        result: Dict[str, Any] = {
             "name": response.device_info.name,
             "version": response.device_info.version,
+            "bootloader_version": (
+                response.device_info.bootloader_version
+                if response.device_info.HasField("bootloader_version")
+                else None
+            ),
             "initialized": response.device_info.initialized,
             "mnemonic_passphrase_enabled": response.device_info.mnemonic_passphrase_enabled,
             "monotonic_increments_remaining": response.device_info.monotonic_increments_remaining,

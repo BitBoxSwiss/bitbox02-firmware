@@ -114,6 +114,10 @@ impl Memory for BitBox02Memory {
         crate::spi_mem::get_active_ble_firmware_version().map_err(|_| Error::Unknown)
     }
 
+    fn get_bootloader_version(&mut self) -> Option<String> {
+        crate::memory::get_bootloader_version()
+    }
+
     fn ble_firmware_flash_chunk(
         &mut self,
         slot: BleFirmwareSlot,

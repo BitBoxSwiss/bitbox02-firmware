@@ -2,6 +2,7 @@
 
 #include "bootloader/boot_args.h"
 #include "bootloader_upgrade/bootloader_upgrade.h"
+#include <bootloader/bootloader_product.h>
 #ifndef BB02_STAGE0_DEVELOPMENT
     #include "bootloader_upgrade/stage1_pubkeys.h"
 #endif

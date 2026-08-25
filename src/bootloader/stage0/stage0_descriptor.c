@@ -2,6 +2,7 @@
 
 #include "stage0_descriptor.h"
 #include "bootloader_upgrade/bootloader_upgrade.h"
+#include <bootloader/bootloader_product.h>
 
 #ifdef BB02_STAGE0_DEVELOPMENT
     #define BB02_STAGE0_DESCRIPTOR_FLAGS BB02_STAGE0_FLAG_DEVELOPMENT

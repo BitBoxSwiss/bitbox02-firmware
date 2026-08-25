@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- `device_info()`: add the installed bootloader version to the returned device info
 - Add `btc_xpubs()` to fetch multiple xpubs at once
 - Bitcoin: add support for OP_RETURN outputs
 - Add `change_password()`

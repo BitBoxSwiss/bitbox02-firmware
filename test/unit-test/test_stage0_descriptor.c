@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <cmocka.h>
 
+#include "bootloader/bootloader_product.h"
 #include "bootloader/stage0/stage0_descriptor.h"
 #include "bootloader_upgrade/bootloader_upgrade.h"
 

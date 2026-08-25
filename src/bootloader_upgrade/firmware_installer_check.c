@@ -2,6 +2,7 @@
 
 #include "firmware_installer_check.h"
 #include "bootloader_upgrade.h"
+#include <bootloader/bootloader_product.h>
 #include <string.h>
 
 _Static_assert(

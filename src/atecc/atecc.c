@@ -123,11 +123,19 @@ static ATCA_STATUS _receive(void* iface, uint8_t word_address, uint8_t* rxdata, 
 {
     (void)iface;
     (void)word_address;
-    uint8_t ret = i2c_ecc_read(rxdata, *rxlength);
+    const uint16_t rxdata_capacity = *rxlength;
+    uint8_t ret = i2c_ecc_read(rxdata, rxdata_capacity);
     if (ret) {
         return ATCA_COMM_FAIL;
     }
-    *rxlength = rxdata[0];
+    const uint8_t response_length = rxdata[0];
+    if (response_length > rxdata_capacity) {
+        return ATCA_SMALL_BUFFER;
+    }
+    if (response_length < ATCA_RSP_SIZE_MIN) {
+        return ATCA_RX_FAIL;
+    }
+    *rxlength = response_length;
     return ATCA_SUCCESS;
 }
 

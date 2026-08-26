@@ -265,6 +265,8 @@ fn main() -> Result<(), &'static str> {
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_24.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_32.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_48.c"));
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_medium_20.c"));
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_medium_32.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_32.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_48.c"));
     for flag in &cflags {

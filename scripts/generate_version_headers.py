@@ -15,7 +15,9 @@ import shutil
 import subprocess
 import sys
 import textwrap
+from collections.abc import Mapping, Sequence
 from string import Template
+from typing import Any, TypedDict, cast, overload
 
 
 SEMVER_RE = re.compile(
@@ -44,13 +46,37 @@ ZERO_GIT_COMMIT_HASH = "0000000000000000000000000000000000000000"
 ZERO_GIT_COMMIT_HASH_SHORT = "0000000000"
 
 
-def eprintln(*args, **kwargs):
+class Manifest(TypedDict):
+    """Validated release version manifest."""
+
+    firmware: str
+    bootloader: str
+    stage0: int
+
+
+class VersionInfo(TypedDict):
+    """Version fields used to render the generated headers."""
+
+    base: str
+    full: str
+    full_len: int
+    full_w16: str
+    major: str
+    minor: str
+    patch: str
+    has_metadata: bool
+
+
+def eprintln(*args: object, **kwargs: Any) -> None:
     print(*args, **kwargs, file=sys.stderr)
 
 
-def system(*args, **kwargs):
-    res = subprocess.run(
-        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", **kwargs
+def system(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    res = cast(
+        subprocess.CompletedProcess[str],
+        subprocess.run(  # type: ignore[call-overload]
+            *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", **kwargs
+        ),
     )
     if res.returncode != 0:
         eprintln("Failed to run `{}`".format(args[0]))
@@ -58,16 +84,16 @@ def system(*args, **kwargs):
     return res
 
 
-def parse_tags(rows, only_signed, prefix):
+def parse_tags(rows: Sequence[str], only_signed: bool, prefix: str | None) -> list[str]:
     """Parses `git tag` rows and returns matching refnames."""
-    rows = [row[4:] for row in rows if row.startswith("tag")]
-    rows = [row[2:] for row in rows if row[0] == "Y" or not only_signed]
+    tags = [row[4:] for row in rows if row.startswith("tag")]
+    tags = [row[2:] for row in tags if row[0] == "Y" or not only_signed]
     if prefix is None:
-        rows = [row for row in rows if "/" not in row]
-    return rows
+        tags = [row for row in tags if "/" not in row]
+    return tags
 
 
-def git_list_cmd(prefix, extra_args=None):
+def git_list_cmd(prefix: str | None, extra_args: Sequence[str] | None = None) -> list[str]:
     if extra_args is None:
         extra_args = []
     cmd = ["git", "tag", "--list", "--sort=taggerdate"]
@@ -84,7 +110,13 @@ def git_list_cmd(prefix, extra_args=None):
     return cmd
 
 
-def compute_tag_version(repo_root, prefix, check_gpg=False, verify=False, check_semver=False):
+def compute_tag_version(
+    repo_root: str | os.PathLike[str],
+    prefix: str | None,
+    check_gpg: bool = False,
+    verify: bool = False,
+    check_semver: bool = False,
+) -> str:
     git = shutil.which("git")
     if git is None:
         raise RuntimeError("Command `git` not found.")
@@ -161,7 +193,19 @@ def compute_tag_version(repo_root, prefix, check_gpg=False, verify=False, check_
     return version
 
 
-def git_output(repo_root, args, default=None):
+@overload
+def git_output(repo_root: str | os.PathLike[str], args: Sequence[str], default: str) -> str: ...
+
+
+@overload
+def git_output(
+    repo_root: str | os.PathLike[str], args: Sequence[str], default: None = None
+) -> str | None: ...
+
+
+def git_output(
+    repo_root: str | os.PathLike[str], args: Sequence[str], default: str | None = None
+) -> str | None:
     git = shutil.which("git")
     if git is None:
         return default
@@ -182,13 +226,13 @@ def git_output(repo_root, args, default=None):
     return value if value else default
 
 
-def strict_tag_version(repo_root, prefix):
+def strict_tag_version(repo_root: str | os.PathLike[str], prefix: str | None) -> str:
     return compute_tag_version(repo_root, prefix, check_gpg=True, verify=False, check_semver=True)
 
 
-def load_manifest(manifest_path):
+def load_manifest(manifest_path: str | os.PathLike[str]) -> Manifest:
     with open(manifest_path, "r", encoding="utf-8") as infile:
-        manifest = json.load(infile)
+        manifest = cast(dict[str, object], json.load(infile))
     for key in ("firmware", "bootloader"):
         value = manifest.get(key)
         if not isinstance(value, str) or not RELEASE_VERSION_RE.match(value):
@@ -196,10 +240,12 @@ def load_manifest(manifest_path):
     stage0 = manifest.get("stage0")
     if not isinstance(stage0, int) or isinstance(stage0, bool) or stage0 < 0 or stage0 > 0xFFFF:
         raise ValueError("Manifest entry 'stage0' must be an integer in the uint16_t range")
-    return manifest
+    return cast(Manifest, manifest)
 
 
-def build_version_info(base_version, tag_version, git_commit_hash_short):
+def build_version_info(
+    base_version: str, tag_version: str, git_commit_hash_short: str
+) -> VersionInfo:
     parts = base_version.split(".")
     if len(parts) != 3 or not parts[0].startswith("v"):
         raise ValueError("invalid version format: {}".format(base_version))
@@ -219,13 +265,15 @@ def build_version_info(base_version, tag_version, git_commit_hash_short):
     }
 
 
-def render_template(template_path, substitutions):
+def render_template(
+    template_path: str | os.PathLike[str], substitutions: Mapping[str, object]
+) -> str:
     with open(template_path, "r", encoding="utf-8") as infile:
         template = Template(infile.read())
     return template.substitute(substitutions)
 
 
-def write_file(path, contents):
+def write_file(path: str | os.PathLike[str], contents: str) -> None:
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
@@ -233,17 +281,17 @@ def write_file(path, contents):
         outfile.write(contents)
 
 
-def cmake_quote(value):
+def cmake_quote(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def write_cmake_vars(
-    path,
-    firmware_info,
-    bootloader_info,
-    git_firmware_version_string,
-    git_bootloader_version_string,
-):
+    path: str | os.PathLike[str],
+    firmware_info: VersionInfo,
+    bootloader_info: VersionInfo,
+    git_firmware_version_string: str,
+    git_bootloader_version_string: str,
+) -> None:
     contents = textwrap.dedent(
         """\
         set(GIT_FIRMWARE_VERSION_STRING "{git_firmware_version_string}")
@@ -262,7 +310,12 @@ def write_cmake_vars(
     write_file(path, contents)
 
 
-def generate_headers(repo_root, output_dir, cmake_vars_out=None, manifest_path=None):
+def generate_headers(
+    repo_root: str,
+    output_dir: str,
+    cmake_vars_out: str | None = None,
+    manifest_path: str | None = None,
+) -> None:
     if manifest_path is None:
         manifest_path = os.path.join(repo_root, "versions.json")
     manifest = load_manifest(manifest_path)
@@ -332,7 +385,7 @@ def generate_headers(repo_root, output_dir, cmake_vars_out=None, manifest_path=N
         )
 
 
-def main_generate(argv=None):
+def main_generate(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate version headers from versions.json")
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--output-dir", required=True)
@@ -355,7 +408,7 @@ def main_generate(argv=None):
     return 0
 
 
-def main_get_version(argv=None):
+def main_get_version(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=textwrap.dedent(
             """
@@ -423,7 +476,7 @@ def main_get_version(argv=None):
     return 0
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Version metadata helpers")
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("generate", help="Generate version headers and optional CMake vars")

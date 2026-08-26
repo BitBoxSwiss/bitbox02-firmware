@@ -6,40 +6,41 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import subprocess
 import sys
 from pathlib import Path
+from typing import TypedDict, cast
 from urllib import error, request
+
+import signed_firmware as firmware_format
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 UPSTREAM_REPOSITORY_URL = "https://github.com/BitBoxSwiss/bitbox02-firmware"
 UPSTREAM_GIT_URL = f"{UPSTREAM_REPOSITORY_URL}.git"
 
-MAGIC_LEN = 4
-MAGIC_MULTI = bytes.fromhex("653f362b")
-MAGIC_BTCONLY = bytes.fromhex("11233b0b")
 
-VERSION_FIELD_LEN = 4
-NUM_ROOT_KEYS = 3
-NUM_SIGNING_KEYS = 3
-SIGNING_PUBKEYS_DATA_LEN = VERSION_FIELD_LEN + NUM_SIGNING_KEYS * 64 + NUM_ROOT_KEYS * 64
-FIRMWARE_DATA_LEN = VERSION_FIELD_LEN + NUM_SIGNING_KEYS * 64
-SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
+class Product(TypedDict):
+    """Release asset metadata for one firmware product."""
 
-PRODUCTS = (
+    label: str
+    asset_name: str
+    filename: str
+    expected_magic: bytes
+
+
+PRODUCTS: tuple[Product, ...] = (
     {
         "label": "BitBox02 Multi",
         "asset_name": "firmware-bitbox02-multi.{version}.signed.bin",
         "filename": "assertion-bitbox02-multi.txt",
-        "expected_magic": MAGIC_MULTI,
+        "expected_magic": firmware_format.BITBOX02_MULTI.magic,
     },
     {
         "label": "BitBox02 Bitcoin-only",
         "asset_name": "firmware-bitbox02-btconly.{version}.signed.bin",
         "filename": "assertion-bitbox02-btconly.txt",
-        "expected_magic": MAGIC_BTCONLY,
+        "expected_magic": firmware_format.BITBOX02_BTCONLY.magic,
     },
 )
 
@@ -112,7 +113,7 @@ def download_signed_firmware(version: str, asset_name: str) -> bytes:
     request_headers = {"User-Agent": "bitbox02-release-assertion-generator"}
     try:
         with request.urlopen(request.Request(url, headers=request_headers)) as response:
-            return response.read()
+            return cast(bytes, response.read())
     except error.HTTPError as exc:
         raise RuntimeError(
             f"Failed to download '{asset_name}' from {url}: HTTP {exc.code}"
@@ -124,17 +125,16 @@ def download_signed_firmware(version: str, asset_name: str) -> bytes:
 def extract_unsigned_firmware_hash(
     signed_firmware: bytes, expected_magic: bytes, asset_name: str
 ) -> str:
-    if len(signed_firmware) < MAGIC_LEN + SIGDATA_LEN:
-        raise RuntimeError(f"Downloaded asset '{asset_name}' is too small to be a signed firmware")
-
-    actual_magic = signed_firmware[:MAGIC_LEN]
-    if actual_magic != expected_magic:
+    try:
+        parsed = firmware_format.parse(signed_firmware)
+    except ValueError as exc:
+        raise RuntimeError(f"Downloaded asset '{asset_name}' is invalid: {exc}") from exc
+    if parsed.product.magic != expected_magic:
+        actual_magic = signed_firmware[: firmware_format.MAGIC_LEN]
         raise RuntimeError(
             f"Downloaded asset '{asset_name}' has unexpected magic {actual_magic.hex()}"
         )
-
-    firmware = signed_firmware[MAGIC_LEN + SIGDATA_LEN :]
-    return hashlib.sha256(firmware).hexdigest()
+    return firmware_format.unsigned_sha256(parsed).hex()
 
 
 def render_assertion(version: str, product_label: str, commit_hash: str, sha256_hash: str) -> str:

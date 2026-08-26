@@ -3,9 +3,10 @@
 
 """Helper script to convert images to c source code"""
 import argparse
+from collections.abc import Iterator
 
 
-def convert(content, width, height):
+def convert(content: str, width: int, height: int) -> Iterator[list[str]]:
     """Convert function"""
     i = 0
     char = 0
@@ -31,7 +32,7 @@ def convert(content, width, height):
         yield res
 
 
-def main():
+def main() -> None:
     """Main function"""
     parser = argparse.ArgumentParser()
     parser.add_argument("pbmfile")

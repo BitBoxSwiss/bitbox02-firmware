@@ -42,7 +42,9 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 
 BOARD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -61,11 +63,11 @@ RESERVED_BOARD_NAMES = frozenset(("Core", "Common", "Drivers"))
 BOARD_FILE_EXCLUDES = ("*_it.c", "*_it.h")
 
 
-def eprint(*args, **kwargs):
+def eprint(*args: object, **kwargs: Any) -> None:
     print(*args, file=sys.stderr, **kwargs)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Import an STM32U5 STM32Cube project, replacing external/ST/<board>, "
@@ -89,11 +91,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def repo_root():
+def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def validate_board(board):
+def validate_board(board: str) -> None:
     if not BOARD_RE.fullmatch(board):
         raise ValueError(
             "board must match {} (letters, digits, '.', '_' and '-', no slashes)".format(
@@ -104,7 +106,7 @@ def validate_board(board):
         raise ValueError("board name '{}' is reserved".format(board))
 
 
-def collect_copy_directories(source):
+def collect_copy_directories(source: Path) -> tuple[list[Path], list[Path]]:
     missing = [path for path in REQUIRED_DIRECTORIES if not (source / path).is_dir()]
     if missing:
         raise FileNotFoundError(
@@ -127,13 +129,13 @@ def collect_copy_directories(source):
 
 
 def print_plan(
-    source,
-    board_destination,
-    common_destination,
-    driver_destination,
-    board_dirs,
-    driver_dirs,
-):
+    source: Path,
+    board_destination: Path,
+    common_destination: Path,
+    driver_destination: Path,
+    board_dirs: Sequence[Path],
+    driver_dirs: Sequence[Path],
+) -> None:
     print("Source:      {}".format(source))
     print("Board:       {}".format(board_destination))
     print("Common:      {}".format(common_destination))
@@ -148,14 +150,14 @@ def print_plan(
         print("  - {}".format(directory))
 
 
-def rewrite_file(path, replacements):
+def rewrite_file(path: Path, replacements: Sequence[tuple[str, str]]) -> None:
     content = path.read_text(encoding="utf-8")
     for old, new in replacements:
         content = content.replace(old, new)
     path.write_text(content, encoding="utf-8")
 
 
-def rewrite_file_regex_once(path, replacements):
+def rewrite_file_regex_once(path: Path, replacements: Sequence[tuple[str, str]]) -> None:
     content = path.read_text(encoding="utf-8")
     for pattern, replacement in replacements:
         content, count = re.subn(pattern, replacement, content)
@@ -170,7 +172,7 @@ def rewrite_file_regex_once(path, replacements):
     path.write_text(content, encoding="utf-8")
 
 
-def rewrite_board_entrypoint(board_dir):
+def rewrite_board_entrypoint(board_dir: Path) -> None:
     board_inc_dir = board_dir / "Inc"
     board_src_dir = board_dir / "Src"
 
@@ -224,7 +226,7 @@ def rewrite_board_entrypoint(board_dir):
     )
 
 
-def normalize_line_endings(root):
+def normalize_line_endings(root: Path) -> None:
     for path in root.rglob("*"):
         if not path.is_file() or path.is_symlink():
             continue
@@ -238,19 +240,19 @@ def normalize_line_endings(root):
             path.write_bytes(normalized)
 
 
-def remove_excluded_board_files(board_dir):
+def remove_excluded_board_files(board_dir: Path) -> None:
     for pattern in BOARD_FILE_EXCLUDES:
         for path in board_dir.rglob(pattern):
             path.unlink()
 
 
-def remove_common_board_files(board_dir):
+def remove_common_board_files(board_dir: Path) -> None:
     hal_conf = board_dir / "Inc" / HAL_CONF.name
     if hal_conf.exists():
         hal_conf.unlink()
 
 
-def copy_common_directory(source, temp_root):
+def copy_common_directory(source: Path, temp_root: Path) -> Path:
     src = source / HAL_CONF
     if not src.is_file():
         raise FileNotFoundError("source project is missing {}".format(HAL_CONF))
@@ -262,7 +264,7 @@ def copy_common_directory(source, temp_root):
     return common_dir
 
 
-def copy_board_directory(source, temp_root, board_dirs):
+def copy_board_directory(source: Path, temp_root: Path, board_dirs: Sequence[Path]) -> Path:
     board_dir = temp_root / "board"
     for directory in board_dirs:
         src = source / directory
@@ -275,7 +277,7 @@ def copy_board_directory(source, temp_root, board_dirs):
     return board_dir
 
 
-def copy_driver_directory(source, temp_root, driver_dirs):
+def copy_driver_directory(source: Path, temp_root: Path, driver_dirs: Sequence[Path]) -> Path:
     drivers_dir = temp_root / "Drivers"
     for directory in driver_dirs:
         src = source / directory
@@ -285,13 +287,19 @@ def copy_driver_directory(source, temp_root, driver_dirs):
     return drivers_dir
 
 
-def replace_directory(source, destination):
+def replace_directory(source: Path, destination: Path) -> None:
     if destination.exists():
         shutil.rmtree(destination)
     source.rename(destination)
 
 
-def copy_directories(source, st_root, board, board_dirs, driver_dirs):
+def copy_directories(
+    source: Path,
+    st_root: Path,
+    board: str,
+    board_dirs: Sequence[Path],
+    driver_dirs: Sequence[Path],
+) -> None:
     temp_root = Path(tempfile.mkdtemp(prefix=".copy-st-drivers-", dir=st_root))
     try:
         temp_common_dir = copy_common_directory(source, temp_root)
@@ -309,7 +317,7 @@ def copy_directories(source, st_root, board, board_dirs, driver_dirs):
     shutil.rmtree(temp_root, ignore_errors=True)
 
 
-def main():
+def main() -> int:
     args = parse_args()
     try:
         validate_board(args.board)

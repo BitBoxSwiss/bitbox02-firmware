@@ -171,7 +171,7 @@ run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
 flash-dev-firmware:
-	./py/load_firmware.py build/bin/firmware.bin --debug
+	./py/load_firmware.py build/bin/firmware.bin --yes
 
 # Per-product development stage0/stage1 J-Link wrappers flash already-built images.
 jlink-flash-bootloader-stage0-bitbox02-btconly-development: | build

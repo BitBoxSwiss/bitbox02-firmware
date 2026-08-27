@@ -38,6 +38,12 @@ SIGDATA_MAGIC_BITBOX02_MULTI = struct.pack(">I", 0x653F362B)
 SIGDATA_MAGIC_BITBOX02_BTCONLY = struct.pack(">I", 0x11233B0B)
 SIGDATA_MAGIC_BITBOX02PLUS_MULTI = struct.pack(">I", 0x5B648CEB)
 SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY = struct.pack(">I", 0x48714774)
+SIGDATA_MAGICS = (
+    SIGDATA_MAGIC_BITBOX02_MULTI,
+    SIGDATA_MAGIC_BITBOX02_BTCONLY,
+    SIGDATA_MAGIC_BITBOX02PLUS_MULTI,
+    SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY,
+)
 
 PRODUCT_ID_BITBOX02_MULTI = 1
 PRODUCT_ID_BITBOX02_BTCONLY = 2
@@ -65,23 +71,32 @@ class Hardware(TypedDict):
     secure_chip_model: SecureChipModel
 
 
-def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
-    """
-    Split raw firmware bytes into magic, sigdata and firmware
-    """
+class BootloaderError(Exception):
+    """A nonzero status returned by the bootloader API."""
 
-    if len(firmware) < MAGIC_LEN + SIGDATA_LEN:
-        raise ValueError("firmware too small")
+    def __init__(self, code: int) -> None:
+        self.code = code
+        super().__init__(f"bootloader API error: code={code}")
+
+
+class InvalidFirmwareMagic(ValueError):
+    """The input does not start with a signed-firmware magic."""
+
+
+def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
+    """Parse and validate signed firmware into magic, signature data, and payload."""
+
+    if len(firmware) < MAGIC_LEN:
+        raise InvalidFirmwareMagic("invalid magic")
     magic, firmware = firmware[:MAGIC_LEN], firmware[MAGIC_LEN:]
-    if magic not in (
-        SIGDATA_MAGIC_BITBOX02_MULTI,
-        SIGDATA_MAGIC_BITBOX02_BTCONLY,
-        SIGDATA_MAGIC_BITBOX02PLUS_MULTI,
-        SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY,
-    ):
-        raise ValueError("invalid magic")
+    if magic not in SIGDATA_MAGICS:
+        raise InvalidFirmwareMagic("invalid magic")
+    if len(firmware) <= SIGDATA_LEN:
+        raise ValueError("firmware too small")
 
     sigdata, firmware = firmware[:SIGDATA_LEN], firmware[SIGDATA_LEN:]
+    if len(firmware) > MAX_FIRMWARE_SIZE:
+        raise ValueError("firmware too big")
     return magic, sigdata, firmware
 
 
@@ -104,12 +119,23 @@ class Bootloader:
             BITBOX02PLUS_MULTI_BOOTLOADER: PRODUCT_ID_BITBOX02PLUS_MULTI,
             BITBOX02PLUS_BTC_BOOTLOADER: PRODUCT_ID_BITBOX02PLUS_BTCONLY,
         }.get(device_info["product_string"])
-        self.version = parse_device_version(device_info["serial_number"])
+        version = parse_device_version(device_info["serial_number"])
+        version_identifiers = [
+            identifier
+            for metadata in (version.prerelease, version.build)
+            if metadata is not None
+            for identifier in metadata.split(".")
+        ]
+        self._is_devdevice = "dev" in version_identifiers
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
-        self.version = self.version.replace(prerelease=None)
+        self.version = version.replace(prerelease=None)
         assert self.expected_magic
         assert self.product_id
+
+    def is_devdevice(self) -> bool:
+        """Returns whether this is a development-device bootloader."""
+        return self._is_devdevice
 
     def _query(self, msg: bytes) -> bytes:
         cid = self._transport.generate_cid()
@@ -117,7 +143,7 @@ class Bootloader:
         if response[0] != msg[0]:
             raise Exception("bootloader api error, expected {}, got {}".format(msg[0], response[0]))
         if response[1] != 0:
-            raise Exception("bootloader api error: code={}".format(response[1]))
+            raise BootloaderError(response[1])
         return response[2:]
 
     def versions(self) -> typing.Tuple[int, int]:
@@ -222,6 +248,12 @@ class Bootloader:
         if magic != self.expected_magic:
             raise ValueError("wrong firmware edition")
         self.flash_unsigned_firmware(firmware, progress_callback=progress_callback)
+        self.flash_sigdata(sigdata)
+
+    def flash_sigdata(self, sigdata: bytes) -> None:
+        """Flashes firmware signature data."""
+        if len(sigdata) != SIGDATA_LEN:
+            raise ValueError(f"signature data must be {SIGDATA_LEN} bytes")
         self._query(b"s" + sigdata)
 
     def erase(self) -> None:

@@ -375,7 +375,14 @@ pub async fn get(
                     GetWordError::Cancel => {
                         let params = ConfirmParams {
                             title: "Restore",
-                            body: "Cancel restore?",
+                            // Keep the single-abort UI (BitBox02) wording unchanged; only
+                            // dedicated back/cancel controls (BitBox03) get the new copy.
+                            body: match abort {
+                                WordlistEntryAbort::Unspecified => "Do you really\nwant to cancel?",
+                                WordlistEntryAbort::Back | WordlistEntryAbort::Cancel => {
+                                    "Cancel restore?"
+                                }
+                            },
                             ..Default::default()
                         };
 
@@ -713,7 +720,7 @@ mod tests {
         let mut expected: Vec<&str> = first_eleven.to_vec();
         expected.push(&last_word);
         assert_eq!(mnemonic.as_str(), expected.join(" "));
-        assert!(!ui.contains_confirm("Restore", "Cancel restore?"));
+        assert!(!ui.contains_confirm("Restore", "Do you really\nwant to cancel?"));
     }
 
     /// BitBox02 parity: picking "Cancel restore" in the "Choose" menu asks for confirmation and
@@ -733,7 +740,7 @@ mod tests {
 
         let result = get(&mut ui).await;
         assert!(result.is_err(), "confirmed cancel must abort the restore");
-        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+        assert!(ui.contains_confirm("Restore", "Do you really\nwant to cancel?"));
     }
 
     /// BitBox02 parity: a single-control abort in the first word skips the menu (there is no
@@ -747,7 +754,7 @@ mod tests {
 
         let result = get(&mut ui).await;
         assert!(result.is_err(), "confirmed cancel must abort the restore");
-        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+        assert!(ui.contains_confirm("Restore", "Do you really\nwant to cancel?"));
     }
 
     /// Back from the restricted last-word candidate screen goes straight to the previous word,

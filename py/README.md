@@ -75,24 +75,35 @@ This is a one-time action.
 ## Flash the firmware.bin
 
 Use the following script to flash the firmware.bin onto the BitBox.
-The script will prompt to enter the bootloader on the device before flashing.
-
-Production devices only accept `./firmware.signed.bin` signed by BitBox.
+The script prompts to enter the bootloader when necessary and confirms the detected firmware and
+device types before flashing.
 
 ```bash
 python ./load_firmware.py ./firmware.signed.bin
 ```
 
-Please note:
-On production devices the bootloader only accepts newer signed
-firmware versions and
-[prevents downgrades](https://bitbox.swiss/bitbox02/security-features/#secure-bootloader).
+Signed firmware is detected by its header; all other input is treated as raw unsigned firmware.
+The file name is not used. A recognized but malformed signed-firmware container is rejected.
 
-On dev-devices use the `--debug` flag to flash unsigned `./firmware.bin`.
+The supported combinations are:
+
+| Firmware input | Production device | Development device |
+| --- | --- | --- |
+| Signed | Flash firmware and signature data; all errors are fatal | Flash firmware, attempt signature data, warn if the signature data is rejected, and reboot anyway |
+| Raw unsigned | Warn that firmware verification will fail, then flash without signature data | Flash firmware without signature data |
+
+On production devices the bootloader only accepts newer signed firmware versions and
+[prevents downgrades](https://bitbox.swiss/bitbox02/security-features/#secure-bootloader). On a
+production device, unsigned firmware cannot boot. A signed firmware for a different product or
+edition is allowed after a warning, but installing its signature data is expected to fail.
+
+Every flash requires confirmation. Use `-y` or `--yes` to skip the prompt for non-interactive use:
 
 ```bash
-python ./load_firmware.py --debug ./firmware.bin
+python ./load_firmware.py --yes ./firmware.bin
 ```
+
+The deprecated `--debug` option is accepted for backwards compatibility but has no effect.
 
 Contributors that don't have a dev-devices please refer to the
 [simulator](https://github.com/BitBoxSwiss/bitbox02-firmware?tab=readme-ov-file#simulator).

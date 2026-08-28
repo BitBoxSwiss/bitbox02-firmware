@@ -31,4 +31,5 @@ from .bitbox02 import (
     eth,
     system,
     Bootloader,
+    BootloaderError,
 )

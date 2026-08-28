@@ -49,4 +49,4 @@ from .bitbox02 import (
     eth,
     system,
 )
-from .bootloader import Bootloader
+from .bootloader import Bootloader, BootloaderError

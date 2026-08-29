@@ -308,12 +308,12 @@ async fn prepare_streaming_standard_data(
 
 /// Verifies an ERC20 transfer.
 ///
-/// If the ERC20 contract is known (stored in our list of supported ERC20 tokens), the token name,
-/// amount, recipient, total and fee are shown for confirmation.
+/// The token contract is shown for confirmation. If the ERC20 contract is known (stored in our
+/// list of supported ERC20 tokens), the token name, amount, recipient, total and fee are also shown.
 ///
-/// If the ERC20 token is unknown, only the recipient and fee can be shown. The token name and
-/// amount are displayed as "unknown". The amount is not known because we don't know the number of
-/// decimal places (specified in the ERC20 contract).
+/// If the ERC20 token is unknown, only the contract, recipient and fee can be shown. The token name
+/// and amount are displayed as "unknown". The amount is not known because we don't know the number
+/// of decimal places (specified in the ERC20 contract).
 async fn verify_erc20_transaction(
     hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
@@ -322,8 +322,27 @@ async fn verify_erc20_transaction(
     erc20_value: BigUint,
     payment_request: Option<&pb::BtcPaymentRequestRequest>,
 ) -> Result<(), Error> {
-    let erc20_params = erc20_params::get(params.chain_id, parse_recipient(request.recipient())?);
+    let contract = parse_recipient(request.recipient())?;
+    let erc20_params = erc20_params::get(params.chain_id, contract);
+    let contract_address = super::address::from_pubkey_hash(&contract, request.case()?);
+    let contract_address_display = super::address::format_display_address(&contract_address);
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient, request.case()?);
+
+    // Payment requests only support tokens whose metadata is stored locally.
+    if payment_request.is_some() && erc20_params.is_none() {
+        return Err(Error::InvalidInput);
+    }
+
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "Token\ncontract",
+            body: &contract_address_display,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
     if let Some(payment_request) = payment_request {
         let token_params = erc20_params.ok_or(Error::InvalidInput)?;
         let displayed_source_amount = Amount {
@@ -1309,6 +1328,14 @@ mod tests {
                 body: "Sign transaction on\n\nEthereum".into(),
                 longtouch: false,
             },
+            Screen::Confirm {
+                title: "Token\ncontract".into(),
+                body: address::format_display_address(&address::from_pubkey_hash(
+                    &hex!("dac17f958d2ee523a2206206994597c13d831ec7"),
+                    pb::EthAddressCase::Mixed,
+                )),
+                longtouch: false,
+            },
             Screen::Recipient {
                 recipient: "Test Merchant".into(),
                 amount: "57 USDT".into(),
@@ -1357,6 +1384,102 @@ mod tests {
         assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
+    async fn erc20_transfer_screens(contract: [u8; 20], eip1559: bool) -> Vec<Screen> {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let data = hex!(
+            "a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e63300000000000000000000000000000000000000000000000000de0b6b3a7640000"
+        );
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        if eip1559 {
+            process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("2367").to_vec(),
+                    max_priority_fee_per_gas: b"".to_vec(),
+                    max_fee_per_gas: hex!("3b9aca00").to_vec(),
+                    gas_limit: hex!("5208").to_vec(),
+                    recipient: contract.to_vec(),
+                    value: b"".to_vec(),
+                    data: data.to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                    payment_request: None,
+                }),
+            )
+            .await
+            .unwrap();
+        } else {
+            process(
+                &mut mock_hal,
+                &Transaction::Legacy(&pb::EthSignRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("2367").to_vec(),
+                    gas_price: hex!("3b9aca00").to_vec(),
+                    gas_limit: hex!("5208").to_vec(),
+                    recipient: contract.to_vec(),
+                    value: b"".to_vec(),
+                    data: data.to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                }),
+            )
+            .await
+            .unwrap();
+        }
+        mock_hal.ui.screens
+    }
+
+    #[async_test::test]
+    async fn test_process_erc20_contract_identity() {
+        const KNOWN_UNI_A: [u8; 20] = hex!("e6877ea9c28fbdec631ffbc087956d0023a76bf2");
+        const KNOWN_UNI_B: [u8; 20] = hex!("1f9840a85d5af5bf1d1762f925bdaddc4201f984");
+        const UNKNOWN_A: [u8; 20] = hex!("1111111111111111111111111111111111111111");
+        const UNKNOWN_B: [u8; 20] = hex!("2222222222222222222222222222222222222222");
+
+        for eip1559 in [false, true] {
+            for (contract_a, contract_b, expected_amount, expected_total) in [
+                (KNOWN_UNI_A, KNOWN_UNI_B, "1 UNI", "1 UNI"),
+                (UNKNOWN_A, UNKNOWN_B, "Unknown token", "Unknown amount"),
+            ] {
+                let screens_a = erc20_transfer_screens(contract_a, eip1559).await;
+                let screens_b = erc20_transfer_screens(contract_b, eip1559).await;
+
+                assert_eq!(screens_a[0], screens_b[0]);
+                assert_ne!(screens_a[1], screens_b[1]);
+                assert_eq!(screens_a[2..], screens_b[2..]);
+                for (screens, contract) in [(&screens_a, contract_a), (&screens_b, contract_b)] {
+                    assert_eq!(
+                        screens[1],
+                        Screen::Confirm {
+                            title: "Token\ncontract".into(),
+                            body: address::format_display_address(&address::from_pubkey_hash(
+                                &contract,
+                                pb::EthAddressCase::Mixed,
+                            )),
+                            longtouch: false,
+                        }
+                    );
+                    assert!(matches!(
+                        &screens[2],
+                        Screen::Recipient { amount, .. } if amount == expected_amount
+                    ));
+                    assert!(matches!(
+                        &screens[3],
+                        Screen::TotalFee { total, .. } if total == expected_total
+                    ));
+                }
+            }
+        }
+    }
+
     /// ERC20 transaction: recipient is an ERC20 contract address, and
     /// the data field contains an ERC20 transfer method invocation.
     #[async_test::test]
@@ -1367,6 +1490,14 @@ mod tests {
             Screen::Confirm {
                 title: "".into(),
                 body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Token\ncontract".into(),
+                body: address::format_display_address(&address::from_pubkey_hash(
+                    &hex!("dac17f958d2ee523a2206206994597c13d831ec7"),
+                    pb::EthAddressCase::Mixed,
+                )),
                 longtouch: false,
             },
             Screen::Recipient {
@@ -1442,6 +1573,14 @@ mod tests {
             Screen::Confirm {
                 title: "".into(),
                 body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Token\ncontract".into(),
+                body: address::format_display_address(&address::from_pubkey_hash(
+                    &hex!("9c23d67aea7b95d80942e3836bcdf7e708a747c1"),
+                    pb::EthAddressCase::Mixed,
+                )),
                 longtouch: false,
             },
             Screen::Recipient {

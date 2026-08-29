@@ -125,7 +125,11 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         )))
     }
 
-    async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+    async fn kdf(
+        &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
+        msg: &[u8; 32],
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 1;
 
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
@@ -147,6 +151,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
 
     async fn attestation_sign(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
@@ -160,7 +165,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         Ok(1)
     }
 
-    fn model(&mut self) -> Result<Model, ()> {
+    async fn model(&mut self) -> Result<Model, ()> {
         Ok(Model::Atecc608B)
     }
 
@@ -179,13 +184,22 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
     }
 
     #[cfg(feature = "app-u2f")]
-    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+    async fn u2f_counter_set(
+        &mut self,
+        _random: &mut impl bitbox_hal::Random,
+        _memory: &mut impl bitbox_hal::Memory,
+        counter: u32,
+    ) -> Result<(), ()> {
         self.u2f_counter = counter;
         Ok(())
     }
 
     #[cfg(feature = "app-u2f")]
-    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
+    async fn u2f_counter_inc(
+        &mut self,
+        _random: &mut impl bitbox_hal::Random,
+        _memory: &mut impl bitbox_hal::Memory,
+    ) -> Result<u32, ()> {
         self.u2f_counter = self.u2f_counter.wrapping_add(1);
         Ok(self.u2f_counter)
     }
@@ -194,6 +208,8 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::FakeMemory;
+    use crate::random::TestingRandom;
     use bitbox_hal::SecureChip;
     use hex_lit::hex;
 
@@ -212,10 +228,24 @@ mod tests {
     #[async_test::test]
     async fn test_u2f_counter_inc() {
         let mut securechip = FakeSecureChip::new();
+        let mut random = TestingRandom::new();
+        let mut memory = FakeMemory::new();
         assert_eq!(securechip.get_u2f_counter(), 0);
-        assert_eq!(securechip.u2f_counter_inc().await.unwrap(), 1);
+        assert_eq!(
+            securechip
+                .u2f_counter_inc(&mut random, &mut memory)
+                .await
+                .unwrap(),
+            1
+        );
         assert_eq!(securechip.get_u2f_counter(), 1);
-        assert_eq!(securechip.u2f_counter_inc().await.unwrap(), 2);
+        assert_eq!(
+            securechip
+                .u2f_counter_inc(&mut random, &mut memory)
+                .await
+                .unwrap(),
+            2
+        );
         assert_eq!(securechip.get_u2f_counter(), 2);
     }
 }

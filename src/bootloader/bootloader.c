@@ -46,10 +46,8 @@
 
 // Bootloader API command op codes
 //
-// OP_ERASE - Receives the total number of firmware chunks to write,
-// then pads any left over FLASH that would be empty by 0xFFs;
-// FLASH areas that will contain firmware are erased when writing the
-// firmware chunk to FLASH.
+// OP_ERASE - Erases the whole firmware flash area. Receives the total number
+// of firmware chunks to write. If non-zero, starts a firmware loading session.
 #define OP_ERASE ((uint8_t)'e') /* 0x65 */
 // OP_REBOOT - Reboot the MCU and clear the auto_enter flag.
 #define OP_REBOOT ((uint8_t)'r') /* 0x72 */
@@ -95,10 +93,14 @@ static struct sha_context _pukcc_sha256_context;
 COMPILER_PACK_RESET()
 
 #define FIRMWARE_CHUNK_LEN (8U * FLASH_PAGE_SIZE) // 4kB
+#define FIRMWARE_BLOCK_LEN FLASH_ERASE_MIN_LEN // 8kB
 #define FIRMWARE_MAX_NUM_CHUNKS \
     (FLASH_APP_LEN / FIRMWARE_CHUNK_LEN) // app len must be a multiple of chunk len
 #if (FIRMWARE_MAX_NUM_CHUNKS > UINT8_MAX)
     #error "incompatible variable type"
+#endif
+#if (FLASH_APP_LEN % FIRMWARE_BLOCK_LEN)
+    #error "app flash len must be a multiple of the firmware block len"
 #endif
 
 // Be sure to not overflow boot data area
@@ -386,6 +388,35 @@ static size_t _report_status(uint8_t status, uint8_t* output)
     return BOOT_OP_LEN;
 }
 
+static bool _is_erased(const void* addr, size_t len)
+{
+    const uint8_t* bytes = (const uint8_t*)addr;
+    for (size_t i = 0; i < len; i++) {
+        if (bytes[i] != 0xff) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static uint8_t _firmware_erase_block(uint32_t addr)
+{
+    if (addr < FLASH_APP_START || addr + FIRMWARE_BLOCK_LEN > FLASH_APP_START + FLASH_APP_LEN ||
+        addr % FIRMWARE_BLOCK_LEN != 0) {
+        return OP_STATUS_ERR_ERASE;
+    }
+    if (_is_erased((const void*)addr, FIRMWARE_BLOCK_LEN)) {
+        return OP_STATUS_OK;
+    }
+    if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
+        return OP_STATUS_ERR_ERASE;
+    }
+    if (!_is_erased((const void*)addr, FIRMWARE_BLOCK_LEN)) {
+        return OP_STATUS_ERR_CHECK;
+    }
+    return OP_STATUS_OK;
+}
+
 static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* output)
 {
     if (!_loading_ready) {
@@ -403,28 +434,19 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
         return _report_status(OP_STATUS_ERR_LEN, output);
     }
 
-    if (MEMEQ(
-            (const void*)(FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN)),
-            buf,
-            FIRMWARE_CHUNK_LEN)) {
-        _loading_ready = true;
-        return _report_status(OP_STATUS_OK, output);
+    const uint32_t addr = FLASH_APP_START + chunknum * FIRMWARE_CHUNK_LEN;
+    if (!_is_erased((const void*)addr, FIRMWARE_CHUNK_LEN)) {
+        return _report_status(OP_STATUS_ERR_CHECK, output);
     }
 
-    // Erase is handled inside of flash_write
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    if (flash_write(
-            &FLASH_0, FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN), buf, FIRMWARE_CHUNK_LEN) !=
-        ERR_NONE) {
+    if (flash_append(&FLASH_0, addr, buf, FIRMWARE_CHUNK_LEN) != ERR_NONE) {
         return _report_status(OP_STATUS_ERR_WRITE, output);
     }
 #pragma GCC diagnostic pop
 
-    if (!MEMEQ(
-            (const void*)(FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN)),
-            buf,
-            FIRMWARE_CHUNK_LEN)) {
+    if (!MEMEQ((const void*)addr, buf, FIRMWARE_CHUNK_LEN)) {
         return _report_status(OP_STATUS_ERR_CHECK, output);
     }
 
@@ -433,25 +455,10 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
     return len;
 }
 
-static bool _flash_pages_erased(uint32_t addr, uint32_t num_pages)
-{
-    const uint32_t* words = (const uint32_t*)addr;
-    const uint32_t num_words = num_pages * FLASH_PAGE_SIZE / sizeof(uint32_t);
-    for (uint32_t i = 0; i < num_words; i++) {
-        if (words[i] != UINT32_MAX) {
-            return false;
-        }
-    }
-    return true;
-}
-
 /**
- * This function erases the padding bytes, if not already erased. Erasing starts
- * at an erase-block boundary, so if the firmware ends halfway through a block,
- * the last firmware chunk is erased here and written again later.
- *
- * The number of chunks is put into RAM in order to show the correct
- * progress in the next step flashing the firmware.
+ * This function erases the whole firmware app area. The number of chunks is put
+ * into RAM in order to show the correct progress in the next step flashing the
+ * firmware.
  */
 static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
 {
@@ -468,21 +475,14 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
             return _report_status(OP_STATUS_ERR_UNLOCK, output);
         }
     }
-    uint16_t firmware_num_pages = firmware_num_chunks * FIRMWARE_CHUNK_LEN / FLASH_PAGE_SIZE;
-    uint16_t erase_start_page = firmware_num_pages - (firmware_num_pages % FLASH_ERASE_PAGE_NUM);
-    for (uint32_t i = erase_start_page; i < (uint32_t)FLASH_APP_PAGE_NUM;
-         i += FLASH_ERASE_PAGE_NUM) {
-        const uint32_t addr = FLASH_APP_START + i * FLASH_PAGE_SIZE;
-        if (_flash_pages_erased(addr, FLASH_ERASE_PAGE_NUM)) {
-            continue;
-        }
-        if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
-            return _report_status(OP_STATUS_ERR_ERASE, output);
-        }
-        if (!_flash_pages_erased(addr, FLASH_ERASE_PAGE_NUM)) {
-            return _report_status(OP_STATUS_ERR_CHECK, output);
+    for (uint32_t addr = FLASH_APP_START; addr < FLASH_APP_START + FLASH_APP_LEN;
+         addr += FIRMWARE_BLOCK_LEN) {
+        uint8_t status = _firmware_erase_block(addr);
+        if (status != OP_STATUS_OK) {
+            return _report_status(status, output);
         }
     }
+
     if (firmware_num_chunks > 0) {
         _firmware_num_chunks = firmware_num_chunks;
         _loading_ready = true;
@@ -850,7 +850,11 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         if (output[1] != OP_STATUS_OK) {
             bootloader_render_default_screen();
         } else {
-            _render_progress((float)chunk_num / (float)(_firmware_num_chunks - 1));
+            float progress = 1;
+            if (_firmware_num_chunks > 1) {
+                progress = (float)chunk_num / (float)(_firmware_num_chunks - 1);
+            }
+            _render_progress(progress);
         }
         break;
     }

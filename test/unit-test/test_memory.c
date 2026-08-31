@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <bootloader_upgrade/bootloader_upgrade.h>
+#include <fake_memory.h>
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <rust/rust.h>
@@ -590,6 +592,88 @@ static void _test_memory_set_seed_birthdate(void** state)
     assert_true(memory_set_seed_birthdate(timestamp));
 }
 
+static bb02_stage1_header_t _make_stage1_header(const uint8_t* version, size_t version_len)
+{
+    assert_true(version_len <= BB02_STAGE1_HEADER_STAGE1_MARKETING_VERSION_MAX_LEN);
+    bb02_stage1_header_t header = {
+        .magic = BB02_STAGE1_HEADER_MAGIC,
+        .header_len = BB02_STAGE1_HEADER_LEN,
+        .image_len = BB02_STAGE1_HEADER_LEN + 512u,
+        .stage1_marketing_version_len = (uint8_t)version_len,
+    };
+    memcpy(header.stage1_marketing_version, version, version_len);
+    return header;
+}
+
+static void _set_stage1_header(const bb02_stage1_header_t* header)
+{
+    memory_set_bootloader_stage1_header_fake((const uint8_t*)header, sizeof(*header));
+}
+
+static void _test_memory_get_bootloader_version(void** state)
+{
+    (void)state;
+    const uint8_t expected[] = "v1.2.2";
+    bb02_stage1_header_t header = _make_stage1_header(expected, sizeof(expected) - 1);
+    _set_stage1_header(&header);
+
+    uint8_t version_out[MEMORY_BOOTLOADER_VERSION_MAX_LEN] = {0};
+    size_t version_len = 0;
+    assert_true(memory_get_bootloader_version(version_out, &version_len));
+    assert_int_equal(version_len, sizeof(expected) - 1);
+    assert_memory_equal(version_out, expected, version_len);
+
+    const uint8_t max_version[MEMORY_BOOTLOADER_VERSION_MAX_LEN] = {
+        "v1.2.2-pre+01234567890123456789012345",
+    };
+    header = _make_stage1_header(max_version, sizeof(max_version));
+    _set_stage1_header(&header);
+    assert_true(memory_get_bootloader_version(version_out, &version_len));
+    assert_int_equal(version_len, sizeof(max_version));
+    assert_memory_equal(version_out, max_version, version_len);
+}
+
+static void _test_memory_get_bootloader_version_invalid_magic(void** state)
+{
+    (void)state;
+    const bb02_stage1_header_t header = {0};
+    _set_stage1_header(&header);
+
+    uint8_t version_out[MEMORY_BOOTLOADER_VERSION_MAX_LEN] = {0};
+    size_t version_len = 123;
+    assert_false(memory_get_bootloader_version(version_out, &version_len));
+    assert_int_equal(version_len, 0);
+}
+
+static void _test_memory_get_bootloader_version_invalid_length(void** state)
+{
+    (void)state;
+    const bb02_stage1_header_t header = {
+        .magic = BB02_STAGE1_HEADER_MAGIC,
+        .stage1_marketing_version_len = MEMORY_BOOTLOADER_VERSION_MAX_LEN + 1,
+    };
+    _set_stage1_header(&header);
+
+    uint8_t version_out[MEMORY_BOOTLOADER_VERSION_MAX_LEN] = {0};
+    size_t version_len = 123;
+    assert_false(memory_get_bootloader_version(version_out, &version_len));
+    assert_int_equal(version_len, 0);
+}
+
+static void _test_memory_get_bootloader_version_invalid_arguments(void** state)
+{
+    (void)state;
+    const uint8_t expected[] = "v1.2.2";
+    const bb02_stage1_header_t header = _make_stage1_header(expected, sizeof(expected) - 1);
+    _set_stage1_header(&header);
+
+    uint8_t version_out[MEMORY_BOOTLOADER_VERSION_MAX_LEN] = {0};
+    size_t version_len = 123;
+    assert_false(memory_get_bootloader_version(NULL, &version_len));
+    assert_int_equal(version_len, 0);
+    assert_false(memory_get_bootloader_version(version_out, NULL));
+}
+
 static void _test_memory_set_attestation_device_pubkey(void** state)
 {
     EMPTYCHUNK(empty_chunk);
@@ -680,6 +764,10 @@ int main(void)
         cmocka_unit_test(_test_memory_get_device_name),
         cmocka_unit_test(_test_memory_device_name),
         cmocka_unit_test(_test_memory_set_seed_birthdate),
+        cmocka_unit_test(_test_memory_get_bootloader_version),
+        cmocka_unit_test(_test_memory_get_bootloader_version_invalid_magic),
+        cmocka_unit_test(_test_memory_get_bootloader_version_invalid_length),
+        cmocka_unit_test(_test_memory_get_bootloader_version_invalid_arguments),
         cmocka_unit_test(_test_memory_set_attestation_device_pubkey),
         cmocka_unit_test(_test_memory_set_attestation_certificate),
     };

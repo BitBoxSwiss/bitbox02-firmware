@@ -3,6 +3,7 @@
 #include "stage1_sigcheck.h"
 #include "pukcc/curve_p256.h"
 #include "pukcc/pukcc.h"
+#include <bootloader/bootloader_product.h>
 #include <hal_sha_sync.h>
 #include <stdbool.h>
 #include <stddef.h>

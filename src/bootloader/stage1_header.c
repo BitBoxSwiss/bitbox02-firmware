@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "bootloader_upgrade/bootloader_upgrade.h"
+#include <bootloader/bootloader_product.h>
 #include <bootloader/bootloader_version.h>
 
 _Static_assert(

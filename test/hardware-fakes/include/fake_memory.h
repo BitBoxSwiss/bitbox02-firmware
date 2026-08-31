@@ -4,6 +4,7 @@
 #define _FAKE_MEMORY_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <flags.h>
@@ -18,4 +19,6 @@ void memory_read_shared_bootdata_fake(uint8_t* chunk_out);
 const uint8_t* fake_memory_get_salt_root(void);
 void memory_bootloader_hash_fake(uint8_t* hash_out);
 void memory_set_bootloader_hash_fake(const uint8_t* fake_hash);
+const uint8_t* memory_get_bootloader_stage1_header_fake(void);
+void memory_set_bootloader_stage1_header_fake(const uint8_t* header, size_t header_len);
 #endif

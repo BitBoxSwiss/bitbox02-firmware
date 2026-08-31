@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 
 ### v9.27.1
+- API: include the installed bootloader version in the device info response
 - Ethereum: display the EIP-712 message type before signing
 - Bitcoin: allow signing messages with keys in the m/48' application namespace
 

@@ -19,6 +19,10 @@ impl hal::memory::Memory for BitBox03Memory {
         todo!()
     }
 
+    fn get_bootloader_version(&mut self) -> Option<alloc::string::String> {
+        None
+    }
+
     fn ble_firmware_flash_chunk(
         &mut self,
         _slot: bitbox_hal::memory::BleFirmwareSlot,

@@ -14,6 +14,8 @@
 #include "util.h"
 #include <rust/rust.h>
 
+#include "bootloader_upgrade/bootloader_upgrade.h"
+
 #ifndef TESTING
     #include <hal_delay.h>
 #else
@@ -33,6 +35,17 @@ static_assert(
 static_assert(
     MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL == 31,
     "MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL must remain 31.");
+static_assert(
+    MEMORY_BOOTLOADER_VERSION_MAX_LEN == BB02_STAGE1_HEADER_STAGE1_MARKETING_VERSION_MAX_LEN,
+    "bootloader version maximum length mismatch");
+static_assert(
+    BB02_STAGE1_HEADER_ADDR >= FLASH_BOOT_START,
+    "stage1 header must be inside the readable bootloader area");
+static_assert(
+    BB02_STAGE1_HEADER_ADDR + offsetof(bb02_stage1_header_t, stage1_marketing_version) +
+            BB02_STAGE1_HEADER_STAGE1_MARKETING_VERSION_MAX_LEN <=
+        FLASH_BOOT_START + FLASH_BOOT_LEN,
+    "stage1 marketing version must be inside the readable bootloader area");
 
 // Documentation of all appData chunks and their contents.  A chunk is defined as
 // 16 pages, which is the erase granularity: changing any byte in the page
@@ -772,6 +785,34 @@ void memory_bootloader_hash(uint8_t* hash_out)
     size_t len = FLASH_BOOT_LEN - 32; // 32 bytes are random
     rust_sha256(bootloader, len, hash_out);
 #endif
+}
+
+bool memory_get_bootloader_version(uint8_t* version_out, size_t* version_len_out)
+{
+    if (version_len_out == NULL) {
+        return false;
+    }
+    *version_len_out = 0;
+    if (version_out == NULL) {
+        return false;
+    }
+
+#ifdef TESTING
+    const bb02_stage1_header_t* header =
+        (const bb02_stage1_header_t*)memory_get_bootloader_stage1_header_fake();
+#else
+    const bb02_stage1_header_t* header = bb02_stage1_installed_header();
+#endif
+
+    const uint8_t version_len = header->stage1_marketing_version_len;
+    if (header->magic != BB02_STAGE1_HEADER_MAGIC ||
+        version_len > MEMORY_BOOTLOADER_VERSION_MAX_LEN) {
+        return false;
+    }
+
+    memcpy(version_out, header->stage1_marketing_version, version_len);
+    *version_len_out = version_len;
+    return true;
 }
 
 bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_down)

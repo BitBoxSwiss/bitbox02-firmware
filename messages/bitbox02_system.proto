@@ -34,6 +34,8 @@ message DeviceInfoResponse {
   // From v9.25.0. This together with `securechip_model` determines the password stretching
   // algorithm.
   string password_stretching_algo = 8;
+  // Marketing version of the installed stage1 bootloader. Not present on legacy bootloaders.
+  optional string bootloader_version = 9;
 }
 
 message InsertRemoveSDCardRequest {

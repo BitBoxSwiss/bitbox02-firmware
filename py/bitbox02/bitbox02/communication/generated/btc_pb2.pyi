@@ -468,7 +468,11 @@ class BTCSignInputRequest(google.protobuf.message.Message):
         """all inputs must be ours."""
 
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+        This differs from plain RFC6979 and does not provide anti-klepto protection.
+        """
+
     def __init__(
         self,
         *,
@@ -882,7 +886,11 @@ class BTCSignMessageRequest(google.protobuf.message.Message):
     @property
     def script_config(self) -> global___BTCScriptConfigWithKeypath: ...
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+        This differs from plain RFC6979 and does not provide anti-klepto protection.
+        """
+
     def __init__(
         self,
         *,

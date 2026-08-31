@@ -29,6 +29,8 @@ else()
   # Tests
 
   set(TEST_LIST
+     atecc
+     "-Wl,--gc-sections"
      bootloader_format
      ""
      cleanup
@@ -88,6 +90,13 @@ else()
     target_include_directories(${EXE} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    if(TEST_NAME STREQUAL "atecc")
+      target_compile_options(${EXE} PRIVATE -ffunction-sections -fdata-sections)
+      target_include_directories(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/external
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib
+      )
+    endif()
     if(TEST_NAME STREQUAL "bootloader_format")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_format.c)
       target_include_directories(${EXE} PRIVATE

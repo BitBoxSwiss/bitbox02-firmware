@@ -146,7 +146,11 @@ class ETHSignRequest(google.protobuf.message.Message):
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+        This differs from plain RFC6979 and does not provide anti-klepto protection.
+        """
+
     def __init__(
         self,
         *,
@@ -207,7 +211,11 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+        This differs from plain RFC6979 and does not provide anti-klepto protection.
+        """
+
     @property
     def payment_request(self) -> btc_pb2.BTCPaymentRequestRequest: ...
     def __init__(
@@ -282,7 +290,11 @@ class ETHSignMessageRequest(google.protobuf.message.Message):
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+        This differs from plain RFC6979 and does not provide anti-klepto protection.
+        """
+
     def __init__(
         self,
         *,
@@ -418,7 +430,9 @@ class ETHSignTypedMessageRequest(google.protobuf.message.Message):
     @property
     def types(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ETHSignTypedMessageRequest.StructType]: ...
     @property
-    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment:
+        """If omitted, plain RFC6979 signing is used without anti-klepto protection."""
+
     def __init__(
         self,
         *,

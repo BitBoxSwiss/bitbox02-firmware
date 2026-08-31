@@ -12,6 +12,13 @@ express.
 
 Version expectations and the previous-transaction requirement live on the vector.
 
+Client libraries use these vectors for integration tests against all supported and historical
+firmware versions. When firmware changes an observable outcome or screen transcript, preserve the
+old `VersionExpectation` by closing its range with `max_version_exclusive`, and add a new
+expectation whose `min_version` is the first firmware containing the change. Do not mutate an
+existing open-ended range in a way that changes the expected behavior of historical firmware.
+After changing the Rust constructors, regenerate the canonical JSON as described below.
+
 Explicit derivation paths use canonical `m/...` strings rather than protocol-level integer arrays.
 Confirm and transaction-fee screens include their `longtouch` requirement. Client simulators whose
 stdout protocol omits that flag compare the remaining observable screen fields.

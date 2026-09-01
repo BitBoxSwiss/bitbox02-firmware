@@ -117,19 +117,16 @@ fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::Bac
         })) => {
             let mut backup_data: Zeroizing<BackupData> = Default::default();
             backup_data.0.merge(content.data.as_slice()).or(Err(()))?;
-            if backup_data.0.seed_length > 32 {
+            if !matches!(backup_data.0.seed_length, 16 | 24 | 32) {
                 return Err(());
             }
+            let metadata = content.metadata.ok_or(())?;
 
-            let checksum = compute_checksum(
-                content.metadata.as_ref().unwrap(),
-                &backup_data.0,
-                content.length,
-            )?;
+            let checksum = compute_checksum(&metadata, &backup_data.0, content.length)?;
             if checksum != content.checksum {
                 Err(())
             } else {
-                Ok((backup_data, content.metadata.unwrap()))
+                Ok((backup_data, metadata))
             }
         }
         _ => Err(()),
@@ -323,27 +320,56 @@ mod tests {
     }
 
     #[test]
-    fn test_load_from_buffer_oversized_seed_length() {
+    fn test_load_from_buffer_invalid_seed_length() {
+        for seed_length in 0..=33 {
+            if matches!(seed_length, 16 | 24 | 32) {
+                continue;
+            }
+            let data = pb_backup::BackupData {
+                seed_length,
+                seed: vec![0; 32],
+                birthdate: 0,
+                generator: String::new(),
+            };
+            let metadata = pb_backup::BackupMetaData {
+                timestamp: 0,
+                name: String::new(),
+                mode: pb_backup::BackupMode::Plaintext as _,
+            };
+            let length = 0;
+            let checksum = compute_checksum(&metadata, &data, length).unwrap();
+            let backup = pb_backup::Backup {
+                backup_version: Some(pb_backup::backup::BackupVersion::BackupV1(
+                    pb_backup::BackupV1 {
+                        content: Some(pb_backup::BackupContent {
+                            checksum,
+                            metadata: Some(metadata),
+                            length,
+                            data: data.encode_to_vec(),
+                        }),
+                    },
+                )),
+            };
+
+            assert!(load_from_buffer(&backup.encode_to_vec()).is_err());
+        }
+    }
+
+    #[test]
+    fn test_load_from_buffer_missing_metadata() {
         let data = pb_backup::BackupData {
-            seed_length: 33,
+            seed_length: 16,
             seed: vec![0; 32],
             birthdate: 0,
             generator: String::new(),
         };
-        let metadata = pb_backup::BackupMetaData {
-            timestamp: 0,
-            name: String::new(),
-            mode: pb_backup::BackupMode::Plaintext as _,
-        };
-        let length = 0;
-        let checksum = compute_checksum(&metadata, &data, length).unwrap();
         let backup = pb_backup::Backup {
             backup_version: Some(pb_backup::backup::BackupVersion::BackupV1(
                 pb_backup::BackupV1 {
                     content: Some(pb_backup::BackupContent {
-                        checksum,
-                        metadata: Some(metadata),
-                        length,
+                        checksum: vec![],
+                        metadata: None,
+                        length: 0,
                         data: data.encode_to_vec(),
                     }),
                 },
@@ -436,7 +462,8 @@ mod tests {
         // Test for seeds of different size.
         _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c\x03\xbf\x74\x3a\xa5\xde\xe3\x7e"[..]).await;
         _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c"[..]).await;
-        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09"[..]).await;
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb"[..])
+            .await;
     }
 
     #[test]

@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Reject malformed microSD backups instead of crashing
 
 ### v9.27.1
 - API: include the installed bootloader version in the device info response

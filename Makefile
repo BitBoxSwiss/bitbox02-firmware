@@ -108,12 +108,16 @@ bootloader-stage1-production: | build
 	$(MAKE) -C build bootloader-stage1-production
 bootloader-stage1-development: | build
 	$(MAKE) -C build bootloader-stage1-development
+bootloader-stage1-development-locked: | build
+	$(MAKE) -C build bootloader-stage1-development-locked
 bootloader-stage1-bitbox02-btconly-development: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-development.elf
 bootloader-stage1-bitbox02-btconly-production: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-production.elf
 bootloader-stage1-bitbox02-multi-development: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02-multi-development.elf
+bootloader-stage1-bitbox02-multi-development-locked: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02-multi-development-locked.elf
 bootloader-stage1-bitbox02-multi-production: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02-multi-production.elf
 bootloader-stage1-bitbox02nova-btconly-development: | build
@@ -122,6 +126,8 @@ bootloader-stage1-bitbox02nova-btconly-production: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02nova-btconly-production.elf
 bootloader-stage1-bitbox02nova-multi-development: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-development.elf
+bootloader-stage1-bitbox02nova-multi-development-locked: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-development-locked.elf
 bootloader-stage1-bitbox02nova-multi-production: | build
 	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-production.elf
 
@@ -186,10 +192,14 @@ jlink-flash-bootloader-stage1-bitbox02-btconly-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-btconly-development.jlink
 jlink-flash-bootloader-stage1-bitbox02-multi-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02-multi-development-locked: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-multi-development-locked.jlink
 jlink-flash-bootloader-stage1-bitbox02nova-btconly-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-btconly-development.jlink
 jlink-flash-bootloader-stage1-bitbox02nova-multi-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02nova-multi-development-locked: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-multi-development-locked.jlink
 
 jlink-flash-firmware: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink

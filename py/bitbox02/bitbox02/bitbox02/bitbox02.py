@@ -447,6 +447,7 @@ class BitBox02(BitBoxCommonAPI):
         locktime: int = 0,
         format_unit: "btc.BTCSignInitRequest.FormatUnit.V" = btc.BTCSignInitRequest.FormatUnit.DEFAULT,
         output_script_configs: Optional[Sequence[btc.BTCScriptConfigWithKeypath]] = None,
+        bip322_message: Optional[bytes] = None,
     ) -> Sequence[Tuple[int, bytes]]:
         """
         coin: the first element of all provided keypaths must match the coin:
@@ -464,15 +465,20 @@ class BitBox02(BitBoxCommonAPI):
         outputs: transaction outputs. Can be an external output
         (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
         version: transaction version, 1 or 2.
-        locktime: consensus nLockTime, interpreted as a block height or Unix timestamp.
+        locktime: consensus nLockTime, interpreted as a block height or Unix timestamp. For BIP-322 message signing, must be 0 or 2.
         format_unit: defines in which unit amounts will be displayed
         output_script_configs: script types for outputs belonging to the same keystore
+        bip322_message: if set, treat this as a BIP-322 generic message signing request. The
+          inputs/outputs must match the BIP-322 to_sign virtual transaction (first input spends
+          to_spend, single OP_RETURN output). Carries the message from PSBT global field
+          PSBT_GLOBAL_GENERIC_SIGNED_MESSAGE (0x09).
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
         # pylint: disable=no-member,too-many-branches,too-many-statements
 
-        assert version in (1, 2)
+        # BIP-322 also allows version 0.
+        assert version in (0, 1, 2)
 
         if locktime >= 500_000_000:
             # Timestamp-based nLockTime supported since v9.27.0.
@@ -511,6 +517,7 @@ class BitBox02(BitBoxCommonAPI):
                 locktime=locktime,
                 format_unit=format_unit,
                 output_script_configs=output_script_configs,
+                bip322_message=bip322_message,
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
@@ -665,7 +672,8 @@ class BitBox02(BitBoxCommonAPI):
     ) -> Tuple[bytes, int, bytes]:
         """
         Returns a 64 byte sig, the recoverable id, and a 65 byte signature containing
-        the recid, compatible with Electrum.
+        the recid, compatible with Electrum, for legacy types.
+        For P2TR script configs, it returns the BIP-322 simple-encoded witness.
         """
         # pylint: disable=no-member
 
@@ -678,6 +686,13 @@ class BitBox02(BitBoxCommonAPI):
             btc.BTCSignMessageRequest(coin=coin, script_config=script_config, msg=msg)
         )
 
+        if is_taproot(script_config=script_config):
+            signature = self._btc_msg_query(
+                request, expected_response="sign_message"
+            ).sign_message.signature
+            return (signature, 0, signature)
+
+        # Legacy message signing for non-taproot types.
         supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
         if supports_antiklepto:
             host_nonce = os.urandom(32)

@@ -3,6 +3,19 @@
 use sha2::Digest;
 use sha2::Sha256;
 
+/// Return a SHA-256 engine pre-loaded with the BIP-340 tagged hash prefix:
+/// `SHA256(tag) || SHA256(tag)`.
+///
+/// Callers feed their message into the returned engine and finalize it to obtain
+/// `SHA256(SHA256(tag) || SHA256(tag) || msg)`.
+pub fn tagged_hash_engine(tag: &[u8]) -> Sha256 {
+    let tag_hash = Sha256::digest(tag);
+    let mut ctx = Sha256::new();
+    ctx.update(&tag_hash);
+    ctx.update(&tag_hash);
+    ctx
+}
+
 /// https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
 pub struct Args {
     // Transaction data:
@@ -26,10 +39,7 @@ pub struct Args {
 ///
 /// The hash_type is assumed 0 (`SIGHASH_DEFAULT`). `annex` is assumed to be not present.
 pub fn sighash(args: &Args) -> [u8; 32] {
-    let tag = Sha256::digest(b"TapSighash");
-    let mut ctx = Sha256::new();
-    ctx.update(tag);
-    ctx.update(tag);
+    let mut ctx = tagged_hash_engine(b"TapSighash");
     // Sighash epoch 0
     ctx.update(0u8.to_le_bytes());
     // Control:

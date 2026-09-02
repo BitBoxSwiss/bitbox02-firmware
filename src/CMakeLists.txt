@@ -466,10 +466,10 @@ if(CMAKE_CROSSCOMPILING)
   set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-production.v1.2.2.signed.bin)
   set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-production.v1.2.2.signed.bin)
   set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-production.v1.2.2.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-development.v1.2.0.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-development.v1.2.2.signed.bin)
 
   set(BB02_BLUPD_FIRMWARE_TARGETS
     firmware-blupgrade-bitbox02-btconly

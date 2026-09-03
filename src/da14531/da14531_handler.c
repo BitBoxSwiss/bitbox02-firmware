@@ -5,17 +5,21 @@
 #include "hardfault.h"
 #include "memory/memory.h"
 #include "memory/memory_shared.h"
-#include "screen.h"
-#include "ui/screen_stack.h"
-#include "ui/ui_util.h"
-#include "usb/class/usb_size.h"
-#include "usb/usb_frame.h"
-#include "usb/usb_packet.h"
-#include "usb/usb_processing.h"
+#if FACTORYSETUP == 0
+    #include "screen.h"
+    #include "ui/screen_stack.h"
+    #include "ui/ui_util.h"
+    #include "usb/class/usb_size.h"
+    #include "usb/usb_frame.h"
+    #include "usb/usb_packet.h"
+    #include "usb/usb_processing.h"
+#endif
 #include <rust/rust.h>
-#include <ui/components/confirm.h>
-#include <ui/components/ui_images.h>
-#include <ui/fonts/monogram_5X9.h>
+#if FACTORYSETUP == 0
+    #include <ui/components/confirm.h>
+    #include <ui/components/ui_images.h>
+    #include <ui/fonts/monogram_5X9.h>
+#endif
 #include <utils_assert.h>
 
 const uint8_t* da14531_handler_current_product = NULL;
@@ -29,11 +33,13 @@ struct da14531_ctrl_frame {
 } __attribute((packed));
 
 #if !defined(BOOTLOADER)
+    #define BLE_PAIRING_KEY_SIZE 4
 
+    #if FACTORYSETUP == 0
 static component_t* _ble_pairing_component = NULL;
 
 struct pairing_callback {
-    uint8_t key[4];
+    uint8_t key[BLE_PAIRING_KEY_SIZE];
     struct RustByteQueue* queue;
 };
 
@@ -52,12 +58,13 @@ static const component_functions_t _ble_pairing_component_functions = {
     .render = ui_util_component_render_subcomponents,
     .on_event = NULL,
 };
+    #endif
 
 static void _ble_pairing_respond(const uint8_t* key, struct RustByteQueue* queue, bool ok)
 {
     uint8_t payload[18] = {0};
     payload[0] = CTRL_CMD_TK_CONFIRM;
-    memcpy(&payload[1], key, sizeof(_ble_pairing_callback_data.key));
+    memcpy(&payload[1], key, BLE_PAIRING_KEY_SIZE);
     payload[17] = ok ? 1 : 0; /* 1 yes, 0 no */
 
     uint8_t tmp[12 + sizeof(payload) * 2];
@@ -69,6 +76,7 @@ static void _ble_pairing_respond(const uint8_t* key, struct RustByteQueue* queue
     }
 }
 
+    #if FACTORYSETUP == 0
 static void _ble_pairing_callback(bool ok, void* param)
 {
     struct pairing_callback* data = (struct pairing_callback*)param;
@@ -78,6 +86,7 @@ static void _ble_pairing_callback(bool ok, void* param)
     ui_screen_stack_pop();
     _ble_pairing_component = NULL;
 }
+    #endif
 #else
     #include <bootloader/bootloader.h>
 extern bool bootloader_pairing_request;
@@ -165,7 +174,9 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
             ASSERT(false);
             break;
         }
-#if !defined(BOOTLOADER)
+#if FACTORYSETUP == 1
+        _ble_pairing_respond(&frame->cmd_data[0], queue, false);
+#elif !defined(BOOTLOADER)
         // A running HWW task can own a Rust-backed screen. Do not overlay it: if its watchdog
         // cancels the task, the Rust screen owner assumes that its component is still on top.
         if (usb_processing_locked(usb_processing_hww())) {
@@ -217,7 +228,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
         switch (frame->cmd_data[0]) {
         case DA14531_CONNECTED_ADVERTISING:
             util_log("da14531: adveritising");
-#if !defined(BOOTLOADER)
+#if !defined(BOOTLOADER) && FACTORYSETUP == 0
             if (_ble_pairing_component != NULL && ui_screen_stack_top() == _ble_pairing_component) {
                 ui_screen_stack_pop();
                 _ble_pairing_component = NULL;
@@ -297,6 +308,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
     }
 }
 
+#if FACTORYSETUP == 0
 static void _hww_handler(const struct da14531_protocol_frame* frame, struct RustByteQueue* queue)
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
@@ -309,6 +321,7 @@ static void _hww_handler(const struct da14531_protocol_frame* frame, struct Rust
     memcpy(&usb_frame, &frame->payload[0], sizeof(usb_frame));
     usb_packet_process(&usb_frame);
 }
+#endif
 
 // Handler must not use the frame pointer after it has returned
 void da14531_handler(const struct da14531_protocol_frame* frame, struct RustByteQueue* queue)
@@ -318,9 +331,11 @@ void da14531_handler(const struct da14531_protocol_frame* frame, struct RustByte
     case DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA:
         _ctrl_handler((const struct da14531_ctrl_frame*)frame, queue);
         break;
+#if FACTORYSETUP == 0
     case DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA:
         _hww_handler(frame, queue);
         break;
+#endif
     default:
         break;
     }

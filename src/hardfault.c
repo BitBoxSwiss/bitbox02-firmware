@@ -7,7 +7,10 @@
 #include <memory/memory.h>
 #include <platform_config.h>
 #include <screen.h>
-#include <usb/usb.h>
+
+#if FACTORYSETUP == 0
+    #include <usb/usb.h>
+#endif
 
 #if defined(TESTING)
     #include <stdio.h>
@@ -34,7 +37,9 @@ void Abort(const char* msg)
 #else
     util_log("%s", msg);
     screen_print_debug(msg, 0);
+    #if FACTORYSETUP == 0
     usb_stop();
+    #endif
     #if defined(BOOTLOADER)
     bootloader_close_interfaces();
     #else

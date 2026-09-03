@@ -852,8 +852,8 @@ static void _rtt_send(const uint8_t* msg, size_t len)
         Abort("Buffer to send to host too large");
     }
     uint8_t len16[2];
-    len16[0] = (len >> 8) & 0xff;
-    len16[1] = len & 0xff;
+    len16[0] = len & 0xff;
+    len16[1] = (len >> 8) & 0xff;
     rust_rtt_ch1_write(&len16[0], LENSIZE);
     rust_rtt_ch1_write(msg, len);
 }

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "rtt-target"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Matti Virkkunen <mvirkkunen@gmail.com>"]
 build = false
 autolib = false
@@ -51,23 +51,23 @@ name = "rtt_target"
 path = "src/lib.rs"
 
 [dependencies]
-critical-section = "1.0.0"
+critical-section = "1.2.0"
 ufmt-write = "0.1.0"
 
 [dependencies.defmt]
-version = "0.3.0"
+version = "1.0.1"
 optional = true
 
 [dependencies.log]
-version = "0.4.22"
+version = "0.4.29"
 optional = true
 
 [dependencies.once_cell]
-version = "1.20.2"
+version = "1.21.3"
 features = ["critical-section"]
 optional = true
 default-features = false
 
 [dependencies.portable-atomic]
-version = "1.6.0"
+version = "1.13.1"
 default-features = false

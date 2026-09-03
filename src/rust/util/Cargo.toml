@@ -9,7 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 num-bigint = { workspace = true, default-features = false }
-rtt-target = { version = "0.6.1", optional = true }
+rtt-target = { version = "0.6.2", optional = true }
 cortex-m = { workspace = true }
 hex = {workspace = true}
 sha2 = { workspace = true, optional = true }

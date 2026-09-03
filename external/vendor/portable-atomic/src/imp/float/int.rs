@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 /*
-AtomicF{32,64} implementation based on AtomicU{32,64}.
+Atomic float implementation based on atomic integer.
 
 This module provides atomic float implementations using atomic integer.
 
 Note that most of `fetch_*` operations of atomic floats are implemented using
 CAS loops, which can be slower than equivalent operations of atomic integers.
 
-GPU targets have atomic instructions for float, so GPU targets will use
-architecture-specific implementations instead of this implementation in the
+AArch64 with FEAT_LSFE and GPU targets have atomic instructions for float.
+See aarch64.rs for AArch64 with FEAT_LSFE.
+GPU targets will also use architecture-specific implementations instead of this implementation in the
 future: https://github.com/taiki-e/portable-atomic/issues/34 / https://github.com/taiki-e/portable-atomic/pull/45
 */
 
@@ -90,8 +91,22 @@ macro_rules! atomic_float {
             pub(crate) fn swap(&self, val: $float_type, order: Ordering) -> $float_type {
                 $float_type::from_bits(self.as_bits().swap(val.to_bits(), order))
             }
+            #[inline]
+            #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+            pub(crate) fn fetch_neg(&self, order: Ordering) -> $float_type {
+                const NEG_MASK: $int_type = !0 / 2 + 1;
+                $float_type::from_bits(self.as_bits().fetch_xor(NEG_MASK, order))
+            }
 
-            cfg_has_atomic_cas! {
+            #[inline]
+            #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+            pub(crate) fn fetch_abs(&self, order: Ordering) -> $float_type {
+                const ABS_MASK: $int_type = !0 / 2;
+                $float_type::from_bits(self.as_bits().fetch_and(ABS_MASK, order))
+            }
+        }
+        cfg_has_atomic_cas! {
+        impl $atomic_type {
             #[inline]
             #[cfg_attr(
                 any(all(debug_assertions, not(portable_atomic_no_track_caller)), miri),
@@ -137,7 +152,15 @@ macro_rules! atomic_float {
                     Err(v) => Err($float_type::from_bits(v)),
                 }
             }
-
+        }
+        #[cfg(not(all(
+            any(target_arch = "aarch64", target_arch = "arm64ec"),
+            any(target_feature = "lsfe", portable_atomic_target_feature = "lsfe"),
+            target_feature = "neon", // for vreg
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+        )))]
+        impl $atomic_type {
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_add(&self, val: $float_type, order: Ordering) -> $float_type {
@@ -179,28 +202,23 @@ macro_rules! atomic_float {
             pub(crate) fn fetch_min(&self, val: $float_type, order: Ordering) -> $float_type {
                 self.fetch_update_(order, |x| x.min(val))
             }
-            } // cfg_has_atomic_cas!
-            #[inline]
-            #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-            pub(crate) fn fetch_neg(&self, order: Ordering) -> $float_type {
-                const NEG_MASK: $int_type = !0 / 2 + 1;
-                $float_type::from_bits(self.as_bits().fetch_xor(NEG_MASK, order))
-            }
-
-            #[inline]
-            #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-            pub(crate) fn fetch_abs(&self, order: Ordering) -> $float_type {
-                const ABS_MASK: $int_type = !0 / 2;
-                $float_type::from_bits(self.as_bits().fetch_and(ABS_MASK, order))
-            }
         }
+        } // cfg_has_atomic_cas!
         } // cfg_has_atomic_cas_or_amo32!
     };
 }
 
+#[cfg(portable_atomic_unstable_f16)]
+cfg_has_atomic_16! {
+    atomic_float!(AtomicF16, f16, AtomicU16, u16, 2);
+}
 cfg_has_atomic_32! {
     atomic_float!(AtomicF32, f32, AtomicU32, u32, 4);
 }
 cfg_has_atomic_64! {
     atomic_float!(AtomicF64, f64, AtomicU64, u64, 8);
+}
+#[cfg(portable_atomic_unstable_f128)]
+cfg_has_atomic_128! {
+    atomic_float!(AtomicF128, f128, AtomicU128, u128, 16);
 }

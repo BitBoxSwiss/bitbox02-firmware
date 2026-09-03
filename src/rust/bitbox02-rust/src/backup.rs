@@ -70,6 +70,19 @@ pub fn id(seed: &[u8]) -> String {
     hex::encode(mac.finalize_reset().into_bytes())
 }
 
+/// Replaces non-printable-ASCII characters in legacy backup names with `?`.
+pub(crate) fn sanitize_name(name: &str) -> String {
+    name.chars()
+        .map(|character| {
+            if (' '..='~').contains(&character) {
+                character
+            } else {
+                '?'
+            }
+        })
+        .collect()
+}
+
 fn compute_checksum(
     metadata: &pb_backup::BackupMetaData,
     data: &pb_backup::BackupData,

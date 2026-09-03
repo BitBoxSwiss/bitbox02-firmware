@@ -29,10 +29,11 @@ pub async fn check(
         return Err(Error::Generic);
     }
     if !silent {
+        let name = backup::sanitize_name(&metadata.name);
         hal.ui()
             .confirm(&ConfirmParams {
                 title: "Name?",
-                body: &metadata.name,
+                body: &name,
                 scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()

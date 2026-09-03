@@ -953,21 +953,23 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         const size_t certificate_size = 64;
         const uint8_t* root_pubkey_identifier = input + 1 + pubkey_size + certificate_size;
 
-        // Verify sig
+        // Select the signing key first so that only one signature verification is needed.
         uint8_t msg32[32] = {0};
         _attestation_sighash(attestation_device_pubkey, msg32);
-        bool matches_a_root_pubkey = false;
+        const uint8_t* root_pubkey = NULL;
         for (size_t pubkey_idx = 0; pubkey_idx < sizeof(_root_pubkey_bytes) / ROOT_PUBKEY_SIZE;
              pubkey_idx++) {
-            if (rust_secp256k1_verify(
-                    rust_util_bytes(certificate, certificate_size),
-                    rust_util_bytes(msg32, sizeof(msg32)),
-                    rust_util_bytes(_root_pubkey_bytes[pubkey_idx], ROOT_PUBKEY_SIZE))) {
-                matches_a_root_pubkey = true;
+            uint8_t candidate_identifier[32];
+            rust_sha256(_root_pubkey_bytes[pubkey_idx], ROOT_PUBKEY_SIZE, candidate_identifier);
+            if (MEMEQ(root_pubkey_identifier, candidate_identifier, sizeof(candidate_identifier))) {
+                root_pubkey = _root_pubkey_bytes[pubkey_idx];
                 break;
             }
         }
-        if (!matches_a_root_pubkey) {
+        if (root_pubkey == NULL || !rust_secp256k1_verify(
+                                       rust_util_bytes(certificate, certificate_size),
+                                       rust_util_bytes(msg32, sizeof(msg32)),
+                                       rust_util_bytes(root_pubkey, ROOT_PUBKEY_SIZE))) {
             screen_print_debug("setting certificate\nfailed: sig", 0);
             result = ERR_INVALID_INPUT;
             break;

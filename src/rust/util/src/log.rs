@@ -98,17 +98,24 @@ pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
 /// The pointer `data` must point to an initialized, readable buffer of length `len`.
 #[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
-#[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
-pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
+pub unsafe extern "C" fn rust_rtt_ch1_write_all(data: *const u8, len: usize) {
     #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         let buf = unsafe { core::slice::from_raw_parts(data, len) };
         let channel = unsafe { CH1_UP.as_mut().unwrap() };
-        let mut written = 0;
-        while written < len {
-            written += channel.write(buf);
+        while !buf.is_empty() {
+            let written = channel.write(buf);
+            if written == buf.len() {
+                return;
+            }
+            // NoBlockSkip can report bytes copied even though it does not publish a partial write.
+            // Retry the complete buffer so the host never observes a truncated frame.
+            debug_assert!(written < buf.len());
+            core::hint::spin_loop();
         }
     }
+    #[cfg(not(all(feature = "rtt", target_os = "none")))]
+    let _ = (data, len);
 }
 
 /// # Safety
@@ -116,7 +123,6 @@ pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
 /// The pointer `data` must point to an initialized, writable buffer of length `len`.
 #[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
-#[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {
     #[cfg(all(feature = "rtt", target_os = "none"))]
     {
@@ -125,5 +131,8 @@ pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {
         channel.read(buf)
     }
     #[cfg(not(all(feature = "rtt", target_os = "none")))]
-    0
+    {
+        let _ = (data, len);
+        0
+    }
 }

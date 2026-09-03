@@ -11,7 +11,7 @@ use core::marker::PhantomData;
 use tracing::info;
 use util::futures::completion;
 
-mod choice;
+pub mod choice;
 pub mod confirm;
 pub mod demo;
 pub mod enter_string;
@@ -19,8 +19,9 @@ pub mod keyboard;
 pub mod keypad;
 pub mod menu;
 pub mod nav_button;
+pub mod recovery_words;
 pub mod slide_to_confirm;
-mod status;
+pub mod status;
 #[cfg(test)]
 mod test_util;
 
@@ -164,6 +165,18 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         .await
     }
 
+    async fn enter_wordlist_word(
+        &mut self,
+        params: &bitbox_hal::ui::EnterStringParams<'_>,
+        can_cancel: bitbox_hal::ui::CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<alloc::string::String>, bitbox_hal::ui::WordlistEntryAbort> {
+        self.with_result_screen(|responder| {
+            enter_string::build_wordlist_screen(params, can_cancel, preset, responder)
+        })
+        .await
+    }
+
     async fn insert_sdcard(&mut self) -> Result<(), bitbox_hal::ui::UserAbort> {
         todo!()
     }
@@ -173,10 +186,9 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         words: &[&str],
         title: Option<&str>,
     ) -> Result<u8, bitbox_hal::ui::UserAbort> {
-        match self.menu_impl(words, title, true, false, 0).await {
+        match self.menu_impl(words, title, 0).await {
             menu::MenuResult::Selected(choice_idx) => Ok(choice_idx),
             menu::MenuResult::Cancel(_) => Err(bitbox_hal::ui::UserAbort),
-            menu::MenuResult::Continue => panic!("unexpected menu continue"),
         }
     }
 
@@ -200,18 +212,20 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), bitbox_hal::ui::UserAbort> {
-        let mut index = 0usize;
         loop {
-            match self.menu_impl(words, None, false, true, index).await {
-                menu::MenuResult::Continue => return Ok(()),
-                menu::MenuResult::Cancel(cancelled_index) => {
-                    index = cancelled_index;
-                    match menu::confirm_recovery_words_cancel(self).await {
+            let action = self
+                .with_result_screen(|responder| {
+                    recovery_words::build_recovery_words_screen(words, responder)
+                })
+                .await;
+            match action {
+                recovery_words::RecoveryWordsAction::Continue => return Ok(()),
+                recovery_words::RecoveryWordsAction::Cancel => {
+                    match recovery_words::confirm_recovery_words_cancel(self).await {
                         Ok(()) => return Err(bitbox_hal::ui::UserAbort),
                         Err(bitbox_hal::ui::UserAbort) => {}
                     }
                 }
-                menu::MenuResult::Selected(_) => panic!("unexpected mnemonic word selection"),
             }
         }
     }
@@ -223,19 +237,15 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     ) -> Result<u8, bitbox_hal::ui::UserAbort> {
         let mut index = 0usize;
         loop {
-            match self
-                .menu_impl(choices, Some(title), true, false, index)
-                .await
-            {
+            match self.menu_impl(choices, Some(title), index).await {
                 menu::MenuResult::Selected(choice_idx) => return Ok(choice_idx),
                 menu::MenuResult::Cancel(cancelled_index) => {
                     index = cancelled_index;
-                    match menu::confirm_recovery_words_cancel(self).await {
+                    match recovery_words::confirm_recovery_words_cancel(self).await {
                         Ok(()) => return Err(bitbox_hal::ui::UserAbort),
                         Err(bitbox_hal::ui::UserAbort) => {}
                     }
                 }
-                menu::MenuResult::Continue => panic!("unexpected mnemonic quiz continue"),
             }
         }
     }
@@ -371,8 +381,6 @@ impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
         &mut self,
         words: &[&str],
         title: Option<&str>,
-        select_word: bool,
-        continue_on_last: bool,
         start_index: usize,
     ) -> menu::MenuResult {
         assert!(!words.is_empty(), "menu requires at least one word");
@@ -380,14 +388,7 @@ impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
         loop {
             let action = self
                 .with_result_screen(|responder| {
-                    menu::build_menu_screen(
-                        words,
-                        title,
-                        index,
-                        select_word,
-                        continue_on_last,
-                        responder,
-                    )
+                    menu::build_menu_screen(words, title, index, responder)
                 })
                 .await;
             match action {
@@ -402,7 +403,6 @@ impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
                         index.try_into().expect("menu supports at most 256 items"),
                     );
                 }
-                menu::MenuAction::Continue => return menu::MenuResult::Continue,
                 menu::MenuAction::Cancel => return menu::MenuResult::Cancel(index),
             }
         }

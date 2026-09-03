@@ -2,7 +2,6 @@
 
 use alloc::format;
 
-use bitbox_hal::ui::UserAbort;
 use bitbox_lvgl::{
     self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, ObjExt,
 };
@@ -15,19 +14,17 @@ pub enum MenuAction {
     Previous,
     Next,
     Select,
-    Continue,
     Cancel,
 }
 
 pub(super) enum MenuResult {
     Selected(u8),
-    Continue,
     Cancel(usize),
 }
 
-fn transparent_row(parent: &LvObj, height: i32) -> LvObj {
+pub(super) fn transparent_row(parent: &LvObj, width: i32, height: i32) -> LvObj {
     let row = LvObj::with_parent(parent).unwrap();
-    row.set_width(380);
+    row.set_width(width);
     row.set_height(height);
     row.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
     row.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_ROW);
@@ -45,8 +42,6 @@ pub fn build_menu_screen(
     words: &[&str],
     title: Option<&str>,
     index: usize,
-    select_word: bool,
-    continue_on_last: bool,
     responder: Responder<MenuAction>,
 ) -> LvObj {
     assert!(!words.is_empty(), "menu requires at least one word");
@@ -90,7 +85,7 @@ pub fn build_menu_screen(
     let can_go_previous = index > 0;
     let can_go_next = index + 1 < words.len();
     if can_go_previous || can_go_next {
-        let navigation = transparent_row(&screen, 82);
+        let navigation = transparent_row(&screen, 380, 82);
         // Keep Back on the left and Next on the right, whichever are present.
         navigation.set_style_flex_main_place(
             match (can_go_previous, can_go_next) {
@@ -127,39 +122,16 @@ pub fn build_menu_screen(
         })
         .expect("failed to register cancel callback");
 
-    let show_continue = continue_on_last && index + 1 == words.len();
-    if select_word || show_continue {
-        let actions = transparent_row(&screen, 82);
-        // Primary action sits on the right, under the Next button.
-        actions.set_style_flex_main_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_END, 0);
-        if select_word {
-            // Confirming the highlighted word.
-            let select = build_nav_button(&actions, NavIcon::Confirm);
-            select
-                .add_click_cb(move || {
-                    responder.resolve(MenuAction::Select);
-                })
-                .expect("failed to register select callback");
-        } else {
-            // Advancing to the next step of the workflow.
-            let cont = build_nav_button(&actions, NavIcon::Next);
-            cont.add_click_cb(move || {
-                responder.resolve(MenuAction::Continue);
-            })
-            .expect("failed to register continue callback");
-        }
-    }
+    let actions = transparent_row(&screen, 380, 82);
+    // The select action sits on the right, under the Next button.
+    actions.set_style_flex_main_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_END, 0);
+    // Confirming the highlighted word.
+    let select = build_nav_button(&actions, NavIcon::Confirm);
+    select
+        .add_click_cb(move || {
+            responder.resolve(MenuAction::Select);
+        })
+        .expect("failed to register select callback");
 
     screen
-}
-
-pub(super) async fn confirm_recovery_words_cancel(
-    ui: &mut impl bitbox_hal::ui::Ui,
-) -> Result<(), UserAbort> {
-    ui.confirm(&bitbox_hal::ui::ConfirmParams {
-        title: "Recovery\nwords",
-        body: "Do you really\nwant to cancel?",
-        ..Default::default()
-    })
-    .await
 }

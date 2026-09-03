@@ -1,13 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
+import json
 import subprocess
 import sys
-import json
 
-range = sys.argv[1]
+commits = subprocess.check_output(["git", "rev-list", "--reverse", sys.argv[1]], text=True).split()
 
-commits = subprocess.run(f'git log --format="%H" {range}', shell=True, text=True, capture_output=True)
-commits = commits.stdout.strip().split()
-
-if len(commits) > 0:
-  print(json.dumps({'commit': commits}))
+if commits:
+    total = len(commits)
+    matrix = [
+        {"commit": commit, "height": height, "total": total}
+        for height, commit in enumerate(commits, start=1)
+    ]
+    print(json.dumps({"include": matrix}))

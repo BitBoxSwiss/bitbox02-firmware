@@ -26,7 +26,7 @@
 #define BUFFER_SIZE_UP 1024
 
 // Size of length prefix (2 bytes).
-#define LENSIZE (2)
+#define LENSIZE 2
 
 #define FACTORYSETUP_CMD (HID_VENDOR_FIRST + 0x02) // factory setup commands
 
@@ -846,49 +846,43 @@ typedef enum {
 
 static ble_error_code_t _ble_result;
 
-static void _rtt_send(const uint8_t* msg, size_t len)
+static void _rtt_read_exact(uint8_t* out, size_t len)
 {
-    if (len + 2 >= BUFFER_SIZE_UP) {
-        Abort("Buffer to send to host too large");
+    while (len > 0) {
+        size_t read = rust_rtt_ch0_read(out, len);
+        if (read > len) {
+            Abort("Invalid RTT read length");
+        }
+        out += read;
+        len -= read;
     }
-    uint8_t len16[2];
-    len16[0] = len & 0xff;
-    len16[1] = (len >> 8) & 0xff;
-    rust_rtt_ch1_write(&len16[0], LENSIZE);
-    rust_rtt_ch1_write(msg, len);
 }
 
-static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
+static size_t _rtt_receive(uint8_t* msg_out, size_t msg_out_size)
 {
-    uint8_t buffer[BUFFER_SIZE_DOWN] = {0}; // Adjust size as needed
-    while (1) {
-        int read = rust_rtt_ch0_read(buffer, sizeof(buffer));
-        if (read == 0) {
-            continue;
-        }
-        if (read < LENSIZE) {
-            screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
-            // TODO: send error.
-            return false;
-        }
-        // util_log("read %s", util_dbg_hex(buffer, read));
-        uint16_t len;
-        memcpy(&len, buffer, sizeof(len));
-        if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
-            screen_sprintf_debug(
-                2000, "Error: read more than buffer size: %d bytes (total read: %d)", len, read);
-            screen_print_debug_hex(buffer, read, 5000);
-            return false;
-        }
-        if ((size_t)len > (size_t)read - LENSIZE) {
-            screen_sprintf_debug(
-                2000, "Error: incomplete message: %d bytes (total read: %d)", len, read);
-            return false;
-        }
-        *len_out = (size_t)len;
-        memcpy(msg_out, buffer + LENSIZE, (size_t)len);
-        return true;
+    uint8_t len16[LENSIZE];
+    _rtt_read_exact(len16, sizeof(len16));
+
+    size_t len = (size_t)len16[0] | ((size_t)len16[1] << 8);
+    if (len == 0) {
+        Abort("Invalid RTT payload length");
     }
+    if (len > msg_out_size) {
+        Abort("RTT receive buffer too small");
+    }
+    _rtt_read_exact(msg_out, len);
+    return len;
+}
+
+static void _rtt_send(uint8_t* frame, size_t payload_len)
+{
+    // One byte must remain unused to distinguish a full RTT ring buffer from an empty one.
+    if (payload_len > BUFFER_SIZE_UP - LENSIZE - 1) {
+        Abort("Buffer to send to host too large");
+    }
+    frame[0] = payload_len & 0xff;
+    frame[1] = (payload_len >> 8) & 0xff;
+    rust_rtt_ch1_write_all(frame, LENSIZE + payload_len);
 }
 
 static void _free(uint8_t** buf)
@@ -1184,16 +1178,14 @@ int main(void)
     screen_print_debug("READY", 0);
 
     uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
-    size_t len_read;
     uint8_t out[BUFFER_SIZE_UP];
     size_t out_len;
 
     while (1) {
-        if (_rtt_receive(msg_read, &len_read)) {
-            _api_msg(msg_read, len_read, out, &out_len);
-            // screen_print_debug_hex(msg_read, len_read, 5000);
-            _rtt_send(out, out_len);
-        }
+        size_t len_read = _rtt_receive(msg_read, sizeof(msg_read));
+        _api_msg(msg_read, len_read, out + LENSIZE, &out_len);
+        // screen_print_debug_hex(msg_read, len_read, 5000);
+        _rtt_send(out, out_len);
     }
 
     while (1);

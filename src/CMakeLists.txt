@@ -291,10 +291,12 @@ set(BB02_STAGE1_RUST_LIBS
   bb02-bl-btconly-development
   bb02-bl-btconly-production
   bb02-bl-multi-development
+  bb02-bl-multi-development-locked
   bb02-bl-multi-production
   bb02p-bl-btconly-development
   bb02p-bl-btconly-production
   bb02p-bl-multi-development
+  bb02p-bl-multi-development-locked
   bb02p-bl-multi-production
 )
 
@@ -466,10 +468,10 @@ if(CMAKE_CROSSCOMPILING)
   set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-production.v1.2.2.signed.bin)
   set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-production.v1.2.2.signed.bin)
   set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-production.v1.2.2.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-development.v1.2.0.signed.bin)
-  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-development.v1.2.0.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-development.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-development.v1.2.2.signed.bin)
 
   set(BB02_BLUPD_FIRMWARE_TARGETS
     firmware-blupgrade-bitbox02-btconly
@@ -555,6 +557,14 @@ if(CMAKE_CROSSCOMPILING)
     PRODUCT_BITBOX_MULTI
     BOOTLOADER_DEVDEVICE
     FALSE)
+  # If a bootloader that locks the bootloader is flashed the bootloader area is permanently
+  # read-only.
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02-multi-development-locked
+    bb02-bl-multi-development-locked_rust_c
+    PRODUCT_BITBOX_MULTI
+    "BOOTLOADER_DEVDEVICE;BOOTLOADER_PRODUCTION"
+    FALSE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02-multi-production
     bb02-bl-multi-production_rust_c
@@ -580,6 +590,12 @@ if(CMAKE_CROSSCOMPILING)
     BOOTLOADER_DEVDEVICE
     TRUE)
   add_bb02_stage1_target(
+    bootloader-stage1-bitbox02nova-multi-development-locked
+    bb02p-bl-multi-development-locked_rust_c
+    PRODUCT_BITBOX_PLUS_MULTI
+    "BOOTLOADER_DEVDEVICE;BOOTLOADER_PRODUCTION"
+    TRUE)
+  add_bb02_stage1_target(
     bootloader-stage1-bitbox02nova-multi-production
     bb02p-bl-multi-production_rust_c
     PRODUCT_BITBOX_PLUS_MULTI
@@ -594,8 +610,10 @@ if(CMAKE_CROSSCOMPILING)
     bootloader-stage1-bitbox02nova-multi-production
     bootloader-stage1-bitbox02-btconly-development
     bootloader-stage1-bitbox02-multi-development
+    bootloader-stage1-bitbox02-multi-development-locked
     bootloader-stage1-bitbox02nova-btconly-development
     bootloader-stage1-bitbox02nova-multi-development
+    bootloader-stage1-bitbox02nova-multi-development-locked
   )
   set(BB02_STAGE1_TARGETS ${BB02_STAGE1_TARGETS} PARENT_SCOPE)
 
@@ -885,6 +903,13 @@ if(CMAKE_CROSSCOMPILING)
       bootloader-stage1-bitbox02-multi-development.elf
       bootloader-stage1-bitbox02nova-btconly-development.elf
       bootloader-stage1-bitbox02nova-multi-development.elf
+  )
+
+  add_custom_target(
+    bootloader-stage1-development-locked
+    DEPENDS
+      bootloader-stage1-bitbox02-multi-development-locked.elf
+      bootloader-stage1-bitbox02nova-multi-development-locked.elf
   )
 
   add_custom_target(

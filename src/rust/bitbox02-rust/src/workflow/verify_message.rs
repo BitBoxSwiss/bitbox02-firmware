@@ -36,7 +36,8 @@ pub async fn verify(
 ) -> Result<(), Error> {
     if ascii::is_printable_ascii(msg, ascii::Charset::AllNewline) {
         // The message is all ascii and printable.
-        let msg = core::str::from_utf8(msg).unwrap();
+        // SAFETY: `is_printable_ascii()` accepted every byte above.
+        let msg = unsafe { core::str::from_utf8_unchecked(msg) };
         if msg.is_empty() {
             return Err(Error::InvalidInput);
         }
@@ -294,5 +295,23 @@ mod tests {
             }
             _ => panic!("unexpected screen"),
         }
+    }
+
+    #[async_test::test]
+    async fn test_verify_non_ascii_utf8_as_hex() {
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", "tä".as_bytes(), true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "Sign message\ndata (hex)".into(),
+                body: "74c3a4".into(),
+                longtouch: true,
+            }]
+        );
     }
 }

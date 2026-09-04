@@ -11,6 +11,7 @@
 #include <string.h>
 #include <touch/gestures.h>
 #include <ui/fonts/arial_fonts.h>
+#include <util.h>
 
 /********************************** Component Functions **********************************/
 
@@ -37,7 +38,15 @@ static void _truncate_to_fit(
     if (out == NULL || out_len == 0) {
         return;
     }
+    if (out_len < 4) {
+        out[0] = 0;
+        return;
+    }
     if (in[0] == 0) {
+        out[0] = 0;
+        return;
+    }
+    if (!util_is_printable_ascii(in, false)) {
         out[0] = 0;
         return;
     }
@@ -48,18 +57,27 @@ static void _truncate_to_fit(
 
     // Name fits without truncation.
     if (width <= max_width) {
-        snprintf(out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", in);
+        util_utf8_strlcpy(out, in, out_len);
         return;
     }
 
     // Truncate if too long to a size where "<name>..." fits.
-    size_t truncate_len = strlen(in) - 1;
+    const size_t text_capacity = out_len - 4;
+    size_t truncate_len = MIN(strlen(in), text_capacity);
     do {
-        // truncate at `truncate_len`.
-        snprintf(out, out_len, "%.*s...", (int)truncate_len, in);
-        truncate_len--;
+        const intptr_t result = util_utf8_copy(out, out_len, in, truncate_len);
+        if (result < 0) {
+            out[0] = 0;
+            return;
+        }
+        const size_t copied_len = (size_t)result;
+        memcpy(&out[copied_len], "...", 4);
         UG_MeasureStringCentered(&width, &height, out);
-    } while (truncate_len > 0 && width >= max_width);
+        if (truncate_len == 0) {
+            break;
+        }
+        truncate_len--;
+    } while (width >= max_width);
 }
 
 component_t* lockscreen_create(void)

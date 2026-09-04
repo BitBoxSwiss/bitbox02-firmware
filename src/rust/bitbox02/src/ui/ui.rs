@@ -15,8 +15,24 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 
+// Keep enough bytes beyond the C label limit to prove that truncation is needed even when the
+// Rust-side cut moves back to a UTF-8 boundary.
+const LABEL_TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 4;
+
+/// BitBox02 fonts contain glyphs for printable ASCII only. Keep this check at the common UI
+/// boundary so unsupported text cannot be silently omitted by the renderer.
+fn display_str_to_cstr_vec(text: &str) -> Vec<c_char> {
+    assert!(
+        util::ascii::is_printable_ascii(text, util::ascii::Charset::AllNewline),
+        "BitBox02 UI text contains unsupported characters"
+    );
+    let mut result: Vec<c_char> = text.bytes().map(|byte| byte as c_char).collect();
+    result.push(0);
+    result
+}
+
 fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
-    let text = util::strings::str_to_cstr_vec(text).unwrap();
+    let text = display_str_to_cstr_vec(text);
     unsafe { bitbox02_sys::label_fits_width(text.as_ptr(), font, bitbox02_sys::SCREEN_WIDTH as _) }
 }
 
@@ -150,12 +166,10 @@ pub async fn trinary_input_string(
         (None, core::ptr::null_mut())
     };
 
-    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-    // truncate and append '...'.
-    const TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 1;
-    let title =
-        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
-            .unwrap();
+    let title = display_str_to_cstr_vec(util::strings::truncate_str(
+        params.title,
+        LABEL_TRUNCATE_SIZE,
+    ));
     let c_params = bitbox02_sys::trinary_input_string_params_t {
         title: title.as_ptr().cast(),
         wordlist: match params.wordlist {
@@ -186,7 +200,7 @@ pub async fn trinary_input_string(
         unsafe {
             bitbox02_sys::trinary_input_string_set_input(
                 component,
-                util::strings::str_to_cstr_vec(preset).unwrap().as_ptr(),
+                display_str_to_cstr_vec(preset).as_ptr(),
             )
         }
     }
@@ -245,15 +259,14 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
         }
     }
 
-    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-    // truncate and append '...'.
-    const TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 1;
-    let title =
-        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
-            .unwrap();
-    let body =
-        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.body, TRUNCATE_SIZE))
-            .unwrap();
+    let title = display_str_to_cstr_vec(util::strings::truncate_str(
+        params.title,
+        LABEL_TRUNCATE_SIZE,
+    ));
+    let body = display_str_to_cstr_vec(util::strings::truncate_str(
+        params.body,
+        LABEL_TRUNCATE_SIZE,
+    ));
     let c_params = bitbox02_sys::confirm_params_t {
         title: title.as_ptr().cast(),
         title_autowrap: params.title_autowrap,
@@ -305,7 +318,7 @@ pub fn screen_process() {
 pub fn status_create(text: &str, status_success: bool) -> Component {
     let component = unsafe {
         bitbox02_sys::status_create(
-            util::strings::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
+            display_str_to_cstr_vec(text).as_ptr(), // copied in C
             status_success,
         )
     };
@@ -430,7 +443,7 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
     let words: Vec<Vec<core::ffi::c_char>> = params
         .words
         .iter()
-        .map(|word| util::strings::str_to_cstr_vec(word).unwrap())
+        .map(|word| display_str_to_cstr_vec(word))
         .collect();
     // Step two: collect pointers. This var also has to be valid until menu() finishes, or
     // the pointer will be invalid.
@@ -452,9 +465,7 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
             shared_state_ptr, // passed to continue_on_last_cb as `user_data`.
         ),
     };
-    let title = params
-        .title
-        .map(|title| util::strings::str_to_cstr_vec(title).unwrap());
+    let title = params.title.map(display_str_to_cstr_vec);
     let component = unsafe {
         bitbox02_sys::menu_create(
             c_words.as_ptr(),
@@ -548,13 +559,13 @@ pub async fn trinary_choice(
         }
     }
 
-    let label_left = label_left.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
-    let label_middle = label_middle.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
-    let label_right = label_right.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
+    let label_left = label_left.map(display_str_to_cstr_vec);
+    let label_middle = label_middle.map(display_str_to_cstr_vec);
+    let label_right = label_right.map(display_str_to_cstr_vec);
 
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            util::strings::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
+            display_str_to_cstr_vec(message).as_ptr(), // copied in C
             // copied in C
             label_left
                 .as_ref()
@@ -627,8 +638,8 @@ pub async fn confirm_transaction_address(amount: &str, address: &str) -> Confirm
 
     let component = unsafe {
         bitbox02_sys::confirm_transaction_address_create(
-            util::strings::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
-            util::strings::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
+            display_str_to_cstr_vec(amount).as_ptr(),  // copied in C
+            display_str_to_cstr_vec(address).as_ptr(), // copied in C
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
         )
@@ -688,9 +699,9 @@ pub async fn confirm_swap(title: &str, from: &str, to: &str) -> ConfirmResponse 
 
     let component = unsafe {
         bitbox02_sys::confirm_swap_create(
-            util::strings::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
-            util::strings::str_to_cstr_vec(from).unwrap().as_ptr(),  // copied in C
-            util::strings::str_to_cstr_vec(to).unwrap().as_ptr(),    // copied in C
+            display_str_to_cstr_vec(title).as_ptr(), // copied in C
+            display_str_to_cstr_vec(from).as_ptr(),  // copied in C
+            display_str_to_cstr_vec(to).as_ptr(),    // copied in C
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
         )
@@ -750,8 +761,8 @@ pub async fn confirm_transaction_fee(amount: &str, fee: &str, longtouch: bool) -
 
     let component = unsafe {
         bitbox02_sys::confirm_transaction_fee_create(
-            util::strings::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
-            util::strings::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
+            display_str_to_cstr_vec(amount).as_ptr(), // copied in C
+            display_str_to_cstr_vec(fee).as_ptr(),    // copied in C
             longtouch,
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
@@ -790,7 +801,7 @@ pub fn screen_stack_pop_all() {
 pub fn progress_create(title: &str) -> Component {
     let component = unsafe {
         bitbox02_sys::progress_create(
-            util::strings::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
+            display_str_to_cstr_vec(title).as_ptr(), // copied in C
         )
     };
 

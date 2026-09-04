@@ -28,6 +28,9 @@ fn main() {
             panic!("token line has more than three fields");
         }
         let (unit, contract_address) = (parts[0], parts[1]);
+        if !unit.bytes().all(|byte| (32..=126).contains(&byte)) {
+            panic!("token unit must be printable ASCII");
+        }
         let decimals: u8 = parts[2].parse().unwrap();
 
         tokens.push(Token {

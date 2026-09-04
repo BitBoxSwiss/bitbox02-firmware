@@ -20,13 +20,10 @@ pub struct Params {
 
 impl Params {
     fn from_p(p: &P, decimals: u8, unit_len: u8) -> Self {
+        let unit = unsafe { core::slice::from_raw_parts(p.unit, unit_len as usize) };
         Params {
-            unit: unsafe {
-                core::str::from_utf8_unchecked(core::slice::from_raw_parts(
-                    p.unit,
-                    unit_len as usize,
-                ))
-            },
+            // SAFETY: `p.unit` points to a Rust byte-string generated from a validated ASCII unit.
+            unit: unsafe { core::str::from_utf8_unchecked(unit) },
             contract_address: p.contract_address,
             decimals,
         }

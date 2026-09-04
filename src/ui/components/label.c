@@ -42,10 +42,17 @@ bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width)
 void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;
-    int snprintf_result = snprintf(data->text, MAX_LABEL_SIZE + 1, "%s", text);
-    if (snprintf_result >= MAX_LABEL_SIZE + 1) {
+    if (!util_is_printable_ascii(text, true)) {
+        Abort("Unsupported label character");
+    }
+    const intptr_t result = util_utf8_strlcpy(data->text, text, MAX_LABEL_SIZE + 1);
+    if (result < 0) {
+        Abort("Invalid UTF-8 label");
+    }
+    const size_t copied_len = (size_t)result;
+    if (copied_len < strlen(text)) {
         // text has been truncated, add '...'
-        snprintf(&data->text[MAX_LABEL_SIZE], 4, "...");
+        memcpy(&data->text[copied_len], "...", 4);
     }
     _measure_label_dimensions(component);
     if (component->parent == NULL) {

@@ -181,7 +181,10 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
         memcpy(&pairing_code_int, &frame->cmd_data[0], sizeof(pairing_code_int));
         pairing_code_int %= 1000000;
         char pairing_code[7] = {0};
-        snprintf(pairing_code, sizeof(pairing_code), "%06lu", (long unsigned int)pairing_code_int);
+        for (size_t i = sizeof(pairing_code) - 1; i > 0; i--) {
+            pairing_code[i - 1] = '0' + pairing_code_int % 10;
+            pairing_code_int /= 10;
+        }
         // util_log("da14531: show/confirm pairing code: %s", pairing_code);
         const confirm_params_t confirm_params = {
             .title = "Pairing code",

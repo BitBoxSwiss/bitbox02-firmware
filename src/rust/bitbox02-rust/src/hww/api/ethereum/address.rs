@@ -24,10 +24,8 @@ pub fn from_pubkey_hash(recipient: &[u8; 20], address_case: pb::EthAddressCase) 
                     *e -= 32; // convert to uppercase
                 }
             }
-            format!("0x{}", unsafe {
-                // valid utf8 because hex and the uppercasing above is correct.
-                core::str::from_utf8_unchecked(&hex[..])
-            })
+            // SAFETY: hex encoding and the uppercasing above produce only ASCII.
+            format!("0x{}", unsafe { core::str::from_utf8_unchecked(&hex) })
         }
         pb::EthAddressCase::Upper => {
             format!("0x{}", hex::encode_upper(recipient))

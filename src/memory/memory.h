@@ -68,11 +68,11 @@ USE_RESULT bool memory_cleanup_smarteeprom(void);
 // Default device name if no name was set by the user.
 extern const char* MEMORY_DEFAULT_DEVICE_NAME;
 
-// set device name. name is null terminated. The name must be smaller or equal to
-// MEMORY_DEVICE_MAX_LEN_WITH_NULL (including the null terminator) and larger than 0 in size,
-// consist of printable ASCII characters only (and space), not start or end with whitespace, and
-// contain no whitespace other than space.
-USE_RESULT bool memory_set_device_name(const char* name);
+// Set device name. `name` is null terminated and `name_len` is its length excluding the null
+// terminator. The name must be larger than 0 in size, consist of printable ASCII characters only
+// (and space), not start or end with whitespace, and contain no whitespace other than space. Names
+// longer than MEMORY_DEVICE_MAX_LEN_WITH_NULL - 1 are truncated.
+USE_RESULT bool memory_set_device_name(const char* name, size_t name_len);
 
 // name_out must have MEMORY_DEVICE_MAX_LEN_WITH_NULL bytes in size. If no device name is set, or if
 // it is invalid, we return:

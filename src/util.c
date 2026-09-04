@@ -39,6 +39,50 @@ void util_strlcpy(char* dst, const char* src, size_t dst_len)
     dst[copy_len] = '\0';
 }
 
+intptr_t util_utf8_copy(char* dst, const size_t dst_len, const char* src, const size_t src_len)
+{
+    if (dst == NULL || src == NULL || dst_len == 0) {
+        return -1;
+    }
+
+    const intptr_t result =
+        rust_util_utf8_truncate(rust_util_bytes((const uint8_t*)src, src_len), dst_len - 1);
+    if (result < 0) {
+        dst[0] = '\0';
+        return -1;
+    }
+
+    const size_t result_len = (size_t)result;
+    memcpy(dst, src, result_len);
+    dst[result_len] = '\0';
+    return result;
+}
+
+intptr_t util_utf8_strlcpy(char* dst, const char* src, const size_t dst_len)
+{
+    if (src == NULL) {
+        if (dst != NULL && dst_len > 0) {
+            dst[0] = '\0';
+        }
+        return -1;
+    }
+    return util_utf8_copy(dst, dst_len, src, strlen(src));
+}
+
+bool util_is_printable_ascii(const char* str, const bool allow_newline)
+{
+    if (str == NULL) {
+        return false;
+    }
+    for (; *str != '\0'; str++) {
+        const unsigned char chr = (unsigned char)*str;
+        if ((chr < 32 || chr > 126) && !(allow_newline && chr == '\n')) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
     memset(out, 0, in_len * 2 + 1);

@@ -1087,11 +1087,11 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
         perror(header_file);
         exit(2);
     }
-    fprintf(out, "#ifndef _%s_H_\n", symbol_upper);
-    fprintf(out, "#define _%s_H_\n\n", symbol_upper);
+    fprintf(out, "#ifndef TTF2LVGL_%s_H\n", symbol_upper);
+    fprintf(out, "#define TTF2LVGL_%s_H\n\n", symbol_upper);
     fprintf(out, "#include <ugui.h>\n\n");
     fprintf(out, "extern const UG_FONT %s;\n\n", public_symbol);
-    fprintf(out, "#endif\n");
+    fprintf(out, "#endif /* TTF2LVGL_%s_H */\n", symbol_upper);
     close_output(out, header_file);
 
     free(public_symbol);

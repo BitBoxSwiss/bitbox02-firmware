@@ -1,8 +1,8 @@
-#ifndef _ARIAL_12_H_
-#define _ARIAL_12_H_
+#ifndef TTF2LVGL_ARIAL_12_H
+#define TTF2LVGL_ARIAL_12_H
 
 #include <ugui.h>
 
 extern const UG_FONT font_arial_12;
 
-#endif
+#endif /* TTF2LVGL_ARIAL_12_H */

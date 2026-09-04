@@ -25,6 +25,9 @@ expect_failure() {
     --output "$test_dir/test_font.c"
 test -s "$test_dir/test_font.c"
 test -s "$test_dir/test_font.h"
+grep -Fxq '#ifndef TTF2LVGL_TEST_FONT_H' "$test_dir/test_font.h"
+grep -Fxq '#define TTF2LVGL_TEST_FONT_H' "$test_dir/test_font.h"
+grep -Fxq '#endif /* TTF2LVGL_TEST_FONT_H */' "$test_dir/test_font.h"
 if grep -n '[[:blank:]]$' "$test_dir/test_font.c"; then
     echo "generated source contains trailing whitespace" >&2
     exit 1

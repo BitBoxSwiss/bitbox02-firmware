@@ -3399,6 +3399,7 @@ dependencies = [
  "cortex-m",
  "critical-section",
  "hex",
+ "hmac",
  "num-bigint",
  "sha2",
  "time",

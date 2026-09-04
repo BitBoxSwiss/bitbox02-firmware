@@ -18,7 +18,9 @@ struct sha_sync_descriptor HASH_ALGORITHM_0;
 struct timer_descriptor TIMER_0;
 struct flash_descriptor FLASH_0;
 struct i2c_m_sync_desc I2C_0;
+#if FACTORYSETUP == 0
 struct mci_sync_desc MCI_0;
+#endif
 struct rand_sync_desc RAND_0;
 PPUKCL_PARAM pvPUKCLParam;
 PUKCL_PARAM PUKCLParam;
@@ -29,12 +31,14 @@ bool _is_initialized = false;
 /**
  * Enables PTC peripheral, clocks and initializes PTC driver
  */
+#if FACTORYSETUP == 0
 static void _ptc_clock_init(void)
 {
     hri_mclk_set_APBDMASK_ADC0_bit(MCLK);
     hri_gclk_write_PCHCTRL_reg(
         GCLK, ADC0_GCLK_ID, CONF_GCLK_ADC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
 }
+#endif
 
 /**
  * Enables PUKCC peripheral, clocks and initializes PUKCC driver
@@ -192,6 +196,7 @@ static void _i2c_init(void)
 /**
  * Set pins for SD/MMC peripheral
  */
+#if FACTORYSETUP == 0
 static void _mci_set_pins(void)
 {
     // CLK
@@ -247,6 +252,7 @@ static void _mci_init(void)
     mci_sync_init(&MCI_0, SDHC0);
     _mci_set_pins();
 }
+#endif
 
 /**
  * Initialize delay driver
@@ -269,6 +275,7 @@ static void _rand_init(void)
 /**
  * Set pins for USB peripheral
  */
+#if FACTORYSETUP == 0
 static void _usb_set_pins(void)
 {
     // DM
@@ -283,14 +290,14 @@ static void _usb_set_pins(void)
     gpio_set_pin_function(PIN_USB_DP, PINMUX_PA25H_USB_DP);
 }
 
-/**
- * The USB module requires a GCLK_USB of 48 MHz ~ 0.25% clock
- * for low speed and full speed operation.
- */
-#if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || \
-    (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
-    #warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
-#endif
+    /**
+     * The USB module requires a GCLK_USB of 48 MHz ~ 0.25% clock
+     * for low speed and full speed operation.
+     */
+    #if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || \
+        (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
+        #warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
+    #endif
 
 /**
  * Initialize USB peripheral
@@ -303,6 +310,7 @@ static void _usb_init(void)
     usb_d_init();
     _usb_set_pins();
 }
+#endif
 
 static void _oled_set_pins(void)
 {
@@ -347,7 +355,9 @@ static void _uart_init(void)
 void system_init(void)
 {
     _oled_set_pins();
+#if FACTORYSETUP == 0
     _ptc_clock_init();
+#endif
 
     _timer_peripheral_init();
     _delay_driver_init();
@@ -356,8 +366,10 @@ void system_init(void)
     _spi_init();
     // ATECC608A
     _i2c_init();
+#if FACTORYSETUP == 0
     // uSD
     _mci_init();
+#endif
 
     // Hardware crypto
     _ecdsa_init();
@@ -365,8 +377,10 @@ void system_init(void)
     _rand_init();
     // Flash
     _flash_memory_init();
+#if FACTORYSETUP == 0
     // USB
     _usb_init();
+#endif
 
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         // External MX25 flash memory
@@ -381,7 +395,9 @@ void system_init(void)
 void bootloader_init(void)
 {
     _oled_set_pins();
+#if FACTORYSETUP == 0
     _ptc_clock_init();
+#endif
 
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
     // Only needed for qtouch, which is only needed in the devdevice bootloader.
@@ -398,8 +414,10 @@ void bootloader_init(void)
     _rand_init();
     // Flash
     _flash_memory_init();
+#if FACTORYSETUP == 0
     // USB
     _usb_init();
+#endif
 
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         // External MX25 flash memory
@@ -440,8 +458,10 @@ void system_close_interfaces(void)
     if (!_is_initialized) {
         return;
     }
+#if FACTORYSETUP == 0
     // uSD
     mci_sync_deinit(&MCI_0);
+#endif
     // ATECC608A
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
@@ -449,8 +469,10 @@ void system_close_interfaces(void)
     SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
+#if FACTORYSETUP == 0
     // USB
     usb_d_deinit();
+#endif
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
@@ -466,8 +488,10 @@ void bootloader_close_interfaces(void)
     SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
+#if FACTORYSETUP == 0
     // USB
     usb_d_deinit();
+#endif
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);

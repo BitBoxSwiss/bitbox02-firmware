@@ -12,12 +12,12 @@ fn sha256_result(data: &[u8]) -> [u8; 32] {
 }
 
 fn hmac_sha256_result(key: &[u8], data: &[u8]) -> [u8; 32] {
-    use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
+    // Reuse the SHA-256 backend above to avoid linking a second implementation into factory setup.
+    use hmac::{Hmac, Mac};
 
-    let mut engine = HmacEngine::<sha256::Hash>::new(key);
-    engine.input(data);
-    let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-    hmac_result.to_byte_array()
+    let mut engine = Hmac::<Sha256>::new_from_slice(key).unwrap();
+    engine.update(data);
+    engine.finalize().into_bytes().into()
 }
 
 unsafe fn write_output(out: *mut c_uchar, value: &[u8]) {
@@ -196,6 +196,21 @@ mod tests {
         assert_eq!(
             &input_and_output,
             &Sha256::digest(b"12345678901234567890123456789012")[..],
+        );
+    }
+
+    #[test]
+    fn test_hmac_sha256_result() {
+        assert_eq!(
+            hmac_sha256_result(b"", b""),
+            hex!("b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad"),
+        );
+        assert_eq!(
+            hmac_sha256_result(
+                &[0xaa; 131],
+                b"Test Using Larger Than Block-Size Key - Hash Key First",
+            ),
+            hex!("60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54"),
         );
     }
 

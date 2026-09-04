@@ -102,7 +102,7 @@ void screen_init(
 {
     _mirror_fn = mirror_fn;
     _clear_fn = clear_fn;
-#ifdef BOOTLOADER
+#if defined(BOOTLOADER) || defined(PRODUCT_BITBOX02_FACTORYSETUP)
     UG_Init(&guioled, pixel_fn, &font_font_a_9X9, SCREEN_WIDTH, SCREEN_HEIGHT);
 #else
     UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);

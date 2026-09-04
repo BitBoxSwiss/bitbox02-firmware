@@ -1149,6 +1149,7 @@ int main(void)
     screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
     screen_splash();
     common_main();
+    rust_secp256k1_selftest();
 
     {
         // We set auto_enter = true, as new devices are shipped without firmware, and a new device

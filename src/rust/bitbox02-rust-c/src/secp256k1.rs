@@ -15,6 +15,23 @@ pub extern "C" fn rust_secp256k1_selftest() {
     unsafe { secp256k1_selftest() }
 }
 
+/// Computes the attestation root identifier from the uncompressed SEC1 encoding, regardless of
+/// the input encoding. Returns false for an invalid public key or an output buffer not 32 bytes long.
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_secp256k1_pubkey_identifier(
+    pubkey: util::bytes::Bytes,
+    mut out: util::bytes::BytesMut,
+) -> bool {
+    let Ok(public_key) = PublicKey::from_slice(pubkey.as_ref()) else {
+        return false;
+    };
+    let Ok(out) = out.as_mut().try_into() else {
+        return false;
+    };
+    util::sha2::sha256(&public_key.serialize_uncompressed(), out);
+    true
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_secp256k1_verify(
     signature_compact: util::bytes::Bytes,
@@ -47,9 +64,52 @@ pub extern "C" fn rust_secp256k1_verify(
 
 #[cfg(test)]
 mod tests {
-    use super::rust_secp256k1_verify;
+    use super::{rust_secp256k1_pubkey_identifier, rust_secp256k1_verify};
 
     use bitcoin::secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
+
+    fn pubkey_identifier(pubkey: &[u8], out: &mut [u8]) -> bool {
+        rust_secp256k1_pubkey_identifier(
+            unsafe { util::bytes::rust_util_bytes(pubkey.as_ptr(), pubkey.len()) },
+            unsafe { util::bytes::rust_util_bytes_mut(out.as_mut_ptr(), out.len()) },
+        )
+    }
+
+    #[test]
+    fn test_rust_secp256k1_pubkey_identifier() {
+        let secp = Secp256k1::new();
+        let sk = SecretKey::from_slice(&[0x11u8; 32]).unwrap();
+        let pk = PublicKey::from_secret_key(&secp, &sk);
+
+        let mut expected = [0; 32];
+        util::sha2::sha256(&pk.serialize_uncompressed(), &mut expected);
+        let mut out = [0; 32];
+        assert!(pubkey_identifier(&pk.serialize(), &mut out));
+        assert_eq!(out, expected);
+        assert!(pubkey_identifier(&pk.serialize_uncompressed(), &mut out));
+        assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn test_rust_secp256k1_pubkey_identifier_invalid_pubkey() {
+        let mut out = [0x55; 32];
+        assert!(!pubkey_identifier(&[], &mut out));
+        assert!(!pubkey_identifier(&[0; 33], &mut out));
+        assert!(!pubkey_identifier(&[0; 65], &mut out));
+        assert_eq!(out, [0x55; 32]);
+    }
+
+    #[test]
+    fn test_rust_secp256k1_pubkey_identifier_invalid_output() {
+        let secp = Secp256k1::new();
+        let sk = SecretKey::from_slice(&[0x11u8; 32]).unwrap();
+        let pk = PublicKey::from_secret_key(&secp, &sk);
+
+        let mut out = [0x55; 33];
+        assert!(!pubkey_identifier(&pk.serialize(), &mut out[..31]));
+        assert!(!pubkey_identifier(&pk.serialize(), &mut out));
+        assert_eq!(out, [0x55; 33]);
+    }
 
     fn verify(signature_compact: &[u8], msg32: &[u8], pubkey: &[u8]) -> bool {
         rust_secp256k1_verify(

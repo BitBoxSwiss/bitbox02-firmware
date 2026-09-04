@@ -124,20 +124,16 @@ pub fn reboot_to_bootloader() -> ! {
 
 #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
 pub fn print_stdout(msg: &str) {
+    let msg = util::strings::str_to_cstr_vec(msg).unwrap();
     unsafe {
-        bitbox02_sys::printf(util::strings::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
+        bitbox02_sys::printf(c"%s".as_ptr(), msg.as_ptr());
     }
 }
 
 #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
 pub fn println_stdout(msg: &str) {
+    let msg = util::strings::str_to_cstr_vec(msg).unwrap();
     unsafe {
-        bitbox02_sys::printf(util::strings::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
-        bitbox02_sys::printf(
-            util::strings::str_to_cstr_vec("\n")
-                .unwrap()
-                .as_ptr()
-                .cast(),
-        );
+        bitbox02_sys::printf(c"%s\n".as_ptr(), msg.as_ptr());
     }
 }

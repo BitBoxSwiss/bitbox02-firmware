@@ -1,6 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use bitcoin::secp256k1::{Message, PublicKey};
+use bitcoin::secp256k1::{
+    Message, PublicKey,
+    ffi::{self, CPtr},
+};
+
+unsafe extern "C" {
+    fn secp256k1_selftest();
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_secp256k1_selftest() {
+    // SAFETY: This function takes no arguments and either returns successfully or aborts.
+    unsafe { secp256k1_selftest() }
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_secp256k1_verify(
@@ -19,9 +32,17 @@ pub extern "C" fn rust_secp256k1_verify(
     let Ok(public_key) = PublicKey::from_slice(pubkey.as_ref()) else {
         return false;
     };
-    bitbox02_rust::secp256k1::SECP256K1
-        .verify_ecdsa(&message, &signature, &public_key)
-        .is_ok()
+    // Signature verification does not need a dynamically allocated signing context. Using the
+    // static context also avoids linking the signing precomputation table into factory setup,
+    // saving roughly 35 kB in the image.
+    unsafe {
+        ffi::secp256k1_ecdsa_verify(
+            ffi::secp256k1_context_no_precomp,
+            signature.as_c_ptr(),
+            message.as_c_ptr(),
+            public_key.as_c_ptr(),
+        ) == 1
+    }
 }
 
 #[cfg(test)]

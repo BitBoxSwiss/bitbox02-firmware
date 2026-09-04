@@ -33,8 +33,10 @@
  */
 
 #include <ctype.h>
+#include <errno.h>
 #include <getopt.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -47,6 +49,8 @@
 
 #define SCREEN_WIDTH 132
 #define SCREEN_HEIGHT 40
+#define MAX_RASTER_SIZE 4096
+#define MAX_LVGL_BITMAP_SIZE ((size_t)1 << 20)
 
 typedef struct {
     int codepoint;
@@ -99,9 +103,22 @@ static Codepoints range_codepoints = {0};
 
 static void usage(void);
 
-static int max_int(int a, int b)
+static size_t checked_size_add(size_t left, size_t right)
 {
-    return a > b ? a : b;
+    if (left > SIZE_MAX - right) {
+        fprintf(stderr, "allocation size overflow\n");
+        exit(2);
+    }
+    return left + right;
+}
+
+static size_t checked_size_multiply(size_t left, size_t right)
+{
+    if (left != 0 && right > SIZE_MAX / left) {
+        fprintf(stderr, "allocation size overflow\n");
+        exit(2);
+    }
+    return left * right;
 }
 
 static void* xmalloc(size_t size)
@@ -116,12 +133,29 @@ static void* xmalloc(size_t size)
 
 static void* xcalloc(size_t count, size_t size)
 {
-    void* ptr = calloc(count == 0 ? 1 : count, size == 0 ? 1 : size);
+    if (count == 0 || size == 0) {
+        count = 1;
+        size = 1;
+    } else {
+        (void)checked_size_multiply(count, size);
+    }
+    void* ptr = calloc(count, size);
     if (ptr == NULL) {
         perror("calloc");
         exit(2);
     }
     return ptr;
+}
+
+static void* xreallocarray(void* ptr, size_t count, size_t size)
+{
+    size_t allocation_size = checked_size_multiply(count, size);
+    void* out = realloc(ptr, allocation_size == 0 ? 1 : allocation_size);
+    if (out == NULL) {
+        perror("realloc");
+        exit(2);
+    }
+    return out;
 }
 
 static char* xstrdup(const char* str)
@@ -150,7 +184,7 @@ static char* path_basename_no_ext(const char* path)
 static char* sanitize_identifier(const char* name, bool uppercase)
 {
     size_t len = strlen(name);
-    char* out = xmalloc(len + 2);
+    char* out = xmalloc(checked_size_add(len, 2));
     size_t pos = 0;
 
     if (len == 0 || isdigit((unsigned char)name[0])) {
@@ -212,7 +246,8 @@ static char* default_font_name(const char* font_file, float requested_size)
     free(base_name);
 
     char* size_suffix = font_size_suffix(requested_size);
-    size_t len = strlen(sanitized_base) + strlen(size_suffix) + 2;
+    size_t len = checked_size_add(
+        checked_size_add(strlen(sanitized_base), strlen(size_suffix)), 2);
     char* out = xmalloc(len);
     snprintf(out, len, "%s_%s", sanitized_base, size_suffix);
     free(size_suffix);
@@ -223,7 +258,7 @@ static char* default_font_name(const char* font_file, float requested_size)
 static char* output_header_name(const char* output_file, const char* font_name)
 {
     if (output_file == NULL) {
-        size_t len = strlen(font_name) + 3;
+        size_t len = checked_size_add(strlen(font_name), 3);
         char* out = xmalloc(len);
         snprintf(out, len, "%s.h", font_name);
         return out;
@@ -234,13 +269,8 @@ static char* output_header_name(const char* output_file, const char* font_name)
     char* base = slash == NULL ? out : slash + 1;
     char* dot = strrchr(base, '.');
     size_t stem_len = dot == NULL ? strlen(out) : (size_t)(dot - out);
-    size_t len = stem_len + sizeof(".h");
-    char* resized = realloc(out, len);
-    if (resized == NULL) {
-        perror("realloc");
-        exit(2);
-    }
-    out = resized;
+    size_t len = checked_size_add(stem_len, sizeof(".h"));
+    out = xreallocarray(out, len, 1);
     memcpy(out + stem_len, ".h", sizeof(".h"));
     return out;
 }
@@ -251,7 +281,8 @@ static char* public_font_symbol(const char* font_name)
         return xstrdup(font_name);
     }
 
-    size_t len = strlen("font_") + strlen(font_name) + 1;
+    size_t len = checked_size_add(
+        checked_size_add(strlen("font_"), strlen(font_name)), 1);
     char* out = xmalloc(len);
     snprintf(out, len, "font_%s", font_name);
     return out;
@@ -259,19 +290,17 @@ static char* public_font_symbol(const char* font_name)
 
 static void codepoints_append(Codepoints* codepoints, UChar32 codepoint)
 {
-    if (codepoint < 0 || codepoint > 0x10FFFF) {
+    if (codepoint < 0 || codepoint > 0x10FFFF ||
+        (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
         fprintf(stderr, "invalid Unicode code point: U+%X\n", (unsigned int)codepoint);
         exit(1);
     }
 
     if (codepoints->count == codepoints->capacity) {
-        size_t new_capacity = codepoints->capacity == 0 ? 32 : codepoints->capacity * 2;
-        UChar32* new_codepoints =
-            realloc(codepoints->codepoints, new_capacity * sizeof(*new_codepoints));
-        if (new_codepoints == NULL) {
-            perror("realloc");
-            exit(2);
-        }
+        size_t new_capacity =
+            codepoints->capacity == 0 ? 32 : checked_size_multiply(codepoints->capacity, 2);
+        UChar32* new_codepoints = xreallocarray(
+            codepoints->codepoints, new_capacity, sizeof(*new_codepoints));
         codepoints->codepoints = new_codepoints;
         codepoints->capacity = new_capacity;
     }
@@ -326,11 +355,12 @@ static void parse_codepoint(const char* text, UChar32* out)
     }
 
     char* end = NULL;
+    errno = 0;
     unsigned long value = strtoul(text, &end, base);
-    while (end != NULL && isspace((unsigned char)*end)) {
+    while (isspace((unsigned char)*end)) {
         end++;
     }
-    if (end == text || (end != NULL && *end != '\0') || value > 0x10FFFF) {
+    if (errno == ERANGE || end == text || *end != '\0' || value > 0x10FFFF) {
         fprintf(stderr, "invalid code point: %s\n", text);
         exit(1);
     }
@@ -343,7 +373,8 @@ static void parse_codepoint_range_item(char* item, Codepoints* codepoints)
         item++;
     }
     if (*item == '\0') {
-        return;
+        fprintf(stderr, "empty code point range\n");
+        exit(1);
     }
 
     char* dash = strchr(item, '-');
@@ -375,10 +406,19 @@ static void parse_codepoint_range_item(char* item, Codepoints* codepoints)
 static void parse_codepoint_ranges(const char* text, Codepoints* codepoints)
 {
     char* copy = xstrdup(text);
-    char* saveptr = NULL;
-    for (char* item = strtok_r(copy, ",", &saveptr); item != NULL;
-         item = strtok_r(NULL, ",", &saveptr)) {
+    char* item = copy;
+    for (char* cursor = copy;; cursor++) {
+        if (*cursor != ',' && *cursor != '\0') {
+            continue;
+        }
+        bool at_end = *cursor == '\0';
+        *cursor = '\0';
         parse_codepoint_range_item(item, codepoints);
+        codepoints_sort_dedup(codepoints);
+        if (at_end) {
+            break;
+        }
+        item = cursor + 1;
     }
     free(copy);
 }
@@ -406,7 +446,8 @@ static Codepoints utf8_to_codepoints(const char* text)
     int32_t utf8_len = (int32_t)text_len;
     int32_t offset = 0;
     Codepoints out = {
-        .codepoints = xmalloc((text_len == 0 ? 1 : text_len) * sizeof(*out.codepoints)),
+        .codepoints = xmalloc(checked_size_multiply(
+            text_len == 0 ? 1 : text_len, sizeof(*out.codepoints))),
         .count = 0,
         .capacity = text_len == 0 ? 1 : text_len,
     };
@@ -430,10 +471,36 @@ static size_t lvgl_bitmap_size(int width, int height, int bits_per_pixel)
     if (width <= 0 || height <= 0) {
         return 0;
     }
+    size_t pixel_count = checked_size_multiply((size_t)width, (size_t)height);
     if (bits_per_pixel == 8) {
-        return (size_t)width * (size_t)height;
+        return pixel_count;
     }
-    return ((size_t)width * (size_t)height + 7) / 8;
+    return checked_size_add(pixel_count, 7) / 8;
+}
+
+static void validate_ft_bitmap(const FT_Bitmap* bitmap, UChar32 codepoint)
+{
+    if (bitmap->width > INT_MAX || bitmap->rows > INT_MAX ||
+        bitmap->pixel_mode != FT_PIXEL_MODE_MONO) {
+        fprintf(stderr, "unsupported bitmap for U+%04X\n", (unsigned int)codepoint);
+        exit(1);
+    }
+    if (bitmap->width == 0 || bitmap->rows == 0) {
+        return;
+    }
+    if (bitmap->buffer == NULL) {
+        fprintf(stderr, "missing bitmap buffer for U+%04X\n", (unsigned int)codepoint);
+        exit(1);
+    }
+
+    int64_t signed_pitch = bitmap->pitch;
+    uint64_t pitch = (uint64_t)(signed_pitch < 0 ? -signed_pitch : signed_pitch);
+    size_t min_pitch = checked_size_add((size_t)bitmap->width, 7) / 8;
+    if (pitch < min_pitch || pitch > SIZE_MAX ||
+        (bitmap->rows - 1) > SIZE_MAX / (size_t)pitch) {
+        fprintf(stderr, "invalid bitmap pitch for U+%04X\n", (unsigned int)codepoint);
+        exit(1);
+    }
 }
 
 static bool ft_mono_pixel(const FT_Bitmap* bitmap, int x, int y)
@@ -442,9 +509,11 @@ static bool ft_mono_pixel(const FT_Bitmap* bitmap, int x, int y)
         return false;
     }
 
-    int pitch = bitmap->pitch;
-    const uint8_t* row = pitch >= 0 ? bitmap->buffer + y * pitch
-                                    : bitmap->buffer + ((int)bitmap->rows - 1 - y) * (-pitch);
+    int64_t signed_pitch = bitmap->pitch;
+    size_t pitch = (size_t)(signed_pitch < 0 ? -signed_pitch : signed_pitch);
+    size_t row_index =
+        signed_pitch >= 0 ? (size_t)y : (size_t)bitmap->rows - 1 - (size_t)y;
+    const uint8_t* row = bitmap->buffer + row_index * pitch;
     uint8_t byte = row[x / 8];
     return (byte & (1 << (7 - (x % 8)))) != 0;
 }
@@ -467,27 +536,35 @@ static void set_lvgl_pixel(Glyph* glyph, int x, int y, int bits_per_pixel, uint8
     glyph->bitmap[bit_index / 8] |= (uint8_t)(1 << (7 - (bit_index % 8)));
 }
 
-static void check_lvgl_small_glyph_limits(const Glyph* glyph)
+static void set_glyph_metrics(Glyph* glyph, const FT_GlyphSlot slot, int bpp_mul)
 {
-    if (glyph->bitmap_index > 0xFFFFF) {
-        fprintf(stderr, "bitmap too large for default LVGL glyph descriptor\n");
-        exit(1);
-    }
-    if (glyph->adv_w < 0 || glyph->adv_w > 255) {
+    uint64_t box_w = slot->bitmap.width / (unsigned int)bpp_mul;
+    uint64_t box_h = slot->bitmap.rows / (unsigned int)bpp_mul;
+    int64_t adv_w = slot->advance.x / 64 / bpp_mul;
+    int64_t ofs_x = slot->bitmap_left / bpp_mul;
+    int64_t ofs_y = slot->bitmap_top / bpp_mul - (int64_t)box_h;
+
+    if (adv_w < 0 || adv_w > 255) {
         fprintf(
             stderr,
             "advance width too large for default LVGL glyph descriptor: U+%04X\n",
             glyph->codepoint);
         exit(1);
     }
-    if (glyph->box_w > 255 || glyph->box_h > 255 || glyph->ofs_x < -128 || glyph->ofs_x > 127 ||
-        glyph->ofs_y < -128 || glyph->ofs_y > 127) {
+    if (box_w > 255 || box_h > 255 || ofs_x < -128 || ofs_x > 127 || ofs_y < -128 ||
+        ofs_y > 127) {
         fprintf(
             stderr,
             "glyph metrics too large for default LVGL glyph descriptor: U+%04X\n",
             glyph->codepoint);
         exit(1);
     }
+
+    glyph->adv_w = (int)adv_w;
+    glyph->box_w = (int)box_w;
+    glyph->box_h = (int)box_h;
+    glyph->ofs_x = (int)ofs_x;
+    glyph->ofs_y = (int)ofs_y;
 }
 
 static void build_cmaps(LvglFont* font)
@@ -536,6 +613,28 @@ static Codepoints filter_present_codepoints(FT_Face face, const Codepoints* code
     return present_codepoints;
 }
 
+static void validate_requested_size(float requested_size, int display_dpi, int bpp_mul)
+{
+    double scaled_size = (double)requested_size * bpp_mul;
+    double raster_size =
+        display_dpi > 0 ? scaled_size * (double)display_dpi / 72.0 : scaled_size;
+    if (!isfinite(scaled_size) || !isfinite(raster_size) || raster_size > MAX_RASTER_SIZE) {
+        fprintf(stderr, "requested font size is too large\n");
+        exit(1);
+    }
+
+    if (display_dpi > 0) {
+        double char_size = scaled_size * 64.0;
+        if (char_size < 1 || char_size > FT_LONG_MAX) {
+            fprintf(stderr, "requested font size is out of range\n");
+            exit(1);
+        }
+    } else if (scaled_size < 1 || scaled_size > UINT_MAX) {
+        fprintf(stderr, "requested font size is out of range\n");
+        exit(1);
+    }
+}
+
 static LvglFont* convert_font(
     const char* font,
     int display_dpi,
@@ -555,6 +654,7 @@ static LvglFont* convert_font(
         fprintf(stderr, "Bits per pixel must be 1 or 8, not %d\n", bits_per_pixel);
         exit(1);
     }
+    validate_requested_size(requested_size, display_dpi, bpp_mul);
 
     FT_Library library;
     int error = FT_Init_FreeType(&library);
@@ -571,10 +671,13 @@ static LvglFont* convert_font(
     }
 
     if (display_dpi > 0) {
+        FT_F26Dot6 char_size = (FT_F26Dot6)((double)requested_size * 64.0 * bpp_mul);
+        FT_UInt ft_dpi = (FT_UInt)display_dpi;
         error = FT_Set_Char_Size(
-            face, 0, (FT_F26Dot6)(requested_size * 64 * bpp_mul), display_dpi, display_dpi);
+            face, 0, char_size, ft_dpi, ft_dpi);
     } else {
-        error = FT_Set_Pixel_Sizes(face, 0, (FT_UInt)(requested_size * bpp_mul));
+        FT_UInt pixel_size = (FT_UInt)((double)requested_size * bpp_mul);
+        error = FT_Set_Pixel_Sizes(face, 0, pixel_size);
     }
     if (error) {
         fprintf(stderr, "set pixel sizes err %d\n", error);
@@ -591,8 +694,8 @@ static LvglFont* convert_font(
         exit(1);
     }
 
-    int max_ascent = 0;
-    int max_descent = 0;
+    int64_t max_ascent = 0;
+    int64_t max_descent = 0;
 
     for (size_t i = 0; i < present_codepoints.count; i++) {
         UChar32 codepoint = present_codepoints.codepoints[i];
@@ -601,19 +704,40 @@ static LvglFont* convert_font(
             fprintf(stderr, "load char U+%04X err %d\n", (unsigned int)codepoint, error);
             exit(1);
         }
+        validate_ft_bitmap(&face->glyph->bitmap, codepoint);
 
-        int descent = max_int(0, (int)face->glyph->bitmap.rows - face->glyph->bitmap_top);
-        int ascent =
-            max_int(0, max_int(face->glyph->bitmap_top, (int)face->glyph->bitmap.rows) - descent);
+        int64_t rows = face->glyph->bitmap.rows;
+        int64_t top = face->glyph->bitmap_top;
+        int64_t descent = rows > top ? rows - top : 0;
+        int64_t ascent = top > 0 ? top : 0;
 
-        max_descent = max_int(max_descent, descent);
-        max_ascent = max_int(max_ascent, ascent);
+        if (descent > max_descent) {
+            max_descent = descent;
+        }
+        if (ascent > max_ascent) {
+            max_ascent = ascent;
+        }
+    }
+
+    int64_t line_height = (max_ascent + max_descent) / bpp_mul;
+    int64_t baseline = max_ascent / bpp_mul;
+    if (line_height == 0) {
+        int64_t metrics_ascent =
+            face->size->metrics.ascender > 0 ? face->size->metrics.ascender / 64 : 0;
+        int64_t metrics_descent =
+            face->size->metrics.descender < 0 ? -(face->size->metrics.descender / 64) : 0;
+        line_height = (metrics_ascent + metrics_descent) / bpp_mul;
+        baseline = metrics_ascent / bpp_mul;
+    }
+    if (line_height <= 0 || line_height > INT_MAX || baseline < 0 || baseline > line_height) {
+        fprintf(stderr, "font line metrics are out of range\n");
+        exit(1);
     }
 
     LvglFont* out = xcalloc(1, sizeof(*out));
     out->bpp = bits_per_pixel;
-    out->line_height = (max_ascent + max_descent) / bpp_mul;
-    out->baseline = max_ascent / bpp_mul;
+    out->line_height = (int)line_height;
+    out->baseline = (int)baseline;
     out->glyph_count = present_codepoints.count;
     out->glyphs = xcalloc(out->glyph_count, sizeof(*out->glyphs));
     out->codepoint_count = present_codepoints.count;
@@ -631,16 +755,17 @@ static LvglFont* convert_font(
             fprintf(stderr, "load char U+%04X err %d\n", (unsigned int)codepoint, error);
             exit(1);
         }
+        validate_ft_bitmap(&face->glyph->bitmap, codepoint);
 
         Glyph* glyph = &out->glyphs[glyph_index];
         glyph->codepoint = codepoint;
-        glyph->adv_w = (int)((face->glyph->advance.x >> 6) / bpp_mul);
-        glyph->box_w = (int)face->glyph->bitmap.width / bpp_mul;
-        glyph->box_h = (int)face->glyph->bitmap.rows / bpp_mul;
-        glyph->ofs_x = face->glyph->bitmap_left / bpp_mul;
-        glyph->ofs_y = (face->glyph->bitmap_top / bpp_mul) - glyph->box_h;
+        set_glyph_metrics(glyph, face->glyph, bpp_mul);
         glyph->bitmap_index = out->bitmap_size;
         glyph->bitmap_size = lvgl_bitmap_size(glyph->box_w, glyph->box_h, bits_per_pixel);
+        if (glyph->bitmap_size > MAX_LVGL_BITMAP_SIZE - out->bitmap_size) {
+            fprintf(stderr, "bitmap too large for default LVGL glyph descriptor\n");
+            exit(1);
+        }
         glyph->bitmap = xcalloc(glyph->bitmap_size, 1);
 
         for (int y = 0; y < glyph->box_h; y++) {
@@ -663,7 +788,6 @@ static LvglFont* convert_font(
             }
         }
 
-        check_lvgl_small_glyph_limits(glyph);
         out->bitmap_size += glyph->bitmap_size;
     }
 
@@ -680,13 +804,47 @@ static void print_bytes(FILE* out, const uint8_t* bytes, size_t len)
             fprintf(out, "    ");
         }
         fprintf(out, "0x%02X,", bytes[i]);
-        if (i + 1 < len) {
-            fprintf(out, " ");
-        }
         if (i % 12 == 11 || i + 1 == len) {
             fprintf(out, "\n");
+        } else {
+            fprintf(out, " ");
         }
     }
+}
+
+static void close_output(FILE* out, const char* path)
+{
+    bool write_failed = ferror(out) != 0;
+    if (fclose(out) != 0 || write_failed) {
+        fprintf(stderr, "failed to write %s\n", path);
+        exit(2);
+    }
+}
+
+static void print_comment_text(FILE* out, const char* text)
+{
+    while (*text != '\0') {
+        if (*text == '\n' || *text == '\r') {
+            fputc(' ', out);
+            text++;
+        } else if (text[0] == '*' && text[1] == '/') {
+            fputs("* /", out);
+            text += 2;
+        } else {
+            fputc((unsigned char)*text, out);
+            text++;
+        }
+    }
+}
+
+static bool is_safe_header_basename(const char* name)
+{
+    for (const unsigned char* cursor = (const unsigned char*)name; *cursor != '\0'; cursor++) {
+        if (iscntrl(*cursor) || *cursor == '"' || *cursor == '\\') {
+            return false;
+        }
+    }
+    return true;
 }
 
 static void print_utf8_codepoint(FILE* out, UChar32 codepoint)
@@ -781,14 +939,22 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
 
     char* out_file = output_file_arg == NULL ? NULL : xstrdup(output_file_arg);
     if (out_file == NULL) {
-        size_t len = strlen(symbol) + 3;
+        size_t len = checked_size_add(strlen(symbol), 3);
         out_file = xmalloc(len);
         snprintf(out_file, len, "%s.c", symbol);
     }
 
     char* header_file = output_header_name(out_file, symbol);
+    if (strcmp(out_file, header_file) == 0) {
+        fprintf(stderr, "output and generated header paths must be different\n");
+        exit(1);
+    }
     char* header_basename = strrchr(header_file, '/');
     header_basename = header_basename == NULL ? header_file : header_basename + 1;
+    if (!is_safe_header_basename(header_basename)) {
+        fprintf(stderr, "generated header name cannot be represented in a C include\n");
+        exit(1);
+    }
 
     FILE* out = fopen(out_file, "w");
     if (out == NULL) {
@@ -804,9 +970,13 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
     if (dpi > 0) {
         fprintf(out, " --dpi %d", dpi);
     }
-    fprintf(out, " --font %s --range ", font_file_path);
+    fprintf(out, " --font ");
+    print_comment_text(out, font_file_path);
+    fprintf(out, " --range ");
     print_codepoint_ranges(out, font);
-    fprintf(out, " --format lvgl -o %s\n", out_file);
+    fprintf(out, " --format lvgl -o ");
+    print_comment_text(out, out_file);
+    fprintf(out, "\n");
     fprintf(
         out,
         " ******************************************************************************/\n\n");
@@ -910,7 +1080,7 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
     fprintf(out, "    .user_data = NULL,\n");
     fprintf(out, "};\n\n");
     fprintf(out, "#endif /* %s */\n", symbol_upper);
-    fclose(out);
+    close_output(out, out_file);
 
     out = fopen(header_file, "w");
     if (out == NULL) {
@@ -922,7 +1092,7 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
     fprintf(out, "#include <ugui.h>\n\n");
     fprintf(out, "extern const UG_FONT %s;\n\n", public_symbol);
     fprintf(out, "#endif\n");
-    fclose(out);
+    close_output(out, header_file);
 
     free(public_symbol);
     free(symbol);
@@ -1031,6 +1201,30 @@ static void usage(void)
     fprintf(stderr, "Bits per pixel must be 1 or 8. Default is 1.\n");
 }
 
+static int parse_int_option(const char* option, const char* text, int min, int max)
+{
+    char* end = NULL;
+    errno = 0;
+    long value = strtol(text, &end, 10);
+    if (errno == ERANGE || end == text || *end != '\0' || value < min || value > max) {
+        fprintf(stderr, "invalid --%s value: %s\n", option, text);
+        exit(1);
+    }
+    return (int)value;
+}
+
+static float parse_size_option(const char* text)
+{
+    char* end = NULL;
+    errno = 0;
+    float value = strtof(text, &end);
+    if (errno == ERANGE || end == text || *end != '\0' || !isfinite(value) || value <= 0) {
+        fprintf(stderr, "invalid --size value: %s\n", text);
+        exit(1);
+    }
+    return value;
+}
+
 static struct option longopts[] = {
     {"show", required_argument, NULL, 'a'},
     {"dump", no_argument, &dump, 1},
@@ -1058,24 +1252,24 @@ int main(int argc, char** argv)
             show_text = optarg;
             break;
         case 's':
-            sscanf(optarg, "%f", &font_size);
+            font_size = parse_size_option(optarg);
             break;
         case 'd':
-            dpi = atoi(optarg);
+            dpi = parse_int_option("dpi", optarg, 0, INT_MAX);
             break;
         case 'b':
-            bpp = atoi(optarg);
+            bpp = parse_int_option("bpp", optarg, 1, 8);
             if (bpp != 1 && bpp != 8) {
                 fprintf(stderr, "Bits per pixel must be 1 or 8. Default is 1.\n");
                 exit(1);
             }
             break;
         case 'z':
-            min_char = atoi(optarg);
+            min_char = parse_int_option("minchar", optarg, 0, 0x10FFFF);
             minmax_used = true;
             break;
         case 'e':
-            max_char = atoi(optarg);
+            max_char = parse_int_option("maxchar", optarg, 0, 0x10FFFF);
             minmax_used = true;
             break;
         case 'r':
@@ -1094,6 +1288,11 @@ int main(int argc, char** argv)
             usage();
             exit(1);
         }
+    }
+
+    if (optind != argc) {
+        fprintf(stderr, "unexpected positional argument: %s\n", argv[optind]);
+        exit(1);
     }
 
     if (range_used && minmax_used) {

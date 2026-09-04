@@ -24,12 +24,15 @@ LDLIBS += $(FREETYPE_LIBS) $(ICU_LIBS)
 
 OBJS = ttf2lvgl.o
 
-.PHONY: all clean
+.PHONY: all clean test
 
 all: ttf2lvgl
 
 ttf2lvgl: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+test: ttf2lvgl
+	./test.sh
 
 clean:
 	rm -f $(OBJS)

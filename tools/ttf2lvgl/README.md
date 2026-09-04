@@ -50,6 +50,8 @@ FreeType and ICU development headers are required. On systems with
 make
 ```
 
+Run `make test` to exercise valid 1bpp and 8bpp conversions and the command-line validation.
+
 The Makefile falls back to the common FreeType include and library paths if
 `pkg-config freetype2` is unavailable, and to `-licuuc -licudata` if
 `pkg-config icu-uc` is unavailable.

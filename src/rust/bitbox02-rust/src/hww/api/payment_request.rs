@@ -152,7 +152,8 @@ pub async fn user_verify(
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "",
-                        body: &format!("Memo from\n\n{}", payment_request.recipient_name),
+                        body: &format!("Memo from: {}", payment_request.recipient_name),
+                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -1552,7 +1553,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "".into(),
-                    body: "Memo from\n\nPOCKET".into(),
+                    body: "Memo from: POCKET".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
@@ -1562,6 +1563,36 @@ mod tests {
                 },
             ]
         );
+        assert_eq!(mock_hal.ui.confirm_scrollable, vec![true, true]);
+    }
+
+    #[async_test::test]
+    async fn test_user_verify_long_recipient_name_scrollable() {
+        let recipient_name = format!("SWAPKIT ({})", "a".repeat(200));
+        let mut mock_hal = TestingHal::new();
+        user_verify(
+            &mut mock_hal,
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: recipient_name.clone(),
+                memos: vec![make_text_memo("Swap memo")],
+                nonce: vec![],
+                total_amount: 1234567890,
+                signature: vec![],
+            },
+            "12.34567890 BTC",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "".into(),
+                body: format!("Memo from: {recipient_name}"),
+                longtouch: false,
+            }
+        );
+        assert!(mock_hal.ui.confirm_scrollable[0]);
     }
 
     #[cfg(feature = "app-ethereum")]

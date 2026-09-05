@@ -798,7 +798,12 @@ pub fn payment_request_owned_output() -> Vec<VersionExpectation> {
         success(
             Some("9.24.0"),
             Some("9.26.3"),
-            payment_request_screens("0.30000000 TBTC", "0.10000000 TBTC", 50),
+            payment_request_screens(
+                "0.30000000 TBTC",
+                "0.10000000 TBTC",
+                50,
+                "Memo from\n\nTest Merchant",
+            ),
         ),
         invalid_input(Some("9.26.3"), None),
     ]
@@ -855,12 +860,13 @@ fn payment_request_screens(
     total: &str,
     transaction_fee: &str,
     high_fee_percent: u32,
+    memo_from_body: &str,
 ) -> Vec<Screen> {
     vec![
         address("0.20000000 TBTC", "Test Merchant"),
         Screen::Confirm {
             title: "".into(),
-            body: "Memo from\n\nTest Merchant".into(),
+            body: memo_from_body.into(),
             longtouch: false,
         },
         Screen::Confirm {
@@ -884,8 +890,23 @@ pub fn payment_request() -> Vec<VersionExpectation> {
         invalid_input_before("9.24.0"),
         success(
             Some("9.24.0"),
+            Some("9.27.2"),
+            payment_request_screens(
+                "0.50000000 TBTC",
+                "0.30000000 TBTC",
+                150,
+                "Memo from\n\nTest Merchant",
+            ),
+        ),
+        success(
+            Some("9.27.2"),
             None,
-            payment_request_screens("0.50000000 TBTC", "0.30000000 TBTC", 150),
+            payment_request_screens(
+                "0.50000000 TBTC",
+                "0.30000000 TBTC",
+                150,
+                "Memo from: Test Merchant",
+            ),
         ),
     ]
 }

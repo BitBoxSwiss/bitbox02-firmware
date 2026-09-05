@@ -1598,6 +1598,7 @@ dependencies = [
  "critical-section",
  "hex",
  "hex_lit",
+ "hmac",
  "num-bigint",
  "p256",
  "rtt-target",

@@ -5,6 +5,7 @@ pub fn product() -> &'static str {
         let mut len = 0;
         let s = bitbox02_sys::platform_product(&mut len as *mut _) as *const u8;
         let s = core::slice::from_raw_parts(s, len);
-        str::from_utf8_unchecked(s)
+        // SAFETY: `platform_product()` returns a compile-time ASCII JSON string literal.
+        core::str::from_utf8_unchecked(s)
     }
 }

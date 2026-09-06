@@ -74,8 +74,9 @@ pal_status_t pal_logger_write(
 {
     (void)p_logger_context;
     char s[10000];
-    snprintf(s, sizeof(s), "%s", p_log_data);
-    s[log_data_length] = 0;
+    const size_t copy_len = MIN((size_t)log_data_length, sizeof(s) - 1);
+    memcpy(s, p_log_data, copy_len);
+    s[copy_len] = 0;
     util_log("%s", s);
     return PAL_STATUS_SUCCESS;
 }

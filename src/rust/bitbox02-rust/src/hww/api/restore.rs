@@ -32,9 +32,10 @@ pub async fn from_file(
         }
     };
 
+    let device_name = crate::backup::sanitize_name(&metadata.name);
     hal.ui()
         .confirm(&ConfirmParams {
-            body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
+            body: &format!("Name: {}. ID: {}", &device_name, &request.id),
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -85,7 +86,7 @@ pub async fn from_file(
     hal.memory().set_initialized().or(Err(Error::Memory))?;
 
     // Ignore non-critical error.
-    let _ = hal.memory().set_device_name(&metadata.name);
+    let _ = hal.memory().set_device_name(&device_name);
 
     unlock::unlock_bip39(hal, seed, unlock_animation).await;
     Ok(Response::Success(pb::Success {}))
@@ -173,10 +174,46 @@ pub async fn from_mnemonic(
 mod tests {
     use super::*;
 
-    use crate::hal::testing::TestingHal;
+    use crate::hal::testing::{Screen, TestingHal};
 
     use alloc::boxed::Box;
     use alloc::vec::Vec;
+
+    #[async_test::test]
+    async fn test_from_file_legacy_backup_name() {
+        crate::keystore::lock();
+        let seed = [0x42; 32];
+        let mut mock_hal = TestingHal::new();
+        crate::backup::create(&mut mock_hal, &seed, "Bït\nBox\t", 0, 0)
+            .await
+            .unwrap();
+        let id = crate::backup::id(&seed);
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_| Ok("password".into())));
+
+        assert_eq!(
+            from_file(
+                &mut mock_hal,
+                &pb::RestoreBackupRequest {
+                    id: id.clone(),
+                    timestamp: 0,
+                    timezone_offset: 0,
+                },
+            )
+            .await,
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "".into(),
+                body: format!("Name: B?t?Box?. ID: {id}"),
+                longtouch: false,
+            }
+        );
+        assert_eq!(mock_hal.memory.get_device_name(), "B?t?Box?");
+    }
 
     #[async_test::test]
     async fn test_from_mnemonic() {

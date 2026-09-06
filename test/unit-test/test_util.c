@@ -53,11 +53,45 @@ static void test_util_strlcpy(void** state)
     assert_int_equal(zero_len, 'x');
 }
 
+static void test_util_utf8_copy(void** state)
+{
+    (void)state;
+
+    const char utf8[] = {'t', (char)0xC3, (char)0xA4, 's', 't', '\0'};
+    char out[6] = {0};
+    assert_int_equal(util_utf8_strlcpy(out, utf8, sizeof(out)), 5);
+    assert_memory_equal(out, utf8, sizeof(out));
+
+    char truncated[3] = {0};
+    assert_int_equal(util_utf8_strlcpy(truncated, utf8, sizeof(truncated)), 1);
+    assert_string_equal(truncated, "t");
+
+    char empty[1] = {'x'};
+    assert_int_equal(util_utf8_strlcpy(empty, "", sizeof(empty)), 0);
+    assert_string_equal(empty, "");
+
+    const char invalid[] = {'t', (char)0xFF, '\0'};
+    assert_int_equal(util_utf8_strlcpy(out, invalid, sizeof(out)), -1);
+    assert_string_equal(out, "");
+}
+
+static void test_util_is_printable_ascii(void** state)
+{
+    (void)state;
+
+    assert_true(util_is_printable_ascii("printable ASCII", false));
+    assert_false(util_is_printable_ascii("line one\nline two", false));
+    assert_true(util_is_printable_ascii("line one\nline two", true));
+    assert_false(util_is_printable_ascii("t\xC3\xA4st", true));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_minmax),
         cmocka_unit_test(test_util_strlcpy),
+        cmocka_unit_test(test_util_utf8_copy),
+        cmocka_unit_test(test_util_is_printable_ascii),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

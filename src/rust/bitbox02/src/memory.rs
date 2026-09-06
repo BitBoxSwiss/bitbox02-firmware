@@ -20,14 +20,8 @@ pub fn get_device_name() -> String {
 }
 
 pub fn set_device_name(name: &str) -> Result<(), MemoryError> {
-    match unsafe {
-        bitbox02_sys::memory_set_device_name(
-            util::strings::str_to_cstr_vec(name)
-                .or(Err(MemoryError::MEMORY_ERR_UNKNOWN))?
-                .as_ptr()
-                .cast(),
-        )
-    } {
+    let c_name = util::strings::str_to_cstr_vec(name).or(Err(MemoryError::MEMORY_ERR_UNKNOWN))?;
+    match unsafe { bitbox02_sys::memory_set_device_name(c_name.as_ptr().cast(), name.len()) } {
         true => Ok(()),
         false => Err(MemoryError::MEMORY_ERR_UNKNOWN),
     }

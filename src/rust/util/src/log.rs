@@ -93,7 +93,7 @@ pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
             panic!("`ptr` must be a valid pointer");
         }
         let s = unsafe { core::ffi::CStr::from_ptr(ptr as _) };
-        let s = unsafe { core::str::from_utf8_unchecked(s.to_bytes()) };
+        let s = alloc::string::String::from_utf8_lossy(s.to_bytes());
         rtt_target::rprintln!("{}", s);
     }
 }

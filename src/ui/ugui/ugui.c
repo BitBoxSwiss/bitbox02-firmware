@@ -71,12 +71,9 @@ static ug_rotation_t rotation = {0};
 
 static void _copy_slice(char* out, size_t out_len, const char* start, size_t len)
 {
-    if (out_len == 0) {
-        return;
+    if (util_utf8_copy(out, out_len, start, len) < 0 && out_len > 0) {
+        out[0] = '\0';
     }
-    const size_t copy_len = MIN(len, out_len - 1);
-    memcpy(out, start, copy_len);
-    out[copy_len] = '\0';
 }
 
 static void _UG_PSet(UG_S16 x, UG_S16 y, UG_COLOR c)

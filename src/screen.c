@@ -28,11 +28,32 @@ UG_COLOR screen_back_color = C_BLACK;
 slider_location_t top_slider = 1;
 slider_location_t bottom_slider = 0;
 
+static void _escape_debug_string(char* out, const size_t out_len, const char* message)
+{
+    static const char hex[] = "0123456789ABCDEF";
+    size_t out_pos = 0;
+    while (*message != '\0' && out_pos + 1 < out_len) {
+        const unsigned char chr = (unsigned char)*message++;
+        if ((chr >= 32 && chr <= 126) || chr == '\n') {
+            out[out_pos++] = (char)chr;
+        } else {
+            if (out_pos + 4 >= out_len) {
+                break;
+            }
+            out[out_pos++] = '\\';
+            out[out_pos++] = 'x';
+            out[out_pos++] = hex[chr >> 4];
+            out[out_pos++] = hex[chr & 0x0F];
+        }
+    }
+    out[out_pos] = '\0';
+}
+
 // message truncated to 99 chars. somewhere between 99 and 120 we start to get hardfaults...
 void screen_print_debug(const char* message, int duration)
 {
-    char print[100];
-    util_strlcpy(print, message, sizeof(print));
+    char print[100] = {0};
+    _escape_debug_string(print, sizeof(print), message);
     screen_clear();
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print);

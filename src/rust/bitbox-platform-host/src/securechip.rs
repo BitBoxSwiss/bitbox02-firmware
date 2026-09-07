@@ -23,6 +23,7 @@ pub struct FakeSecureChip {
     mock_attestation_signature: [u8; 64],
     mock_random_values: VecDeque<[u8; 32]>,
     last_attestation_challenge: Option<[u8; 32]>,
+    rekey_yields: bool,
 }
 
 impl FakeSecureChip {
@@ -35,6 +36,7 @@ impl FakeSecureChip {
             mock_attestation_signature: [0u8; 64],
             mock_random_values: VecDeque::new(),
             last_attestation_challenge: None,
+            rekey_yields: false,
         }
     }
 
@@ -69,10 +71,29 @@ impl FakeSecureChip {
     pub fn last_attestation_challenge(&self) -> Option<[u8; 32]> {
         self.last_attestation_challenge
     }
+
+    /// Suspend once in password initialization and random generation, so tests can cancel an
+    /// outstanding operation instead of having the fake complete every operation synchronously.
+    pub fn mock_rekey_yields(&mut self) {
+        self.rekey_yields = true;
+    }
+
+    async fn rekey_yield(&self) {
+        let mut pending = self.rekey_yields;
+        core::future::poll_fn(move |_| {
+            if core::mem::take(&mut pending) {
+                core::task::Poll::Pending
+            } else {
+                core::task::Poll::Ready(())
+            }
+        })
+        .await;
+    }
 }
 
 impl bitbox_hal::SecureChip for FakeSecureChip {
     async fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+        self.rekey_yield().await;
         Ok(Box::new(zeroize::Zeroizing::new(
             self.mock_random_values.pop_front().unwrap_or([0u8; 32]),
         )))
@@ -86,6 +107,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 3;
+        self.rekey_yield().await;
 
         let key: &'static [u8] = match password_stretch_algo {
             PasswordStretchAlgo::V0 => b"unit-test-v0",

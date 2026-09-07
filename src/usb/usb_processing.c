@@ -62,10 +62,10 @@ struct usb_processing {
      */
     bool (*can_request_unblock)(const Packet* in_packet);
     /**
-     * Callback to forcefully abort any operation processing
-     * on this stack.
+     * Callback to abort any operation processing on this stack.
+     * Returns false if cancellation is deferred and the stack must remain locked.
      */
-    void (*abort_outstanding_op)(void);
+    bool (*abort_outstanding_op)(void);
 #endif
 };
 
@@ -307,7 +307,7 @@ static void _usb_consume_incoming_packets(struct usb_processing* ctx)
 /**
  * Check if the lock timer has expired for this context.
  * If it has, call the abort_outstanding_op function and unlock
- * the USB stack.
+ * the USB stack once cancellation is complete.
  *
  * @param ctx Context to check.
  */
@@ -322,8 +322,9 @@ static void _check_lock_timeout(struct usb_processing* ctx)
         if (!ctx->abort_outstanding_op) {
             Abort("abort_outstanding_op is NULL.");
         }
-        ctx->abort_outstanding_op();
-        usb_processing_unlock();
+        if (ctx->abort_outstanding_op()) {
+            usb_processing_unlock();
+        }
     }
 }
 #endif

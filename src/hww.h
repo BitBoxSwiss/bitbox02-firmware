@@ -34,7 +34,8 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet);
 
 /**
  * Called to abort any operation that blocked the HWW stack.
+ * Returns false while a protected operation is finishing and the stack must remain locked.
  */
-void hww_abort_outstanding_op(void);
+bool hww_abort_outstanding_op(void);
 
 #endif

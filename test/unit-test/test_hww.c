@@ -11,6 +11,14 @@
 #include <usb/usb_processing.h>
 
 static bool _u2f_workflow_active = false;
+static bool _cancellation_complete = true;
+static unsigned int _cancellation_requests = 0;
+
+bool __wrap_rust_async_usb_cancel(void)
+{
+    _cancellation_requests++;
+    return _cancellation_complete;
+}
 
 bool __wrap_rust_workflow_u2f_is_active(void)
 {
@@ -43,10 +51,34 @@ static void test_hww_new_request_is_busy_while_u2f_active(void** state)
     assert_true(rust_usb_report_queue_free(queue));
 }
 
+static void test_hww_timeout_keeps_lock_until_cancelled(void** state)
+{
+    (void)state;
+    RustUsbReportQueue* queue = rust_usb_report_queue_init();
+    assert_non_null(queue);
+    usb_processing_init(queue);
+    hww_setup();
+    usb_processing_lock(usb_processing_hww());
+    usb_processing_timeout_reset(6);
+
+    _cancellation_complete = false;
+    for (unsigned int i = 0; i < 3; i++) {
+        usb_processing_process(usb_processing_hww());
+        assert_true(usb_processing_locked(usb_processing_hww()));
+        assert_int_equal(_cancellation_requests, i + 1);
+    }
+    _cancellation_complete = true;
+    usb_processing_process(usb_processing_hww());
+    assert_false(usb_processing_locked(usb_processing_hww()));
+    assert_int_equal(_cancellation_requests, 4);
+    assert_true(rust_usb_report_queue_free(queue));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_hww_new_request_is_busy_while_u2f_active),
+        cmocka_unit_test(test_hww_timeout_keeps_lock_until_cancelled),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

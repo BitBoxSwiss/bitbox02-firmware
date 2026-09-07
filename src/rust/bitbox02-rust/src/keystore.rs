@@ -336,6 +336,10 @@ async fn encrypt_and_store_seed_internal(
 
     let password_stretch_algo = default_password_stretch_algo(hal)?;
 
+    // Rekeying replaces persistent secure-chip secrets before compatible seed ciphertext is
+    // stored. Finish storing and verifying the seed even if the host disconnects or times out.
+    // This protects against task cancellation, not power loss or secure-chip/flash errors.
+    let _cancellation_guard = crate::async_usb::defer_cancellation();
     let secret = {
         let subsystems = hal.as_mut();
         subsystems
@@ -1133,6 +1137,103 @@ mod tests {
         // Step 5: Verify new password works
         let unlocked_seed_new = unlock(&mut mock_hal, "new_password").await.unwrap();
         assert_eq!(unlocked_seed_new.as_slice(), seed.as_slice());
+    }
+
+    #[async_test::test]
+    async fn test_rekey_defers_cancellation() {
+        extern crate std;
+        use crate::async_usb;
+        use core::cell::RefCell;
+
+        const SEED: [u8; 32] =
+            hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+        std::thread_local! {
+            static HAL: RefCell<Option<TestingHal<'static>>> = const { RefCell::new(None) };
+        }
+        // Keep the fake persistent stores available after the executor drops the request.
+        struct ReturnHal(Option<TestingHal<'static>>);
+        impl Drop for ReturnHal {
+            fn drop(&mut self) {
+                HAL.with(|hal| *hal.borrow_mut() = self.0.take());
+            }
+        }
+        async fn task(request: Vec<u8>) -> Vec<u8> {
+            let mut saved = ReturnHal(HAL.with(|hal| hal.borrow_mut().take()));
+            let hal = saved.0.as_mut().unwrap();
+            if request[0] == 2 {
+                unlock(hal, "old_password").await.unwrap();
+            } else {
+                re_encrypt_seed(hal, &SEED, "new_password").await.unwrap();
+            }
+            vec![]
+        }
+
+        // Explicit password changes with either secure chip, and automatic Optiga V0 -> V1
+        // migration. Repeat the sequence to catch cancellation state leaking into later requests.
+        for case in [0, 1, 2, 0, 1, 2] {
+            assert!(async_usb::cancel());
+            lock();
+            let mut hal = TestingHal::new();
+            hal.memory.set_securechip_type(if case == 1 {
+                memory::SecurechipType::Optiga
+            } else {
+                memory::SecurechipType::Atecc
+            });
+            encrypt_and_store_seed(&mut hal, &SEED, "old_password")
+                .await
+                .unwrap();
+            unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut hal),
+                &SEED,
+                "",
+                async || {},
+            )
+            .await
+            .unwrap();
+            if case == 2 {
+                hal.memory
+                    .set_securechip_type(memory::SecurechipType::Optiga);
+                lock();
+            }
+            hal.securechip.mock_rekey_yields();
+            HAL.with(|saved| *saved.borrow_mut() = Some(hal));
+
+            async_usb::spawn(task, &[case]);
+            async_usb::spin();
+            let mut polls = 0;
+            while !async_usb::is_idle() {
+                assert!(polls < 20);
+                // Cancellation during key initialization, IV generation, or retaining the seed
+                // must not drop the request. Repeated watchdog expiry must not change that.
+                assert!(!async_usb::cancel());
+                assert!(!async_usb::cancel());
+                async_usb::spin();
+                polls += 1;
+            }
+            assert!(polls >= 2);
+            let mut hal = HAL.with(|saved| saved.borrow_mut().take().unwrap());
+            lock();
+            let password = if case == 2 {
+                "old_password"
+            } else {
+                "new_password"
+            };
+            assert_eq!(unlock(&mut hal, password).await.unwrap().as_slice(), SEED);
+            assert_eq!(
+                hal.memory.get_encrypted_seed_and_hmac().unwrap().1,
+                if case == 0 {
+                    memory::PasswordStretchAlgo::V0
+                } else {
+                    memory::PasswordStretchAlgo::V1
+                },
+            );
+            if case != 2 {
+                assert!(matches!(
+                    unlock(&mut hal, "old_password").await,
+                    Err(Error::IncorrectPassword)
+                ));
+            }
+        }
     }
 
     #[async_test::test]

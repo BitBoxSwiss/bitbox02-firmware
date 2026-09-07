@@ -40,7 +40,7 @@ else()
      gestures
      ""
      hww
-     "-Wl,--wrap=rust_workflow_u2f_is_active"
+     "-Wl,--wrap=rust_workflow_u2f_is_active,--wrap=rust_async_usb_cancel"
      u2f_state
      ""
      random

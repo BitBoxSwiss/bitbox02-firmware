@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Reject malformed microSD backups instead of crashing
+- Protect password changes and password-algorithm migration from host timeout cancellation
 
 ### v9.27.1
 - API: include the installed bootloader version in the device info response

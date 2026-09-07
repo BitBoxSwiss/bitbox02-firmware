@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::Poll;
 use util::bb02_async::{Task, option, spin as spin_task};
+use util::cell::SyncCell;
 
 type UsbOut = Vec<u8>;
 type UsbIn = Vec<u8>;
@@ -73,6 +74,30 @@ unsafe impl Sync for SafeUsbTaskState {}
 /// Executor main state. Currently we only have at most one task at a time (usb api processing
 /// task).
 static USB_TASK_STATE: SafeUsbTaskState = SafeUsbTaskState(RefCell::new(UsbTaskState::Nothing));
+
+static CANCELLATION_GUARDS: SyncCell<usize> = SyncCell::new(0);
+static CANCELLATION_REQUESTED: SyncCell<bool> = SyncCell::new(false);
+
+/// Keep the current USB task alive across a local operation which must not be interrupted by the host.
+/// Do not hold this guard while waiting for user input or another host request. Cancellation is
+/// applied after the last guard is dropped and the current poll returns to the executor.
+/// This is a no-op outside the USB executor, e.g. in a detached U2F unlock workflow.
+pub(crate) fn defer_cancellation() -> impl Drop {
+    struct Guard(bool);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            if self.0 {
+                CANCELLATION_GUARDS.write(CANCELLATION_GUARDS.read() - 1);
+            }
+        }
+    }
+
+    let active = matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Running(None, _));
+    if active {
+        CANCELLATION_GUARDS.write(CANCELLATION_GUARDS.read() + 1);
+    }
+    Guard(active)
+}
 
 /// Spawn a task to be spinned by the executor. This moves the state
 /// from Nothing to Running.
@@ -156,6 +181,9 @@ pub fn spin() {
     };
     if let Some(ref mut task) = popped_task {
         let spin_result = spin_task(task);
+        if CANCELLATION_REQUESTED.read() && CANCELLATION_GUARDS.read() == 0 {
+            cancel();
+        }
         if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
             // The task was cancelled while it was running, so there is nothing to do with the
             // result.
@@ -223,10 +251,19 @@ pub fn take_response() -> Result<UsbOut, CopyResponseErr> {
 /// fetch a response. Call this inside a running task only if you expect that the host may not be
 /// able to read the result (e.g. when resetting the BLE chip as part of a task), so another task
 /// can spawn afterwards immediately instead of being blocked by stale executor state.
-pub fn cancel() {
+///
+/// Returns false if cancellation is deferred until a protected local operation finishes. The
+/// transport must remain busy in that case; accepting another task could interrupt the operation.
+pub fn cancel() -> bool {
+    if CANCELLATION_GUARDS.read() != 0 {
+        CANCELLATION_REQUESTED.write(true);
+        return false;
+    }
+    CANCELLATION_REQUESTED.write(false);
     let _ = NEXT_REQUEST.0.borrow_mut().take();
     let mut state = USB_TASK_STATE.0.borrow_mut();
     *state = UsbTaskState::Nothing;
+    true
 }
 
 /// Must be called during the execution of a usb task. This sends out the response to the host and
@@ -441,5 +478,101 @@ mod tests {
         on_next_request(&[9]);
         spin();
         assert_eq!(Ok(vec![8]), take_response());
+    }
+
+    #[async_test::test]
+    async fn test_cancel_deferred_until_last_guard_is_dropped() {
+        let _guard = test_guard();
+        static STEPS: SyncCell<u8> = SyncCell::new(0);
+
+        async fn yield_once() {
+            let mut first_poll = true;
+            core::future::poll_fn(move |_| {
+                if core::mem::take(&mut first_poll) {
+                    Poll::Pending
+                } else {
+                    Poll::Ready(())
+                }
+            })
+            .await;
+        }
+
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            let outer = defer_cancellation();
+            {
+                let _inner = defer_cancellation();
+                yield_once().await;
+                STEPS.write(1);
+            }
+            yield_once().await;
+            STEPS.write(2);
+            drop(outer);
+            yield_once().await;
+            // A pending cancellation must drop the task before polling this continuation.
+            STEPS.write(3);
+            vec![42]
+        }
+
+        for _ in 0..2 {
+            STEPS.write(0);
+            spawn(task, &[]);
+            spin();
+            for expected_step in 0..2 {
+                assert_eq!(STEPS.read(), expected_step);
+                assert!(!cancel());
+                assert!(!cancel());
+                assert!(!is_idle());
+                assert_eq!(take_response(), Err(CopyResponseErr::NotReady));
+                spin();
+            }
+            assert_eq!(STEPS.read(), 2);
+            assert!(is_idle());
+            assert_eq!(take_response(), Err(CopyResponseErr::NotRunning));
+        }
+
+        // Without cancellation, the same guarded task finishes normally.
+        spawn(task, &[]);
+        for _ in 0..4 {
+            spin();
+        }
+        assert_eq!(STEPS.read(), 3);
+        assert_eq!(take_response(), Ok(vec![42]));
+    }
+
+    #[async_test::test]
+    async fn test_cancel_deferred_during_poll_and_error_return() {
+        let _guard = test_guard();
+
+        async fn operation() -> Result<(), ()> {
+            let _guard = defer_cancellation();
+            assert!(!cancel());
+            assert!(!is_idle());
+            Err(())
+        }
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            assert!(operation().await.is_err());
+            vec![42]
+        }
+
+        spawn(task, &[]);
+        spin();
+        assert!(is_idle());
+        assert_eq!(take_response(), Err(CopyResponseErr::NotRunning));
+        assert!(cancel());
+    }
+
+    #[async_test::test]
+    async fn test_defer_cancellation_outside_usb_task() {
+        let _guard = test_guard();
+        let _cancellation_guard = defer_cancellation();
+        assert!(cancel());
+        assert!(is_idle());
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            core::future::pending().await
+        }
+        spawn(task, &[]);
+        spin();
+        assert!(cancel());
+        assert!(is_idle());
     }
 }

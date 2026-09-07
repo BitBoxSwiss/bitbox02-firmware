@@ -33,7 +33,8 @@ void u2f_process(void);
 
 /**
  * Called to abort any operation that blocked the U2F stack.
+ * Returns true to allow the transport lock to be released.
  */
-void u2f_abort_outstanding_op(void);
+bool u2f_abort_outstanding_op(void);
 
 #endif

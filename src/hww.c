@@ -229,9 +229,9 @@ void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)
     out_packet->data_addr[0] = HWW_RSP_BUSY;
 }
 
-void hww_abort_outstanding_op(void)
+bool hww_abort_outstanding_op(void)
 {
-    rust_async_usb_cancel();
+    return rust_async_usb_cancel();
 }
 
 void hww_setup(void)

@@ -1059,7 +1059,8 @@ void u2f_device_setup(void)
         usb_processing_u2f(), u2f_cmd_callbacks, sizeof(u2f_cmd_callbacks) / sizeof(CMD_Callback));
 }
 
-void u2f_abort_outstanding_op(void)
+bool u2f_abort_outstanding_op(void)
 {
     util_log("u2f_abort_outstanding_op");
+    return true;
 }

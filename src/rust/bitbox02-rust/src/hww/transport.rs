@@ -323,6 +323,42 @@ mod tests {
         assert!(crate::async_usb::is_idle());
     }
 
+    #[async_test::test]
+    async fn test_timeout_keeps_protected_request_busy() {
+        let _guard = test_guard();
+        async fn task(request: Vec<u8>) -> Vec<u8> {
+            let _guard = crate::async_usb::defer_cancellation();
+            ready_after_second_spin_task(request).await
+        }
+        crate::async_usb::spawn(task, &[]);
+        crate::async_usb::spin();
+        let mut handler = handler();
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
+                .unwrap(),
+            vec![HWW_RSP_NOT_READY],
+        );
+        handler.tick(USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(!crate::async_usb::is_idle());
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0], 1000)
+                .unwrap(),
+            vec![HWW_RSP_BUSY],
+        );
+        handler.tick(2000);
+        assert!(!crate::async_usb::is_idle());
+        crate::async_usb::spin();
+        assert!(crate::async_usb::is_idle());
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 2001)
+                .unwrap(),
+            vec![HWW_RSP_NACK],
+        );
+    }
+
     #[test]
     fn test_completed_outstanding_request_times_out_without_retry() {
         let _guard = test_guard();

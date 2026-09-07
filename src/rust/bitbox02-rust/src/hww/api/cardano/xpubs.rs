@@ -9,13 +9,19 @@ use pb::cardano_response::Response;
 
 use super::keypath::validate_account_shelley;
 
-/// Return the xpub at the request keypath.
+/// Max number of xpubs that can be requested at once, matching the Bitcoin API.
+const MAX_XPUBS: usize = 20;
+
+/// Return the xpub at each of up to 20 request keypaths.
 ///
 /// 64 bytes: 32 bytes public key + 32 bytes chain code.
 pub async fn process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoXpubsRequest,
 ) -> Result<Response, Error> {
+    if request.keypaths.len() > MAX_XPUBS {
+        return Err(Error::InvalidInput);
+    }
     let mut xpubs: Vec<Vec<u8>> = Vec::with_capacity(request.keypaths.len());
     for pb::Keypath { keypath } in &request.keypaths {
         validate_account_shelley(keypath)?;
@@ -36,6 +42,39 @@ mod tests {
     use crate::keystore::testing::mock_unlocked;
     use hex_lit::hex;
     use util::bip32::HARDENED;
+
+    #[async_test::test]
+    async fn test_process_limit() {
+        let request = |count| pb::CardanoXpubsRequest {
+            keypaths: (0..count)
+                .map(|i| pb::Keypath {
+                    keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED + i],
+                })
+                .collect(),
+        };
+        // Reject an oversized batch before accessing the keystore.
+        crate::keystore::lock();
+        assert_eq!(
+            process(
+                &mut crate::hal::testing::TestingHal::new(),
+                &request(MAX_XPUBS as u32 + 1),
+            )
+            .await,
+            Err(Error::InvalidInput),
+        );
+
+        mock_unlocked();
+        let Response::Xpubs(response) = process(
+            &mut crate::hal::testing::TestingHal::new(),
+            &request(MAX_XPUBS as u32),
+        )
+        .await
+        .unwrap() else {
+            panic!("unexpected response");
+        };
+        assert_eq!(response.xpubs.len(), MAX_XPUBS);
+        assert!(response.xpubs.iter().all(|xpub| xpub.len() == 64));
+    }
 
     #[async_test::test]
     async fn test_process() {

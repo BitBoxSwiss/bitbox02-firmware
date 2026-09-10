@@ -765,6 +765,31 @@ static inline uint32_t SDMMC_UNSTUFF_BITS(uint8_t *reg, uint16_t reg_size, uint1
 #define MMC_CSD_SPEC_VERS(csd) CSD_STRUCTURE(csd, 122, 4)
 //! @}
 
+/**
+ * \brief Decode an SD or SDIO transfer speed value.
+ *
+ * Unit codes 4 through 7 and multiplier code 0 are reserved.
+ *
+ * \param tran_speed Encoded transfer speed
+ * \param speed Decoded transfer speed in Hz
+ *
+ * \return true if the transfer speed is valid, otherwise false
+ */
+static inline bool sd_mmc_decode_transfer_speed(uint8_t tran_speed, uint32_t *speed)
+{
+    static const uint32_t transfer_units[]       = {10, 100, 1000, 10000};
+    static const uint32_t transfer_multipliers[] = {0, 10, 12, 13, 15, 20, 25, 30,
+                                                    35, 40, 45, 50, 55, 60, 70, 80};
+    uint8_t               unit_code              = tran_speed & 0x7;
+    uint8_t               multiplier_code        = (tran_speed >> 3) & 0xF;
+
+    if (speed == NULL || unit_code >= (sizeof(transfer_units) / sizeof(transfer_units[0])) || multiplier_code == 0) {
+        return false;
+    }
+    *speed = transfer_units[unit_code] * transfer_multipliers[multiplier_code] * 1000;
+    return true;
+}
+
 //! \name OCR Register Fields
 //! @{
 #define OCR_REG_BSIZE (32 / 8) /**< 32 bits, 4 bytes */

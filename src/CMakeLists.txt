@@ -991,6 +991,7 @@ if(CMAKE_CROSSCOMPILING)
       "APP_U2F=${app_u2f}"
       BB02_STAGE1_TARGET_PRODUCT_ID=${target_product_id}
       ${blupgrade_compile_definitions}
+      ${LVGL_DEFINITIONS}
       OPTIGA_LIB_EXTERNAL="optiga_config.h"
     )
     target_sources(${target}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})

@@ -154,7 +154,7 @@ static bool _capture_glyph_dsc(
 static void _test_ugui_utf8_validation(void** state)
 {
     (void)state;
-    const UG_FONT capture_font = {
+    static const UG_FONT capture_font = {
         .get_glyph_dsc = _capture_glyph_dsc,
         .line_height = 1,
     };

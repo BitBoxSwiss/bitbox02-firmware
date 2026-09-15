@@ -34,6 +34,8 @@ fn display_str_to_cstr_vec(text: &str) -> Vec<c_char> {
     result
 }
 
+/// `font` must be null or point to a font with static lifetime, including its glyph data and
+/// fallback fonts. The C function retains the selected font in the current GUI.
 fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
     let text = display_str_to_cstr_vec(text);
     unsafe { bitbox02_sys::label_fits_width(text.as_ptr(), font, bitbox02_sys::SCREEN_WIDTH as _) }

@@ -767,6 +767,7 @@ pub enum Mode {
 }
 
 /// Creates a hash of this policy config, useful for registration and identification.
+/// Returns an error if any key is missing its xpub or the xpub cannot be serialized.
 pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<[u8; 32], ()> {
     let mut hasher = Sha256::new();
     {
@@ -796,16 +797,17 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<[u8; 32], ()> {
         let num: u32 = policy.keys.len() as _;
         hasher.update(num.to_le_bytes());
         for key in policy.keys.iter() {
-            hasher.update(&bip32::Xpub::from(key.xpub.as_ref().unwrap()).serialize(None)?);
+            let xpub = key.xpub.as_ref().ok_or(())?;
+            hasher.update(&bip32::Xpub::from(xpub).serialize(None)?);
         }
     }
     Ok(hasher.finalize().into())
 }
 
-/// Get the name of a registered policy account. The policy is not validated, it must be
-/// pre-validated!
+/// Get the name of a registered policy account. The policy itself is not validated.
 ///
-/// Returns the name of the registered policy account if it exists or None otherwise.
+/// Returns the name of the registered policy account if it exists or None otherwise, or an error
+/// if any key is missing its xpub or the xpub cannot be serialized.
 pub fn get_name(
     hal: &mut impl crate::hal::Hal,
     coin: BtcCoin,
@@ -2074,6 +2076,17 @@ mod tests {
                 .await,
             Err(Error::InvalidInput)
         ));
+    }
+
+    #[test]
+    fn test_get_hash_missing_xpub() {
+        let valid_keys = [make_key(SOME_XPUB_1), make_key(SOME_XPUB_2)];
+        for missing_index in 0..valid_keys.len() {
+            let mut keys = valid_keys.clone();
+            keys[missing_index].xpub = None;
+            let policy = make_policy("wsh(multi(2,@0/**,@1/**))", &keys);
+            assert_eq!(get_hash(BtcCoin::Btc, &policy), Err(()));
+        }
     }
 
     #[async_test::test]

@@ -49,7 +49,9 @@ pub fn process_is_script_config_registered(
             let coin = BtcCoin::try_from(*coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
-                    is_registered: super::policies::get_name(hal, coin, policy)?.is_some(),
+                    is_registered: super::policies::get_name(hal, coin, policy)
+                        .map_err(|_| Error::InvalidInput)?
+                        .is_some(),
                 },
             ))
         }
@@ -173,6 +175,84 @@ mod tests {
     use crate::hal::testing::TestingHal;
 
     use pb::btc_script_config::{Multisig, multisig::ScriptType};
+
+    #[test]
+    fn test_process_is_script_config_registered_policy() {
+        let mut mock_hal = TestingHal::new();
+        let policy = pb::btc_script_config::Policy {
+            policy: "wsh(pk(@0/**))".into(),
+            keys: vec![pb::KeyOriginInfo {
+                xpub: Some(parse_xpub("xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo").unwrap()),
+                ..Default::default()
+            }],
+        };
+        let hash = super::super::policies::get_hash(BtcCoin::Btc, &policy).unwrap();
+        let request = pb::BtcIsScriptConfigRegisteredRequest {
+            registration: Some(pb::BtcScriptConfigRegistration {
+                coin: BtcCoin::Btc as _,
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::Policy(policy)),
+                }),
+                keypath: vec![],
+            }),
+        };
+        assert_eq!(
+            process_is_script_config_registered(&mut mock_hal, &request),
+            Ok(Response::IsScriptConfigRegistered(
+                pb::BtcIsScriptConfigRegisteredResponse {
+                    is_registered: false,
+                },
+            ))
+        );
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash, "some name")
+            .unwrap();
+        assert_eq!(
+            process_is_script_config_registered(&mut mock_hal, &request),
+            Ok(Response::IsScriptConfigRegistered(
+                pb::BtcIsScriptConfigRegisteredResponse {
+                    is_registered: true,
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn test_process_is_script_config_registered_policy_invalid_xpub() {
+        let valid_keys = vec![
+            pb::KeyOriginInfo {
+                xpub: Some(parse_xpub("xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo").unwrap()),
+                ..Default::default()
+            },
+            pb::KeyOriginInfo {
+                xpub: Some(parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap()),
+                ..Default::default()
+            },
+        ];
+        for invalid_index in 0..valid_keys.len() {
+            for invalid_xpub in [None, Some(pb::XPub::default())] {
+                let mut keys = valid_keys.clone();
+                keys[invalid_index].xpub = invalid_xpub;
+                let request = pb::BtcIsScriptConfigRegisteredRequest {
+                    registration: Some(pb::BtcScriptConfigRegistration {
+                        coin: BtcCoin::Btc as _,
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::Policy(pb::btc_script_config::Policy {
+                                policy: "wsh(multi(2,@0/**,@1/**))".into(),
+                                keys,
+                            })),
+                        }),
+                        keypath: vec![],
+                    }),
+                };
+                assert_eq!(
+                    process_is_script_config_registered(&mut TestingHal::new(), &request),
+                    Err(Error::InvalidInput)
+                );
+            }
+        }
+    }
 
     #[test]
     fn test_process_is_script_config_registered() {

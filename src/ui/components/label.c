@@ -208,6 +208,7 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
+// A non-NULL `font` must have static lifetime: the label and current GUI retain it.
 static component_t* _label_create(
     const char* text,
     const UG_FONT* font,

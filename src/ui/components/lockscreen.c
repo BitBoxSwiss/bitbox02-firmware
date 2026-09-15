@@ -28,6 +28,7 @@ static const component_functions_t _component_functions = {
 
 // Outputs `in` as is if it can be rendered to fit in `max_width`.
 // If it can't, it is truncated (with appended "...") to a size where it fits.
+// `font` must have static lifetime because it remains selected in the current GUI.
 static void _truncate_to_fit(
     const char* in,
     char* out,

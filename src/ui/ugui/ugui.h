@@ -42,6 +42,8 @@ typedef UG_U8          UG_COLOR;
 /* -------------------------------------------------------------------------------- */
 /* -- µGUI FONTS                                                                 -- */
 /* -------------------------------------------------------------------------------- */
+// Fonts retained by the GUI or components must have static lifetime, including their referenced
+// glyph data and fallback fonts.
 typedef lv_font_t UG_FONT;
 
 /* -------------------------------------------------------------------------------- */
@@ -78,8 +80,16 @@ typedef struct {
 /* -- PROTOTYPES                                                                 -- */
 /* -------------------------------------------------------------------------------- */
 
+/**
+ * Initializes and selects the GUI, retaining `font` for later rendering.
+ * @param[in] font The initial font. Must have static lifetime.
+ */
 UG_S16 UG_Init( UG_GUI *g, void (*p)(UG_S16, UG_S16, UG_COLOR),
                 const UG_FONT *font, UG_S16 x, UG_S16 y );
+/**
+ * Selects and retains the font in the current GUI.
+ * @param[in] font The font to use. Must have static lifetime.
+ */
 void UG_FontSelect( const UG_FONT *font );
 void UG_FillScreen( UG_COLOR c );
 void UG_FillFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );

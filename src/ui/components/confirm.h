@@ -16,6 +16,8 @@ typedef struct {
     bool title_autowrap;
     // The confirmation body of the screen.
     const char* body;
+    // Font retained by the created labels, or NULL for the default font. Must have static lifetime
+    // if non-NULL.
     const UG_FONT* font;
     // If true, the body is horizontally scrollable.
     bool scrollable;
@@ -32,7 +34,8 @@ typedef struct {
 
 /**
  * Creates a confirm screen.
- * @param[in] params see confirm_params_t for details.
+ * @param[in] params see confirm_params_t for details. A non-NULL params->font must have static
+ * lifetime because the created labels retain it.
  * @param[in] callback The callback triggered when the user accepts or rejects. Will be called at
  * most once.
  * @param[in] user_data passed through to the callback.

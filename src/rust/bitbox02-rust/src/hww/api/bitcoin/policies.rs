@@ -31,15 +31,25 @@ const MAX_KEYS: usize = 20;
 // synchronous recursion frames, so 64 preserves useful policy depth while bounding stack use.
 const MAX_MINISCRIPT_ENCODE_DEPTH: usize = 64;
 
-fn validate_miniscript_depth<Pk, Ctx>(
-    miniscript: &miniscript::Miniscript<Pk, Ctx>,
-) -> Result<(), Error>
+fn validate_miniscript<Pk, Ctx>(miniscript: &miniscript::Miniscript<Pk, Ctx>) -> Result<(), Error>
 where
     Pk: miniscript::MiniscriptKey,
     Ctx: miniscript::ScriptContext,
 {
     // tree_height counts edges, while encoding also creates a frame for the root.
     if miniscript.ext.tree_height >= MAX_MINISCRIPT_ENCODE_DEPTH {
+        return Err(Error::InvalidInput);
+    }
+    // Hash fragments are not supported. Reject them before a policy can be registered or used.
+    if miniscript.iter().any(|fragment| {
+        matches!(
+            fragment.node,
+            miniscript::Terminal::Sha256(_)
+                | miniscript::Terminal::Hash256(_)
+                | miniscript::Terminal::Hash160(_)
+                | miniscript::Terminal::Ripemd160(_)
+        )
+    }) {
         return Err(Error::InvalidInput);
     }
     Ok(())
@@ -188,7 +198,21 @@ impl miniscript::Translator<String> for WalletPolicyPkTranslator<'_> {
     }
 
     // Miniscript hash fragments not supported.
-    miniscript::translate_hash_fail!(String, bitcoin::PublicKey, Error);
+    fn sha256(&mut self, _: &String) -> Result<bitcoin::hashes::sha256::Hash, Error> {
+        Err(Error::InvalidInput)
+    }
+
+    fn hash256(&mut self, _: &String) -> Result<miniscript::hash256::Hash, Error> {
+        Err(Error::InvalidInput)
+    }
+
+    fn hash160(&mut self, _: &String) -> Result<bitcoin::hashes::hash160::Hash, Error> {
+        Err(Error::InvalidInput)
+    }
+
+    fn ripemd160(&mut self, _: &String) -> Result<bitcoin::hashes::ripemd160::Hash, Error> {
+        Err(Error::InvalidInput)
+    }
 }
 
 /// See `ParsedPolicy`.
@@ -725,7 +749,7 @@ pub async fn parse<'a>(
             let miniscript_expr: miniscript::Miniscript<String, miniscript::Segwitv0> =
                 miniscript::Miniscript::from_str(&desc[4..desc.len() - 1])
                     .or(Err(Error::InvalidInput))?;
-            validate_miniscript_depth(&miniscript_expr)?;
+            validate_miniscript(&miniscript_expr)?;
             miniscript_expr
                 .sanity_check()
                 .map_err(|_| Error::InvalidInput)?;
@@ -742,7 +766,7 @@ pub async fn parse<'a>(
             // miniscript library extends/changes the main sanity_check function.
             let tr = miniscript::descriptor::Tr::from_str(desc).map_err(|_| Error::InvalidInput)?;
             for leaf in tr.leaves() {
-                validate_miniscript_depth(leaf.miniscript())?;
+                validate_miniscript(leaf.miniscript())?;
             }
             tr.sanity_check().map_err(|_| Error::InvalidInput)?;
 
@@ -947,7 +971,7 @@ mod tests {
             ))
             .unwrap();
         assert_eq!(miniscript.ext.tree_height + 1, MAX_MINISCRIPT_ENCODE_DEPTH);
-        assert_eq!(validate_miniscript_depth(&miniscript), Ok(()));
+        assert_eq!(validate_miniscript(&miniscript), Ok(()));
 
         let miniscript: miniscript::Miniscript<String, miniscript::Segwitv0> =
             miniscript::Miniscript::from_str(&format!(
@@ -959,10 +983,7 @@ mod tests {
             miniscript.ext.tree_height + 1,
             MAX_MINISCRIPT_ENCODE_DEPTH + 1
         );
-        assert_eq!(
-            validate_miniscript_depth(&miniscript),
-            Err(Error::InvalidInput)
-        );
+        assert_eq!(validate_miniscript(&miniscript), Err(Error::InvalidInput));
     }
 
     #[async_test::test]
@@ -1014,7 +1035,7 @@ mod tests {
             miniscript::Miniscript::from_str(&deep_policy[4..deep_policy.len() - 1]).unwrap();
         assert!(deep_miniscript.sanity_check().is_ok());
         assert_eq!(
-            validate_miniscript_depth(&deep_miniscript),
+            validate_miniscript(&deep_miniscript),
             Err(Error::InvalidInput)
         );
         let policy = make_policy(&deep_policy, &[our_key]);
@@ -1023,6 +1044,61 @@ mod tests {
                 .await
                 .is_err()
         );
+    }
+
+    #[async_test::test]
+    async fn test_parse_rejects_hash_fragments() {
+        mock_unlocked();
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
+        for (fragment, hash_len) in [
+            ("sha256", 32),
+            ("hash256", 32),
+            ("hash160", 20),
+            ("ripemd160", 20),
+        ] {
+            let leaf = format!(
+                "and_v(v:pk(@0/<2;3>/*),{fragment}({}))",
+                "42".repeat(hash_len)
+            );
+            // The library accepts these fragments in both script contexts; firmware does not.
+            assert!(
+                miniscript::Miniscript::<String, miniscript::Segwitv0>::from_str(&leaf).is_ok()
+            );
+            assert!(miniscript::Miniscript::<String, miniscript::Tap>::from_str(&leaf).is_ok());
+            for descriptor in [
+                format!("wsh({leaf})"),
+                format!("tr(@0/**,{leaf})"),
+                format!("tr(@0/**,{{pk(@0/<4;5>/*),{leaf}}})"),
+            ] {
+                let policy = make_policy(&descriptor, core::slice::from_ref(&our_key));
+                assert_eq!(
+                    parse(
+                        &mut crate::hal::testing::TestingHal::new(),
+                        &policy,
+                        BtcCoin::Tbtc,
+                    )
+                    .await
+                    .unwrap_err(),
+                    Error::InvalidInput,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_wallet_policy_pk_translator_rejects_hashes() {
+        use miniscript::Translator;
+
+        let mut translator = WalletPolicyPkTranslator {
+            keys: &[],
+            is_change: false,
+            address_index: 0,
+        };
+        let hash = String::new();
+        assert_eq!(translator.sha256(&hash), Err(Error::InvalidInput));
+        assert_eq!(translator.hash256(&hash), Err(Error::InvalidInput));
+        assert_eq!(translator.hash160(&hash), Err(Error::InvalidInput));
+        assert_eq!(translator.ripemd160(&hash), Err(Error::InvalidInput));
     }
 
     #[async_test::test]

@@ -328,12 +328,43 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
     emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
     emit_rerun_if_changed("../bitbox-lvgl-sys/lv_conf.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/arial_11.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/arial_12.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/arial_9.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/monogram_16.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/password_12.h");
-    emit_rerun_if_changed("../../../src/ui/fonts/password_9.h");
+
+    // Watch C headers and their subdirectories without watching src/rust and its build outputs.
+    for path in [
+        "../../../src/atecc",
+        "../../../src/bootloader",
+        "../../../src/bootloader_upgrade",
+        "../../../src/common_main.h",
+        "../../../src/compiler_util.h",
+        "../../../src/da14531",
+        "../../../src/delay.h",
+        "../../../src/flags.h",
+        "../../../src/hardfault.h",
+        "../../../src/hww.h",
+        "../../../src/i2c_ecc.h",
+        "../../../src/memory",
+        "../../../src/optiga",
+        "../../../src/pac_ext.h",
+        "../../../src/platform",
+        "../../../src/pukcc",
+        "../../../src/qtouch",
+        "../../../src/random.h",
+        "../../../src/reset.h",
+        "../../../src/screen.h",
+        "../../../src/sd.h",
+        "../../../src/sd_mmc",
+        "../../../src/securechip",
+        "../../../src/system.h",
+        "../../../src/touch",
+        "../../../src/u2f",
+        "../../../src/u2f.h",
+        "../../../src/uart.h",
+        "../../../src/ui",
+        "../../../src/usb",
+        "../../../src/util.h",
+    ] {
+        emit_rerun_if_changed(path);
+    }
 
     // Generating version headers depends on the current state of the git repo.
     emit_git_rerun_if_changed(&repo_root);
@@ -428,6 +459,14 @@ pub fn main() -> BuildResult<()> {
     } else {
         // unit test framework includes
         includes.push("../../../test/hardware-fakes/include".to_owned());
+    }
+
+    // Track included headers, including LVGL, ASF4 and hardware fakes. The src root is covered
+    // above. Avoid watching the generated output directory itself.
+    for include in &includes {
+        if include != "../.." && Path::new(include) != generated_headers_dir.as_path() {
+            emit_rerun_if_changed(include);
+        }
     }
 
     let out_path = out_dir.join("bindings.rs");

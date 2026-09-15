@@ -170,7 +170,7 @@ static bool _UG_GlyphPixelSet(
 }
 
 static void _UG_PutCodepoint( uint32_t codepoint, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
-                              const UG_FONT *font, bool inverted, bool transparent)
+                              const UG_FONT *font)
 {
     lv_font_glyph_dsc_t glyph_dsc;
     if (!_UG_GetGlyph(font, codepoint, &glyph_dsc)) {
@@ -186,11 +186,9 @@ static void _UG_PutCodepoint( uint32_t codepoint, UG_S16 x, UG_S16 y, UG_COLOR f
         return;
     }
 
-    if (!transparent) {
-        for (UG_S16 row = 0; row < font->line_height; row++) {
-            for (UG_U16 col = 0; col < glyph_dsc.adv_w; col++) {
-                _UG_PSet(x + col, y + row, bc);
-            }
+    for (UG_S16 row = 0; row < font->line_height; row++) {
+        for (UG_U16 col = 0; col < glyph_dsc.adv_w; col++) {
+            _UG_PSet(x + col, y + row, bc);
         }
     }
     if (codepoint == '\t' || glyph_dsc.box_w == 0 || glyph_dsc.box_h == 0 ||
@@ -209,10 +207,6 @@ static void _UG_PutCodepoint( uint32_t codepoint, UG_S16 x, UG_S16 y, UG_COLOR f
         for (UG_U16 col = 0; col < glyph_dsc.box_w; col++) {
             UG_S16 xo = x + glyph_dsc.ofs_x + col;
             UG_S16 yo = y + glyph_y + row;
-            if (inverted) {
-                xo = x + glyph_dsc.adv_w - 1 - (glyph_dsc.ofs_x + col);
-                yo = y + font->line_height - 1 - (glyph_y + row);
-            }
             if (_UG_GlyphPixelSet(bitmap, &glyph_dsc, col, row)) {
                 _UG_PSet(xo, yo, fc);
             }
@@ -257,7 +251,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
 
         if (!calconly) {
             _UG_PutCodepoint(
-                codepoint, xp, yp, gui->fore_color, gui->back_color, gui->font, false, false);
+                codepoint, xp, yp, gui->fore_color, gui->back_color, gui->font);
         }
 
         xp += cw + gui->char_h_space;
@@ -863,7 +857,7 @@ void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
 {
     ASSERT(gui != NULL);
 
-    _UG_PutCodepoint((UG_U8)chr, x, y, fc, bc, gui->font, false, false);
+    _UG_PutCodepoint((UG_U8)chr, x, y, fc, bc, gui->font);
 }
 
 void UG_SetForecolor( UG_COLOR c )

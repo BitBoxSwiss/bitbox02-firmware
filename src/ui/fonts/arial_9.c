@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 9 px
  * Bpp: 1
- * Opts: --bpp 1 --size 9 --dpi 72 --font /usr/share/fonts/truetype/msttcorefonts/Arial.ttf --range 32-126,160-383 --format lvgl -o arial_9.c
+ * Opts: --dump --bpp 1 --size 9 --dpi 72 --font /usr/share/fonts/truetype/msttcorefonts/Arial.ttf --range 32-126,160-383 --name arial_9 --output arial_9.c
  ******************************************************************************/
 
 #ifdef __has_include

@@ -10,7 +10,8 @@ pub fn validate(name: &str, max_len: usize) -> bool {
     if !super::display::is_safe_text(name, false) {
         return false;
     }
-    if name.starts_with(' ') || name.ends_with(' ') {
+    let bytes = name.as_bytes();
+    if bytes[0] == b' ' || bytes[bytes.len() - 1] == b' ' {
         return false;
     }
     true

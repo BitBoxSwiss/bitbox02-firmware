@@ -51,6 +51,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <hardfault.h>
 #include <ui/oled/oled.h>
 #include <util.h>
 #include <utils_assert.h>
@@ -97,8 +98,8 @@ static bool _UG_IsUtf8Continuation(uint8_t byte)
  *
  * The leading byte determines the sequence length. ASCII bytes are returned
  * directly, valid 2-, 3-, and 4-byte sequences are assembled from their payload
- * bits, and malformed sequences fall back to returning the leading byte so
- * iteration always advances.
+ * bits. Returns NULL on malformed UTF-8, leaving `codepoint` unchanged.
+ * At the NUL terminator, sets `codepoint` to zero and returns `str` unchanged.
  */
 static const char* _UG_NextCodepoint(const char* str, uint32_t* codepoint)
 {
@@ -131,8 +132,7 @@ static const char* _UG_NextCodepoint(const char* str, uint32_t* codepoint)
                      ((uint32_t)(bytes[2] & 0x3F) << 6) | (uint32_t)(bytes[3] & 0x3F);
         return str + 4;
     }
-    *codepoint = bytes[0];
-    return str + 1;
+    return NULL;
 }
 
 static bool _UG_GetGlyph(const UG_FONT* font, uint32_t codepoint, lv_font_glyph_dsc_t* glyph_dsc)
@@ -231,6 +231,9 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
 
     while (*cursor != '\0') {
         cursor = _UG_NextCodepoint(cursor, &codepoint);
+        if (cursor == NULL) {
+            Abort("Invalid UTF-8 string");
+        }
         if (codepoint != '\n' && !UG_GetCharWidth(gui->font, codepoint, &cw)) {
             continue;
         }
@@ -667,6 +670,9 @@ static UG_S16 _word_width(const char* p) {
     while(!_is_whitespace(*p)) {
         uint32_t codepoint = 0;
         p = _UG_NextCodepoint(p, &codepoint);
+        if (p == NULL) {
+            Abort("Invalid UTF-8 string");
+        }
         UG_U16 char_width = 0;
         if (UG_GetCharWidth(font, codepoint, &char_width)) {
             x += char_width;
@@ -682,6 +688,9 @@ static void _copy_codepoint(const char** str, char** str_out, UG_S16* x)
     uint32_t codepoint = 0;
     UG_U16 char_width = 0;
     next = _UG_NextCodepoint(*str, &codepoint);
+    if (next == NULL) {
+        Abort("Invalid UTF-8 string");
+    }
     while (*str < next) {
         **str_out = **str;
         *str_out += 1;

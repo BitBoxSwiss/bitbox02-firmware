@@ -2,7 +2,7 @@
 
 #![allow(clippy::format_collect)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
@@ -43,6 +43,16 @@ fn main() {
         });
     }
 
+    // A symbol is ambiguous if multiple contracts use it, even with different decimals:
+    // changing the raw transfer value can still produce the same displayed amount.
+    let mut contracts_by_unit: BTreeMap<&str, BTreeSet<[u8; 20]>> = BTreeMap::new();
+    for token in &tokens {
+        contracts_by_unit
+            .entry(&token.unit)
+            .or_default()
+            .insert(token.contract_address);
+    }
+
     // Group tokens by decimals
     let mut grouped_tokens: BTreeMap<(u8, u8), Vec<&Token>> = BTreeMap::new();
     for token in &tokens {
@@ -59,6 +69,15 @@ fn main() {
         .truncate(true)
         .open(out_filename)
         .unwrap();
+
+    // BTreeMap iteration keeps this list sorted for binary search at runtime.
+    writeln!(output_file, "const AMBIGUOUS_UNITS: &[&str] = &[").unwrap();
+    for (unit, contracts) in &contracts_by_unit {
+        if contracts.len() > 1 {
+            writeln!(output_file, "    \"{}\",", unit.escape_default()).unwrap();
+        }
+    }
+    writeln!(output_file, "];\n").unwrap();
 
     for ((decimals, unit_len), tokens) in &mut grouped_tokens {
         // Sort by contract address so we can look up by contract

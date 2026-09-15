@@ -39,7 +39,6 @@
 #include <ui/components/trinary_input_string.h>
 #include <ui/components/unlock_animation.h>
 #include <ui/fonts/arial_11.h>
-#include <ui/fonts/arial_12.h>
 #include <ui/fonts/arial_9.h>
 #include <ui/fonts/monogram_16.h>
 #include <ui/fonts/password_12.h>

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 16 px
  * Bpp: 1
- * Opts: --bpp 1 --size 16 --font monogram.ttf --range 32-126 --format lvgl -o monogram_16.c
+ * Opts: --dump --bpp 1 --size 16 --font monogram.ttf --range 32-126 --name monogram_16 --output monogram_16.c
  ******************************************************************************/
 
 #ifdef __has_include

@@ -14,7 +14,6 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BITBOX02_FLASH_BOOT_LEN",
     "BITBOX02_FLASH_BOOT_START",
     "font_arial_11",
-    "font_arial_12",
     "font_arial_9",
     "font_monogram_16",
     "font_password_12",
@@ -458,7 +457,7 @@ pub fn main() -> BuildResult<()> {
         .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
         .arg("wrapper.h")
         .arg("--")
-        .args(definitions.iter().map(String::as_str))
+        .args(&definitions)
         .args(includes.iter().map(|s| format!("-I{s}")));
 
     run_command(&mut bindgen, "run bindgen")?;

@@ -1,6 +1,6 @@
 # ttf2lvgl
 
-We convert LVGL fonts in this directory with the ttf2lvgl tool provided in the `tools` directory.
+We convert fonts for the BitBox02 OLED with the ttf2lvgl tool provided in the `tools` directory.
 
 Example execution:
 
@@ -55,5 +55,4 @@ The tool emits LVGL's uncompressed `lv_font_fmt_txt` format with tight glyph bou
 1bpp fonts, pixels are packed in LVGL bit order over the tight glyph bitmap. For 8bpp fonts, each
 pixel stores the same 16x16 downsampled coverage value that the old `ttf2ugui` tool produced.
 
-Each item in the array is suffixed with a comment that shows which character the bytes correspond
-to.
+Bitmap groups and glyph descriptors are annotated with their Unicode code points.

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 16 px
  * Bpp: 1
- * Opts: --bpp 1 --size 16 --font src/ui/fonts/monogram.ttf --range 32,48-57,97-102 --format lvgl -o src/ui/fonts/monogram_16_bootloader.c
+ * Opts: --dump --bpp 1 --size 16 --font src/ui/fonts/monogram.ttf --range 32,48-57,97-102 --name monogram_16 --output src/ui/fonts/monogram_16_bootloader.c
  ******************************************************************************/
 
 #ifdef __has_include

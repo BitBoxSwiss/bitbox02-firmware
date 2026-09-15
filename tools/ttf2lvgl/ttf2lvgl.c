@@ -255,15 +255,8 @@ static char* default_font_name(const char* font_file, float requested_size)
     return out;
 }
 
-static char* output_header_name(const char* output_file, const char* font_name)
+static char* output_header_name(const char* output_file)
 {
-    if (output_file == NULL) {
-        size_t len = checked_size_add(strlen(font_name), 3);
-        char* out = xmalloc(len);
-        snprintf(out, len, "%s.h", font_name);
-        return out;
-    }
-
     char* out = xstrdup(output_file);
     char* slash = strrchr(out, '/');
     char* base = slash == NULL ? out : slash + 1;
@@ -944,7 +937,7 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
         snprintf(out_file, len, "%s.c", symbol);
     }
 
-    char* header_file = output_header_name(out_file, symbol);
+    char* header_file = output_header_name(out_file);
     if (strcmp(out_file, header_file) == 0) {
         fprintf(stderr, "output and generated header paths must be different\n");
         exit(1);
@@ -966,7 +959,7 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
         out, "/*******************************************************************************\n");
     fprintf(out, " * Size: %g px\n", font_size);
     fprintf(out, " * Bpp: %d\n", font->bpp);
-    fprintf(out, " * Opts: --bpp %d --size %g", font->bpp, font_size);
+    fprintf(out, " * Opts: --dump --bpp %d --size %g", font->bpp, font_size);
     if (dpi > 0) {
         fprintf(out, " --dpi %d", dpi);
     }
@@ -974,7 +967,7 @@ static void dump_font(const LvglFont* font, const char* font_file_path, const ch
     print_comment_text(out, font_file_path);
     fprintf(out, " --range ");
     print_codepoint_ranges(out, font);
-    fprintf(out, " --format lvgl -o ");
+    fprintf(out, " --name %s --output ", symbol);
     print_comment_text(out, out_file);
     fprintf(out, "\n");
     fprintf(

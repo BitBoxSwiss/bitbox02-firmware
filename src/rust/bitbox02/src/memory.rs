@@ -439,8 +439,8 @@ mod tests {
             " name",    // leading space
             "name ",    // trailing space
             "foo\nbar", // control character
-            "漢字",     // not covered by the display font
-            "emoji 😃", // not covered by the display font
+            "漢字",     // unsupported character
+            "emoji 😃", // unsupported character
         ];
 
         for invalid in invalid_names {

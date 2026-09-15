@@ -30,6 +30,12 @@ static uint8_t pixels_set;
 static size_t set_pixel_count = 0;
 static size_t black_pixel_count = 0;
 
+void __wrap_Abort(const char* msg)
+{
+    check_expected(msg);
+    mock_assert(false, msg, __FILE__, __LINE__);
+}
+
 static void _assert_supported_font_subset(const UG_FONT* font)
 {
     assert_non_null(font);
@@ -138,7 +144,7 @@ static bool _capture_glyph_dsc(
     uint32_t codepoint_next)
 {
     (void)font;
-    (void)codepoint;
+    check_expected(codepoint);
     (void)codepoint_next;
     memset(glyph_dsc, 0, sizeof(*glyph_dsc));
     glyph_dsc->adv_w = 1;
@@ -155,24 +161,79 @@ static void _test_ugui_utf8_validation(void** state)
     UG_Init(&gui, _set_pixel, &capture_font, 128, 64);
     UG_FontSetHSpace(0);
 
+    const struct {
+        const char* text;
+        uint32_t codepoint;
+    } valid[] = {
+        {"A", 0x41},
+        {"\xc2\x80", 0x80},
+        {"\xdf\xbf", 0x7ff},
+        {"\xe0\xa0\x80", 0x800},
+        {"\xed\x9f\xbf", 0xd7ff},
+        {"\xee\x80\x80", 0xe000},
+        {"\xef\xbf\xbf", 0xffff},
+        {"\xf0\x90\x80\x80", 0x10000},
+        {"\xf4\x8f\xbf\xbf", 0x10ffff},
+    };
     UG_S16 width = 0;
-    UG_MeasureStringNoBreak(&width, NULL, "\xe0\xa0\x80");
-    assert_int_equal(width, 1);
-    UG_MeasureStringNoBreak(&width, NULL, "\xed\x9f\xbf");
-    assert_int_equal(width, 1);
-    UG_MeasureStringNoBreak(&width, NULL, "\xf0\x90\x80\x80");
-    assert_int_equal(width, 1);
-    UG_MeasureStringNoBreak(&width, NULL, "\xf4\x8f\xbf\xbf");
-    assert_int_equal(width, 1);
+    UG_MeasureStringNoBreak(&width, NULL, "");
+    assert_int_equal(width, 0);
+    for (size_t i = 0; i < sizeof(valid) / sizeof(*valid); ++i) {
+        expect_value(_capture_glyph_dsc, codepoint, valid[i].codepoint);
+        UG_MeasureStringNoBreak(&width, NULL, valid[i].text);
+        assert_int_equal(width, 1);
+    }
 
-    UG_MeasureStringNoBreak(&width, NULL, "\xe0\x80\xaf");
-    assert_int_equal(width, 3);
-    UG_MeasureStringNoBreak(&width, NULL, "\xed\xa0\x80");
-    assert_int_equal(width, 3);
-    UG_MeasureStringNoBreak(&width, NULL, "\xf0\x80\x80\xaf");
-    assert_int_equal(width, 4);
-    UG_MeasureStringNoBreak(&width, NULL, "\xf4\x90\x80\x80");
-    assert_int_equal(width, 4);
+    const char* invalid[] = {
+        "\x80", // Stray continuation byte.
+        "\xbf",
+        "\xc0\xaf", // Overlong encodings.
+        "\xc1\xbf",
+        "\xe0\x80\xaf",
+        "\xf0\x80\x80\xaf",
+        "\xed\xa0\x80", // Surrogate.
+        "\xf4\x90\x80\x80", // Above U+10FFFF.
+        "\xf5\x80\x80\x80", // Invalid leading bytes.
+        "\xff",
+        "\xc2", // Truncated sequences.
+        "\xe4",
+        "\xe0\xa0",
+        "\xf0",
+        "\xf0\x90",
+        "\xf0\x90\x80",
+        "\xc2"
+        "A", // Invalid continuation bytes.
+        "\xe0\xa0"
+        "A",
+        "\xf0\x90\x80"
+        "A",
+    };
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(*invalid); ++i) {
+        expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+        expect_assert_failure(UG_MeasureStringNoBreak(&width, NULL, invalid[i]));
+    }
+
+    // Reject malformed input after a valid prefix as well.
+    expect_value(_capture_glyph_dsc, codepoint, 'A');
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_MeasureStringNoBreak(&width, NULL, "A\xff"));
+}
+
+static void _test_ugui_word_wrap_invalid_utf8(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_arial_9, 128, 64);
+    char output[32] = {0};
+
+    // Reject malformed input when measuring the first or a following word.
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("\xff", output, 55));
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("A \xff", output, 55));
+
+    // A tab ends the initial width scan, so copying detects this error.
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("\t\xff", output, 55));
 }
 
 static void _test_ugui_lvgl_font(void** state)
@@ -238,6 +299,7 @@ int main(void)
         cmocka_unit_test(_test_ugui_render_rotated_180),
         cmocka_unit_test(_test_ugui_measure_string_centered),
         cmocka_unit_test(_test_ugui_utf8_validation),
+        cmocka_unit_test(_test_ugui_word_wrap_invalid_utf8),
         cmocka_unit_test(_test_ugui_lvgl_font),
         cmocka_unit_test(_test_ugui_lvgl_font_fallback),
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),

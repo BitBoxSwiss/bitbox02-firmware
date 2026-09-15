@@ -10,6 +10,7 @@
 #include <ui/fonts/password_9.h>
 #include <ui/ui_util.h>
 #include <util.h>
+#include <utils_assert.h>
 
 #include <string.h>
 
@@ -37,7 +38,9 @@ static const UG_S16 _group_width = SCREEN_WIDTH / 3;
 static UG_U16 _char_width(const UG_FONT* font, char chr)
 {
     UG_U16 width = 0;
-    UG_GetCharWidth(font, (uint8_t)chr, &width);
+    const bool found = UG_GetCharWidth(font, (uint8_t)chr, &width);
+    ASSERT(found);
+    (void)found;
     return width;
 }
 

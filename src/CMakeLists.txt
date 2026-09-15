@@ -120,6 +120,12 @@ set(QTOUCH-SOURCES
 )
 set(QTOUCH-SOURCES ${QTOUCH-SOURCES} PARENT_SCOPE)
 
+set(PLATFORM-BITBOX02-OLED-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/ui/oled/sh1107.c
+  ${CMAKE_SOURCE_DIR}/src/ui/oled/ssd1312.c
+)
+set(PLATFORM-BITBOX02-OLED-SOURCES ${PLATFORM-BITBOX02-OLED-SOURCES} PARENT_SCOPE)
+
 # The additional files required for the plus platform
 set(PLATFORM-BITBOX02-PLUS-SOURCES
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
@@ -134,8 +140,7 @@ set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_ext.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
-  ${CMAKE_SOURCE_DIR}/src/ui/oled/sh1107.c
-  ${CMAKE_SOURCE_DIR}/src/ui/oled/ssd1312.c
+  ${PLATFORM-BITBOX02-OLED-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
 )
 set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
@@ -399,7 +404,17 @@ if(CMAKE_CROSSCOMPILING)
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
-    add_executable(${elf} ${FIRMWARE-SOURCES})
+    set(TARGET_FIRMWARE_SOURCES ${FIRMWARE-SOURCES})
+    if(firmware STREQUAL "factory-setup")
+      list(REMOVE_ITEM TARGET_FIRMWARE_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/hww.c
+        ${CMAKE_SOURCE_DIR}/src/sd.c
+        ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
+        ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
+        ${QTOUCH-SOURCES}
+      )
+    endif()
+    add_executable(${elf} ${TARGET_FIRMWARE_SOURCES})
     # Static libraries are LTO-capable for firmware size, but only firmware images do the LTO link.
     if(firmware STREQUAL "factory-setup")
       target_compile_options(${elf} PRIVATE -fno-lto)
@@ -427,7 +442,9 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    if(NOT firmware STREQUAL "factory-setup")
+      target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    endif()
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)
@@ -452,7 +469,7 @@ if(CMAKE_CROSSCOMPILING)
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")
-  target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-OLED-SOURCES})
 
   set(BB02_BLUPD_BIN_DIR ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/bin)
   set(BB02_BLUPD_STAGE0_BITBOX02_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02-btconly-production.v1.bin)

@@ -242,15 +242,20 @@ impl Ui for TestingUi<'_> {
 
     async fn enter_wordlist_word(
         &mut self,
-        params: &EnterStringParams<'_>,
-        can_cancel: CanCancel,
+        title: &str,
+        wordlist: &[u16],
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
+        let params = EnterStringParams {
+            title,
+            wordlist: Some(wordlist),
+            ..Default::default()
+        };
         match self._enter_wordlist_word.as_mut() {
-            Some(cb) => cb(params).map(zeroize::Zeroizing::new),
+            Some(cb) => cb(&params).map(zeroize::Zeroizing::new),
             // Mirror the trait default: a single abort control reports an unspecified abort.
             None => self
-                .enter_string(params, can_cancel, preset)
+                .enter_string(&params, CanCancel::Yes, preset)
                 .await
                 .map_err(|UserAbort| WordlistEntryAbort::Unspecified),
         }

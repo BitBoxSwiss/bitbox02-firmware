@@ -167,12 +167,22 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
 
     async fn enter_wordlist_word(
         &mut self,
-        params: &bitbox_hal::ui::EnterStringParams<'_>,
-        can_cancel: bitbox_hal::ui::CanCancel,
+        title: &str,
+        wordlist: &[u16],
         preset: &str,
     ) -> Result<zeroize::Zeroizing<alloc::string::String>, bitbox_hal::ui::WordlistEntryAbort> {
+        let params = bitbox_hal::ui::EnterStringParams {
+            title,
+            wordlist: Some(wordlist),
+            ..Default::default()
+        };
         self.with_result_screen(|responder| {
-            enter_string::build_wordlist_screen(params, can_cancel, preset, responder)
+            enter_string::build_wordlist_screen(
+                &params,
+                bitbox_hal::ui::CanCancel::Yes,
+                preset,
+                responder,
+            )
         })
         .await
     }

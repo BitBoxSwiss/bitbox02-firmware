@@ -15,8 +15,18 @@ impl LvFont {
         Self { raw }
     }
 
-    pub(crate) fn as_ptr(self) -> *const ffi::lv_font_t {
+    pub fn as_ptr(self) -> *const ffi::lv_font_t {
         self.raw as *const ffi::lv_font_t
+    }
+
+    /// The maximum line height required by the font, in pixels.
+    pub fn line_height(self) -> i32 {
+        self.raw.line_height
+    }
+
+    /// The baseline position, measured up from the bottom of the line box.
+    pub fn base_line(self) -> i32 {
+        self.raw.base_line
     }
 }
 
@@ -35,6 +45,8 @@ pub mod fonts {
     pub const INTER_REGULAR_24: LvFont = unsafe { LvFont::new(&ffi::inter_regular_24) };
     pub const INTER_REGULAR_32: LvFont = unsafe { LvFont::new(&ffi::inter_regular_32) };
     pub const INTER_REGULAR_48: LvFont = unsafe { LvFont::new(&ffi::inter_regular_48) };
+    pub const INTER_MEDIUM_20: LvFont = unsafe { LvFont::new(&ffi::inter_medium_20) };
+    pub const INTER_MEDIUM_32: LvFont = unsafe { LvFont::new(&ffi::inter_medium_32) };
     pub const INTER_BOLD_32: LvFont = unsafe { LvFont::new(&ffi::inter_bold_32) };
     pub const INTER_BOLD_48: LvFont = unsafe { LvFont::new(&ffi::inter_bold_48) };
 }

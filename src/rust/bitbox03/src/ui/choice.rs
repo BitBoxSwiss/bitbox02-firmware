@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use bitbox_hal::ui::TrinaryChoice;
@@ -8,6 +9,11 @@ use bitbox_lvgl::{
     ObjExt,
 };
 use util::futures::completion::Responder;
+
+use super::nav_button::{enable_press_invert, style_outline_button};
+
+/// Style selector for the pressed state.
+const PRESSED: u32 = lvgl::LvState::LV_STATE_PRESSED as u32;
 
 fn add_button(
     parent: &LvObj,
@@ -18,10 +24,8 @@ fn add_button(
 ) {
     let button = LvButton::new(parent).unwrap();
     button.set_size(width, 72);
-    button.set_style_bg_color(lvgl::color::white(), 0);
-    button.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, 0);
-    button.set_style_border_width(2, 0);
-    button.set_style_border_color(lvgl::color::black(), 0);
+    button.set_style_radius(19, 0); // navigation-button corner radius
+    style_outline_button(&button, 2);
     button
         .add_click_cb(move || responder.resolve(choice))
         .expect("failed to register choice callback");
@@ -32,11 +36,15 @@ fn add_button(
         lvgl::fonts::INTER_BOLD_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
-    button_label.set_style_text_color(lvgl::color::black(), 0);
+    button_label.set_style_text_color(lvgl::color::white(), 0);
+    button_label.set_style_text_color(lvgl::color::black(), PRESSED);
     button_label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
+
+    let label_part = button.child(0).expect("choice label");
+    enable_press_invert(&button, vec![label_part]);
 }
 
-pub(super) fn build_trinary_choice_screen(
+pub fn build_trinary_choice_screen(
     message: &str,
     label_left: Option<&str>,
     label_middle: Option<&str>,
@@ -66,6 +74,8 @@ pub(super) fn build_trinary_choice_screen(
     title.set_style_flex_grow(1, 0);
 
     let actions = LvObj::with_parent(&screen).unwrap();
+    actions.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    actions.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
     actions.set_width(380);
     actions.set_height(72);
     actions.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);

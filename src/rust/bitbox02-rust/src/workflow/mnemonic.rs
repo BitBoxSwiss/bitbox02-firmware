@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort};
+use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -228,7 +228,7 @@ async fn get_12th_18th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
-) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
     // With 12/18 words there are 128/32 candidates, so we limit the keyboard to allow entering only
     // these.
     loop {
@@ -264,10 +264,10 @@ async fn enter_word_from_wordlist(
     title: &str,
     wordlist: &[u16],
     preset: &str,
-) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
     loop {
         let word = hal_ui
-            .enter_string(
+            .enter_wordlist_word(
                 &crate::hal::ui::EnterStringParams {
                     title,
                     wordlist: Some(wordlist),
@@ -315,7 +315,8 @@ pub async fn get(
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry: Result<zeroize::Zeroizing<String>, UserAbort> = if word_idx == num_words - 1
+        let user_entry: Result<zeroize::Zeroizing<String>, WordlistEntryAbort> = if word_idx
+            == num_words - 1
         {
             // For the last word, we can restrict to a subset of bip39 words that fulfil the
             // checksum requirement. This special case exists so that users can generate a seed
@@ -326,7 +327,8 @@ pub async fn get(
                 match get_24th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await {
                     Ok(None) => return Err(UserAbort),
                     Ok(Some(r)) => Ok(r),
-                    Err(e) => Err(e),
+                    // The menu has a single abort control, so ask what the user meant.
+                    Err(UserAbort) => Err(WordlistEntryAbort::Unspecified),
                 }
             } else {
                 get_12th_18th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await
@@ -336,31 +338,35 @@ pub async fn get(
         };
 
         match user_entry {
-            Err(UserAbort) => {
-                // User clicked the cancel button. There are two choices:
+            Err(abort) => {
+                // User left the word entry without entering a word. There are two choices:
                 enum GetWordError {
                     Cancel,
                     EditPrevious,
                 }
 
-                let cancel_choice = if word_idx == 0 {
-                    // In the first word, there is no previous word, so we go straight to the cancel
-                    // action.
-                    GetWordError::Cancel
-                } else {
-                    // In all other words, we give the choice between editing the previous word and
-                    // cancelling.
-                    match hal_ui
-                        .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
-                        .await
-                    {
-                        Err(UserAbort) => {
-                            // Cancel cancelled.
-                            continue;
+                let cancel_choice = match abort {
+                    // A dedicated back control (BitBox03) goes straight back to the previous
+                    // word; in the first word there is no previous word, so it acts as cancel.
+                    WordlistEntryAbort::Back if word_idx > 0 => GetWordError::EditPrevious,
+                    WordlistEntryAbort::Back | WordlistEntryAbort::Cancel => GetWordError::Cancel,
+                    // A single abort control (BitBox02): ask whether the user meant to edit the
+                    // previous word or to cancel — except in the first word, where there is no
+                    // previous word and we go straight to the cancel action.
+                    WordlistEntryAbort::Unspecified if word_idx == 0 => GetWordError::Cancel,
+                    WordlistEntryAbort::Unspecified => {
+                        match hal_ui
+                            .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
+                            .await
+                        {
+                            Err(UserAbort) => {
+                                // Cancel cancelled.
+                                continue;
+                            }
+                            Ok(0) => GetWordError::EditPrevious,
+                            Ok(1) => GetWordError::Cancel,
+                            _ => panic!("only two choices"),
                         }
-                        Ok(0) => GetWordError::EditPrevious,
-                        Ok(1) => GetWordError::Cancel,
-                        _ => panic!("only two choices"),
                     }
                 };
 
@@ -369,7 +375,7 @@ pub async fn get(
                     GetWordError::Cancel => {
                         let params = ConfirmParams {
                             title: "Restore",
-                            body: "Do you really\nwant to cancel?",
+                            body: "Cancel restore?",
                             ..Default::default()
                         };
 
@@ -514,6 +520,290 @@ mod tests {
                     success: false,
                 } if title == "Invalid word\nTry again")
         ));
+    }
+
+    /// Scripts `enter_wordlist_word` with a fixed (expected title, response) sequence, as a UI
+    /// with dedicated back/cancel controls (BitBox03) produces it.
+    fn script_word_entries(
+        ui: &mut TestingUi<'_>,
+        script: Vec<(String, Result<String, WordlistEntryAbort>)>,
+    ) {
+        let mut script: VecDeque<(String, Result<String, WordlistEntryAbort>)> =
+            script.into_iter().collect();
+        ui.set_enter_wordlist_word(Box::new(move |params| {
+            let (expected_title, response) = script.pop_front().expect("unexpected word entry");
+            assert_eq!(params.title, expected_title);
+            assert!(params.wordlist.is_some());
+            response
+        }));
+    }
+
+    fn word(s: &str) -> Result<String, WordlistEntryAbort> {
+        Ok(String::from(s))
+    }
+
+    #[async_test::test]
+    async fn test_get_back_goes_straight_to_previous_word() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        // No menu is configured: if the workflow showed its "Choose" menu, the test would panic.
+
+        let first_eleven = [
+            "boring", "portion", "dish", "oyster", "truth", "pigeon", "viable", "emerge", "sort",
+            "crash", "wire",
+        ];
+        let last_word = crate::bip39::get_word(lastword_choices(&first_eleven)[0]).unwrap();
+        let mut script = vec![
+            (String::from("1 of 12"), word("boring")),
+            (String::from("2 of 12"), word("mistake")),
+            // A dedicated back control goes straight back to the previous word, which can then
+            // be replaced.
+            (String::from("3 of 12"), Err(WordlistEntryAbort::Back)),
+            (String::from("2 of 12"), word("portion")),
+        ];
+        for (i, w) in first_eleven.iter().enumerate().skip(2) {
+            script.push((format!("{} of 12", i + 1), word(w)));
+        }
+        script.push((String::from("12 of 12"), word(&last_word)));
+        script_word_entries(&mut ui, script);
+
+        let result = get(&mut ui).await;
+        let Ok(mnemonic) = result else {
+            panic!("unexpected user abort");
+        };
+        let mut expected: Vec<&str> = first_eleven.to_vec();
+        expected.push(&last_word);
+        assert_eq!(mnemonic.as_str(), expected.join(" "));
+        // Going back never asks for cancel confirmation.
+        assert!(!ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    #[async_test::test]
+    async fn test_get_cancel_asks_to_confirm() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+
+        // A dedicated cancel control goes straight to the "Cancel restore?" confirmation (the
+        // testing UI accepts confirms by default), without the "Choose" menu.
+        script_word_entries(
+            &mut ui,
+            vec![
+                (String::from("1 of 12"), word("boring")),
+                (String::from("2 of 12"), Err(WordlistEntryAbort::Cancel)),
+            ],
+        );
+
+        let result = get(&mut ui).await;
+        assert!(result.is_err(), "confirmed cancel must abort the restore");
+        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    #[async_test::test]
+    async fn test_get_cancel_rejected_continues() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        // Screens: 0 = "Enter 12 words" status, 1 = the "Cancel restore?" confirm — reject it.
+        ui.abort_nth(1);
+
+        let first_eleven = [
+            "boring", "mistake", "dish", "oyster", "truth", "pigeon", "viable", "emerge", "sort",
+            "crash", "wire",
+        ];
+        let last_word = crate::bip39::get_word(lastword_choices(&first_eleven)[0]).unwrap();
+        let mut script = vec![
+            (String::from("1 of 12"), word("boring")),
+            (String::from("2 of 12"), Err(WordlistEntryAbort::Cancel)),
+            // Rejecting the cancel confirmation returns to the same word.
+            (String::from("2 of 12"), word("mistake")),
+        ];
+        for (i, w) in first_eleven.iter().enumerate().skip(2) {
+            script.push((format!("{} of 12", i + 1), word(w)));
+        }
+        script.push((String::from("12 of 12"), word(&last_word)));
+        script_word_entries(&mut ui, script);
+
+        let result = get(&mut ui).await;
+        let Ok(mnemonic) = result else {
+            panic!("unexpected user abort");
+        };
+        let mut expected: Vec<&str> = first_eleven.to_vec();
+        expected.push(&last_word);
+        assert_eq!(mnemonic.as_str(), expected.join(" "));
+    }
+
+    #[async_test::test]
+    async fn test_get_back_on_first_word_asks_to_confirm_cancel() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+
+        // In the first word there is no previous word: back acts as a cancel request.
+        script_word_entries(
+            &mut ui,
+            vec![(String::from("1 of 12"), Err(WordlistEntryAbort::Back))],
+        );
+
+        let result = get(&mut ui).await;
+        assert!(result.is_err(), "confirmed cancel must abort the restore");
+        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    /// Scripts `enter_string` with a fixed (expected title, response) sequence, as a UI with a
+    /// single abort control (BitBox02) produces it — reaching the workflow through the
+    /// `enter_wordlist_word` fallback that maps the abort to `Unspecified`.
+    fn script_single_abort_word_entries(
+        ui: &mut TestingUi<'_>,
+        script: Vec<(String, Result<String, UserAbort>)>,
+    ) {
+        let mut script: VecDeque<(String, Result<String, UserAbort>)> =
+            script.into_iter().collect();
+        ui.set_enter_string(Box::new(move |params| {
+            let (expected_title, response) = script.pop_front().expect("unexpected word entry");
+            assert_eq!(params.title, expected_title);
+            assert!(params.wordlist.is_some());
+            response
+        }));
+    }
+
+    /// Scripts the "Choose" menu with fixed responses, asserting its exact contents.
+    fn script_choose_menu(ui: &mut TestingUi<'_>, responses: Vec<Result<u8, UserAbort>>) {
+        let mut responses: VecDeque<Result<u8, UserAbort>> = responses.into_iter().collect();
+        ui.set_menu(Box::new(move |menu_words, title| {
+            assert_eq!(menu_words, ["Edit previous word", "Cancel restore"]);
+            assert_eq!(title, Some("Choose"));
+            responses.pop_front().expect("unexpected menu")
+        }));
+    }
+
+    /// BitBox02 parity: a single-control abort at a word > 1 shows the "Choose" menu; "Edit
+    /// previous word" goes back one word, and cancelling the menu returns to the same word.
+    #[async_test::test]
+    async fn test_get_unspecified_abort_shows_choose_menu() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        script_choose_menu(
+            &mut ui,
+            vec![
+                Ok(0),          // first abort: edit the previous word
+                Err(UserAbort), // second abort: cancel the menu -> same word again
+            ],
+        );
+
+        let first_eleven = [
+            "portion", "mistake", "dish", "oyster", "truth", "pigeon", "viable", "emerge", "sort",
+            "crash", "wire",
+        ];
+        let last_word = crate::bip39::get_word(lastword_choices(&first_eleven)[0]).unwrap();
+        let mut script = vec![
+            (String::from("1 of 12"), Ok(String::from("boring"))),
+            (String::from("2 of 12"), Err(UserAbort)), // menu -> edit previous word
+            (String::from("1 of 12"), Ok(String::from("portion"))),
+            (String::from("2 of 12"), Err(UserAbort)), // menu -> cancelled -> same word
+            (String::from("2 of 12"), Ok(String::from("mistake"))),
+        ];
+        for (i, w) in first_eleven.iter().enumerate().skip(2) {
+            script.push((format!("{} of 12", i + 1), Ok(String::from(*w))));
+        }
+        script.push((String::from("12 of 12"), Ok(String::from(&*last_word))));
+        script_single_abort_word_entries(&mut ui, script);
+
+        let result = get(&mut ui).await;
+        let Ok(mnemonic) = result else {
+            panic!("unexpected user abort");
+        };
+        let mut expected: Vec<&str> = first_eleven.to_vec();
+        expected.push(&last_word);
+        assert_eq!(mnemonic.as_str(), expected.join(" "));
+        assert!(!ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    /// BitBox02 parity: picking "Cancel restore" in the "Choose" menu asks for confirmation and
+    /// aborts.
+    #[async_test::test]
+    async fn test_get_unspecified_abort_menu_cancel_confirms() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        script_choose_menu(&mut ui, vec![Ok(1)]);
+        script_single_abort_word_entries(
+            &mut ui,
+            vec![
+                (String::from("1 of 12"), Ok(String::from("boring"))),
+                (String::from("2 of 12"), Err(UserAbort)),
+            ],
+        );
+
+        let result = get(&mut ui).await;
+        assert!(result.is_err(), "confirmed cancel must abort the restore");
+        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    /// BitBox02 parity: a single-control abort in the first word skips the menu (there is no
+    /// previous word) and goes straight to the cancel confirmation.
+    #[async_test::test]
+    async fn test_get_unspecified_abort_first_word_goes_to_cancel() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        // No menu is configured: showing it would panic the test.
+        script_single_abort_word_entries(&mut ui, vec![(String::from("1 of 12"), Err(UserAbort))]);
+
+        let result = get(&mut ui).await;
+        assert!(result.is_err(), "confirmed cancel must abort the restore");
+        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    /// Back from the restricted last-word candidate screen goes straight to the previous word,
+    /// like from any other word.
+    #[async_test::test]
+    async fn test_get_back_at_last_word_goes_to_previous_word() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+        // No menu is configured: showing it would panic the test.
+
+        let first_eleven = [
+            "boring", "mistake", "dish", "oyster", "truth", "pigeon", "viable", "emerge", "sort",
+            "crash", "wire",
+        ];
+        let last_word = crate::bip39::get_word(lastword_choices(&first_eleven)[0]).unwrap();
+        let mut script: Vec<(String, Result<String, WordlistEntryAbort>)> = first_eleven
+            .iter()
+            .enumerate()
+            .map(|(i, w)| (format!("{} of 12", i + 1), word(w)))
+            .collect();
+        script.push((String::from("12 of 12"), Err(WordlistEntryAbort::Back)));
+        script.push((String::from("11 of 12"), word("wire")));
+        script.push((String::from("12 of 12"), word(&last_word)));
+        script_word_entries(&mut ui, script);
+
+        let result = get(&mut ui).await;
+        let Ok(mnemonic) = result else {
+            panic!("unexpected user abort");
+        };
+        let mut expected: Vec<&str> = first_eleven.to_vec();
+        expected.push(&last_word);
+        assert_eq!(mnemonic.as_str(), expected.join(" "));
+        assert!(!ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    /// Cancel from the restricted last-word candidate screen asks "Cancel restore?" directly.
+    #[async_test::test]
+    async fn test_get_cancel_at_last_word_confirms() {
+        let mut ui = TestingUi::new();
+        ui.set_trinary_choice(Box::new(|_, _, _, _| TrinaryChoice::Left)); // 12 words
+
+        let first_eleven = [
+            "boring", "mistake", "dish", "oyster", "truth", "pigeon", "viable", "emerge", "sort",
+            "crash", "wire",
+        ];
+        let mut script: Vec<(String, Result<String, WordlistEntryAbort>)> = first_eleven
+            .iter()
+            .enumerate()
+            .map(|(i, w)| (format!("{} of 12", i + 1), word(w)))
+            .collect();
+        script.push((String::from("12 of 12"), Err(WordlistEntryAbort::Cancel)));
+        script_word_entries(&mut ui, script);
+
+        let result = get(&mut ui).await;
+        assert!(result.is_err(), "confirmed cancel must abort the restore");
+        assert!(ui.contains_confirm("Restore", "Cancel restore?"));
     }
 
     #[test]

@@ -35,7 +35,9 @@ pub fn build_confirm_screen(
     screen.set_style_text_color(lvgl::color::white(), 0);
     screen.set_style_pad_top(40, 0);
     screen.set_style_pad_right(50, 0);
-    screen.set_style_pad_bottom(40, 0);
+    // Same bottom padding as the entry screens, so the navigation buttons sit at the same
+    // height across a workflow's screens.
+    screen.set_style_pad_bottom(32, 0);
     screen.set_style_pad_left(50, 0);
     screen.set_style_pad_row(24, 0);
 

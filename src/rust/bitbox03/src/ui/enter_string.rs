@@ -6,7 +6,7 @@ use bitbox_hal::ui::{CanCancel, EnterStringParams, UserAbort, WordlistEntryAbort
 use bitbox_lvgl::{
     self as lvgl, KeyboardExt, LabelExt, LvAlign, LvButton, LvButtonmatrixCtrl, LvKeyboard,
     LvKeyboardMapEntry, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, LvPart, LvTextarea,
-    ObjExt, TextareaExt, class,
+    LvZeroizingLabel, ObjExt, TextareaExt, class,
 };
 use util::futures::completion::Responder;
 
@@ -16,8 +16,7 @@ use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
 /// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string. Reads LVGL's
-/// buffer in place — `TextareaExt::get_text` would copy the content into an intermediate
-/// `CString` that is dropped without zeroizing. The single `push_str` into the empty string
+/// buffer in place to avoid an intermediate text snapshot. The single `push_str` into the empty string
 /// allocates exactly once, so no reallocation leaves an unzeroized copy behind either.
 fn snapshot_text(textarea: &LvTextarea) -> zeroize::Zeroizing<String> {
     let mut snapshot = zeroize::Zeroizing::new(String::new());
@@ -458,17 +457,6 @@ fn set_nav_button_enabled(button: &LvButton, icon: &LvObj, enabled: bool) {
     }
 }
 
-/// Runs `f` on the textarea's content, borrowed in place from LVGL's buffer — unlike
-/// [`snapshot_text`] this makes no copy of the (possibly secret) content.
-fn with_textarea_text<R>(textarea: &LvTextarea, f: impl FnOnce(&str) -> R) -> R {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if text.is_null() {
-        return f("");
-    }
-    let text = unsafe { core::ffi::CStr::from_ptr(text) };
-    f(text.to_str().expect("textarea content must be valid UTF-8"))
-}
-
 /// The BIP39 English word at `idx`, or `None` if out of range. The wordlist is public
 /// compiled-in data, so the returned `&'static str` needs no zeroizing.
 fn bip39_word(idx: u16) -> Option<&'static str> {
@@ -515,12 +503,12 @@ fn wordlist_matches(wordlist: &[u16], prefix: &str) -> WordlistMatch {
     }
 }
 
-/// Adds the visible word entry display: the standard entry field, centred (via a `flex_grow`
+/// Adds the visible word entry display: a zeroizing label, centred (via a `flex_grow`
 /// wrapper, like the passphrase screen's masked display) in the space the screen's flex flow
 /// leaves between the title and the bottom-anchored keyboard region.
 ///
-/// Returns the textarea (the display row's child 0) that the input widgets operate on.
-fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
+/// Returns the label (the display row's child 0) that the input widgets update.
+fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvZeroizingLabel> {
     let display = LvObj::with_parent(screen).unwrap();
     display.set_size(380, 72);
     display.set_style_flex_grow(1, 0);
@@ -540,28 +528,26 @@ fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
     display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
     display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
 
-    let textarea = add_textarea(&display, preset, false);
     // The field is display-only: a tap must not move the insertion cursor into the middle of
     // the word (letters always append; backspace always deletes the last one).
-    textarea.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+    // A fixed buffer covers every BIP39 word without reallocating or leaving LVGL text copies.
+    assert!(preset.len() <= 8 && preset.bytes().all(|byte| byte.is_ascii_lowercase()));
+    let label = LvZeroizingLabel::new(&display, 8).unwrap();
+    label.set_text(preset).unwrap();
+    label.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
     // No entry box on this screen: the letters sit directly on the background, centred, in the
-    // same bold 48px the mnemonic review screen shows the words in. The standard field's 72px
-    // box (16px paddings) cannot hold that line height, so the field sizes to its content.
-    textarea.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
-    textarea.set_style_border_width(0, 0);
-    textarea.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
-    textarea.set_style_text_font(
+    // same bold 48px the mnemonic review screen shows the words in. Size to the line's height.
+    label.set_width(380);
+    label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
+    label.set_style_text_font(
         lvgl::fonts::INTER_BOLD_48,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
-    textarea.set_style_pad_top(0, 0);
-    textarea.set_style_pad_bottom(0, 0);
-    textarea.set_height(lvgl::ffi::LV_SIZE_CONTENT as i32);
-    Rc::new(textarea)
+    Rc::new(label)
 }
 
-/// The BIP39 recovery-word entry screen: title ("x of y"), the word being typed in the standard
-/// entry field (recovery words are shown in plaintext — reading the word back is the point of
+/// The BIP39 recovery-word entry screen: title ("x of y"), the word being typed in a zeroizing
+/// label (recovery words are shown in plaintext — reading the word back is the point of
 /// the entry), the letters-only keyboard and a backspace/confirm navigation row.
 ///
 /// The keyboard only ever offers letters that extend the entry towards one of the
@@ -588,40 +574,38 @@ pub fn build_wordlist_screen(
 
     add_title(&screen, params.title);
 
-    let textarea = add_word_display(&screen, preset);
-    // Wordlist words are lowercase ASCII, at most 8 letters; refuse anything else at the widget
-    // level too (the key filtering already guarantees it for touch input).
-    textarea.set_accepted_chars(Some(c"abcdefghijklmnopqrstuvwxyz"));
-    textarea.set_max_length(8);
-
+    let word_display = add_word_display(&screen, preset);
     let wordlist: Rc<[u16]> = wordlist.into();
 
     // BitBox02 parity: a typed letter that leaves exactly one candidate autocompletes the whole
-    // word. This runs from the keyboard's insert path, not the textarea change callback: only
-    // insertions may autocomplete (completing after a deletion would trap backspace in an
-    // undo-redo loop right after it deletes an autocompleted letter), and the textarea callback
-    // cannot mutate the textarea anyway (that would re-enter it). The `set_text` here fires the
-    // change callback below, which then relays the completed state to the keys and buttons.
-    let autocomplete_textarea = Rc::clone(&textarea);
-    let autocomplete_wordlist = Rc::clone(&wordlist);
-    let autocomplete: Rc<dyn Fn()> = Rc::new(move || {
-        let unique = with_textarea_text(autocomplete_textarea.as_ref(), |prefix| {
-            wordlist_matches(&autocomplete_wordlist, prefix)
-                .unique
-                .filter(|word| word.len() > prefix.len())
-        });
-        if let Some(word) = unique {
-            autocomplete_textarea
-                .set_text(word)
-                .expect("wordlist words contain no NUL");
+    // word. Only insertions may autocomplete: completing after a deletion would trap backspace
+    // in an undo-redo loop right after it deletes an autocompleted letter. The label's change
+    // callback below relays the completed state to the keys and buttons without mutating it.
+    let insert_display = Rc::clone(&word_display);
+    let insert_wordlist = Rc::clone(&wordlist);
+    let insert = Rc::new(move |text: &str| {
+        let current = insert_display.get_text().unwrap();
+        // Wordlist words are lowercase ASCII, at most 8 letters; refuse anything else here too
+        // (the key filtering already guarantees it for touch input).
+        if current.to_bytes().len() + text.len() > 8
+            || !text.bytes().all(|byte| byte.is_ascii_lowercase())
+        {
+            return;
         }
+        let mut prefix = zeroize::Zeroizing::new(Vec::with_capacity(8));
+        prefix.extend_from_slice(current.to_bytes());
+        prefix.extend_from_slice(text.as_bytes());
+        let prefix = core::str::from_utf8(&prefix).unwrap();
+        let word = wordlist_matches(&insert_wordlist, prefix)
+            .unique
+            .unwrap_or(prefix);
+        insert_display.set_text(word).unwrap();
     });
 
     // Keyboard and navigation row are bottom-anchored like on the passphrase screen (see
     // `build_passphrase_screen`), with the keyboard sitting 50px higher over the navigation
     // row here.
-    let keyboard =
-        super::keyboard::build_wordlist_keyboard(&screen, Rc::clone(&textarea), autocomplete);
+    let keyboard = super::keyboard::build_wordlist_keyboard(&screen, insert);
     keyboard.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
     keyboard.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, -(82 + 20 + 50));
 
@@ -641,12 +625,14 @@ pub fn build_wordlist_screen(
     let allow_back_out = matches!(can_cancel, CanCancel::Yes);
     let backspace = build_nav_button(&actions, NavIcon::Back);
     let backspace_icon = style_nav_button_disabled(&backspace);
-    let delete_textarea = Rc::clone(&textarea);
+    let delete_display = Rc::clone(&word_display);
     let back_responder = responder.clone();
     backspace
         .add_click_cb(move || {
-            if !textarea_is_empty(delete_textarea.as_ref()) {
-                delete_textarea.delete_char();
+            let text = delete_display.get_text().unwrap();
+            let text = text.to_str().unwrap();
+            if !text.is_empty() {
+                delete_display.set_text(&text[..text.len() - 1]).unwrap();
             } else if allow_back_out {
                 back_responder.resolve(Err(WordlistEntryAbort::Back));
             }
@@ -669,31 +655,31 @@ pub fn build_wordlist_screen(
     let accept = build_nav_button(&actions, NavIcon::Confirm);
     let accept_icon = style_nav_button_disabled(&accept);
     {
-        let textarea = Rc::clone(&textarea);
+        let word_display = Rc::clone(&word_display);
         accept
             .add_click_cb(move || {
-                responder.resolve(Ok(snapshot_text(textarea.as_ref())));
+                let text = word_display.get_text().unwrap();
+                responder.resolve(Ok(zeroize::Zeroizing::new(String::from(
+                    text.to_str().unwrap(),
+                ))));
             })
             .expect("failed to register confirm callback");
     }
 
     // Relay the word-entry state — which letters may come next and whether the entry is a
     // complete word — from the wordlist to the keys and buttons on every content change.
-    let refresh_textarea = Rc::clone(&textarea);
-    let refresh = Rc::new(move || {
-        let (len, matches) = with_textarea_text(refresh_textarea.as_ref(), |prefix| {
-            (prefix.len(), wordlist_matches(&wordlist, prefix))
-        });
+    let refresh_display = Rc::clone(&word_display);
+    let refresh = move || {
+        let text = refresh_display.get_text().unwrap();
+        let prefix = text.to_str().unwrap();
+        let (len, matches) = (prefix.len(), wordlist_matches(&wordlist, prefix));
         super::keyboard::set_enabled_letters(&keyboard, matches.next_letters);
         set_nav_button_enabled(&backspace, &backspace_icon, len > 0 || allow_back_out);
         set_nav_button_enabled(&accept, &accept_icon, matches.complete);
-    });
+    };
     refresh();
-    let refresh_cb = Rc::clone(&refresh);
-    textarea
-        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
-            refresh_cb()
-        })
+    word_display
+        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, refresh)
         .expect("failed to register wordlist refresh callback");
 
     screen
@@ -1259,7 +1245,13 @@ mod tests {
         }
 
         fn text(&self) -> zeroize::Zeroizing<String> {
-            snapshot_text(&self.textarea())
+            let entry = self.entry_display().child(0).unwrap();
+            if entry.has_class::<class::LabelTag>() {
+                let label = entry.try_downcast::<class::LabelTag>().unwrap();
+                zeroize::Zeroizing::new(String::from(label.get_text().unwrap().to_str().unwrap()))
+            } else {
+                snapshot_text(&self.textarea())
+            }
         }
 
         fn keyboard(&self) -> LvObj {
@@ -2340,6 +2332,7 @@ mod tests {
             harness.touch.push(x, y, false);
             pump_for(120);
             assert!(Harness::hidden(&preview));
+            assert_eq!(label.get_text().unwrap().to_str().unwrap(), "");
         }
         assert_eq!(harness.text().as_str(), "sc");
     }

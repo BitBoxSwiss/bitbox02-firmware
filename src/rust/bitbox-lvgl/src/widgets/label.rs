@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::borrow::ToOwned;
-use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
-use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, ObjExt, class, ffi};
+use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, LvText, ObjExt, class, ffi};
 use util::strings::optional_cstr_from_ptr;
 
 pub type LvLabelTextError = super::LvTextError;
@@ -13,7 +11,7 @@ pub type LvLabel = LvHandle<class::LabelTag>;
 
 pub trait LabelExt: ObjExt {
     fn set_text(&self, txt: &str) -> Result<(), LvLabelTextError> {
-        let txt = CString::new(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
+        let txt = LvText::new(txt)?;
         unsafe { ffi::lv_label_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -43,11 +41,10 @@ pub trait LabelExt: ObjExt {
         unsafe { ffi::lv_label_set_recolor(self.as_ptr(), enable) }
     }
 
-    fn get_text(&self) -> Option<CString> {
+    fn get_text(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the current text instead of borrowing LVGL-owned storage.
-            optional_cstr_from_ptr(ffi::lv_label_get_text(self.as_ptr()))
-                .map(|text| text.to_owned())
+            optional_cstr_from_ptr(ffi::lv_label_get_text(self.as_ptr())).map(LvText::from_cstr)
         }
     }
 
@@ -84,7 +81,7 @@ pub trait LabelExt: ObjExt {
     }
 
     fn ins_text(&self, pos: u32, txt: &str) -> Result<(), LvLabelTextError> {
-        let txt = CString::new(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
+        let txt = LvText::new(txt)?;
         unsafe { ffi::lv_label_ins_text(self.as_ptr(), pos, txt.as_ptr()) }
         Ok(())
     }
@@ -105,3 +102,29 @@ impl LvHandle<class::LabelTag> {
 }
 
 impl LabelExt for LvHandle<class::LabelTag> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_set_text_snapshot_survives_replacement() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(64, 64).unwrap();
+        let screen = display.screen_active().unwrap();
+        let label = LvLabel::new(&screen).unwrap();
+        label.set_text("recovery words").unwrap();
+        let snapshot = label.get_text().unwrap();
+        assert_eq!(
+            label.set_text("invalid\0text"),
+            Err(LvLabelTextError::ContainsNul)
+        );
+        assert_eq!(
+            label.get_text().unwrap().to_str().unwrap(),
+            "recovery words"
+        );
+        label.set_text("replacement").unwrap();
+        unsafe { label.delete() };
+        assert_eq!(snapshot.to_str().unwrap(), "recovery words");
+    }
+}

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::borrow::ToOwned;
-use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
 use super::label::LvLabel;
-use crate::{LvHandle, LvObj, LvTextAlign, ObjExt, class, ffi};
+use crate::{LvHandle, LvObj, LvText, LvTextAlign, ObjExt, class, ffi};
 use util::strings::optional_cstr_from_ptr;
 
 pub type LvTextareaTextError = super::LvTextError;
@@ -18,7 +16,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn add_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = LvText::new(txt)?;
         unsafe { ffi::lv_textarea_add_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -32,13 +30,13 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn set_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = LvText::new(txt)?;
         unsafe { ffi::lv_textarea_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
 
     fn set_placeholder_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = LvText::new(txt)?;
         unsafe { ffi::lv_textarea_set_placeholder_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -56,7 +54,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn set_password_bullet(&self, bullet: &str) -> Result<(), LvTextareaTextError> {
-        let bullet = CString::new(bullet).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let bullet = LvText::new(bullet)?;
         unsafe { ffi::lv_textarea_set_password_bullet(self.as_ptr(), bullet.as_ptr()) }
         Ok(())
     }
@@ -99,19 +97,18 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_set_align(self.as_ptr(), align) }
     }
 
-    fn get_text(&self) -> Option<CString> {
+    fn get_text(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the current text instead of borrowing LVGL-owned storage.
-            optional_cstr_from_ptr(ffi::lv_textarea_get_text(self.as_ptr()))
-                .map(|text| text.to_owned())
+            optional_cstr_from_ptr(ffi::lv_textarea_get_text(self.as_ptr())).map(LvText::from_cstr)
         }
     }
 
-    fn get_placeholder_text(&self) -> Option<CString> {
+    fn get_placeholder_text(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the current placeholder instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_placeholder_text(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(LvText::from_cstr)
         }
     }
 
@@ -131,11 +128,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_password_mode(self.as_ptr()) }
     }
 
-    fn get_password_bullet(&self) -> Option<CString> {
+    fn get_password_bullet(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the current bullet instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_password_bullet(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(LvText::from_cstr)
         }
     }
 
@@ -143,11 +140,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_one_line(self.as_ptr()) }
     }
 
-    fn get_accepted_chars(&self) -> Option<CString> {
+    fn get_accepted_chars(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the accepted-char list instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_accepted_chars(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(LvText::from_cstr)
         }
     }
 

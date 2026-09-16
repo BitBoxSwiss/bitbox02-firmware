@@ -293,6 +293,7 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
     "test/hardware-fakes/src/fake_screen.c",
     "test/hardware-fakes/src/fake_smarteeprom.c",
     "test/hardware-fakes/src/fake_spi_mem.c",
+    "test/hardware-fakes/src/fake_uart.c",
 ];
 
 type BuildResult<T> = Result<T, String>;

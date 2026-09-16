@@ -74,9 +74,14 @@ int32_t uart_0_read(uint8_t* buf, uint16_t buf_len)
     return 0;
 }
 
+bool uart_0_write_done(void)
+{
+    return (_usart_0_readyness & EVENT_WRITE) != 0;
+}
+
 bool uart_0_write(const uint8_t* buf, uint16_t buf_len)
 {
-    if (!(_usart_0_readyness & EVENT_WRITE)) {
+    if (!uart_0_write_done()) {
         return false;
     }
     int32_t wrote = _write(buf, buf_len);
@@ -91,7 +96,7 @@ bool uart_0_write_from_queue(struct RustByteQueue* queue)
     // the buffer).
     static uint8_t _out_buf[1024];
 
-    if (!(_usart_0_readyness & EVENT_WRITE)) {
+    if (!uart_0_write_done()) {
         return false;
     }
     uint32_t len = MIN(rust_bytequeue_num(queue), sizeof(_out_buf));

@@ -63,7 +63,6 @@ fn to_bitbox02_trinary_input_string_params<'a>(
         hide: params.hide,
         special_chars: params.special_chars,
         longtouch: params.longtouch,
-        cancel_is_backbutton: params.cancel_is_backbutton,
         default_to_digits: params.default_to_digits,
     }
 }
@@ -359,7 +358,6 @@ mod tests {
             hide: true,
             special_chars: true,
             longtouch: true,
-            cancel_is_backbutton: true,
             default_to_digits: true,
             // BitBox03-only rendering hints; the BitBox02 conversion drops them.
             passphrase: true,
@@ -373,7 +371,6 @@ mod tests {
         assert!(output_without_wordlist.hide);
         assert!(output_without_wordlist.special_chars);
         assert!(output_without_wordlist.longtouch);
-        assert!(output_without_wordlist.cancel_is_backbutton);
         assert!(output_without_wordlist.default_to_digits);
 
         let wordlist = [1u16, 2, 3];
@@ -384,7 +381,6 @@ mod tests {
             hide: false,
             special_chars: false,
             longtouch: false,
-            cancel_is_backbutton: false,
             default_to_digits: false,
             passphrase: false,
             pin: false,
@@ -396,7 +392,6 @@ mod tests {
         assert!(!output_with_wordlist.hide);
         assert!(!output_with_wordlist.special_chars);
         assert!(!output_with_wordlist.longtouch);
-        assert!(!output_with_wordlist.cancel_is_backbutton);
         assert!(!output_with_wordlist.default_to_digits);
     }
 

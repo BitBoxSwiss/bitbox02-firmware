@@ -50,7 +50,6 @@ pub struct EnterStringParams<'a> {
     pub hide: bool,
     pub special_chars: bool,
     pub longtouch: bool,
-    pub cancel_is_backbutton: bool,
     pub default_to_digits: bool,
     /// The string being entered is a BIP39 passphrase. On the BitBox03 this renders a full
     /// QWERTY keyboard screen with a tap-to-confirm checkmark; the BitBox02 ignores it.

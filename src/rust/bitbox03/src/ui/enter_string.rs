@@ -799,14 +799,9 @@ pub fn build_enter_string_screen(
     actions.set_style_margin_top(8, 0);
 
     if cancel_present {
-        // Cancel / Back is always a tap action -> icon button.
-        let icon = if params.cancel_is_backbutton {
-            NavIcon::Back
-        } else {
-            NavIcon::Cancel
-        };
+        // Cancel is always a tap action -> icon button.
         let reject_responder = responder.clone();
-        let cancel = build_nav_button(&actions, icon);
+        let cancel = build_nav_button(&actions, NavIcon::Cancel);
         cancel
             .add_click_cb(move || {
                 reject_responder.resolve(Err(UserAbort));

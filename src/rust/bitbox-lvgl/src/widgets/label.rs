@@ -3,7 +3,7 @@
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
-use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, LvText, ObjExt, class, ffi};
+use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, ObjExt, ZeroizingText, class, ffi};
 use util::strings::optional_cstr_from_ptr;
 
 pub type LvLabelTextError = super::LvTextError;
@@ -11,7 +11,7 @@ pub type LvLabel = LvHandle<class::LabelTag>;
 
 pub trait LabelExt: ObjExt {
     fn set_text(&self, txt: &str) -> Result<(), LvLabelTextError> {
-        let txt = LvText::new(txt)?;
+        let txt = ZeroizingText::new(txt)?;
         unsafe { ffi::lv_label_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -41,10 +41,11 @@ pub trait LabelExt: ObjExt {
         unsafe { ffi::lv_label_set_recolor(self.as_ptr(), enable) }
     }
 
-    fn get_text(&self) -> Option<LvText> {
+    fn get_text(&self) -> Option<ZeroizingText> {
         unsafe {
             // Snapshot the current text instead of borrowing LVGL-owned storage.
-            optional_cstr_from_ptr(ffi::lv_label_get_text(self.as_ptr())).map(LvText::from_cstr)
+            optional_cstr_from_ptr(ffi::lv_label_get_text(self.as_ptr()))
+                .map(ZeroizingText::from_cstr)
         }
     }
 
@@ -81,7 +82,7 @@ pub trait LabelExt: ObjExt {
     }
 
     fn ins_text(&self, pos: u32, txt: &str) -> Result<(), LvLabelTextError> {
-        let txt = LvText::new(txt)?;
+        let txt = ZeroizingText::new(txt)?;
         unsafe { ffi::lv_label_ins_text(self.as_ptr(), pos, txt.as_ptr()) }
         Ok(())
     }

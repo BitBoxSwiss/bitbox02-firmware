@@ -61,7 +61,7 @@ pub mod log;
 pub mod style;
 pub mod system;
 mod text;
-pub use text::LvText;
+pub use text::ZeroizingText;
 #[cfg(test)]
 mod test_util;
 pub mod tick;

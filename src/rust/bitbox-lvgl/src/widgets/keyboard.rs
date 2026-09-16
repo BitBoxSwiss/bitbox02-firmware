@@ -5,7 +5,7 @@ use core::ptr::NonNull;
 
 use super::buttonmatrix::{ButtonmatrixExt, LvButtonmatrix, LvButtonmatrixMapEntry, validate_map};
 use super::textarea::LvTextarea;
-use crate::{LvButtonmatrixCtrl, LvHandle, LvKeyboardMode, LvObj, LvText, class, ffi};
+use crate::{LvButtonmatrixCtrl, LvHandle, LvKeyboardMode, LvObj, ZeroizingText, class, ffi};
 use util::strings::{cstr_array_from_ptr, optional_cstr_from_ptr};
 
 pub type LvKeyboard = LvHandle<class::KeyboardTag>;
@@ -65,11 +65,11 @@ pub trait KeyboardExt: ButtonmatrixExt {
         unsafe { ffi::lv_keyboard_get_popovers(self.as_ptr()) }
     }
 
-    fn get_map_array(&self) -> Vec<LvText> {
+    fn get_map_array(&self) -> Vec<ZeroizingText> {
         unsafe {
             cstr_array_from_ptr(ffi::lv_keyboard_get_map_array(self.as_ptr()))
                 .into_iter()
-                .map(LvText::from_cstr)
+                .map(ZeroizingText::from_cstr)
                 .collect()
         }
     }
@@ -84,10 +84,10 @@ impl LvHandle<class::KeyboardTag> {
         unsafe { ffi::lv_keyboard_get_selected_button(self.as_ptr()) }
     }
 
-    pub fn get_button_text(&self, button_id: u32) -> Option<LvText> {
+    pub fn get_button_text(&self, button_id: u32) -> Option<ZeroizingText> {
         unsafe {
             optional_cstr_from_ptr(ffi::lv_keyboard_get_button_text(self.as_ptr(), button_id))
-                .map(LvText::from_cstr)
+                .map(ZeroizingText::from_cstr)
         }
     }
 

@@ -15,45 +15,22 @@ use super::keypad::build_keypad;
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
-/// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string. Reads LVGL's
-/// buffer in place to avoid an intermediate text snapshot. The single `push_str` into the empty string
-/// allocates exactly once, so no reallocation leaves an unzeroized copy behind either.
+/// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string.
+/// Both the intermediate snapshot and the returned string are wiped on drop. Constructing
+/// the string in one allocation avoids leaving copies behind during reallocation.
 fn snapshot_text(textarea: &LvTextarea) -> zeroize::Zeroizing<String> {
-    let mut snapshot = zeroize::Zeroizing::new(String::new());
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if !text.is_null() {
-        let text = unsafe { core::ffi::CStr::from_ptr(text) };
-        snapshot.push_str(text.to_str().expect("textarea content must be valid UTF-8"));
-    }
-    snapshot
+    textarea.with_text(|text| zeroize::Zeroizing::new(String::from(text)))
 }
 
-/// Whether the textarea is empty, read in place from LVGL's buffer — unlike [`snapshot_text`]
-/// this does not copy the (possibly secret) content to the heap.
+/// Whether the textarea is empty. The wrapper wipes its temporary text snapshot on drop.
 pub(super) fn textarea_is_empty(textarea: &LvTextarea) -> bool {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    text.is_null() || unsafe { *text == 0 }
+    textarea.with_text(str::is_empty)
 }
 
-/// The textarea's length in bytes and its last byte, read in place from LVGL's buffer without
-/// copying the (possibly secret) content to the heap. The passphrase keyboard only enters ASCII,
-/// so bytes are characters.
+/// The textarea's length in bytes and its last byte. The passphrase keyboard only enters ASCII,
+/// so bytes are characters. The wrapper wipes its temporary text snapshot on drop.
 fn textarea_len_and_last(textarea: &LvTextarea) -> (usize, Option<u8>) {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if text.is_null() {
-        return (0, None);
-    }
-    let mut len = 0usize;
-    let mut last = 0u8;
-    loop {
-        let byte = unsafe { *text.add(len) } as u8;
-        if byte == 0 {
-            break;
-        }
-        last = byte;
-        len += 1;
-    }
-    (len, (len > 0).then_some(last))
+    textarea.with_text(|text| (text.len(), text.as_bytes().last().copied()))
 }
 
 /// Diameter of a circle masking one entered passphrase character.

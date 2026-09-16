@@ -4,7 +4,9 @@ use alloc::{rc::Rc, vec, vec::Vec};
 use core::cell::RefCell;
 use zeroize::{Zeroize, Zeroizing};
 
-use crate::{LabelExt, LvEventCode, LvHandle, LvLabel, LvText, LvTextError, ObjExt, class, ffi};
+use crate::{
+    LabelExt, LvEventCode, LvHandle, LvLabel, LvTextError, ObjExt, ZeroizingText, class, ffi,
+};
 
 /// A label with a fixed-capacity Rust text buffer, wiped on replacement and deletion.
 ///
@@ -64,7 +66,7 @@ impl LvZeroizingLabel {
         Ok(())
     }
 
-    pub fn get_text(&self) -> Option<LvText> {
+    pub fn get_text(&self) -> Option<ZeroizingText> {
         self.label.get_text()
     }
 }

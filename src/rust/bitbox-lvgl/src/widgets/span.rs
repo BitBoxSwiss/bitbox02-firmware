@@ -8,7 +8,7 @@ use ::util::strings::optional_cstr_from_ptr;
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvFont,
     LvGradDir, LvGridAlign, LvGridTemplate, LvHandle, LvObj, LvOpa, LvPoint, LvSpanCoords,
-    LvSpanMode, LvSpanOverflow, LvText, LvTextAlign, LvTextDecor, ObjExt, class, ffi,
+    LvSpanMode, LvSpanOverflow, LvTextAlign, LvTextDecor, ObjExt, ZeroizingText, class, ffi,
 };
 
 pub type LvSpanTextError = super::LvTextError;
@@ -84,7 +84,7 @@ impl LvSpan {
     }
 
     pub fn set_text(&self, text: &str) -> Result<(), LvSpanTextError> {
-        let text = LvText::new(text)?;
+        let text = ZeroizingText::new(text)?;
         unsafe { ffi::lv_span_set_text(self.as_ptr(), text.as_ptr()) }
         Ok(())
     }
@@ -111,9 +111,10 @@ impl LvSpan {
         self.get_style().as_ptr()
     }
 
-    pub fn get_text(&self) -> Option<LvText> {
+    pub fn get_text(&self) -> Option<ZeroizingText> {
         unsafe {
-            optional_cstr_from_ptr(ffi::lv_span_get_text(self.as_ptr())).map(LvText::from_cstr)
+            optional_cstr_from_ptr(ffi::lv_span_get_text(self.as_ptr()))
+                .map(ZeroizingText::from_cstr)
         }
     }
 
@@ -290,7 +291,7 @@ pub trait SpangroupExt: ObjExt {
     }
 
     fn set_span_text(&self, span: &LvSpan, text: &str) -> Result<(), LvSpanTextError> {
-        let text = LvText::new(text)?;
+        let text = ZeroizingText::new(text)?;
         unsafe { ffi::lv_spangroup_set_span_text(self.as_ptr(), span.as_ptr(), text.as_ptr()) }
         Ok(())
     }

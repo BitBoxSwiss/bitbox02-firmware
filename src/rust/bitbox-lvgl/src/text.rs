@@ -12,9 +12,9 @@ use crate::LvTextError;
 /// Temporary strings and snapshots crossing the LVGL boundary use this type so their
 /// Rust-owned storage is wiped automatically. Native widget text copies need separate
 /// protection; use [`crate::LvZeroizingLabel`] for labels with zeroizing backing storage.
-pub struct LvText(Zeroizing<Vec<u8>>);
+pub struct ZeroizingText(Zeroizing<Vec<u8>>);
 
-impl LvText {
+impl ZeroizingText {
     pub(crate) fn new(text: &str) -> Result<Self, LvTextError> {
         // Validate before copying, including on the error path.
         if text.as_bytes().contains(&0) {
@@ -31,7 +31,7 @@ impl LvText {
     }
 }
 
-impl Deref for LvText {
+impl Deref for ZeroizingText {
     type Target = CStr;
 
     fn deref(&self) -> &CStr {
@@ -40,7 +40,7 @@ impl Deref for LvText {
     }
 }
 
-impl AsRef<CStr> for LvText {
+impl AsRef<CStr> for ZeroizingText {
     fn as_ref(&self) -> &CStr {
         self
     }
@@ -53,12 +53,12 @@ mod tests {
     #[test]
     fn test_new() {
         for value in ["", "recovery words", "öäü"] {
-            let text = LvText::new(value).unwrap();
+            let text = ZeroizingText::new(value).unwrap();
             assert_eq!(text.to_str().unwrap(), value);
             assert_eq!(text.to_bytes_with_nul().len(), value.len() + 1);
         }
         assert!(matches!(
-            LvText::new("secret\0suffix"),
+            ZeroizingText::new("secret\0suffix"),
             Err(LvTextError::ContainsNul)
         ));
     }

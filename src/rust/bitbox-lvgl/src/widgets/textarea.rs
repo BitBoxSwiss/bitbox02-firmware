@@ -104,6 +104,17 @@ pub trait TextareaExt: ObjExt {
         }
     }
 
+    /// Reads UTF-8 text through a zeroizing snapshot, treating a missing buffer as empty.
+    ///
+    /// The callback can update the textarea: it never borrows LVGL-owned storage that an
+    /// update could invalidate. Panics if the textarea contains invalid UTF-8.
+    fn with_text<R>(&self, f: impl FnOnce(&str) -> R) -> R {
+        let text = self.get_text();
+        f(text.as_ref().map_or("", |text| {
+            text.to_str().expect("textarea content must be valid UTF-8")
+        }))
+    }
+
     fn get_placeholder_text(&self) -> Option<LvText> {
         unsafe {
             // Snapshot the current placeholder instead of borrowing LVGL-owned storage.
@@ -200,3 +211,26 @@ impl LvHandle<class::TextareaTag> {
 }
 
 impl TextareaExt for LvHandle<class::TextareaTag> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_with_text_allows_replacement() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(64, 64).unwrap();
+        let screen = display.screen_active().unwrap();
+        let textarea = LvTextarea::new(&screen).unwrap();
+        assert!(textarea.with_text(str::is_empty));
+        textarea.set_text("öäü").unwrap();
+        let len = textarea.with_text(|text| {
+            textarea.set_text("replacement").unwrap();
+            assert_eq!(text, "öäü");
+            text.len()
+        });
+        assert_eq!(len, 6);
+        textarea.with_text(|text| assert_eq!(text, "replacement"));
+        unsafe { textarea.delete() };
+    }
+}

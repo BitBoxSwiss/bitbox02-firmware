@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
+use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -266,17 +266,7 @@ async fn enter_word_from_wordlist(
     preset: &str,
 ) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
     loop {
-        let word = hal_ui
-            .enter_wordlist_word(
-                &crate::hal::ui::EnterStringParams {
-                    title,
-                    wordlist: Some(wordlist),
-                    ..Default::default()
-                },
-                CanCancel::Yes,
-                preset,
-            )
-            .await?;
+        let word = hal_ui.enter_wordlist_word(title, wordlist, preset).await?;
 
         if wordlist_contains(wordlist, &word) {
             return Ok(word);

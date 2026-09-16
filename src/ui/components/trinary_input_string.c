@@ -92,10 +92,6 @@ typedef struct {
     // typing.
     bool title_on_top;
 
-    // If false, the cancel button is a cross. If true, the cancel button is rendered as a back
-    // button.
-    bool cancel_is_backbutton;
-
     component_t* title_component;
     component_t* trinary_char_component;
     component_t* confirm_component;
@@ -224,7 +220,7 @@ static void _render(component_t* component)
         data->cancel_component->disabled = true;
     }
     if (!confirm_gesture_active) {
-        if (data->cancel_is_backbutton || data->string_index != 0 ||
+        if (data->string_index != 0 ||
             trinary_input_char_in_progress(data->trinary_char_component)) {
             data->left_arrow_component->disabled = false;
             data->left_arrow_component->f->render(data->left_arrow_component);
@@ -459,7 +455,6 @@ component_t* trinary_input_string_create(
     data->number_input = params->number_input;
     data->hide = params->hide;
     data->longtouch = params->longtouch;
-    data->cancel_is_backbutton = params->cancel_is_backbutton;
 
     data->target_x = STRING_POS_X_START;
     data->start_x = data->target_x;

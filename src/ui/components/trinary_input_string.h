@@ -25,8 +25,6 @@ typedef struct {
     bool special_chars;
     // Confirm via longtouch. If false, confirmation happens with a short tap.
     bool longtouch;
-    // whether the cancel button should be rendered as a back button instead of as a cross.
-    bool cancel_is_backbutton;
     // start with the digits keyboard instead of the lowercase keyboard.
     bool default_to_digits;
 } trinary_input_string_params_t;

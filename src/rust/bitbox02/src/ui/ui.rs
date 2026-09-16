@@ -184,7 +184,6 @@ pub async fn trinary_input_string(
         hide: params.hide,
         special_chars: params.special_chars,
         longtouch: params.longtouch,
-        cancel_is_backbutton: params.cancel_is_backbutton,
         default_to_digits: params.default_to_digits,
     };
     let component = unsafe {

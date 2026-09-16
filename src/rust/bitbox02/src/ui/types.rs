@@ -70,7 +70,6 @@ pub struct TrinaryInputStringParams<'a> {
     pub hide: bool,
     pub special_chars: bool,
     pub longtouch: bool,
-    pub cancel_is_backbutton: bool,
     pub default_to_digits: bool,
 }
 

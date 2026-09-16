@@ -57,13 +57,11 @@
 #include <driver_init.h>
 #include <hardfault.h>
 #include <memory/memory_shared.h>
-#include <screen.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <ui/oled/sh1107.h>
 #include <ui/oled/ssd1312.h>
-#include <ui/ugui/ugui.h>
 
 static bool _frame_buffer_updated = false;
 static uint8_t _frame_buffer[128 * 8];

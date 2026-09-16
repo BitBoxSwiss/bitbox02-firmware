@@ -69,20 +69,6 @@ intptr_t util_utf8_strlcpy(char* dst, const char* src, const size_t dst_len)
     return util_utf8_copy(dst, dst_len, src, strlen(src));
 }
 
-bool util_is_printable_ascii(const char* str, const bool allow_newline)
-{
-    if (str == NULL) {
-        return false;
-    }
-    for (; *str != '\0'; str++) {
-        const unsigned char chr = (unsigned char)*str;
-        if ((chr < 32 || chr > 126) && !(allow_newline && chr == '\n')) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
     memset(out, 0, in_len * 2 + 1);

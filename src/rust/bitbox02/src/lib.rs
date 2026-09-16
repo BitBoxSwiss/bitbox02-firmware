@@ -71,11 +71,11 @@ pub fn ug_send_buffer() {
 }
 
 pub fn ug_font_select_9x9() {
-    unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_9X9) }
+    unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_arial_9) }
 }
 
 pub fn ug_font_select_11x10() {
-    unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_11X10) }
+    unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_arial_11) }
 }
 
 pub fn screen_rotate() {

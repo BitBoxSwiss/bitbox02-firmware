@@ -66,7 +66,7 @@ else()
      util
      ""
      ugui
-     ""
+     "-Wl,--wrap=Abort"
   )
 
   list(LENGTH TEST_LIST TEST_LIST_LEN)

@@ -13,10 +13,10 @@ const ALLOWLIST_VARS: &[&str] = &[
     "da14531_handler_current_product_len",
     "BITBOX02_FLASH_BOOT_LEN",
     "BITBOX02_FLASH_BOOT_START",
-    "font_font_a_11X10",
-    "font_font_a_9X9",
-    "font_monogram_5X9",
-    "font_password_11X12",
+    "font_arial_11",
+    "font_arial_9",
+    "font_monogram_16",
+    "font_password_12",
     "INPUT_STRING_MAX_SIZE",
     "MAX_LABEL_SIZE",
     "MAX_PK_SCRIPT_SIZE",
@@ -54,6 +54,8 @@ const ALLOWLIST_TYPES: &[&str] = &[
 
 const OPAQUE_TYPES: &[&str] = &[
     "da14531_protocol_frame",
+    "_lv_font_t",
+    "lv_font_t",
     "RustByteQueue",
     "RustUsbReportQueue",
 ];
@@ -179,6 +181,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "uart_poll",
     "UG_ClearBuffer",
     "UG_FontSelect",
+    "UG_GetCharWidth",
     "UG_PutString",
     "UG_SendBuffer",
     "ui_screen_stack_pop_all",
@@ -260,15 +263,13 @@ const BITBOX02_SOURCES: &[&str] = &[
     "src/ui/components/ui_images.c",
     "src/ui/components/waiting.c",
     "src/ui/event_handler.c",
-    "src/ui/fonts/font_a_11X10.c",
-    "src/ui/fonts/font_a_11X12.c",
-    "src/ui/fonts/font_a_13X14.c",
-    "src/ui/fonts/font_a_15X16.c",
-    "src/ui/fonts/font_a_17X18.c",
-    "src/ui/fonts/font_a_9X9.c",
-    "src/ui/fonts/monogram_5X9.c",
-    "src/ui/fonts/password_11X12.c",
-    "src/ui/fonts/password_9X9.c",
+    "src/ui/fonts/arial_11.c",
+    "src/ui/fonts/arial_12.c",
+    "src/ui/fonts/arial_9.c",
+    "src/ui/fonts/lvgl_font_compat.c",
+    "src/ui/fonts/monogram_16.c",
+    "src/ui/fonts/password_12.c",
+    "src/ui/fonts/password_9.c",
     "src/ui/graphics/graphics.c",
     "src/ui/oled/sh1107.c",
     "src/ui/oled/ssd1312.c",
@@ -326,6 +327,44 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../../../src/bootloader/stage0/stage0_version.h.tmpl");
     emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
     emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
+    emit_rerun_if_changed("../bitbox-lvgl-sys/lv_conf.h");
+
+    // Watch C headers and their subdirectories without watching src/rust and its build outputs.
+    for path in [
+        "../../../src/atecc",
+        "../../../src/bootloader",
+        "../../../src/bootloader_upgrade",
+        "../../../src/common_main.h",
+        "../../../src/compiler_util.h",
+        "../../../src/da14531",
+        "../../../src/delay.h",
+        "../../../src/flags.h",
+        "../../../src/hardfault.h",
+        "../../../src/hww.h",
+        "../../../src/i2c_ecc.h",
+        "../../../src/memory",
+        "../../../src/optiga",
+        "../../../src/pac_ext.h",
+        "../../../src/platform",
+        "../../../src/pukcc",
+        "../../../src/qtouch",
+        "../../../src/random.h",
+        "../../../src/reset.h",
+        "../../../src/screen.h",
+        "../../../src/sd.h",
+        "../../../src/sd_mmc",
+        "../../../src/securechip",
+        "../../../src/system.h",
+        "../../../src/touch",
+        "../../../src/u2f",
+        "../../../src/u2f.h",
+        "../../../src/uart.h",
+        "../../../src/ui",
+        "../../../src/usb",
+        "../../../src/util.h",
+    ] {
+        emit_rerun_if_changed(path);
+    }
 
     // Generating version headers depends on the current state of the git repo.
     emit_git_rerun_if_changed(&repo_root);
@@ -336,11 +375,22 @@ pub fn main() -> BuildResult<()> {
     emit_bindgen_env_rerun_if_changed(&target);
     let cross_compiling = target.starts_with("thumb");
 
-    let target_definitions = if cross_compiling {
-        vec!["-D__SAMD51J20A__"]
+    let lv_conf = manifest_dir.join("../bitbox-lvgl-sys/lv_conf.h");
+    let mut target_definitions = if cross_compiling {
+        vec!["-D__SAMD51J20A__".to_owned()]
     } else {
-        vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
+        vec![
+            "-DTESTING".to_owned(),
+            "-D_UNIT_TEST_".to_owned(),
+            "-DPRODUCT_BITBOX_MULTI=1".to_owned(),
+        ]
     };
+    target_definitions.extend([
+        "-DLV_KCONFIG_IGNORE".to_owned(),
+        "-DLV_LVGL_H_INCLUDE_SIMPLE".to_owned(),
+        format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
+        "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
+    ]);
 
     // If user enables -Dwarnings for Rust we also want to enable -Werror for C.
     let warnings_as_errors = std::env::var("CARGO_ENCODED_RUSTFLAGS")
@@ -353,6 +403,7 @@ pub fn main() -> BuildResult<()> {
         // $INCLUDES
         "../..".to_owned(),
         "../../ui/ugui".to_owned(),
+        "../../../external/lvgl".to_owned(),
         "../../platform".to_owned(),
         "../../qtouch".to_owned(),
         "../../usb/class".to_owned(),
@@ -410,15 +461,23 @@ pub fn main() -> BuildResult<()> {
         includes.push("../../../test/hardware-fakes/include".to_owned());
     }
 
+    // Track included headers, including LVGL, ASF4 and hardware fakes. The src root is covered
+    // above. Avoid watching the generated output directory itself.
+    for include in &includes {
+        if include != "../.." && Path::new(include) != generated_headers_dir.as_path() {
+            emit_rerun_if_changed(include);
+        }
+    }
+
     let out_path = out_dir.join("bindings.rs");
     let out_path = out_path.into_os_string().into_string().unwrap();
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1"];
+    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
     definitions.extend(target_definitions);
     if warnings_as_errors {
-        definitions.push("-Werror");
+        definitions.push("-Werror".to_owned());
     }
 
     let mut bindgen = Command::new("bindgen");

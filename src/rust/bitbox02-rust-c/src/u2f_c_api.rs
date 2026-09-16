@@ -8,7 +8,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox_hal::ui::{ConfirmParams, UserAbort};
+use bitbox_hal::ui::{ConfirmParams, Font, UserAbort};
 use bitbox_hal::{Hal, Ui};
 use core::ffi::CStr;
 use core::sync::atomic::{AtomicU32, Ordering};
@@ -146,8 +146,16 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     ) else {
         return false;
     };
-    if !util::ascii::is_printable_ascii(title, util::ascii::Charset::AllNewline)
-        || !util::ascii::is_printable_ascii(body, util::ascii::Charset::AllNewline)
+    let has_all_glyphs = {
+        let ui = unsafe { BITBOX02_HAL.get().as_mut().unwrap() }.ui();
+        title
+            .chars()
+            .chain(body.chars())
+            .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+    };
+    if !util::display::is_safe_text(title, true)
+        || !util::display::is_safe_text(body, true)
+        || !has_all_glyphs
     {
         return false;
     }

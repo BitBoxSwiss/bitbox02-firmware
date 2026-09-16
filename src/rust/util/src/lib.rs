@@ -8,6 +8,7 @@ pub mod bytes;
 pub mod cell;
 pub mod datetime;
 pub mod decimal;
+pub mod display;
 pub mod futures;
 pub mod log;
 pub mod name;

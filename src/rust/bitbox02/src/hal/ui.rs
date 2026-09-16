@@ -34,8 +34,8 @@ impl HalEmpty for BitBox02Empty {}
 fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
         Font::Default => crate::ui::Font::Default,
-        Font::Password11X12 => crate::ui::Font::Password11X12,
-        Font::Monogram5X9 => crate::ui::Font::Monogram5X9,
+        Font::Password12 => crate::ui::Font::Password12,
+        Font::Monogram16 => crate::ui::Font::Monogram16,
     }
 }
 
@@ -144,6 +144,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
             crate::ui::ConfirmResponse::Approved => Ok(()),
             crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
+    }
+
+    fn has_glyph(&self, font: Font, c: char) -> bool {
+        to_bitbox02_font(font).has_glyph(c)
     }
 
     #[inline(always)]
@@ -310,8 +314,8 @@ mod tests {
     fn test_to_bitbox02_font() {
         let cases = [
             (Font::Default, crate::ui::Font::Default),
-            (Font::Password11X12, crate::ui::Font::Password11X12),
-            (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
+            (Font::Password12, crate::ui::Font::Password12),
+            (Font::Monogram16, crate::ui::Font::Monogram16),
         ];
         for (input, expected) in cases {
             assert_eq!(to_bitbox02_font(input) as i32, expected as i32);
@@ -319,11 +323,19 @@ mod tests {
     }
 
     #[test]
+    fn test_has_glyph_uses_actual_bitbox02_font() {
+        assert!(to_bitbox02_font(Font::Default).has_glyph('A'));
+        assert!(to_bitbox02_font(Font::Default).has_glyph('ü'));
+        assert!(!to_bitbox02_font(Font::Default).has_glyph('ȑ'));
+        assert!(!to_bitbox02_font(Font::Default).has_glyph('\t'));
+    }
+
+    #[test]
     fn test_to_bitbox02_confirm_params() {
         let fonts = [
             (Font::Default, crate::ui::Font::Default),
-            (Font::Password11X12, crate::ui::Font::Password11X12),
-            (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
+            (Font::Password12, crate::ui::Font::Password12),
+            (Font::Monogram16, crate::ui::Font::Monogram16),
         ];
         for (font, expected_font) in fonts {
             let input = ConfirmParams {

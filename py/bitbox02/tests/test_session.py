@@ -5,6 +5,8 @@
 import unittest
 from unittest import mock
 
+import semver
+
 from bitbox02.communication import bitbox_api_protocol as protocol
 from bitbox02.communication.communication import TransportLayer
 from bitbox02.communication.devices import BITBOX02MULTI
@@ -74,7 +76,9 @@ class TestSession(unittest.TestCase):
             protocol.HwwResponseCode.RSP_ACK,
         ]
         with mock.patch.object(protocol.time, "sleep") as sleep:
-            protocol.BitBoxProtocolV7(transport).reset_session()
+            protocol.BitBoxCommonAPI._reset_session(  # pylint: disable=protected-access
+                transport, semver.VersionInfo(9, 28, 0)
+            )
         sleep.assert_called_once_with(1)
         self.assertEqual(
             transport.query.call_args_list,
@@ -88,7 +92,9 @@ class TestSession(unittest.TestCase):
                 transport = mock.Mock(spec=TransportLayer)
                 transport.query.return_value = response
                 with self.assertRaisesRegex(Exception, "Unexpected response to RESET"):
-                    protocol.BitBoxProtocolV7(transport).reset_session()
+                    protocol.BitBoxCommonAPI._reset_session(  # pylint: disable=protected-access
+                        transport, semver.VersionInfo(9, 28, 0)
+                    )
 
 
 if __name__ == "__main__":

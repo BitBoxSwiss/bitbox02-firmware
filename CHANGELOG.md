@@ -10,6 +10,7 @@ recorded separately.
 - Reject malformed microSD backups instead of crashing
 - Hold the screen reset pin low until firmware is ready initalize it.
 - Cardano: limit xpub requests to 20 keypaths per batch
+- API: add a session reset command for clean host reconnects after interrupted operations
 
 ### v9.27.1
 - API: include the installed bootloader version in the device info response

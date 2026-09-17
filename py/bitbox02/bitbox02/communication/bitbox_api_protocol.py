@@ -302,18 +302,6 @@ class BitBoxProtocol(ABC):
     def close(self) -> None:
         self._transport.close()
 
-    def reset_session(self) -> None:
-        """Reset the previous session before attestation, unlock and the Noise handshake."""
-        cid = self._transport.generate_cid()
-        while True:
-            response = self._transport.query(HwwRequestCode.REQ_RESET, HWW_CMD, cid)
-            if response == HwwResponseCode.RSP_BUSY:
-                time.sleep(1)
-                continue
-            if response != HwwResponseCode.RSP_ACK:
-                raise Exception("Unexpected response to RESET.")
-            return
-
     def _raw_query(self, msg: bytes) -> bytes:
         cid = self._transport.generate_cid()
         return self._transport.query(msg, HWW_CMD, cid)
@@ -612,8 +600,7 @@ class BitBoxCommonAPI:
         else:
             self._bitbox_protocol = BitBoxProtocolV1(transport)
 
-        if self.version >= semver.VersionInfo(9, 28, 0):
-            self._bitbox_protocol.reset_session()
+        self._reset_session(transport, self.version)
 
         if self.version >= semver.VersionInfo(2, 0, 0):
             noise_config.attestation_check(self._perform_attestation())
@@ -710,6 +697,24 @@ class BitBoxCommonAPI:
         except Bitbox02Exception:
             return False
         return True
+
+    @staticmethod
+    def _reset_session(transport: TransportLayer, version: semver.VersionInfo) -> None:
+        """Reset the previous session before attestation, unlock and the Noise handshake.
+
+        Skip firmware older than v9.28.0, which does not support session reset.
+        """
+        if version < semver.VersionInfo(9, 28, 0):
+            return
+        cid = transport.generate_cid()
+        while True:
+            response = transport.query(HwwRequestCode.REQ_RESET, HWW_CMD, cid)
+            if response == HwwResponseCode.RSP_BUSY:
+                time.sleep(1)
+                continue
+            if response != HwwResponseCode.RSP_ACK:
+                raise Exception("Unexpected response to RESET.")
+            return
 
     @staticmethod
     def get_info(

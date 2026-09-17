@@ -69,7 +69,7 @@ fn decode_address(address: &str, expected_hrp: &str) -> Result<SilentPaymentAddr
     if hrp.as_str() != expected_hrp {
         return Err(());
     }
-    let witness_version = decoded_addr.remove_witness_version().unwrap();
+    let witness_version = decoded_addr.remove_witness_version().ok_or(())?;
     if witness_version != bech32::Fe32::Q {
         return Err(());
     }
@@ -252,6 +252,20 @@ mod tests {
     use super::*;
     use alloc::string::ToString;
     use core::str::FromStr;
+
+    #[test]
+    fn test_decode_address_invalid_version() {
+        for hrp in ["sp", "tsp"] {
+            // A valid Bech32m checksum does not guarantee a witness version exists or is valid.
+            // Missing version, or a first five-bit word outside the witness-version range 0..=16.
+            for data in [&[][..], &[17 << 3][..]] {
+                let address =
+                    bech32::encode::<bech32::Bech32m>(bech32::Hrp::parse(hrp).unwrap(), data)
+                        .unwrap();
+                assert!(decode_address(&address, hrp).is_err());
+            }
+        }
+    }
 
     #[test]
     fn test_basic() {

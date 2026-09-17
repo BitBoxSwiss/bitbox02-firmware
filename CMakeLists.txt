@@ -59,7 +59,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mod
 #-----------------------------------------------------------------------------
 # Options for building
 
-option(COVERAGE "Compile with test coverage flags." OFF)
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
@@ -218,7 +217,6 @@ message(STATUS "            - Options -")
 message(STATUS "Build type:             ${CMAKE_BUILD_TYPE}")
 message(STATUS "Hardware version:       ${HARDWARE}")
 message(STATUS "Verbose:                ${CMAKE_VERBOSE_MAKEFILE}")
-message(STATUS "Coverage flags:         ${COVERAGE}")
 message(STATUS "\n=============================================\n\n")
 
 #-----------------------------------------------------------------------------
@@ -347,38 +345,6 @@ else()
   add_subdirectory(test/simulator)
   add_subdirectory(test/simulator-graphical)
   add_subdirectory(test/simulator-graphical-bb03)
-  if(COVERAGE)
-    find_program(GCOVR gcovr)
-    if(NOT GCOVR STREQUAL "GCOVR-NOTFOUND")
-      # __dummy is used to always force regeneration of coverage file (There is no reasonable way to track generation of gcda files...)
-      add_custom_command(
-        OUTPUT gcovr/coverage.html __dummy
-        COMMAND ${CMAKE_COMMAND} -E make_directory gcovr
-        COMMAND ${GCOVR} --gcov-executable gcov-10 --delete --html-details -o gcovr/coverage.html -r ${CMAKE_SOURCE_DIR} -f ${CMAKE_SOURCE_DIR}/src
-      )
-      add_custom_target(
-        coverage
-        COMMAND ${CMAKE_COMMAND} -E echo Coverage at file:///${CMAKE_BINARY_DIR}/gcovr/coverage.html
-        DEPENDS gcovr/coverage.html
-      )
-    endif()
-    find_program(LCOV lcov)
-    find_program(GENHTML genhtml)
-    if(NOT LCOV STREQUAL "LOCV-NOTFOUND" AND NOT GENHTML STREQUAL "GENHTML-NOTFOUND")
-      add_custom_command(
-        OUTPUT lcovr/raw_coverage.info lcovr/coverage.info lcovr/index.html __dummy
-        COMMAND ${CMAKE_COMMAND} -E make_directory lcovr
-        COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR} --output-file lcovr/raw_coverage.info
-        COMMAND ${LCOV} --remove lcovr/raw_coverage.info --output-file lcovr/coverage.info '*/test/*' '*/external/*' '*/src/drivers/*' '/usr/include/*' '*/tools/*'
-        COMMAND ${GENHTML} lcovr/coverage.info --output-directory lcovr
-      )
-      add_custom_target(
-        coverage-lcovr
-        COMMAND ${CMAKE_COMMAND} -E echo Coverage at file:///${CMAKE_BINARY_DIR}/lcovr/index.html
-        DEPENDS lcovr/index.html
-      )
-    endif()
-  endif()
 endif()
 
 #-----------------------------------------------------------------------------

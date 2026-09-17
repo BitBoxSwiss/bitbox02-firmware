@@ -89,8 +89,7 @@ Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` w
 behavior is mocked; follow the `test_<feature>.c` naming pattern and update CMake lists. Rust crates
 use standard `tests/` modules or `#[cfg(test)]` blocks. Before opening a PR, run both `make
 run-unit-tests` and
-`cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
-and refresh `make coverage` for cryptography or security-sensitive areas.
+`cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`.
 
 - in Rust unit tests, prefer .unwrap() over .expect().
 - In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it

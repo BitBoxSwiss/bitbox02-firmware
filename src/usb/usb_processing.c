@@ -104,7 +104,7 @@ typedef struct {
     struct usb_processing* blocking_ctx;
     /**
      * Timeout counter. This is increased every 100ms by a timer,
-     * and is reset to 0 every time a new packet is send to one of the
+     * and is reset to 0 every time a new packet, except HWW INFO, is sent to one of the
      * underlying stacks. When the timeout counter becomes greater then
      * USB_OUTSTANDING_OP_TIMEOUT_TICKS, any outstanding operation is aborted
      * and the USB stack is forcefully unlocked.
@@ -276,8 +276,11 @@ static void _usb_arbitrate_packet(struct usb_processing* ctx, const Packet* in_p
         _enqueue_frames(ctx, &out_packet);
     } else {
         _usb_execute_packet(ctx, in_packet);
-        /* New packet processed: reset the watchdog timeout. */
-        usb_processing_timeout_reset(0);
+        // Discovery must not keep an abandoned operation alive or overwrite an extended timeout.
+        if (ctx != usb_processing_hww() || !hww_request_is_info(in_packet)) {
+            /* New packet processed: reset the watchdog timeout. */
+            usb_processing_timeout_reset(0);
+        }
     }
 }
 #endif

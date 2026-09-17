@@ -10,6 +10,7 @@ const HWW_CMD: u8 = COMMAND_VENDOR_FIRST + 1;
 const HWW_REQ_NEW: u8 = 0;
 const HWW_REQ_RETRY: u8 = 1;
 const HWW_REQ_CANCEL: u8 = 2;
+const HWW_REQ_RESET: u8 = 3;
 const HWW_REQ_INFO: u8 = b'i';
 
 const HWW_RSP_ACK: u8 = 0;
@@ -110,7 +111,15 @@ where
 
         let request = payload[0];
         let body = &payload[1..];
+        if request == HWW_REQ_RESET && !body.is_empty() {
+            return Ok(vec![HWW_RSP_NACK]);
+        }
         match request {
+            HWW_REQ_RESET => {
+                crate::hww::reset_session(&mut self.hal);
+                self.deadline_ms = None;
+                Ok(vec![HWW_RSP_ACK])
+            }
             HWW_REQ_INFO => {
                 // HWW_REQ_INFO is treated as a special case: it has a direct response without a
                 // status code, so it can be called independently of the firmware version and
@@ -171,6 +180,7 @@ mod tests {
     use super::*;
     use crate::hal::testing::TestingHal;
     use crate::hal::{Memory, System, memory::Platform};
+    use hex_lit::hex;
     use std::sync::{Mutex, MutexGuard};
 
     static TEST_LOCK: Mutex<()> = Mutex::new(());
@@ -257,6 +267,118 @@ mod tests {
         assert_eq!(response, vec![HWW_RSP_NACK]);
         assert!(!crate::async_usb::is_idle());
         crate::async_usb::cancel();
+    }
+
+    #[test]
+    fn test_req_reset_session_cancels_task() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        crate::async_usb::spin();
+        let mut handler = handler();
+        handler.refresh_timeout(0);
+
+        for _ in 0..2 {
+            assert_eq!(
+                handler
+                    .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RESET], 1)
+                    .unwrap(),
+                vec![HWW_RSP_ACK],
+            );
+            assert!(crate::async_usb::is_idle());
+            assert_eq!(handler.deadline_ms, None);
+        }
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 2)
+                .unwrap(),
+            vec![HWW_RSP_NACK],
+        );
+    }
+
+    #[test]
+    fn test_req_reset_session_cancels_next_request() {
+        let _guard = test_guard();
+        for (collect_response, supply_request) in [(false, false), (true, false), (true, true)] {
+            crate::async_usb::spawn(next_request_task, &hex!("aa"));
+            crate::async_usb::spin();
+            if collect_response {
+                assert_eq!(crate::async_usb::take_response().unwrap(), hex!("bb"));
+            }
+            if supply_request {
+                crate::async_usb::on_next_request(&hex!("cc"));
+            }
+            let mut handler = handler();
+            assert_eq!(
+                handler
+                    .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RESET], 0)
+                    .unwrap(),
+                vec![HWW_RSP_ACK],
+            );
+            assert!(crate::async_usb::is_idle());
+
+            // A new workflow must not see an input or response left by the previous session.
+            crate::async_usb::spawn(next_request_task, &hex!("aa"));
+            crate::async_usb::spin();
+            assert_eq!(crate::async_usb::take_response().unwrap(), hex!("bb"));
+            assert!(crate::async_usb::waiting_for_next_request());
+            crate::async_usb::on_next_request(&hex!("cc"));
+            crate::async_usb::spin();
+            assert_eq!(crate::async_usb::take_response().unwrap(), hex!("dd"));
+        }
+    }
+
+    #[test]
+    fn test_req_reset_session_discards_final_response() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(ready_task, &[]);
+        crate::async_usb::spin();
+        let mut handler = handler();
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RESET], 0)
+                .unwrap(),
+            vec![HWW_RSP_ACK],
+        );
+        assert_eq!(
+            crate::async_usb::take_response(),
+            Err(crate::async_usb::CopyResponseErr::NotRunning),
+        );
+    }
+
+    #[test]
+    fn test_req_reset_session_rejects_payload() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        let mut handler = handler();
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RESET, 0], 0)
+                .unwrap(),
+            vec![HWW_RSP_NACK],
+        );
+        assert!(!crate::async_usb::is_idle());
+        crate::async_usb::cancel();
+    }
+
+    #[test]
+    fn test_req_info_preserves_response_and_timeout() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(next_request_task, &hex!("aa"));
+        crate::async_usb::spin();
+        let mut handler = handler();
+        handler.refresh_timeout(0);
+        let response = handler
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_INFO], 400)
+            .unwrap();
+        assert_eq!(
+            response[0] as usize,
+            crate::version::FIRMWARE_VERSION_SHORT.len()
+        );
+        assert_eq!(handler.deadline_ms, Some(USB_OUTSTANDING_OP_TIMEOUT_MS));
+        assert_eq!(crate::async_usb::take_response().unwrap(), hex!("bb"));
+        assert!(crate::async_usb::waiting_for_next_request());
+        handler.tick(USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(crate::async_usb::is_idle());
     }
 
     #[test]

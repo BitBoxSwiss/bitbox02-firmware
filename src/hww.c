@@ -21,6 +21,7 @@ typedef enum {
     HWW_REQ_NEW = 0,
     HWW_REQ_RETRY = 1,
     HWW_REQ_CANCEL = 2,
+    HWW_REQ_RESET = 3,
     HWW_REQ_INFO = ((uint8_t)'i'),
 } hww_req_t;
 
@@ -166,6 +167,23 @@ static void _cancel_packet(hww_packet_rsp_t* response)
     // TODO: cancel async usb task.
 }
 
+static void _reset_session(hww_packet_rsp_t* response)
+{
+#if APP_U2F == 1
+    // U2F workflows can own the shared UI even after releasing the USB processing lock.
+    if (rust_workflow_u2f_is_active()) {
+        response->status = HWW_RSP_BUSY;
+        return;
+    }
+#endif
+    rust_hww_reset_session();
+    if (usb_processing_locked(usb_processing_hww())) {
+        usb_processing_unlock();
+    }
+    rust_usb_report_queue_clear(usb_processing_out_queue(usb_processing_hww()));
+    response->status = HWW_RSP_ACK;
+}
+
 static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
     if (in_packet->len == 0) {
@@ -175,6 +193,11 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
     }
 
     hww_req_t cmd = in_packet->data_addr[0];
+    if (cmd == HWW_REQ_RESET && in_packet->len != 1) {
+        out_packet->data_addr[0] = HWW_RSP_NACK;
+        out_packet->len = 1;
+        return;
+    }
     if (cmd == HWW_REQ_INFO) {
         // HWW_REQ_INFO is treated as a special case: it has a direct response without a status
         // code, so it can be called independently of the firmware version and framing protocol.
@@ -192,6 +215,9 @@ static void _msg(const Packet* in_packet, Packet* out_packet, const size_t max_o
         .status = HWW_RSP_NACK,
         .buffer = {.data = out_packet->data_addr + 1, .len = 0, .max_len = max_out_len - 1}};
     switch (cmd) {
+    case HWW_REQ_RESET:
+        _reset_session(&response);
+        break;
     case HWW_REQ_NEW:
         _process_packet(&decoded_buffer, &response);
         break;
@@ -219,7 +245,14 @@ bool hww_blocking_request_can_go_through(const Packet* in_packet)
         return false;
     }
     uint8_t cmd = in_packet->data_addr[0];
-    return cmd == HWW_REQ_CANCEL || cmd == HWW_REQ_RETRY;
+    return cmd == HWW_REQ_CANCEL || cmd == HWW_REQ_RETRY || cmd == HWW_REQ_INFO ||
+           cmd == HWW_REQ_RESET;
+}
+
+bool hww_request_is_info(const Packet* in_packet)
+{
+    return in_packet->cmd == HWW_MSG && in_packet->len == 1 &&
+           in_packet->data_addr[0] == HWW_REQ_INFO;
 }
 
 void hww_blocked_req_error(Packet* out_packet, const Packet* in_packet)

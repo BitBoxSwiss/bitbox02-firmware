@@ -42,6 +42,10 @@ pub fn decrypt(msg: &[u8]) -> Result<Vec<u8>, Error> {
     NOISE_STATE.0.borrow_mut().decrypt(msg).or(Err(Error))
 }
 
+pub(super) fn reset() {
+    NOISE_STATE.0.borrow_mut().reset();
+}
+
 /// Process noise-encrypted messages:
 /// - Enforce handshake
 /// - Handle pairing verification

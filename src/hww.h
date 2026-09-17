@@ -17,9 +17,12 @@ void hww_setup(void);
 /**
  * When the HWW stack is blocking the device, checks if
  * a HWW request is allowed to be processed.
- * HWW requests that are allowed are OP_CANCEL and OP_RETRY.
+ * Allows CANCEL, RETRY, INFO and RESET framing requests.
  */
 bool hww_blocking_request_can_go_through(const Packet* in_packet);
+
+/** Whether this is an INFO request, which must not change an operation's timeout. */
+bool hww_request_is_info(const Packet* in_packet);
 
 /**
  * Create an output packet used to signal to the client

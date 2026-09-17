@@ -2,8 +2,8 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{
-    CanCancel, ConfirmParams, Empty, EnterStringParams, Font, Progress, TrinaryChoice, UserAbort,
-    WordlistEntryAbort,
+    CanCancel, ConfirmParams, Empty, EnterStringParams, Font, MnemonicQuizAbort, Progress,
+    TrinaryChoice, UserAbort, WordlistEntryAbort,
 };
 
 use alloc::boxed::Box;
@@ -47,9 +47,10 @@ pub enum Screen {
         words: Vec<String>,
     },
     QuizMnemonicWord {
-        title: String,
+        word_idx: usize,
+        num_words: usize,
         choices: Vec<String>,
-        selected: u8,
+        response: Result<u8, MnemonicQuizAbort>,
     },
     UnlockAnimationPaused,
     UnlockAnimationPlayed,
@@ -90,7 +91,7 @@ pub struct TestingUi<'a> {
     _has_glyph: Option<HasGlyphCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
-    _quiz_choices: VecDeque<u8>,
+    _confirm_word_responses: VecDeque<Result<u8, MnemonicQuizAbort>>,
 }
 
 pub struct TestingProgress {
@@ -318,26 +319,38 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
-        let selected = self._quiz_choices.pop_front().unwrap_or_else(|| {
-            panic!("quiz_mnemonic_word called without queued choice; use push_quiz_choice")
+    async fn quiz_mnemonic_word(
+        &mut self,
+        choices: &[&str],
+        word_idx: usize,
+        num_words: usize,
+    ) -> Result<u8, MnemonicQuizAbort> {
+        let response = self._confirm_word_responses.pop_front().unwrap_or_else(|| {
+            panic!("quiz_mnemonic_word called without queued response; use push_quiz_choice")
         });
 
-        self.screens.push(Screen::QuizMnemonicWord {
-            title: title.into(),
-            choices: choices.iter().map(|choice| (*choice).into()).collect(),
-            selected,
-        });
-
-        if self
+        // When `abort_nth` fires on this screen, record the cancel the workflow actually
+        // receives, not the queued response it never saw.
+        let abort = self
             ._abort_nth
             .as_ref()
-            .is_some_and(|&n| self.screens.len() - 1 == n)
-        {
-            return Err(UserAbort);
-        }
+            .is_some_and(|&n| self.screens.len() == n);
+        let response = if abort {
+            Err(MnemonicQuizAbort::Cancel)
+        } else {
+            response
+        };
 
-        if selected as usize >= choices.len() {
+        self.screens.push(Screen::QuizMnemonicWord {
+            word_idx,
+            num_words,
+            choices: choices.iter().map(|choice| (*choice).into()).collect(),
+            response,
+        });
+
+        if let Ok(selected) = response
+            && selected as usize >= choices.len()
+        {
             panic!(
                 "quiz choice {} out of bounds for {} choices",
                 selected,
@@ -345,7 +358,7 @@ impl Ui for TestingUi<'_> {
             );
         }
 
-        Ok(selected)
+        response
     }
 }
 
@@ -362,7 +375,7 @@ impl<'a> TestingUi<'a> {
             _has_glyph: None,
             _menu: None,
             _trinary_choice: None,
-            _quiz_choices: VecDeque::new(),
+            _confirm_word_responses: VecDeque::new(),
         }
     }
 
@@ -422,13 +435,12 @@ impl<'a> TestingUi<'a> {
     }
 
     pub fn push_quiz_choice(&mut self, selected: u8) {
-        self._quiz_choices.push_back(selected);
+        self._confirm_word_responses.push_back(Ok(selected));
     }
 
-    pub fn push_quiz_choices(&mut self, selected: &[u8]) {
-        for choice in selected {
-            self.push_quiz_choice(*choice);
-        }
+    /// Script leaving the next word-confirmation screen without picking a word.
+    pub fn push_quiz_abort(&mut self, abort: MnemonicQuizAbort) {
+        self._confirm_word_responses.push_back(Err(abort));
     }
 
     fn u16_to_rand(value: u16) -> [u8; 32] {
@@ -536,16 +548,18 @@ impl<'a> TestingUi<'a> {
             }
         );
 
-        for (word_idx, expected_word) in words.iter().enumerate() {
-            match &screens[3 + word_idx] {
+        for (expected_word_idx, expected_word) in words.iter().enumerate() {
+            match &screens[3 + expected_word_idx] {
                 Screen::QuizMnemonicWord {
-                    title,
+                    word_idx,
+                    num_words,
                     choices,
-                    selected,
+                    response,
                 } => {
-                    assert_eq!(*selected, 2);
-                    assert_eq!(title, &format!("{:02}", word_idx + 1));
-                    assert_eq!(choices[*selected as usize], *expected_word);
+                    assert_eq!(*response, Ok(2));
+                    assert_eq!(*word_idx, expected_word_idx);
+                    assert_eq!(*num_words, words.len());
+                    assert_eq!(choices[2], *expected_word);
                 }
                 _ => panic!("unexpected screen"),
             }
@@ -564,7 +578,7 @@ mod tests {
         let mut ui = TestingUi::new();
         ui.push_quiz_choice(1);
         assert!(matches!(
-            ui.quiz_mnemonic_word(&["a", "b", "c"], "01").await,
+            ui.quiz_mnemonic_word(&["a", "b", "c"], 0, 24).await,
             Ok(1)
         ));
     }
@@ -574,32 +588,64 @@ mod tests {
         let mut ui = TestingUi::new();
         ui.push_quiz_choice(2);
         assert!(matches!(
-            ui.quiz_mnemonic_word(&["x", "bar", "y"], "02").await,
+            ui.quiz_mnemonic_word(&["x", "bar", "y"], 1, 12).await,
             Ok(2)
         ));
         assert_eq!(
             ui.screens,
             vec![Screen::QuizMnemonicWord {
-                title: "02".into(),
+                word_idx: 1,
+                num_words: 12,
                 choices: vec!["x".into(), "bar".into(), "y".into()],
-                selected: 2,
+                response: Ok(2),
             }]
         );
     }
 
     #[async_test::test]
-    #[should_panic(expected = "quiz choice 9 out of bounds for 1 choices")]
+    async fn test_quiz_abort_is_returned() {
+        let mut ui = TestingUi::new();
+        ui.push_quiz_abort(MnemonicQuizAbort::ShowWords);
+        assert_eq!(
+            ui.quiz_mnemonic_word(&["a"], 1, 12).await,
+            Err(MnemonicQuizAbort::ShowWords)
+        );
+    }
+
+    /// The exact boundary: with one choice, index 1 is already out of bounds.
+    #[async_test::test]
+    #[should_panic(expected = "quiz choice 1 out of bounds for 1 choices")]
     async fn test_quiz_choice_out_of_bounds_panics() {
         let mut ui = TestingUi::new();
-        ui.push_quiz_choice(9);
-        let _ = ui.quiz_mnemonic_word(&["a"], "01").await;
+        ui.push_quiz_choice(1);
+        let _ = ui.quiz_mnemonic_word(&["a"], 0, 24).await;
+    }
+
+    /// `abort_nth` on a quiz screen returns Cancel and records that cancel, not the queued
+    /// response the workflow never saw.
+    #[async_test::test]
+    async fn test_quiz_abort_nth_records_the_cancel() {
+        let mut ui = TestingUi::new();
+        ui.abort_nth(0);
+        ui.push_quiz_choice(2);
+        assert_eq!(
+            ui.quiz_mnemonic_word(&["a", "b", "c"], 0, 24).await,
+            Err(MnemonicQuizAbort::Cancel)
+        );
+        assert!(matches!(
+            ui.screens[0],
+            Screen::QuizMnemonicWord {
+                response: Err(MnemonicQuizAbort::Cancel),
+                ..
+            }
+        ));
     }
 
     #[async_test::test]
-    #[should_panic(expected = "quiz_mnemonic_word called without queued choice")]
+    #[should_panic(expected = "quiz_mnemonic_word called without queued response")]
     async fn test_quiz_choice_without_state_panics() {
         let mut ui = TestingUi::new();
-        let _ = ui.quiz_mnemonic_word(&["a"], "01").await;
+        let _ = ui.quiz_mnemonic_word(&["a"], 0, 24).await;
     }
 
     #[async_test::test]

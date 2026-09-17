@@ -6,6 +6,8 @@ extern crate alloc;
 
 pub extern crate bitbox_lvgl_sys as ffi;
 
+pub const SIZE_CONTENT: i32 = ffi::LV_SIZE_CONTENT as i32;
+
 pub mod font;
 
 pub use ffi::_lv_opacity_level_t as LvOpacityLevel;
@@ -54,6 +56,7 @@ pub use ffi::lv_text_align_t as LvTextAlign;
 pub use ffi::lv_text_decor_t as LvTextDecor;
 pub use ffi::lv_value_precise_t as LvValuePrecise;
 
+pub mod anim;
 pub mod color;
 pub mod display;
 pub mod indev;

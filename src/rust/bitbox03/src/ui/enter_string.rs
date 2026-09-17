@@ -436,7 +436,7 @@ pub fn build_passphrase_screen(
 
 /// The gray disabled look of a navigation icon button (border and icon); returns the icon for
 /// state toggling. Pairs with [`set_nav_button_enabled`].
-fn style_nav_button_disabled(button: &LvButton) -> LvObj {
+pub(super) fn style_nav_button_disabled(button: &LvButton) -> LvObj {
     const DISABLED: u32 = lvgl::LvState::LV_STATE_DISABLED as u32;
     let icon = button.child(0).expect("nav button icon");
     button.set_style_border_color(super::keyboard::gray(), DISABLED);
@@ -446,7 +446,7 @@ fn style_nav_button_disabled(button: &LvButton) -> LvObj {
 
 /// Enables/disables a navigation icon button: disabled renders the gray look from
 /// [`style_nav_button_disabled`] and makes the button inert.
-fn set_nav_button_enabled(button: &LvButton, icon: &LvObj, enabled: bool) {
+pub(super) fn set_nav_button_enabled(button: &LvButton, icon: &LvObj, enabled: bool) {
     if enabled {
         button.remove_state(lvgl::LvState::LV_STATE_DISABLED);
         icon.remove_state(lvgl::LvState::LV_STATE_DISABLED);

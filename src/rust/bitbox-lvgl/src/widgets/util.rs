@@ -24,7 +24,7 @@ pub enum LvEventRegistrationError {
     RegistrationFailed,
 }
 
-type EventCallback = RefCell<Box<dyn FnMut() + 'static>>;
+type EventCallback = RefCell<Box<dyn FnMut(*mut ffi::lv_event_t) + 'static>>;
 
 unsafe extern "C" fn on_delete_drop_attachment<T>(e: *mut ffi::lv_event_t) {
     if unsafe { ffi::lv_event_get_code(e) } != ffi::lv_event_code_t::LV_EVENT_DELETE {
@@ -51,7 +51,7 @@ unsafe extern "C" fn event_callback_trampoline(e: *mut ffi::lv_event_t) {
     }
     let callback = unsafe { Rc::from_raw(callback_ptr) };
     let mut callback = callback.borrow_mut();
-    callback.as_mut()();
+    callback.as_mut()(e);
 }
 
 unsafe extern "C" fn on_delete_drop_event_callback(e: *mut ffi::lv_event_t) {
@@ -91,10 +91,21 @@ pub(crate) fn attach_to_object<T, C: class::LvClass>(
 pub(crate) fn add_event_cb<F>(
     obj: *mut ffi::lv_obj_t,
     filter: ffi::lv_event_code_t,
-    cb: F,
+    mut cb: F,
 ) -> Result<(), LvEventRegistrationError>
 where
     F: FnMut() + 'static,
+{
+    add_event_cb_with_event(obj, filter, move |_| cb())
+}
+
+pub(crate) fn add_event_cb_with_event<F>(
+    obj: *mut ffi::lv_obj_t,
+    filter: ffi::lv_event_code_t,
+    cb: F,
+) -> Result<(), LvEventRegistrationError>
+where
+    F: FnMut(*mut ffi::lv_event_t) + 'static,
 {
     let callback: Rc<EventCallback> = Rc::new(RefCell::new(Box::new(cb)));
     let callback_ptr = Rc::into_raw(callback);

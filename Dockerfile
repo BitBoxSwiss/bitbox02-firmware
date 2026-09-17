@@ -61,7 +61,6 @@ RUN apt-get update && apt-get install -y \
 
 # Set gcc-10 as the default gcc
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
-RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 
 # Tools for CI
 RUN apt-get update && apt-get install -y \
@@ -109,8 +108,6 @@ ENV PATH=/opt/protoc/bin:$PATH
 # Developer tools
 RUN apt-get update && apt-get install -y \
     bash-completion
-# Install gcovr from PIP to get a newer version than in apt repositories
-RUN python3 -m pip install gcovr
 
 # Install Go, used for the tools in tools/go and for test/gounittest
 ENV GOPATH=/opt/go
@@ -118,10 +115,6 @@ ENV GOROOT=/opt/go_dist/go
 ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
     curl https://dl.google.com/go/go1.19.3.linux-${TARGETARCH}.tar.gz | tar -xz -C /opt/go_dist
-
-# Install lcov from release (the one from the repos is too old).
-RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
-ENV PATH=/opt/lcov-1.14/bin:$PATH
 
 # Install rust compiler
 ENV PATH=/opt/cargo/bin:$PATH

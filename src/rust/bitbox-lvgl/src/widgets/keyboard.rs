@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::borrow::ToOwned;
-use alloc::ffi::CString;
 use alloc::vec::Vec;
 use core::ptr::NonNull;
 
 use super::buttonmatrix::{ButtonmatrixExt, LvButtonmatrix, LvButtonmatrixMapEntry, validate_map};
 use super::textarea::LvTextarea;
-use crate::{LvButtonmatrixCtrl, LvHandle, LvKeyboardMode, LvObj, class, ffi};
+use crate::{LvButtonmatrixCtrl, LvHandle, LvKeyboardMode, LvObj, LvText, class, ffi};
 use util::strings::{cstr_array_from_ptr, optional_cstr_from_ptr};
 
 pub type LvKeyboard = LvHandle<class::KeyboardTag>;
@@ -67,11 +65,11 @@ pub trait KeyboardExt: ButtonmatrixExt {
         unsafe { ffi::lv_keyboard_get_popovers(self.as_ptr()) }
     }
 
-    fn get_map_array(&self) -> Vec<CString> {
+    fn get_map_array(&self) -> Vec<LvText> {
         unsafe {
             cstr_array_from_ptr(ffi::lv_keyboard_get_map_array(self.as_ptr()))
                 .into_iter()
-                .map(|entry| entry.to_owned())
+                .map(LvText::from_cstr)
                 .collect()
         }
     }
@@ -86,10 +84,10 @@ impl LvHandle<class::KeyboardTag> {
         unsafe { ffi::lv_keyboard_get_selected_button(self.as_ptr()) }
     }
 
-    pub fn get_button_text(&self, button_id: u32) -> Option<CString> {
+    pub fn get_button_text(&self, button_id: u32) -> Option<LvText> {
         unsafe {
             optional_cstr_from_ptr(ffi::lv_keyboard_get_button_text(self.as_ptr(), button_id))
-                .map(|text| text.to_owned())
+                .map(LvText::from_cstr)
         }
     }
 

@@ -60,6 +60,8 @@ pub mod indev;
 pub mod log;
 pub mod style;
 pub mod system;
+mod text;
+pub use text::LvText;
 #[cfg(test)]
 mod test_util;
 pub mod tick;
@@ -90,4 +92,5 @@ pub use widgets::slider::{LvSlider, SliderExt};
 pub use widgets::span::{LvSpan, LvSpanTextError, LvSpangroup, SpangroupExt};
 pub use widgets::spinner::{LvSpinner, SpinnerExt};
 pub use widgets::textarea::{LvTextarea, LvTextareaTextError, TextareaExt};
+pub use widgets::zeroizing_label::LvZeroizingLabel;
 pub use widgets::{LvEventRegistrationError, LvMapError, LvTextError};

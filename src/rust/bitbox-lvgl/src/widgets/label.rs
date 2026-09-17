@@ -236,6 +236,12 @@ pub trait LabelExt: ObjExt {
         Ok(())
     }
 
+    fn copy_text_from(&self, source: &BitboxLabel) {
+        // The setter can dispatch callbacks, so release the source borrow before calling it.
+        let text = source.get_text().unwrap();
+        self.set_text(text.to_str().unwrap()).unwrap();
+    }
+
     fn set_text_static(&self, text: Option<&'static CStr>) {
         if let Some(text) = text {
             text.to_str().expect("label text must be UTF-8");
@@ -504,5 +510,47 @@ mod tests {
             assert_eq!(label.letter_at(label.letter_position(index).x), index);
         }
         unsafe { label.delete() };
+    }
+
+    #[test]
+    fn test_copy_text_from_independent_storage() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = LvObj::new().unwrap();
+        let source = BitboxLabel::new(&screen).unwrap();
+        let destination = BitboxLabel::new(&screen).unwrap();
+
+        source.set_text("abandon").unwrap();
+        destination.set_text("old").unwrap();
+        destination.copy_text_from(&source);
+        source.set_text("zoo").unwrap();
+        assert_eq!(destination.get_text().unwrap().to_bytes(), b"abandon");
+
+        unsafe { source.delete() };
+        assert_eq!(destination.get_text().unwrap().to_bytes(), b"abandon");
+
+        unsafe {
+            screen.delete();
+            ffi::lv_display_delete(display.as_ptr());
+        }
+    }
+
+    #[test]
+    fn test_copy_text_from_self() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = LvObj::new().unwrap();
+        let label = BitboxLabel::new(&screen).unwrap();
+
+        for text in ["abandon", "zoo", ""] {
+            label.set_text(text).unwrap();
+            label.copy_text_from(&label);
+            assert_eq!(label.get_text().unwrap().to_bytes(), text.as_bytes());
+        }
+
+        unsafe {
+            screen.delete();
+            ffi::lv_display_delete(display.as_ptr());
+        }
     }
 }

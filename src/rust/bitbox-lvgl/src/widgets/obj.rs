@@ -8,8 +8,8 @@ use core::ptr::NonNull;
 
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvEventCode, LvFlexAlign, LvFlexFlow,
-    LvFont, LvGradDir, LvGridAlign, LvGridTemplate, LvObjFlag, LvOpa, LvState, LvStyleSelector,
-    LvStyleTransition, LvTextAlign, LvTextDecor, class, ffi,
+    LvFont, LvGradDir, LvGridAlign, LvGridTemplate, LvObjFlag, LvOpa, LvPart, LvState,
+    LvStyleSelector, LvStyleTransition, LvTextAlign, LvTextDecor, class, ffi,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -152,6 +152,57 @@ pub trait ObjExt {
 
     fn set_height(&self, height: i32) {
         unsafe { ffi::lv_obj_set_height(self.as_ptr(), height) }
+    }
+
+    /// Absolute screen coordinates (left, top, right, bottom), with inclusive bounds.
+    fn get_coords(&self) -> (i32, i32, i32, i32) {
+        let mut area = ffi::lv_area_t {
+            x1: 0,
+            y1: 0,
+            x2: 0,
+            y2: 0,
+        };
+        unsafe { ffi::lv_obj_get_coords(self.as_ptr(), &mut area) };
+        (area.x1, area.y1, area.x2, area.y2)
+    }
+
+    fn update_layout(&self) {
+        unsafe { ffi::lv_obj_update_layout(self.as_ptr()) };
+    }
+
+    fn get_style_translate_x(&self, part: LvPart) -> i32 {
+        unsafe {
+            ffi::lv_obj_get_style_prop(
+                self.as_ptr(),
+                part,
+                ffi::_lv_style_id_t::LV_STYLE_TRANSLATE_X as ffi::lv_style_prop_t,
+            )
+            .num
+        }
+    }
+
+    fn get_style_translate_y(&self, part: LvPart) -> i32 {
+        unsafe {
+            ffi::lv_obj_get_style_prop(
+                self.as_ptr(),
+                part,
+                ffi::_lv_style_id_t::LV_STYLE_TRANSLATE_Y as ffi::lv_style_prop_t,
+            )
+            .num
+        }
+    }
+
+    /// Keeps at least `size` pixels outside the object's bounds available for drawing.
+    /// Multiple requests use the largest size.
+    fn request_ext_draw_size(&self, size: i32) -> Result<(), LvEventRegistrationError> {
+        assert!(size >= 0);
+        util::add_event_cb_with_event(
+            self.as_ptr(),
+            LvEventCode::LV_EVENT_REFR_EXT_DRAW_SIZE,
+            move |event| unsafe { ffi::lv_event_set_ext_draw_size(event, size) },
+        )?;
+        unsafe { ffi::lv_obj_refresh_ext_draw_size(self.as_ptr()) };
+        Ok(())
     }
 
     /// Adds an object flag (e.g. [`LvObjFlag::LV_OBJ_FLAG_FLOATING`] to take the object out of its
@@ -460,6 +511,33 @@ mod tests {
             <LvObj as ObjExt>::add_event_cb::<fn()>;
         let _: fn(&LvObj, fn()) -> Result<(), crate::LvEventRegistrationError> =
             <LvObj as ObjExt>::add_click_cb::<fn()>;
+    }
+
+    #[test]
+    fn test_request_ext_draw_size() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+
+        obj.request_ext_draw_size(300).unwrap();
+        obj.request_ext_draw_size(100).unwrap();
+        for initial_size in [0, 400] {
+            let mut size: i32 = initial_size;
+            unsafe {
+                ffi::lv_obj_send_event(
+                    obj.as_ptr(),
+                    LvEventCode::LV_EVENT_REFR_EXT_DRAW_SIZE,
+                    (&mut size as *mut i32).cast(),
+                );
+            }
+            assert_eq!(size, initial_size.max(300));
+        }
+
+        unsafe {
+            obj.delete();
+            ffi::lv_display_delete(display.as_ptr());
+        }
     }
 
     #[test]

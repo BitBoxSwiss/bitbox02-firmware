@@ -19,7 +19,7 @@ pub enum MenuAction {
 
 pub(super) enum MenuResult {
     Selected(u8),
-    Cancel(usize),
+    Cancel,
 }
 
 pub(super) fn transparent_row(parent: &LvObj, width: i32, height: i32) -> LvObj {

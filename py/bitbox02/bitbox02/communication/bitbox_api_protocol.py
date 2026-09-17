@@ -38,6 +38,8 @@ class HwwRequestCode:
     REQ_RETRY = b"\x01"
     # Cancel any outstanding request.
     REQ_CANCEL = b"\x02"
+    # Reset the host session, discarding any outstanding operation (since firmware v9.28.0).
+    REQ_RESET = b"\x03"
     # INFO api call (used to be OP_INFO api call), graduated to the toplevel framing so it works
     # the same way for all firmware versions.
     REQ_INFO = b"i"
@@ -598,6 +600,8 @@ class BitBoxCommonAPI:
         else:
             self._bitbox_protocol = BitBoxProtocolV1(transport)
 
+        self._reset_session(transport, self.version)
+
         if self.version >= semver.VersionInfo(2, 0, 0):
             noise_config.attestation_check(self._perform_attestation())
             self._bitbox_protocol.unlock_query()
@@ -693,6 +697,24 @@ class BitBoxCommonAPI:
         except Bitbox02Exception:
             return False
         return True
+
+    @staticmethod
+    def _reset_session(transport: TransportLayer, version: semver.VersionInfo) -> None:
+        """Reset the previous session before attestation, unlock and the Noise handshake.
+
+        Skip firmware older than v9.28.0, which does not support session reset.
+        """
+        if version < semver.VersionInfo(9, 28, 0):
+            return
+        cid = transport.generate_cid()
+        while True:
+            response = transport.query(HwwRequestCode.REQ_RESET, HWW_CMD, cid)
+            if response == HwwResponseCode.RSP_BUSY:
+                time.sleep(1)
+                continue
+            if response != HwwResponseCode.RSP_ACK:
+                raise Exception("Unexpected response to RESET.")
+            return
 
     @staticmethod
     def get_info(

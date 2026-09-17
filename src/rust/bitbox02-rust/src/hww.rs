@@ -15,6 +15,15 @@ const OP_STATUS_SUCCESS: u8 = 0;
 const OP_STATUS_FAILURE: u8 = 1;
 const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 
+/// Reset the host session. Call between task polls, after transport arbitration has ensured
+/// that no U2F workflow owns the shared UI.
+pub fn reset_session(hal: &mut impl crate::hal::Hal) {
+    // Drop the task first: its UI components must be dropped before resetting the screen stack.
+    crate::async_usb::cancel();
+    noise::reset();
+    hal.ui().reset();
+}
+
 /// Must be called during the execution of a usb task. This sends out the response to the host and
 /// awaits the next request. If the request is not a valid noise encrypted protofbuf api request
 /// message, `Err(Error::InvalidInput)` is returned.
@@ -212,6 +221,31 @@ mod tests {
                 _ => Err(()),
             }
         })
+    }
+
+    #[async_test::test]
+    async fn test_reset_session_resets_noise() {
+        let mut old_query = init_noise();
+        let mut hal = TestingHal::new();
+        reset_session(&mut hal);
+        assert!(noise::encrypt(b"response", &mut Vec::new()).is_err());
+        assert!(old_query(&mut hal, b"request").is_err());
+
+        // Starting a session repeatedly is safe, and a new handshake works normally.
+        reset_session(&mut hal);
+        let mut new_query = init_noise();
+        let request = crate::pb::Request {
+            request: Some(crate::pb::request::Request::ListBackups(
+                crate::pb::ListBackupsRequest {},
+            )),
+        };
+        let response = new_query(&mut hal, &request.encode_to_vec()).unwrap();
+        assert!(matches!(
+            crate::pb::Response::decode(response.as_slice())
+                .unwrap()
+                .response,
+            Some(crate::pb::response::Response::ListBackups(_))
+        ));
     }
 
     /// Can't unlock when the device is not initialized yet (not seeded).

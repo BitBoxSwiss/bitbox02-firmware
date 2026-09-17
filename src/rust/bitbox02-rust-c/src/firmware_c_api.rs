@@ -22,6 +22,11 @@ pub extern "C" fn rust_main_loop() -> ! {
     bitbox02_rust::main_loop::main_loop(&mut crate::HalImpl::new())
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_hww_reset_session() {
+    bitbox02_rust::hww::reset_session(&mut crate::HalImpl::new());
+}
+
 /// # Safety
 ///
 /// `purpose` must be a valid, null-terminated UTF-8 string pointer.

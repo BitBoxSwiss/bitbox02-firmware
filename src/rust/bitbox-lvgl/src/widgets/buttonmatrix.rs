@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::borrow::ToOwned;
-use alloc::ffi::CString;
 use alloc::vec::Vec;
 use core::ffi::{CStr, c_char};
 use core::ptr::NonNull;
 
-use crate::{LvButtonmatrixCtrl, LvHandle, LvObj, ObjExt, class, ffi};
+use crate::{LvButtonmatrixCtrl, LvHandle, LvObj, LvText, ObjExt, class, ffi};
 use util::strings::{cstr_array_from_ptr, optional_cstr_from_ptr};
 
 pub type LvButtonmatrix = LvHandle<class::ButtonmatrixTag>;
@@ -103,11 +101,11 @@ pub trait ButtonmatrixExt: ObjExt {
         unsafe { ffi::lv_buttonmatrix_set_one_checked(self.as_ptr(), enable) }
     }
 
-    fn get_map(&self) -> Vec<CString> {
+    fn get_map(&self) -> Vec<LvText> {
         unsafe {
             cstr_array_from_ptr(ffi::lv_buttonmatrix_get_map(self.as_ptr()))
                 .into_iter()
-                .map(|entry| entry.to_owned())
+                .map(LvText::from_cstr)
                 .collect()
         }
     }
@@ -116,13 +114,13 @@ pub trait ButtonmatrixExt: ObjExt {
         unsafe { ffi::lv_buttonmatrix_get_selected_button(self.as_ptr()) }
     }
 
-    fn get_button_text(&self, button_id: u32) -> Option<CString> {
+    fn get_button_text(&self, button_id: u32) -> Option<LvText> {
         unsafe {
             optional_cstr_from_ptr(ffi::lv_buttonmatrix_get_button_text(
                 self.as_ptr(),
                 button_id,
             ))
-            .map(|text| text.to_owned())
+            .map(LvText::from_cstr)
         }
     }
 

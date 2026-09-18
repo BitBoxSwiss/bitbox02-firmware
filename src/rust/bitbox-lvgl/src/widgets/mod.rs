@@ -16,6 +16,7 @@ pub mod span;
 pub mod spinner;
 pub mod textarea;
 mod util;
+pub mod zeroizing_label;
 
 pub use util::{LvEventRegistrationError, LvMapError, LvTextError};
 

@@ -133,7 +133,7 @@ mod tests {
     use alloc::{boxed::Box, rc::Rc, string::String};
     use core::cell::{Cell, RefCell};
     use core::future::Future;
-    use core::task::{Context, Waker};
+    use core::task::{Context, Poll, Waker};
     use lvgl::{LvDisplay, LvEventCode, class};
 
     #[test]
@@ -210,14 +210,19 @@ mod tests {
                         .is_pending()
                 );
                 assert!(!cleared.get());
-                match outcome {
-                    Some(outcome) => {
-                        let accepted = outcome.is_ok();
-                        responder.borrow().as_ref().unwrap().resolve(outcome);
-                        assert_eq!(result.await.is_ok(), accepted);
-                    }
-                    None => drop(result),
+                if let Some(outcome) = outcome {
+                    let accepted = outcome.is_ok();
+                    responder.borrow().as_ref().unwrap().resolve(outcome);
+                    // Completion is ready: poll without suspending while holding the LVGL lock.
+                    assert_eq!(
+                        result
+                            .as_mut()
+                            .poll(&mut Context::from_waker(Waker::noop()))
+                            .map(|outcome| outcome.is_ok()),
+                        Poll::Ready(accepted)
+                    );
                 }
+                drop(result);
                 assert!(cleared.get());
                 assert!(ui.stack.is_empty());
             }

@@ -36,8 +36,9 @@ pub async fn next_request(
     let request = crate::async_usb::next_request(out).await;
     match request.split_first() {
         Some((&noise::OP_NOISE_MSG, encrypted_request)) => {
-            let decrypted_request =
-                noise::decrypt(encrypted_request).or(Err(api::error::Error::NoiseDecrypt))?;
+            let decrypted_request = zeroize::Zeroizing::new(
+                noise::decrypt(encrypted_request).or(Err(api::error::Error::NoiseDecrypt))?,
+            );
             api::decode(&decrypted_request[..])
         }
         _ => Err(api::error::Error::InvalidInput),

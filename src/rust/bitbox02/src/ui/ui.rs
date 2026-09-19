@@ -14,6 +14,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
+use zeroize::Zeroizing;
 
 // Keep enough bytes beyond the C label limit to prove that truncation is needed even when the
 // Rust-side cut moves back to a UTF-8 boundary.
@@ -21,14 +22,15 @@ const LABEL_TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 4;
 
 /// BitBox02 fonts contain glyphs for printable ASCII only. Keep this check at the common UI
 /// boundary so unsupported text cannot be silently omitted by the renderer.
-fn display_str_to_cstr_vec(text: &str) -> Vec<c_char> {
+/// The returned buffer is wiped on drop.
+fn display_str_to_cstr_vec(text: &str) -> Zeroizing<Vec<c_char>> {
     assert!(
         util::ascii::is_printable_ascii(text, util::ascii::Charset::AllNewline),
         "BitBox02 UI text contains unsupported characters"
     );
-    let mut result: Vec<c_char> = text.bytes().map(|byte| byte as c_char).collect();
-    result.push(0);
-    result
+    // UI strings can contain passphrases or mnemonic words. Include the NUL in the initial
+    // allocation so growing the buffer cannot leave a discarded copy of the secret.
+    util::strings::str_to_cstr_vec_zeroizing(text).unwrap()
 }
 
 fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
@@ -439,7 +441,7 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
     //
     // Step 1: create the C strings. This var has to be alive until after menu() finishes,
     // otherwise the pointers we send to menu_create() will be invalid.
-    let words: Vec<Vec<core::ffi::c_char>> = params
+    let words: Vec<_> = params
         .words
         .iter()
         .map(|word| display_str_to_cstr_vec(word))

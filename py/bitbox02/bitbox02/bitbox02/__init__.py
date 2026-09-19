@@ -7,9 +7,9 @@ import sys
 
 __version__ = "8.0.0"
 
-if sys.version_info.major != 3 or sys.version_info.minor < 6:
+if sys.version_info.major != 3 or sys.version_info.minor < 7:
     print(
-        "Python version is {}.{}, but 3.6+ is required by this script.".format(
+        "Python version is {}.{}, but 3.7+ is required by this script.".format(
             sys.version_info.major, sys.version_info.minor
         ),
         file=sys.stderr,

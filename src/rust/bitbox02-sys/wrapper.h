@@ -29,6 +29,7 @@
 #include <ui/components/confirm_swap.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/empty.h>
+#include <ui/components/info_centered.h>
 #include <ui/components/label.h>
 #include <ui/components/menu.h>
 #include <ui/components/orientation_arrows.h>

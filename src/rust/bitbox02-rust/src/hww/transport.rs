@@ -83,11 +83,12 @@ impl<H> HwwVendorHandler<H> {
     }
 
     fn refresh_timeout(&mut self, now_ms: u64) {
-        self.deadline_ms = if crate::async_usb::is_idle() {
-            None
-        } else {
-            Some(now_ms.saturating_add(USB_OUTSTANDING_OP_TIMEOUT_MS))
-        };
+        self.deadline_ms =
+            if crate::async_usb::is_idle() || crate::async_usb::waiting_for_next_request() {
+                None
+            } else {
+                Some(now_ms.saturating_add(USB_OUTSTANDING_OP_TIMEOUT_MS))
+            };
     }
 }
 
@@ -144,12 +145,14 @@ where
                 crate::async_usb::spin();
                 // Respond with NOT_READY if the async task needs more time, or ACK with the payload
                 // if the task already completed.
+                let response = encode_hww_response();
                 self.refresh_timeout(now_ms);
-                encode_hww_response()
+                response
             }
             HWW_REQ_RETRY => {
+                let response = encode_hww_response();
                 self.refresh_timeout(now_ms);
-                encode_hww_response()
+                response
             }
             HWW_REQ_CANCEL => {
                 // TODO: cancel async usb task.
@@ -160,7 +163,9 @@ where
     }
 
     fn tick(&mut self, now_ms: u64) {
-        if crate::async_usb::is_idle() {
+        // Match the C transport: after an intermediate ACK there is no outstanding
+        // request to time out. A new connection recovers abandoned workflows with RESET.
+        if crate::async_usb::is_idle() || crate::async_usb::waiting_for_next_request() {
             self.deadline_ms = None;
             return;
         }
@@ -375,8 +380,8 @@ mod tests {
             crate::version::FIRMWARE_VERSION_SHORT.len()
         );
         assert_eq!(handler.deadline_ms, Some(USB_OUTSTANDING_OP_TIMEOUT_MS));
-        assert_eq!(crate::async_usb::take_response().unwrap(), hex!("bb"));
-        assert!(crate::async_usb::waiting_for_next_request());
+        // Leave the intermediate response unread: INFO must neither consume it nor keep
+        // an outstanding request alive. After ACK, the next request has no deadline.
         handler.tick(USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
         assert!(crate::async_usb::is_idle());
     }
@@ -408,8 +413,13 @@ mod tests {
         assert_eq!(response, vec![HWW_RSP_ACK, 0xbb]);
         assert!(crate::async_usb::waiting_for_next_request());
 
+        // There is no outstanding transport request between intermediate ACKs and the
+        // next host request. In particular, host passphrase input may take arbitrarily long.
+        handler.tick(10_000);
+        assert!(crate::async_usb::waiting_for_next_request());
+
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0xcc], 0)
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0xcc], 10_001)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_ACK, 0xdd]);
         assert!(crate::async_usb::is_idle());

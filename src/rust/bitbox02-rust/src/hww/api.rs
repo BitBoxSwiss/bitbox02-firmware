@@ -32,6 +32,7 @@ mod set_mnemonic_passphrase_enabled;
 mod set_password;
 mod show_mnemonic;
 mod system;
+mod unlock;
 
 use alloc::vec::Vec;
 
@@ -115,6 +116,8 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
     };
 
     match request {
+        Request::Unlock(_) => true,
+        Request::UnlockContinue(_) | Request::UnlockHostInfo(_) => false,
         // Deprecated call, last used in v1.0.0.
         Request::PerformAttestation(_) => false,
         Request::DeviceInfo(_)
@@ -158,6 +161,7 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
 /// Handle a protobuf api call.
 async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
+        Request::Unlock(_) => unlock::process(hal).await,
         Request::Reboot(request) => system::reboot_to_bootloader(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(hal).await,
         Request::DeviceName(request) => set_device_name::process(hal, request).await,
@@ -220,6 +224,8 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
 pub async fn process(hal: &mut impl crate::hal::Hal, input: Vec<u8>) -> Vec<u8> {
+    // An invalid standalone request can also contain a host passphrase.
+    let input = zeroize::Zeroizing::new(input);
     let request = match decode(&input[..]) {
         Ok(request) => request,
         Err(err) => return encode(make_error(err)),

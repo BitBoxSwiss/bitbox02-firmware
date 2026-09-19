@@ -365,6 +365,7 @@ name = "bitbox-proto"
 version = "0.1.0"
 dependencies = [
  "prost",
+ "zeroize",
 ]
 
 [[package]]

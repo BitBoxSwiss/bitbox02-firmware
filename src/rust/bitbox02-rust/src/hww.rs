@@ -27,10 +27,14 @@ pub fn reset_session(hal: &mut impl crate::hal::Hal) {
 /// Must be called during the execution of a usb task. This sends out the response to the host and
 /// awaits the next request. If the request is not a valid noise encrypted protofbuf api request
 /// message, `Err(Error::InvalidInput)` is returned.
-#[cfg(not(any(test, feature = "testing")))]
+/// In tests, set `MOCK_NEXT_REQUEST` to replace the encrypted transport.
 pub async fn next_request(
     response: crate::pb::response::Response,
 ) -> Result<crate::pb::request::Request, api::error::Error> {
+    #[cfg(any(test, feature = "testing"))]
+    if let Some(func) = MOCK_NEXT_REQUEST.0.borrow().as_ref() {
+        return func(response);
+    }
     let mut out = [OP_STATUS_SUCCESS].to_vec();
     noise::encrypt(&api::encode(response), &mut out).or(Err(api::error::Error::NoiseEncrypt))?;
     let request = crate::async_usb::next_request(out).await;
@@ -63,15 +67,6 @@ pub static MOCK_NEXT_REQUEST: SafeData<
         >,
     >,
 > = SafeData(core::cell::RefCell::new(None));
-
-/// Set `MOCK_NEXT_REQUEST` to mock requests from the host.
-#[cfg(any(test, feature = "testing"))]
-pub async fn next_request(
-    response: crate::pb::response::Response,
-) -> Result<crate::pb::request::Request, api::error::Error> {
-    let func = MOCK_NEXT_REQUEST.0.borrow();
-    func.as_ref().unwrap()(response)
-}
 
 /// Process OP_UNLOCK.
 async fn api_unlock(hal: &mut impl crate::hal::Hal) -> Vec<u8> {
@@ -151,7 +146,8 @@ mod tests {
 
     /// Make a new noise channel by invoking the noise handshake. Returns a request function which
     /// encrypts the message going in and decrypts the message coming out.
-    fn init_noise<H: crate::hal::Hal>() -> Box<dyn FnMut(&mut H, &[u8]) -> Result<Vec<u8>, ()>> {
+    pub(super) fn init_noise_ciphers()
+    -> (impl FnMut(&[u8]) -> Vec<u8>, impl FnMut(&[u8]) -> Vec<u8>) {
         assert_eq!(
             block_on(process_packet(&mut TestingHal::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
@@ -210,15 +206,22 @@ mod tests {
         }
 
         let (mut host_send, mut host_recv) = host_noise.get_ciphers();
+        (
+            move |msg| {
+                let mut packet = b"n".to_vec(); // message opcode
+                packet.extend_from_slice(&host_send.encrypt_vec(msg));
+                packet
+            },
+            move |msg| host_recv.decrypt_vec(msg).unwrap(),
+        )
+    }
+
+    fn init_noise<H: crate::hal::Hal>() -> Box<dyn FnMut(&mut H, &[u8]) -> Result<Vec<u8>, ()>> {
+        let (mut encrypt, mut decrypt) = init_noise_ciphers();
         Box::new(move |hal, msg| -> Result<Vec<u8>, ()> {
-            let msg_encrypted = host_send.encrypt_vec(msg);
-            let response_encrypted = block_on(process_packet(hal, {
-                let mut m = b"n".to_vec(); // message opcode
-                m.extend_from_slice(&msg_encrypted);
-                m
-            }));
+            let response_encrypted = block_on(process_packet(hal, encrypt(msg)));
             match response_encrypted.split_first() {
-                Some((&OP_STATUS_SUCCESS, rest)) => Ok(host_recv.decrypt_vec(rest).unwrap()),
+                Some((&OP_STATUS_SUCCESS, rest)) => Ok(decrypt(rest)),
                 _ => Err(()),
             }
         })

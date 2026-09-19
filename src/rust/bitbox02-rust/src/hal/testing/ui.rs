@@ -234,6 +234,14 @@ impl Ui for TestingUi<'_> {
         });
     }
 
+    async fn waiting(&mut self, message: &str) {
+        self.screens.push(Screen::PrintScreen {
+            message: message.into(),
+            duration: Duration::ZERO,
+        });
+        core::future::pending::<()>().await;
+    }
+
     fn switch_to_logo(&mut self) {}
 
     fn reset(&mut self) {}

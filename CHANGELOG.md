@@ -7,6 +7,7 @@ recorded separately.
 ## Firmware
 
 ### Unreleased
+- Allow entering the optional BIP39 passphrase on the host, with device approval and confirmation
 - Reject malformed microSD backups instead of crashing
 - Hold the screen reset pin low until firmware is ready initalize it.
 - Cardano: limit xpub requests to 20 keypaths per batch

@@ -7,14 +7,27 @@ use crate::workflow::password;
 
 use alloc::vec::Vec;
 
-/// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
-/// false if the user rejected it.
-async fn confirm_mnemonic_passphrase(
+/// Confirm the entered mnemonic passphrase with the user. Returns Ok if the user confirmed it,
+/// Err if the user rejected it.
+pub(crate) async fn confirm_mnemonic_passphrase(
     hal: &mut impl crate::hal::Hal,
     passphrase: &str,
+    from_host: bool,
 ) -> Result<(), crate::hal::ui::UserAbort> {
-    // Accept empty passphrase without confirmation.
+    // Accept empty passphrase without confirmation when entered on the device. Host input
+    // must always be explicitly confirmed so the host cannot silently select another wallet.
     if passphrase.is_empty() {
+        if from_host {
+            return hal
+                .ui()
+                .confirm(&ConfirmParams {
+                    title: "Confirm",
+                    body: "Use empty passphrase?",
+                    longtouch: true,
+                    ..Default::default()
+                })
+                .await;
+        }
         return Ok(());
     }
 
@@ -38,6 +51,35 @@ async fn confirm_mnemonic_passphrase(
     };
 
     hal.ui().confirm(&params).await
+}
+
+/// Enter the passphrase without confirmation. Dropping this future discards partial input.
+pub(crate) async fn enter_mnemonic_passphrase(
+    hal: &mut impl crate::hal::Hal,
+) -> zeroize::Zeroizing<alloc::string::String> {
+    password::enter(
+        hal,
+        "Optional passphrase",
+        password::PasswordType::Bip39Passphrase,
+        CanCancel::No,
+    )
+    .await
+    .expect("not cancelable and does not call memory functions")
+}
+
+/// Enter and visually confirm the passphrase. Dropping this future discards partial input.
+async fn enter_and_confirm_mnemonic_passphrase(
+    hal: &mut impl crate::hal::Hal,
+) -> zeroize::Zeroizing<alloc::string::String> {
+    // Loop until the user confirms.
+    loop {
+        let passphrase = enter_mnemonic_passphrase(hal).await;
+
+        if let Ok(()) = confirm_mnemonic_passphrase(hal, passphrase.as_str(), false).await {
+            return passphrase;
+        }
+        hal.ui().status("Please try again", false).await;
+    }
 }
 
 #[derive(Debug)]
@@ -149,25 +191,19 @@ pub async fn unlock_bip39<H: crate::hal::Hal>(
 
     // If setting activated, get the passphrase from the user.
     if hal.memory().is_mnemonic_passphrase_enabled() {
-        // Loop until the user confirms.
-        loop {
-            mnemonic_passphrase = password::enter(
-                hal,
-                "Optional passphrase",
-                password::PasswordType::Bip39Passphrase,
-                CanCancel::No,
-            )
-            .await
-            .expect("not cancelable and does not call memory functions");
-
-            if let Ok(()) = confirm_mnemonic_passphrase(hal, mnemonic_passphrase.as_str()).await {
-                break;
-            }
-
-            hal.ui().status("Please try again", false).await;
-        }
+        mnemonic_passphrase = enter_and_confirm_mnemonic_passphrase(hal).await;
     }
 
+    unlock_bip39_with_passphrase(hal, seed, &mnemonic_passphrase, unlock_animation).await;
+}
+
+/// Derive the selected wallet and play the already-created unlock animation.
+async fn unlock_bip39_with_passphrase<H: crate::hal::Hal>(
+    hal: &mut H,
+    seed: &[u8],
+    mnemonic_passphrase: &str,
+    unlock_animation: <H::Ui as crate::hal::ui::Ui>::UnlockAnimation,
+) {
     let result = {
         let crate::hal::HalSubsystems {
             ui,
@@ -185,7 +221,7 @@ pub async fn unlock_bip39<H: crate::hal::Hal>(
             crate::keystore::unlock_bip39(
                 &mut keystore_hal,
                 seed,
-                &mnemonic_passphrase,
+                mnemonic_passphrase,
                 // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
                 // simulator.
                 #[cfg(any(feature = "c-unit-testing", feature = "simulator-graphical"))]
@@ -215,19 +251,54 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     if !hal.memory().is_initialized() {
         return Err(());
     }
+
+    unlock_with_passphrase(hal, async |hal| {
+        Ok(enter_and_confirm_mnemonic_passphrase(hal).await)
+    })
+    .await
+}
+
+/// A cancelled or failed attempt must not leave the password-unlocked seed behind. The
+/// guard is only created for a locked device and is disarmed after successful BIP39 unlock.
+struct UnlockGuard(bool);
+
+impl Drop for UnlockGuard {
+    fn drop(&mut self) {
+        if self.0 {
+            crate::keystore::lock();
+        }
+    }
+}
+
+/// Unlock an initialized device, leaving an already unlocked wallet unchanged.
+/// `enter_passphrase` must return a confirmed passphrase. It is called only when the optional
+/// passphrase feature is enabled. Errors and cancellation relock the keystore.
+pub(crate) async fn unlock_with_passphrase<H: crate::hal::Hal, E>(
+    hal: &mut H,
+    enter_passphrase: impl AsyncFnOnce(&mut H) -> Result<zeroize::Zeroizing<alloc::string::String>, E>,
+) -> Result<(), E> {
     if !crate::keystore::is_locked() {
         return Ok(());
     }
 
+    let mut guard = UnlockGuard(true);
     let unlock_animation = hal.ui().unlock_animation_create();
 
     // Loop unlock until the password is correct or the device resets.
-    loop {
+    let seed = loop {
         if let Ok(seed) = unlock_keystore(hal, "Enter password", CanCancel::No).await {
-            unlock_bip39(hal, &seed, unlock_animation).await;
-            return Ok(());
+            break seed;
         }
-    }
+    };
+
+    let passphrase = if hal.memory().is_mnemonic_passphrase_enabled() {
+        enter_passphrase(hal).await?
+    } else {
+        zeroize::Zeroizing::new(alloc::string::String::new())
+    };
+    unlock_bip39_with_passphrase(hal, &seed, &passphrase, unlock_animation).await;
+    guard.0 = false;
+    Ok(())
 }
 
 #[cfg(test)]

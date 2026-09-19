@@ -329,6 +329,18 @@ pub fn status_create(text: &str, status_success: bool) -> Component {
     }
 }
 
+pub fn info_centered_create(text: &str) -> Component {
+    Component {
+        component: unsafe {
+            bitbox02_sys::info_centered_create(
+                display_str_to_cstr_vec(text).as_ptr(), // copied in C
+                None,
+            )
+        },
+        is_pushed: false,
+    }
+}
+
 pub async fn sdcard() -> SdcardResponse {
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 

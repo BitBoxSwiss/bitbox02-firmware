@@ -60,6 +60,9 @@ message Request {
         BluetoothRequest bluetooth = 29;
         ChangePasswordRequest change_password = 30;
         BitBoxSyncRequest bitbox_sync = 31;
+        UnlockRequest unlock = 32;
+        UnlockContinueRequest unlock_continue = 33;
+        UnlockHostInfoRequest unlock_host_info = 34;
     }
 }
 
@@ -84,5 +87,6 @@ message Response {
         BIP85Response bip85 = 16;
         BluetoothResponse bluetooth = 17;
         BitBoxSyncResponse bitbox_sync = 18;
+        UnlockResponse unlock = 19;
     }
 }

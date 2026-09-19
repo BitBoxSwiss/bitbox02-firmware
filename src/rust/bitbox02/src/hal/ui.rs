@@ -195,6 +195,13 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         Timer::delay_for(Duration::from_millis(2000)).await;
     }
 
+    async fn waiting(&mut self, message: &str) {
+        let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+        let mut component = crate::ui::info_centered_create(message);
+        component.screen_stack_push();
+        core::future::pending::<()>().await;
+    }
+
     fn print_screen(&mut self, duration: Duration, msg: &str) {
         crate::screen_clear();
         crate::ug_font_select_9x9();

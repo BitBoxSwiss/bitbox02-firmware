@@ -1,16 +1,16 @@
 # Contributing
 
-The codebase is maintained using the "contributor workflow" where everyone without exception
-contributes patch proposals using "pull requests".  This facilitates social contribution, easy
-testing and peer review.
+For security reasons, we do not accept pull requests from external contributors.
 
-To contribute a patch, the workflow is as follows:
+To report a bug, suggest an improvement, or propose a change, please open an issue instead of a
+pull request.
 
-  1. Fork repository
-  1. Create topic branch
-  1. Commit patches
-  1. Push changes to your fork
-  1. Create pull request
+We reserve the right to close pull requests from external contributors without discussion.
+
+Please report security vulnerabilities through our
+[bug bounty program](https://bitbox.swiss/bug-bounty-program) instead of opening a public issue.
+
+## Maintainer guidelines
 
 In general [commits should be
 atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention) and diffs should be

@@ -10,7 +10,7 @@ import hashlib
 import socket
 import pprint
 import sys
-from typing import List, Any, Optional, Callable, Union, Tuple, Sequence, cast
+from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
 import base64
 import binascii
 import textwrap
@@ -1706,10 +1706,8 @@ class SendMessage:
             recipient_public,
             info=b"bitboxsync-wrap-dek-v1",
         )
-        # TODO: Add pyhpke to the Dockerfile and remove these casts.
-        enc = cast(bytes, enc)
-        ciphertext = cast(bytes, sender.seal(namespace_id + namespace_dek))
-        return cast(bytes, b"\x01" + enc + ciphertext)
+        ciphertext = sender.seal(namespace_id + namespace_dek)
+        return b"\x01" + enc + ciphertext
 
     def _bitboxsync_print_identity(self) -> None:
         response = self._device.bitboxsync_identity()

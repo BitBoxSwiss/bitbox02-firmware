@@ -141,10 +141,6 @@ static uint16_t sd_mmc_nb_block_to_tranfer = 0;
 /** Number of block remaining to read or write on the current transfer */
 static uint16_t sd_mmc_nb_block_remaining = 0;
 
-/** SD/MMC transfer rate unit codes (10K) list */
-const uint32_t sd_mmc_trans_units[7] = {10, 100, 1000, 10000, 0, 0, 0};
-/** SD transfer multiplier factor codes (1/10) list */
-const uint32_t sd_trans_multipliers[16] = {0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80};
 /** MMC transfer multiplier factor codes (1/10) list */
 const uint32_t mmc_trans_multipliers[16] = {0, 10, 12, 13, 15, 20, 26, 30, 35, 40, 45, 52, 55, 60, 70, 80};
 
@@ -158,7 +154,7 @@ static bool sdio_cmd52_set_high_speed(void);
 static bool sd_cm6_set_high_speed(void);
 static bool sd_cmd8(uint8_t *v2);
 static bool sd_mmc_cmd9_mci(void);
-static void sd_decode_csd(void);
+static bool sd_decode_csd(void);
 static bool sd_mmc_cmd13(void);
 static bool sdio_cmd52(uint8_t rw_flag, uint8_t func_nb, uint32_t reg_addr, uint8_t rd_after_wr, uint8_t *io_data);
 static bool sdio_cmd53(uint8_t rw_flag, uint8_t func_nb, uint32_t reg_addr, uint8_t inc_addr, uint32_t size,
@@ -291,8 +287,7 @@ static bool sdio_get_max_speed(void)
 {
     uint32_t addr_new, addr_old;
     uint8_t  buf[6];
-    uint32_t unit;
-    uint32_t mul;
+    uint32_t transfer_speed;
     uint8_t  tplfe_max_tran_speed, i;
     uint8_t  addr_cis[4];
 
@@ -335,6 +330,9 @@ static bool sdio_get_max_speed(void)
     }
 
     tplfe_max_tran_speed = buf[5];
+    if (!sd_mmc_decode_transfer_speed(tplfe_max_tran_speed, &transfer_speed)) {
+        return false;
+    }
     if (tplfe_max_tran_speed > 0x32) {
         /* Error on SDIO register, the high speed is not activated
          * and the clock can not be more than 25MHz.
@@ -342,12 +340,12 @@ static bool sdio_get_max_speed(void)
          * (H&D wireless card - HDG104 WiFi SIP).
          */
         tplfe_max_tran_speed = 0x32; /* 25Mhz */
+        if (!sd_mmc_decode_transfer_speed(tplfe_max_tran_speed, &transfer_speed)) {
+            return false;
+        }
     }
 
-    /* Decode transfer speed in Hz.*/
-    unit               = sd_mmc_trans_units[tplfe_max_tran_speed & 0x7];
-    mul                = sd_trans_multipliers[(tplfe_max_tran_speed >> 3) & 0xF];
-    sd_mmc_card->clock = unit * mul * 1000;
+    sd_mmc_card->clock = transfer_speed;
     /**
      * Note: A combo card shall be a Full-Speed SDIO card
      * which supports upto 25MHz.
@@ -524,18 +522,18 @@ static bool sd_mmc_cmd9_mci(void)
 
 /**
  * \brief Decodes SD CSD register
+ *
+ * \return true if success, otherwise false
  */
-static void sd_decode_csd(void)
+static bool sd_decode_csd(void)
 {
-    uint32_t unit;
-    uint32_t mul;
     uint32_t tran_speed;
 
     /* Get SD memory maximum transfer speed in Hz. */
-    tran_speed         = CSD_TRAN_SPEED(sd_mmc_card->csd);
-    unit               = sd_mmc_trans_units[tran_speed & 0x7];
-    mul                = sd_trans_multipliers[(tran_speed >> 3) & 0xF];
-    sd_mmc_card->clock = unit * mul * 1000;
+    tran_speed = CSD_TRAN_SPEED(sd_mmc_card->csd);
+    if (!sd_mmc_decode_transfer_speed(tran_speed, &sd_mmc_card->clock)) {
+        return false;
+    }
 
     /*
      * Get card capacity.
@@ -557,6 +555,7 @@ static void sd_decode_csd(void)
             = ((SD_CSD_1_0_C_SIZE(sd_mmc_card->csd) + 1) * (1 << (SD_CSD_1_0_C_SIZE_MULT(sd_mmc_card->csd) + 2)));
         sd_mmc_card->capacity = blocknr * (1 << SD_CSD_1_0_READ_BL_LEN(sd_mmc_card->csd)) / 1024;
     }
+    return true;
 }
 
 /**
@@ -850,7 +849,9 @@ static bool sd_mmc_mci_card_init(void)
         if (!sd_mmc_cmd9_mci()) {
             return false;
         }
-        sd_decode_csd();
+        if (!sd_decode_csd()) {
+            return false;
+        }
     }
     /* Select the and put it into Transfer Mode */
     if (!driver_send_cmd(sd_mmc_hal, SDMMC_CMD7_SELECT_CARD_CMD, (uint32_t)sd_mmc_card->rca << 16)) {

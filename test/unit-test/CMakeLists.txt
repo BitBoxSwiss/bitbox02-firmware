@@ -47,6 +47,8 @@ else()
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      screen_process
      "-Wl,--wrap=screen_saver_get,--wrap=screen_saver_process,--wrap=waiting_create"
+     sd_mmc_protocol
+     ""
      ui_components
      ""
      ui_util
@@ -121,6 +123,12 @@ else()
     endif()
     if(TEST_NAME STREQUAL "stage0_descriptor")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_descriptor.c)
+    endif()
+    if(TEST_NAME STREQUAL "sd_mmc_protocol")
+      target_include_directories(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/sd_mmc
+      )
     endif()
     if(TEST_NAME STREQUAL "bootloader_upgrade_check")
       target_sources(${EXE} PRIVATE

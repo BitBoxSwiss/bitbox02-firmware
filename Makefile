@@ -26,14 +26,14 @@ build-debug/Makefile:
 build-build/Makefile:
 	./scripts/bootstrap-cargo-config
 	mkdir -p build-build
-	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
+	cd build-build && cmake .. -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
 	$(MAKE) -C py/bitbox02
 
 # ubsan/asan not supported with simulators and rust unit tests
 build-build-noasan/Makefile:
 	./scripts/bootstrap-cargo-config
 	mkdir -p build-build-noasan
-	cd build-build-noasan && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
+	cd build-build-noasan && cmake .. -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
 	$(MAKE) -C py/bitbox02
 
 # Directory for building for "host" machine according to gcc convention
@@ -163,9 +163,6 @@ run-rust-unit-tests:
 	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
-# Must run tests before creating coverage report
-coverage: | build-build
-	${MAKE} -C build-build coverage
 #./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test

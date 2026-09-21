@@ -100,7 +100,6 @@ if(CMAKE_CROSSCOMPILING)
   # Advanced Software Framework Drivers
   # Only drivers needed for bootloader (minimal set)
   add_library(asf4-drivers-min STATIC
-    asf4-drivers/hal/utils/src/utils_syscalls.c
     asf4-drivers/hal/utils/src/utils_list.c
     asf4-drivers/hal/src/hal_atomic.c
     asf4-drivers/hal/src/hal_gpio.c

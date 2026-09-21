@@ -47,6 +47,8 @@ else()
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      screen_process
      "-Wl,--wrap=screen_saver_get,--wrap=screen_saver_process,--wrap=waiting_create"
+     sbrk
+     ""
      ui_components
      ""
      ui_util
@@ -127,6 +129,10 @@ else()
           ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/firmware_installer_check.c
       )
       target_compile_definitions(${EXE} PRIVATE PRODUCT_BITBOX_MULTI=1)
+    endif()
+    if(TEST_NAME STREQUAL "sbrk")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/sbrk.c)
+      target_compile_definitions(${EXE} PRIVATE _DEFAULT_SOURCE)
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

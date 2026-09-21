@@ -154,19 +154,24 @@ pub trait Ui {
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort>;
 
-    /// Enter one recovery word from `params.wordlist` (which must be set). Like
+    /// Enter one recovery word from `wordlist`. Like
     /// [`Ui::enter_string`], but the error reports how the user left the screen, so a UI with
     /// separate back and cancel controls (BitBox03) lets the mnemonic workflow go straight back
     /// to the previous word. The default delegates to `enter_string`, whose single abort maps
     /// to [`WordlistEntryAbort::Unspecified`] (BitBox02): the workflow then asks what the user
-    /// meant.
+    /// meant. Recovery-word entry always allows aborting.
     async fn enter_wordlist_word(
         &mut self,
-        params: &EnterStringParams<'_>,
-        can_cancel: CanCancel,
+        title: &str,
+        wordlist: &[u16],
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, WordlistEntryAbort> {
-        self.enter_string(params, can_cancel, preset)
+        let params = EnterStringParams {
+            title,
+            wordlist: Some(wordlist),
+            ..Default::default()
+        };
+        self.enter_string(&params, CanCancel::Yes, preset)
             .await
             .map_err(|UserAbort| WordlistEntryAbort::Unspecified)
     }

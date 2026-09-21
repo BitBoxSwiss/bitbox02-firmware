@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
+use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -233,17 +233,7 @@ async fn get_12th_18th_word(
     // these.
     loop {
         let choices = lastword_choices(entered_words);
-        let word = hal_ui
-            .enter_wordlist_word(
-                &crate::hal::ui::EnterStringParams {
-                    title,
-                    wordlist: Some(&choices),
-                    ..Default::default()
-                },
-                CanCancel::Yes,
-                "",
-            )
-            .await?;
+        let word = hal_ui.enter_wordlist_word(title, &choices, "").await?;
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
@@ -310,15 +300,7 @@ pub async fn get(
             }
         } else {
             hal_ui
-                .enter_wordlist_word(
-                    &crate::hal::ui::EnterStringParams {
-                        title: &title,
-                        wordlist: Some(&bip39_wordlist),
-                        ..Default::default()
-                    },
-                    CanCancel::Yes,
-                    preset,
-                )
+                .enter_wordlist_word(&title, &bip39_wordlist, preset)
                 .await
         };
 

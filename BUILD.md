@@ -295,8 +295,10 @@ dev-kit and J-Link for the testboard. Both share the reset and RTT work-area set
 Start `make debug-server` in a separate terminal and leave it running in the foreground before
 using a `run-*` command. SEGGER uses port 2331 with download verification enabled; OpenOCD uses
 3333. GDB resets/halts, loads the ELF, verifies sections, sets VTOR, SP and PC from the image vector
-table, and issues `c`. It stays attached for Ctrl-C and breakpoints. To stop at entry, interrupt and
-set a breakpoint before rerunning the load sequence.
+table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup commands live in
+[`scripts/openocd.gdb`](scripts/openocd.gdb) and [`scripts/jlink.gdb`](scripts/jlink.gdb).
+Edit the script for your probe software to add breakpoints or comment out the final `c` to stop
+at entry. The helper selects the script and supplies the image vector address each time.
 
 BitBox02 stage1 flashing uses its finalized `.bin`. For GDB, the helper updates the header in a
 separate `.gdb.elf`, preserves symbols, and verifies that converting it back to binary exactly

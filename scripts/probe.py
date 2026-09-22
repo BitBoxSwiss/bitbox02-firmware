@@ -89,39 +89,6 @@ def server_command(config: Config) -> list[str]:
     return jlink_gdb_server(config)
 
 
-def gdb_commands(config: Config, info: Image) -> str:
-    commands = []
-    if config.probe_software == "openocd":
-        # Start RTT only after the application has initialized its channels.
-        commands += [
-            "define rtt_start",
-            '  monitor rtt setup 0x20000200 0x1000 "SEGGER RTT"',
-            "  monitor rtt start",
-            "  monitor rtt server start 19021 0",
-            "  monitor rtt server start 19022 1",
-            "end",
-            "target extended-remote :3333",
-            "monitor reset init",
-            "monitor halt",
-        ]
-    else:
-        # Reset before loading, as recommended by the SEGGER GDB Server examples.
-        commands += ["target extended-remote :2331", "monitor reset", "monitor halt"]
-    commands += [
-        "load",
-        "compare-sections",
-        # Rust images can select the Rust expression parser; these are C expressions.
-        "set language c",
-        f"set {{unsigned int}}0xe000ed08 = {info.vectors:#x}",
-        f"set $sp = *(unsigned int*){info.vectors:#x}",
-        f"set $pc = *(unsigned int*){info.vectors + 4:#x}",
-        "set $xpsr = 0x01000000",
-        "set language auto",
-        "c",
-    ]
-    return "\n".join(commands) + "\n"
-
-
 def openocd_flash_commands(info: Image) -> str:
     path = tcl_quote(info.binary)
     if info.ram:
@@ -226,15 +193,23 @@ def execute(
     if config.product != "bitbox03" and image == "bootloader-stage1":
         require_artifact(info.binary, target)
         elf = finalized_stage1_elf(info)
-    with tempfile.TemporaryDirectory(prefix="bitbox-probe-") as tmp:
-        script = Path(tmp) / "run.gdb"
-        script.write_text(gdb_commands(config, info), encoding="utf-8")
-        # Ctrl-C must interrupt the inferior without terminating the attached GDB.
-        previous = signal.signal(signal.SIGINT, lambda _signum, _frame: None)
-        try:
-            subprocess.run(["arm-none-eabi-gdb", "-q", str(elf), "-x", str(script)], check=True)
-        finally:
-            signal.signal(signal.SIGINT, previous)
+    # Ctrl-C must interrupt the inferior without terminating the attached GDB.
+    previous = signal.signal(signal.SIGINT, lambda _signum, _frame: None)
+    try:
+        subprocess.run(
+            [
+                "arm-none-eabi-gdb",
+                "-q",
+                str(elf),
+                "-ex",
+                f"set $vectors = {info.vectors:#x}",
+                "-x",
+                str(ROOT / "scripts" / f"{config.probe_software}.gdb"),
+            ],
+            check=True,
+        )
+    finally:
+        signal.signal(signal.SIGINT, previous)
 
 
 def main() -> int:

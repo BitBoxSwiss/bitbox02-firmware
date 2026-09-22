@@ -255,17 +255,27 @@ class ProbeTests(unittest.TestCase):
     def test_run_loads_then_initializes_then_continues_attached(self):
         for product in config.PRODUCTS:
             for software in config.defaults(product).software_choices:
+                script = ROOT / "scripts" / f"{software}.gdb"
+                commands = [line.strip() for line in script.read_text().splitlines()]
+                load = commands.index("load")
+                self.assertTrue(all("reset" not in command for command in commands[load + 1 :]))
+                self.assertGreater(commands.index("set {unsigned int}0xe000ed08 = $vectors"), load)
+                self.assertEqual(commands[-1], "c")
+                self.assertFalse(any(command in ("quit", "detach") for command in commands))
                 selected = replace(config.defaults(product), probe_software=software)
                 for name in config.IMAGES:
                     info = config.image_info(selected, name)
-                    commands = probe.gdb_commands(selected, info).splitlines()
-                    load = commands.index("load")
-                    self.assertTrue(all("reset" not in command for command in commands[load + 1 :]))
-                    self.assertGreater(
-                        commands.index(f"set {{unsigned int}}0xe000ed08 = {info.vectors:#x}"), load
-                    )
-                    self.assertEqual(commands[-1], "c")
-                    self.assertFalse(any(command in ("quit", "detach") for command in commands))
+                    with patch.object(Path, "is_file", return_value=True), patch.object(
+                        shutil, "which", return_value="tool"
+                    ), patch.object(
+                        probe, "finalized_stage1_elf", return_value=info.elf
+                    ), patch.object(
+                        probe.subprocess, "run"
+                    ) as run:
+                        probe.execute(selected, "run", name)
+                    command = run.call_args.args[0]
+                    self.assertEqual(command[-2:], ["-x", str(script)])
+                    self.assertIn(f"set $vectors = {info.vectors:#x}", command)
                     port = "3333" if software == "openocd" else "2331"
                     self.assertIn(f"target extended-remote :{port}", commands)
                     (
@@ -311,7 +321,7 @@ class ProbeTests(unittest.TestCase):
             self.assertIn(
                 f"set PROBE_ADAPTER {selected.probe_hardware}", probe.server_command(selected)
             )
-            commands = probe.gdb_commands(selected, config.image_info(selected, "firmware"))
+            commands = (ROOT / "scripts" / "openocd.gdb").read_text()
             self.assertIn("rtt server start 19021 0", commands)
             self.assertIn("rtt server start 19022 1", commands)
 

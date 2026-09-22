@@ -34,7 +34,7 @@ impl HalEmpty for BitBox02Empty {}
 fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
         Font::Default => crate::ui::Font::Default,
-        Font::Password11X12 => crate::ui::Font::Password11X12,
+        Font::PasswordMonogram7X12 => crate::ui::Font::PasswordMonogram7X12,
         Font::Monogram5X9 => crate::ui::Font::Monogram5X9,
     }
 }
@@ -309,7 +309,10 @@ mod tests {
     fn test_to_bitbox02_font() {
         let cases = [
             (Font::Default, crate::ui::Font::Default),
-            (Font::Password11X12, crate::ui::Font::Password11X12),
+            (
+                Font::PasswordMonogram7X12,
+                crate::ui::Font::PasswordMonogram7X12,
+            ),
             (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
         ];
         for (input, expected) in cases {
@@ -321,7 +324,10 @@ mod tests {
     fn test_to_bitbox02_confirm_params() {
         let fonts = [
             (Font::Default, crate::ui::Font::Default),
-            (Font::Password11X12, crate::ui::Font::Password11X12),
+            (
+                Font::PasswordMonogram7X12,
+                crate::ui::Font::PasswordMonogram7X12,
+            ),
             (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
         ];
         for (font, expected_font) in fonts {

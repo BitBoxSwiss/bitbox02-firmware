@@ -41,7 +41,7 @@
 #include <ui/fonts/font_a_11X10.h>
 #include <ui/fonts/font_a_9X9.h>
 #include <ui/fonts/monogram_5X9.h>
-#include <ui/fonts/password_11X12.h>
+#include <ui/fonts/password_monogram_7X12.h>
 #include <ui/oled/oled.h>
 #include <ui/screen_process.h>
 #include <ui/screen_saver.h>

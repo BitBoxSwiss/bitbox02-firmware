@@ -14,7 +14,7 @@ const _: () = assert!(MAX_LABEL_SIZE == bitbox02_sys::MAX_LABEL_SIZE as usize);
 pub enum Font {
     #[default]
     Default,
-    Password11X12,
+    PasswordMonogram7X12,
     Monogram5X9,
 }
 
@@ -23,7 +23,7 @@ impl Font {
     pub(crate) fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
         match self {
             Font::Default => core::ptr::null() as *const _,
-            Font::Password11X12 => unsafe { &bitbox02_sys::font_password_11X12 },
+            Font::PasswordMonogram7X12 => unsafe { &bitbox02_sys::font_password_monogram_7X12 },
             Font::Monogram5X9 => unsafe { &bitbox02_sys::font_monogram_5X9 },
         }
     }

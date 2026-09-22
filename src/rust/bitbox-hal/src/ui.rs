@@ -25,7 +25,7 @@ pub enum WordlistEntryAbort {
 pub enum Font {
     #[default]
     Default,
-    Password11X12,
+    PasswordMonogram7X12,
     Monogram5X9,
 }
 

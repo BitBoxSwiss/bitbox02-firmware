@@ -46,6 +46,7 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_9X9.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_11X12.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_monogram_7X12.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_saver.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c

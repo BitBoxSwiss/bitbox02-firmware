@@ -44,3 +44,17 @@ exclamation mark `!` to get a good understanding of the layout.
 
 Each item in the array is suffixed with a comment that shows which character the bytes correspond
 to.
+
+## Monogram password font
+
+The bundled `monogram.ttf` is Monogram by Vinícius Menézio (datagoblin), published under CC0:
+https://datagoblin.itch.io/monogram
+
+`password_monogram_7X12` is generated from this TTF with `ttf2ugui --size 20 --bpp=1 --dump`.
+The resulting 12-row bitmap and 9-pixel capital height match `password_11X12`, while all character
+widths are 8 pixels. After conversion, rename the `monogram_7X12` symbols to
+`password_monogram_7X12` and replace the space bitmap with the visible-space glyph from
+`password_11X12` (one byte per row instead of two). This is the only modified glyph.
+
+This variant is used for passphrase confirmation. The keyboard continues to use `password_9X9`
+and `password_11X12`.

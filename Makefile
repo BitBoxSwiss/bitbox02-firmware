@@ -1,155 +1,80 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# This makefile is used as a command runner and not for tracking dependencies between recipies
-
-UNAME_S := $(shell uname -s)
-
+# Command aliases, not a dependency graph. Keep setup explicit in recipes.
 .DEFAULT_GOAL := firmware
+.NOTPARALLEL:
 SANITIZE ?= ON
+
+ifneq ($(filter config,$(MAKECMDGOALS)),)
+ifneq ($(words $(MAKECMDGOALS)),1)
+$(error Run make config separately so subsequent commands use the saved settings)
+endif
+else
+-include config.mk
+endif
+PRODUCT ?= bitbox02
+BOARD ?= $(if $(filter bitbox03,$(PRODUCT)),dev-kit,$(PRODUCT))
+EDITION ?= multi
+PROBE_SOFTWARE ?= $(if $(filter bitbox03,$(PRODUCT)),openocd,jlink)
+SWD_SPEED ?= 4000
+CONFIG_OPTIONS = --product "$(PRODUCT)" --board "$(BOARD)" --edition "$(EDITION)" --probe-software "$(PROBE_SOFTWARE)" --swd-speed "$(SWD_SPEED)"
+
+config:
+	python3 scripts/build_config.py $(CONFIG_ARGS)
 
 bootstrap:
 	git submodule update --init --recursive
 	./scripts/bootstrap-cargo-config
 
-build/Makefile:
-	./scripts/bootstrap-cargo-config
-	mkdir -p build
-	cd build && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake ..
-	$(MAKE) -C py/bitbox02
+IMAGES := firmware factorysetup bootloader-stage0 bootloader-stage1
+BUILD_TARGETS := $(IMAGES) firmware-debug firmware-release factorysetup-debug factorysetup-release \
+	bootloader-stage0-production bootloader-stage0-development \
+	bootloader-stage1-production bootloader-stage1-development \
+	bootloader-upgrade-assets bootloader-upgrade-assets-development docs rust-docs
+BUILD_TARGETS += $(foreach product,bitbox02 bitbox02nova,$(foreach edition,multi btconly,\
+	firmware-blupgrade-$(product)-$(edition) firmware-blupgrade-$(product)-$(edition)-development))
+BUILD_TARGETS += $(foreach image,boot0 boot1 firmware factorysetup,\
+	bitbox03-$(image)-debug bitbox03-$(image)-release)
 
-build-debug/Makefile:
-	./scripts/bootstrap-cargo-config
-	mkdir -p build-debug
-	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
-	$(MAKE) -C py/bitbox02
+$(BUILD_TARGETS):
+	+python3 scripts/build_product.py $(CONFIG_OPTIONS) $@
 
-build-build/Makefile:
+$(addprefix flash-,$(IMAGES)):
+	python3 scripts/probe.py $(CONFIG_OPTIONS) flash $(patsubst flash-%,%,$@)
+$(addprefix run-,$(IMAGES)):
+	python3 scripts/probe.py $(CONFIG_OPTIONS) run $(patsubst run-%,%,$@)
+debug-server:
+	python3 scripts/probe.py $(CONFIG_OPTIONS) server
+
+build-build:
 	./scripts/bootstrap-cargo-config
-	mkdir -p build-build
-	cd build-build && cmake .. -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
+	test -f build-build/Makefile || cmake -S . -B build-build -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
 	$(MAKE) -C py/bitbox02
 
 # ubsan/asan not supported with simulators and rust unit tests
-build-build-noasan/Makefile:
+build-build-noasan:
 	./scripts/bootstrap-cargo-config
-	mkdir -p build-build-noasan
-	cd build-build-noasan && cmake .. -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
+	test -f build-build-noasan/Makefile || cmake -S . -B build-build-noasan -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
 	$(MAKE) -C py/bitbox02
 
-# Directory for building for "host" machine according to gcc convention
-build: build/Makefile
-
-# Directory for building debug build for "host" machine according to gcc convention
-build-debug: build-debug/Makefile
-
-# Directory for building for "build" machine according to gcc convention
-build-build: build-build/Makefile
-
-# Directory for building for "build" machine according to gcc convention
-# Should only be used for rust unit tests since we didn't add support to
-# address santizers when they link code compiled with gcc.
-build-build-noasan: build-build-noasan/Makefile
-
-firmware: | build
-	$(MAKE) -C build firmware.elf
-firmware-btc: | build
-	$(MAKE) -C build firmware-btc.elf
-firmware-debug: | build-debug
-	$(MAKE) -C build-debug firmware.elf
-
-firmware-blupgrade-bitbox02-btconly: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02-btconly.elf
-firmware-blupgrade-bitbox02-multi: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02-multi.elf
-firmware-blupgrade-bitbox02nova-btconly: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02nova-btconly.elf
-firmware-blupgrade-bitbox02nova-multi: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02nova-multi.elf
-firmware-blupgrade-bitbox02-btconly-development: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02-btconly-development.elf
-firmware-blupgrade-bitbox02-multi-development: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02-multi-development.elf
-firmware-blupgrade-bitbox02nova-btconly-development: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02nova-btconly-development.elf
-firmware-blupgrade-bitbox02nova-multi-development: | build
-	$(MAKE) -C build firmware-blupgrade-bitbox02nova-multi-development.elf
-
-# Stage0 aggregate targets build all production/development variants.
-bootloader-stage0: | build
-	$(MAKE) -C build bootloader-stage0
-bootloader-stage0-production: | build
-	$(MAKE) -C build bootloader-stage0-production
-bootloader-stage0-development: | build
-	$(MAKE) -C build bootloader-stage0-development
-
-# Per-product stage0 targets build their matching ELF/bin.
-bootloader-stage0-bitbox02-btconly-development: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02-btconly-development.elf
-bootloader-stage0-bitbox02-btconly-production: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02-btconly-production.elf
-bootloader-stage0-bitbox02-multi-development: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02-multi-development.elf
-bootloader-stage0-bitbox02-multi-production: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02-multi-production.elf
-bootloader-stage0-bitbox02nova-btconly-development: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02nova-btconly-development.elf
-bootloader-stage0-bitbox02nova-btconly-production: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02nova-btconly-production.elf
-bootloader-stage0-bitbox02nova-multi-development: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02nova-multi-development.elf
-bootloader-stage0-bitbox02nova-multi-production: | build
-	$(MAKE) -C build bootloader-stage0-bitbox02nova-multi-production.elf
-
-# Stage1 aggregate targets build all production/development variants.
-# The per-product stage1 targets build their matching ELF/bin.
-bootloader-stage1: | build
-	$(MAKE) -C build bootloader-stage1
-bootloader-stage1-production: | build
-	$(MAKE) -C build bootloader-stage1-production
-bootloader-stage1-development: | build
-	$(MAKE) -C build bootloader-stage1-development
-bootloader-stage1-bitbox02-btconly-development: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-development.elf
-bootloader-stage1-bitbox02-btconly-production: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-production.elf
-bootloader-stage1-bitbox02-multi-development: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02-multi-development.elf
-bootloader-stage1-bitbox02-multi-production: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02-multi-production.elf
-bootloader-stage1-bitbox02nova-btconly-development: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02nova-btconly-development.elf
-bootloader-stage1-bitbox02nova-btconly-production: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02nova-btconly-production.elf
-bootloader-stage1-bitbox02nova-multi-development: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-development.elf
-bootloader-stage1-bitbox02nova-multi-production: | build
-	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-production.elf
-
-bootloader-upgrade-assets: | build
-	$(MAKE) -C build bootloader-upgrade-assets
-bootloader-upgrade-assets-development: | build
-	$(MAKE) -C build bootloader-upgrade-assets-development
-
-factory-setup: | build
-	$(MAKE) -C build factory-setup.elf
-factory-setup-debug: | build-debug
-	$(MAKE) -C build-debug factory-setup.elf
-docs: | build
-	$(MAKE) -C build doc
-rust-docs: | build
-	$(MAKE) -C build rust-docs
-simulator: | build-build-noasan
+simulator:
+	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator
-simulator-graphical: | build-build-noasan
+simulator-graphical:
+	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator-graphical
-simulator-graphical-bb03: | build-build-noasan
+simulator-graphical-bb03:
+	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator-graphical-bb03
-run-simulator: | simulator
+run-simulator:
+	$(MAKE) simulator
 	./build-build-noasan/bin/simulator
-unit-test: | build-build
+unit-test:
+	$(MAKE) build-build
 	$(MAKE) -C build-build
 # Must compile C tests before running them
-run-unit-tests: | build-build
+run-unit-tests:
+	$(MAKE) build-build
 	if command -v setarch >/dev/null 2>&1 && setarch "$$(uname -m)" -R true >/dev/null 2>&1; then \
 		CTEST_OUTPUT_ON_FAILURE=1 setarch "$$(uname -m)" -R $(MAKE) -C build-build test; \
 	else \
@@ -161,77 +86,89 @@ run-unit-tests: | build-build
 run-rust-unit-tests:
 	./scripts/bootstrap-cargo-config
 	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
-run-rust-clippy: | build-build-noasan
+run-rust-clippy:
+	$(MAKE) build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
-#./build/bin/test_ui_component_gestures;
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
+flash-dev-firmware: FIRMWARE_BIN = build-$(PRODUCT)-cmake-relwithdebinfo/bin/firmware$(if $(filter btc-only,$(EDITION)),-btc).bin
 flash-dev-firmware:
-	./py/load_firmware.py build/bin/firmware.bin --yes
+	@case "$(PRODUCT)" in bitbox02|bitbox02nova) ;; *) echo "flash-dev-firmware is only supported on BitBox02/Nova" >&2; exit 1 ;; esac
+	@case "$(EDITION)" in multi|btc-only) ;; *) echo "Invalid edition: $(EDITION)" >&2; exit 1 ;; esac
+	@test -f "$(FIRMWARE_BIN)" || { echo "Image not found: $(FIRMWARE_BIN). Build it first with: make firmware" >&2; exit 1; }
+	python3 py/load_firmware.py "$(FIRMWARE_BIN)" --yes
 
 # Per-product development stage0/stage1 J-Link wrappers flash already-built images.
-jlink-flash-bootloader-stage0-bitbox02-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02-btconly-development.jlink
-jlink-flash-bootloader-stage0-bitbox02-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02-multi-development.jlink
-jlink-flash-bootloader-stage0-bitbox02nova-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02nova-btconly-development.jlink
-jlink-flash-bootloader-stage0-bitbox02nova-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02nova-multi-development.jlink
-jlink-flash-bootloader-stage1-bitbox02-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-btconly-development.jlink
-jlink-flash-bootloader-stage1-bitbox02-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-multi-development.jlink
-jlink-flash-bootloader-stage1-bitbox02nova-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-btconly-development.jlink
-jlink-flash-bootloader-stage1-bitbox02nova-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-multi-development.jlink
+jlink-flash-bootloader-stage0-bitbox02-btconly-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/bootloader-stage0-bitbox02-btconly-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02-btconly-development.jlink || { echo "Missing image; run: make bootloader-stage0 PRODUCT=bitbox02 BOARD=bitbox02 EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02-btconly-development.jlink
+jlink-flash-bootloader-stage0-bitbox02-multi-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/bootloader-stage0-bitbox02-multi-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02-multi-development.jlink || { echo "Missing image; run: make bootloader-stage0 PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02-multi-development.jlink
+jlink-flash-bootloader-stage0-bitbox02nova-btconly-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/bootloader-stage0-bitbox02nova-btconly-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02nova-btconly-development.jlink || { echo "Missing image; run: make bootloader-stage0 PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02nova-btconly-development.jlink
+jlink-flash-bootloader-stage0-bitbox02nova-multi-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/bootloader-stage0-bitbox02nova-multi-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02nova-multi-development.jlink || { echo "Missing image; run: make bootloader-stage0 PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage0-bitbox02nova-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02-btconly-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/bootloader-stage1-bitbox02-btconly-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02-btconly-development.jlink || { echo "Missing image; run: make bootloader-stage1 PRODUCT=bitbox02 BOARD=bitbox02 EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02-btconly-development.jlink
+jlink-flash-bootloader-stage1-bitbox02-multi-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/bootloader-stage1-bitbox02-multi-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02-multi-development.jlink || { echo "Missing image; run: make bootloader-stage1 PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02nova-btconly-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/bootloader-stage1-bitbox02nova-btconly-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02nova-btconly-development.jlink || { echo "Missing image; run: make bootloader-stage1 PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02nova-btconly-development.jlink
+jlink-flash-bootloader-stage1-bitbox02nova-multi-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/bootloader-stage1-bitbox02nova-multi-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02nova-multi-development.jlink || { echo "Missing image; run: make bootloader-stage1 PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/bootloader-stage1-bitbox02nova-multi-development.jlink
 
-jlink-flash-firmware: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
-jlink-flash-firmware-btc: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
-jlink-flash-factory-setup: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
-jlink-flash-firmware-debug: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
+jlink-flash-firmware:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/firmware.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware.jlink || { echo "Missing image; run: make firmware PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware.jlink
+jlink-flash-firmware-btc:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/firmware-btc.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-btc.jlink || { echo "Missing image; run: make firmware PRODUCT=bitbox02 BOARD=bitbox02 EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-btc.jlink
+jlink-flash-factory-setup:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/factory-setup.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/factory-setup.jlink || { echo "Missing image; run: make factorysetup PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/factory-setup.jlink
+jlink-flash-firmware-debug:
+	@test -f ./build-bitbox02-cmake-debug/bin/firmware.bin && test -f ./build-bitbox02-cmake-debug/scripts/firmware.jlink || { echo "Missing image; run: make firmware-debug PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-debug/scripts/firmware.jlink
 
-jlink-flash-firmware-blupgrade-bitbox02-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02-btconly-development.jlink
-jlink-flash-firmware-blupgrade-bitbox02-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02-multi-development.jlink
-jlink-flash-firmware-blupgrade-bitbox02nova-btconly-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02nova-btconly-development.jlink
-jlink-flash-firmware-blupgrade-bitbox02nova-multi-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02nova-multi-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02-btconly-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/firmware-blupgrade-bitbox02-btconly-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02-btconly-development.jlink || { echo "Missing image; run: make firmware-blupgrade-bitbox02-btconly-development PRODUCT=bitbox02 BOARD=bitbox02 EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02-btconly-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02-multi-development:
+	@test -f ./build-bitbox02-cmake-relwithdebinfo/bin/firmware-blupgrade-bitbox02-multi-development.bin && test -f ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02-multi-development.jlink || { echo "Missing image; run: make firmware-blupgrade-bitbox02-multi-development PRODUCT=bitbox02 BOARD=bitbox02 EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02-multi-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02nova-btconly-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/firmware-blupgrade-bitbox02nova-btconly-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02nova-btconly-development.jlink || { echo "Missing image; run: make firmware-blupgrade-bitbox02nova-btconly-development PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=btc-only" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02nova-btconly-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02nova-multi-development:
+	@test -f ./build-bitbox02nova-cmake-relwithdebinfo/bin/firmware-blupgrade-bitbox02nova-multi-development.bin && test -f ./build-bitbox02nova-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02nova-multi-development.jlink || { echo "Missing image; run: make firmware-blupgrade-bitbox02nova-multi-development PRODUCT=bitbox02nova BOARD=bitbox02nova EDITION=multi" >&2; exit 1; }
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./build-bitbox02nova-cmake-relwithdebinfo/scripts/firmware-blupgrade-bitbox02nova-multi-development.jlink
 
 jlink-flash-set-new-screen:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-new-screen.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/set-new-screen.jlink
 jlink-flash-set-original-screen:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-original-screen.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/set-original-screen.jlink
 jlink-flash-reset-version:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/reset-version.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/reset-version.jlink
 jlink-flash-set-securechip-optiga:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
 jlink-flash-set-bb02plus:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-bb02plus.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/set-bb02plus.jlink
 jlink-flash-bb02-set-factory-randomness:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/bb02-set-factory-randomness.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/bb02-set-factory-randomness.jlink
 jlink-erase-firmware-quick:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/erase-firmware-quick.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -autoconnect 1 -CommanderScript ./scripts/erase-firmware-quick.jlink
 jlink-gdb-server:
-	JLinkGDBServer -nogui -if SWD -device ATSAMD51J20 -speed 4000
+	JLinkGDBServer -nogui -if SWD -device ATSAMD51J20 -speed "$(SWD_SPEED)" -port 2331 -RTTTelnetPort 19021 -vd
 rtt-client:
 	telnet localhost 19021
-run-debug:
-	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
-run-bootloader-stage0:
-	arm-none-eabi-gdb -x scripts/jlink-bootloader-stage0.gdb build/bin/bootloader-stage0-bitbox02-multi-development.elf
-run-bootloader-stage1:
-	arm-none-eabi-gdb -x scripts/jlink-bootloader-stage1.gdb build/bin/bootloader-stage1-bitbox02-multi-development.elf
-run-factory-setup-debug:
-	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
 dockerinit:
 	./scripts/container.sh build --pull -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:
@@ -246,56 +183,37 @@ generate-atecc608-config:
 	cd tools/atecc608 && go run main.go
 ci:
 	./.ci/ci
-prepare-tidy: | build build-build
-	$(MAKE) -C build rust-cbindgen
+prepare-tidy:
+	+python3 scripts/build_product.py $(CONFIG_OPTIONS) prepare-tidy
+	$(MAKE) build-build
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-noasan src/rust/target
+	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	./external/vendor-rust.sh
 
-# It is important that cargo is executed from `src/rust` so that it loads the
-# configuration for the vendored dependencies.
-bitbox03-boot0:
-	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk)
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
-bitbox03-boot0-release:
-	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk-release)
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
-bitbox03-boot1:
-	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk)
-	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
-bitbox03-boot1-release:
-	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk-release)
-	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
-bitbox03-factorysetup:
-	(cd src/rust; cargo bitbox03-factorysetup-stm32u5a9j-dk)
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
-bitbox03-factorysetup-release:
-	(cd src/rust; cargo bitbox03-factorysetup-stm32u5a9j-dk-release)
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
-bitbox03-firmware:
-	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk)
-	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
-bitbox03-firmware-release:
-	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk-release)
-	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
-	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
-	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
-
-flash-bitbox03-boot0-openocd:
-	./scripts/flash-bitbox03-boot0-openocd.sh
-flash-bitbox03-boot1-openocd:
-	./scripts/flash-bitbox03-boot1-openocd.sh
+# Mark all command aliases phony, including generated image/variant names.
+.PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(IMAGES)) $(addprefix run-,$(IMAGES))
+.PHONY: config bootstrap debug-server \
+	build-build build-build-noasan simulator simulator-graphical simulator-graphical-bb03 \
+	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
+	run-valgrind-on-unit-tests flash-dev-firmware \
+	jlink-flash-bootloader-stage0-bitbox02-btconly-development \
+	jlink-flash-bootloader-stage0-bitbox02-multi-development \
+	jlink-flash-bootloader-stage0-bitbox02nova-btconly-development \
+	jlink-flash-bootloader-stage0-bitbox02nova-multi-development \
+	jlink-flash-bootloader-stage1-bitbox02-btconly-development \
+	jlink-flash-bootloader-stage1-bitbox02-multi-development \
+	jlink-flash-bootloader-stage1-bitbox02nova-btconly-development \
+	jlink-flash-bootloader-stage1-bitbox02nova-multi-development jlink-flash-firmware \
+	jlink-flash-firmware-btc jlink-flash-factory-setup jlink-flash-firmware-debug \
+	jlink-flash-firmware-blupgrade-bitbox02-btconly-development \
+	jlink-flash-firmware-blupgrade-bitbox02-multi-development \
+	jlink-flash-firmware-blupgrade-bitbox02nova-btconly-development \
+	jlink-flash-firmware-blupgrade-bitbox02nova-multi-development jlink-flash-set-new-screen \
+	jlink-flash-set-original-screen jlink-flash-reset-version jlink-flash-set-securechip-optiga \
+	jlink-flash-set-bb02plus jlink-flash-bb02-set-factory-randomness jlink-erase-firmware-quick \
+	jlink-gdb-server rtt-client dockerinit dockerpull dockerdev dockerrel generate-protobufs \
+	generate-atecc608-config ci prepare-tidy clean vendor-rust-deps

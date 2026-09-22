@@ -110,10 +110,22 @@ run-unit-tests` and
 Use `<context>: <summary>` for commit subjects. Inspect recent commits touching the affected
 code and reuse the established context prefix and style.
 
-Write commits with a ≤50 character subject (including the prefix), blank line, and explanatory body;
-reference issues via `refs #1234` or `fixes #1234`. Keep patches atomic—avoid
-mixing formatting and logic. Pull requests should outline the change, list verification commands or
-screenshots, and flag hardware requirements. Wait to squash until reviews conclude.
+Write commits with a ≤50 character subject (including the prefix), blank line, and explanatory body.
+
+Start the body with why the change is needed: describe the concrete problem, limitation, or goal
+and its impact. Then explain the resulting behavior, using a before/after example when helpful.
+For behavior-preserving changes, say so and explain the maintenance or structural benefit. Include
+implementation details only when they explain the approach, a tradeoff, or an important constraint;
+avoid a file-by-file inventory or a list of edits without motivation.
+
+Write for a reader who has not seen the conversation. Use the relevant task context and available
+prior sessions to recover the motivation, then check the description against the final diff. Do not
+invent rationale or describe abandoned plans as implemented. Keep validation concise and secondary
+to the motivation and behavior, and distinguish completed checks from unverified behavior.
+
+Keep patches atomic—avoid mixing formatting and logic. Pull requests should outline the change,
+list verification commands or screenshots, and flag hardware requirements. Wait to squash until
+reviews conclude.
 
 
 ## Various

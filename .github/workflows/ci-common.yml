@@ -59,6 +59,9 @@ jobs:
           make -C py
           ./.ci/check-pep8
 
+      - name: Test build configuration and probe commands
+        run: python3 -m unittest discover -s test/build-config
+
       - name: Run Python unit tests
         run: PYTHONPATH=py/bitbox02 python3 -m unittest discover -s py/bitbox02/tests
 
@@ -184,25 +187,35 @@ jobs:
   build:
     strategy:
       matrix:
-        target:
-          - bootloader-stage0
-          - bootloader-stage1
-          - firmware
-          - firmware-btc
-          - firmware-blupgrade-bitbox02-btconly
-          - firmware-blupgrade-bitbox02-multi
-          - firmware-blupgrade-bitbox02nova-btconly
-          - firmware-blupgrade-bitbox02nova-multi
-          - firmware-blupgrade-bitbox02-btconly-development
-          - factory-setup
-          - firmware-debug
-          - bitbox03-boot0
-          - bitbox03-boot1
-          - bitbox03-factorysetup
-          - bitbox03-firmware
-          - simulator
-          - simulator-graphical
-          - simulator-graphical-bb03
+        include:
+          - {target: bootloader-stage0, product: bitbox02, edition: multi}
+          - {target: bootloader-stage0, product: bitbox02, edition: btc-only}
+          - {target: bootloader-stage0, product: bitbox02nova, edition: multi}
+          - {target: bootloader-stage0, product: bitbox02nova, edition: btc-only}
+          - {target: bootloader-stage1, product: bitbox02, edition: multi}
+          - {target: bootloader-stage1, product: bitbox02, edition: btc-only}
+          - {target: bootloader-stage1, product: bitbox02nova, edition: multi}
+          - {target: bootloader-stage1, product: bitbox02nova, edition: btc-only}
+          - {target: firmware, product: bitbox02, edition: multi}
+          - {target: firmware, product: bitbox02, edition: btc-only}
+          - {target: firmware, product: bitbox02nova, edition: multi}
+          - {target: firmware, product: bitbox02nova, edition: btc-only}
+          - {target: bootloader-stage0-production, product: bitbox02, edition: multi}
+          - {target: bootloader-stage1-production, product: bitbox02, edition: multi}
+          - {target: firmware-blupgrade-bitbox02-btconly, product: bitbox02, edition: multi}
+          - {target: firmware-blupgrade-bitbox02-multi, product: bitbox02, edition: multi}
+          - {target: firmware-blupgrade-bitbox02nova-btconly, product: bitbox02nova, edition: multi}
+          - {target: firmware-blupgrade-bitbox02nova-multi, product: bitbox02nova, edition: multi}
+          - {target: firmware-blupgrade-bitbox02-btconly-development, product: bitbox02, edition: multi}
+          - {target: factorysetup, product: bitbox02, edition: multi}
+          - {target: firmware-debug, product: bitbox02, edition: multi}
+          - {target: simulator, product: bitbox02, edition: multi}
+          - {target: simulator-graphical, product: bitbox02, edition: multi}
+          - {target: simulator-graphical-bb03, product: bitbox02, edition: multi}
+          - {target: bootloader-stage0, product: bitbox03, edition: multi}
+          - {target: bootloader-stage1, product: bitbox03, edition: multi}
+          - {target: factorysetup, product: bitbox03, edition: multi}
+          - {target: firmware, product: bitbox03, edition: multi}
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -223,17 +236,20 @@ jobs:
       - name: Bootstrap Cargo config
         run: ./scripts/bootstrap-cargo-config
 
+      - name: Configure product
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }}"
+
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 
       - name: Check unwanted symbols
-        if: (matrix.target == 'firmware' || startsWith(matrix.target, 'bootloader-stage')) && !cancelled()
+        if: matrix.product != 'bitbox03' && (matrix.target == 'firmware' || startsWith(matrix.target, 'bootloader-stage')) && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes
         run: |
           {
-            for dir in build*/bin src/rust/target/thumbv8m.main-none-eabihf/debug; do
+            for dir in build*/bin build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug; do
               if [ -d "$dir" ]; then
                 find "$dir" -maxdepth 1 -type f -print0
               fi
@@ -245,13 +261,13 @@ jobs:
         if: github.event_name == 'push' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.target}}-${{github.sha}}.bin
+          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}-${{github.sha}}.bin
           path: |
             build*/bin/*.bin
             build*/bin/*.elf
             build*/bin/*.map
             build*/bin/simulator*
-            src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-*
+            build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-*
 
   # Build simulators for macos aarch64
   build-macos:

@@ -25,3 +25,5 @@ bitbox02.egg-info
 /py/bitbox02/build
 /py/bitbox02/dist
 .venv
+
+/config.mk

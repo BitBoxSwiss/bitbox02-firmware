@@ -274,7 +274,7 @@ USB hub can be used.
 
 #### Flash or run a built image
 
-Build first, then use the matching command. These commands consume existing artifacts and report
+Build first, then use the matching command. These commands consume existing ELF files and report
 the build command if one is missing.
 
 | Image | Program, verify, reset/run | Load in GDB and immediately continue |
@@ -300,18 +300,18 @@ table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup
 Edit the script for your probe software to add breakpoints or comment out the final `c` to stop
 at entry. The helper selects the script and supplies the image vector address each time.
 
-BitBox02 stage1 flashing uses its finalized `.bin`. For GDB, the helper updates the header in a
-separate `.gdb.elf`, preserves symbols, and verifies that converting it back to binary exactly
-matches the finalized image. The original ELF is preserved. See the upstream documentation for
-[GDB loading](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Commands.html),
-[objcopy section updates](https://sourceware.org/binutils/docs/binutils/objcopy.html), and
+Flashing and GDB use the built ELF directly for all products, including BitBox02/Nova stage1,
+whose header is finalized during the build. Load addresses come from the ELF. J-Link Commander
+uses `loadfile` with download verification, including RAM verification. See the documentation for
+[J-Link ELF loading](https://kb.segger.com/J-Link_Commander#LoadFile),
+[GDB loading](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Commands.html), and
 [SEGGER download verification](https://kb.segger.com/J-Link_GDB_Server#-vd).
 
 BitBox03 factorysetup is a RAM image: flashing loads and verifies RAM, initializes the vector/entry
 state, then resumes without resetting afterward. Its GDB workflow likewise never resets after
 loading. Other flash commands reset/run after programming.
 
-Specialized `jlink-*` commands retain their explicit behavior.
+Specialized `jlink-flash-*` image commands also use ELFs and retain their reset behavior.
 
 #### Flash firmware using bootloader and python cli client
 

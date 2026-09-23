@@ -4,6 +4,7 @@
 """Flash built images or load and continue them in an attached GDB session."""
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 import shutil
 import signal
@@ -90,7 +91,7 @@ def server_command(config: Config) -> list[str]:
 
 
 def openocd_flash_commands(info: Image) -> str:
-    path = tcl_quote(info.binary)
+    path = tcl_quote(info.elf)
     if info.ram:
         # load_image writes RAM directly. In particular, do not reset after loading.
         return "; ".join(
@@ -108,58 +109,32 @@ def openocd_flash_commands(info: Image) -> str:
                 "shutdown",
             ]
         )
-    address = f" {info.address:#x}" if info.binary.suffix == ".bin" else ""
-    return f"program {path}{address} verify reset exit"
+    return f"program {path} verify reset exit"
 
 
 def jlink_flash_commands(info: Image) -> str:
     # Commander paths are quoted to support workspaces containing spaces.
-    path = str(info.binary)
+    path = str(info.elf)
     if any(char in path for char in ('"', "\n", "\r")):
         raise ValueError("Unsupported character in J-Link image path")
-    return (
-        f'r\nh\nloadbin "{path}", {info.address:#x}\n'
-        f'verifybin "{path}", {info.address:#x}\nr\ng\nq\n'
-    )
-
-
-def finalized_stage1_elf(info: Image) -> Path:
-    """Preserve symbols while making GDB load exactly the finalized binary."""
-    require_tool("arm-none-eabi-objcopy")
-    binary = info.binary.read_bytes()
-    address, _, size = _elf_section(info.elf, ".stage1_header")
-    vectors, _, _ = _elf_section(info.elf, ".vectors")
-    if address != info.address or size != 0x400 or vectors != info.vectors:
-        raise ValueError("Unexpected stage1 header/vector layout")
-    if (
-        len(binary) <= size
-        or int.from_bytes(binary[:4], "little") != 0x31534242
-        or int.from_bytes(binary[12:16], "little") != size
-        or int.from_bytes(binary[16:24], "little") != len(binary)
-    ):
-        raise ValueError("Stage1 binary header is not finalized; rebuild bootloader-stage1")
-    result = info.elf.with_suffix(".gdb.elf")
-    with tempfile.TemporaryDirectory(dir=info.elf.parent, prefix=".stage1-") as tmp:
-        directory = Path(tmp)
-        header = directory / "header.bin"
-        elf = directory / "finalized.elf"
-        raw = directory / "finalized.bin"
-        header.write_bytes(binary[:size])
-        subprocess.run(
-            [
-                "arm-none-eabi-objcopy",
-                "--update-section",
-                f".stage1_header={header}",
-                str(info.elf),
-                str(elf),
-            ],
-            check=True,
-        )
-        subprocess.run(["arm-none-eabi-objcopy", "-O", "binary", str(elf), str(raw)], check=True)
-        if raw.read_bytes() != binary:
-            raise ValueError("Stage1 ELF and finalized binary differ; rebuild bootloader-stage1")
-        elf.replace(result)
-    return result
+    commands = ["r", "h", "exec SetVerifyRAMDownload = 1", f'loadfile "{path}" 0 noreset']
+    if info.ram:
+        address, offset, size = _elf_section(info.elf, ".vector_table")
+        vectors = info.elf.read_bytes()[offset : offset + 8]
+        if address != info.vectors or size < 8 or len(vectors) != 8:
+            raise ValueError("Unexpected RAM image vector table")
+        stack = int.from_bytes(vectors[:4], "little")
+        entry = int.from_bytes(vectors[4:], "little")
+        # Start the RAM image directly without resetting after loading.
+        commands += [
+            f"w4 0xe000ed08 {info.vectors:#x}",
+            f"wreg MSP {stack:#x}",
+            f"setpc {entry:#x}",
+            "wreg XPSR 0x01000000",
+        ]
+    else:
+        commands.append("r")
+    return "\n".join([*commands, "g", "q"]) + "\n"
 
 
 def execute(
@@ -173,8 +148,8 @@ def execute(
         return
     info = image_info(config, image, profile)
     target = f"{image}-{profile}" if profile else image
+    require_artifact(info.elf, target)
     if action == "flash":
-        require_artifact(info.binary, target)
         command = (
             openocd_command(config) if config.probe_software == "openocd" else jlink_exe(config)
         )
@@ -184,15 +159,15 @@ def execute(
         else:
             with tempfile.TemporaryDirectory(prefix="bitbox-probe-") as tmp:
                 script = Path(tmp) / "flash.jlink"
+                if info.elf.suffix != ".elf":
+                    # Give extensionless Cargo artifacts an ELF suffix for Commander.
+                    elf = Path(tmp) / "image.elf"
+                    elf.symlink_to(info.elf.resolve())
+                    info = replace(info, elf=elf)
                 script.write_text(jlink_flash_commands(info), encoding="utf-8")
                 subprocess.run([*command, "-CommanderScript", str(script)], check=True)
         return
-    require_artifact(info.elf, target)
     require_tool("arm-none-eabi-gdb")
-    elf = info.elf
-    if config.product != "bitbox03" and image == "bootloader-stage1":
-        require_artifact(info.binary, target)
-        elf = finalized_stage1_elf(info)
     # Ctrl-C must interrupt the inferior without terminating the attached GDB.
     previous = signal.signal(signal.SIGINT, lambda _signum, _frame: None)
     try:
@@ -200,7 +175,7 @@ def execute(
             [
                 "arm-none-eabi-gdb",
                 "-q",
-                str(elf),
+                str(info.elf),
                 "-ex",
                 f"set $vectors = {info.vectors:#x}",
                 "-x",

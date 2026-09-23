@@ -183,8 +183,6 @@ def build_dir(config: Config, profile: str = "relwithdebinfo", root: Path = ROOT
 class Image:
     name: str
     elf: Path
-    binary: Path
-    address: int
     vectors: int
     ram: bool = False
 
@@ -214,7 +212,7 @@ def image_info(
         }[image]
         vectors = address + (0x400 if image in ("firmware", "bootloader-stage1") else 0)
         elf = build_dir(config, root=root) / CARGO_TARGET / (profile or "debug") / name
-        return Image(name, elf, elf, address, vectors, image == "factorysetup")
+        return Image(name, elf, vectors, image == "factorysetup")
     if image.startswith("bootloader-"):
         name = f"{image}-{config.product}-{config.edition.replace('-', '')}-{variant}"
         address = 0 if image == "bootloader-stage0" else 0x2000
@@ -227,7 +225,7 @@ def image_info(
         address = 0x10000
     vectors = address + (0x400 if image == "bootloader-stage1" else 0)
     directory = build_dir(config, profile or "relwithdebinfo", root) / "bin"
-    return Image(name, directory / f"{name}.elf", directory / f"{name}.bin", address, vectors)
+    return Image(name, directory / f"{name}.elf", vectors)
 
 
 def main() -> int:

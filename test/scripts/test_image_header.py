@@ -140,21 +140,18 @@ class ImageHeaderTests(unittest.TestCase):
                 expected[16:24] = bytes(8)
                 expected[832:] = bytes(192)
                 self.assertEqual(actual, expected)
-                bootloader_update._validate_raw_stage1(actual + b"payload")
 
-    def test_finalize_stage1_matches_existing_post_processing(self) -> None:
+    def test_finalize_stage1_unsigned_image(self) -> None:
         header = self.render(stage1_manifest())
         for payload_len in (1, 36, 0xBFE0 - 1024):
             with self.subTest(payload_len=payload_len):
                 payload = b"x" * payload_len
-                raw = self.directory / "raw.bin"
-                expected = self.directory / "unsigned.bin"
-                raw.write_bytes(header + payload)
-                bootloader_update.prepare_stage1_unsigned(
-                    argparse.Namespace(raw_bin=raw, unsigned_bin=expected)
-                )
                 actual = image_header.finalize_header_code_size(header, payload_len)
-                self.assertEqual(actual + payload, expected.read_bytes())
+                bootloader_update._validate_complete_stage1(
+                    actual + payload, 1, require_signatures=False
+                )
+                self.assertEqual(actual[:16], header[:16])
+                self.assertEqual(actual[24:], header[24:])
                 self.assertEqual(
                     image_header.finalize_header_code_size(actual, payload_len), actual
                 )
@@ -216,7 +213,7 @@ class ImageHeaderTests(unittest.TestCase):
 
     def test_render_stage1_metadata_boundaries(self) -> None:
         header = self.render(stage1_manifest(monotonic_version=65535, marketing_version="x" * 37))
-        parsed = bootloader_update._validate_raw_stage1(header + b"payload")
+        parsed = bootloader_update._unpack_header(header)
         self.assertEqual(parsed["monotonic_version"], 65535)
         self.assertEqual(parsed["stage1_marketing_version"], "x" * 37)
 

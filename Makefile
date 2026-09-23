@@ -268,12 +268,12 @@ bitbox03-boot0-release:
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
 bitbox03-boot1:
 	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk)
-	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
 bitbox03-boot1-release:
 	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk-release)
-	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 bitbox03-factorysetup:
@@ -286,12 +286,12 @@ bitbox03-factorysetup-release:
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
 bitbox03-firmware:
 	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk)
-	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 bitbox03-firmware-release:
 	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk-release)
-	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	python3 scripts/image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
 

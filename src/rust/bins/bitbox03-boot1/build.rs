@@ -13,7 +13,7 @@ fn run_command(command: &mut Command, description: &str) {
 
 fn generate_header_object(manifest_dir: &Path, out_dir: &Path) {
     let repo_root = manifest_dir.join("../../../..");
-    let script = repo_root.join("scripts/bitbox03_image_header.py");
+    let script = repo_root.join("scripts/image_header.py");
     let header_manifest = manifest_dir.join("image_header.json");
     let header_bin = out_dir.join("bitbox03-boot1-header.bin");
     let header_object = out_dir.join("bitbox03-boot1-header.o");

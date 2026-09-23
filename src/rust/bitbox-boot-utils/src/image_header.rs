@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Must stay in sync with HEADER_LEN in scripts/bitbox03_image_header.py.
+// Must stay in sync with HEADER_LEN in scripts/image_header.py.
 pub const IMAGE_HEADER_LEN: usize = 1024;
 pub const IMAGE_HEADER_MAGIC_BOOT1: [u8; 4] = *b"BBB1";
 pub const IMAGE_HEADER_MAGIC_FIRMWARE: [u8; 4] = *b"BBFW";

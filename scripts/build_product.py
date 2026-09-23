@@ -85,6 +85,10 @@ def dispatch(config: Config, target: str) -> None:
         "firmware-release",
         "factorysetup-debug",
         "factorysetup-release",
+        "bootloader-stage0-debug",
+        "bootloader-stage0-release",
+        "bootloader-stage1-debug",
+        "bootloader-stage1-release",
     ):
         image, profile = target.rsplit("-", 1)
         build_image(config, image, profile)

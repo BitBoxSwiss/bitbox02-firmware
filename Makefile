@@ -31,7 +31,7 @@ FLASH_IMAGES := $(IMAGES)
 ifeq ($(PRODUCT),bitbox03)
 FLASH_IMAGES := $(filter-out factorysetup,$(FLASH_IMAGES))
 endif
-BUILD_TARGETS := $(IMAGES) firmware-debug firmware-release factorysetup-debug factorysetup-release \
+BUILD_TARGETS := $(IMAGES) $(foreach image,$(IMAGES),$(image)-debug $(image)-release) \
 	bootloader-stage0-production bootloader-stage0-development \
 	bootloader-stage1-production bootloader-stage1-development \
 	bootloader-upgrade-assets bootloader-upgrade-assets-development docs rust-docs
@@ -46,7 +46,9 @@ $(BUILD_TARGETS):
 $(addprefix flash-,$(FLASH_IMAGES)):
 	python3 scripts/probe.py $(CONFIG_OPTIONS) flash $(patsubst flash-%,%,$@)
 $(addprefix run-,$(IMAGES)):
-	python3 scripts/probe.py $(CONFIG_OPTIONS) run $(patsubst run-%,%,$@)
+	python3 scripts/probe.py $(CONFIG_OPTIONS) run $(patsubst run-%,%,$@) --profile release
+$(addprefix debug-run-,$(IMAGES)):
+	python3 scripts/probe.py $(CONFIG_OPTIONS) run $(patsubst debug-run-%,%,$@) --profile debug
 debug-server:
 	python3 scripts/probe.py $(CONFIG_OPTIONS) server
 
@@ -199,7 +201,8 @@ vendor-rust-deps:
 	./external/vendor-rust.sh
 
 # Mark all command aliases phony, including generated image/variant names.
-.PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(FLASH_IMAGES)) $(addprefix run-,$(IMAGES))
+.PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(FLASH_IMAGES)) $(addprefix run-,$(IMAGES)) \
+	$(addprefix debug-run-,$(IMAGES))
 .PHONY: config bootstrap debug-server \
 	build-build build-build-noasan simulator simulator-graphical simulator-graphical-bb03 \
 	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \

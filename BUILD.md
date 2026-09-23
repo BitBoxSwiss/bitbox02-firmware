@@ -220,8 +220,9 @@ software or SWD speed does not affect compilation. Configuration never cleans. `
 build trees but preserves `config.mk`. Host tests and simulators still use `build-build` and
 `build-build-noasan`.
 
-Use `firmware-debug`, `firmware-release`, `factorysetup-debug`, or `factorysetup-release` for explicit
-profiles. BitBox03 also retains `bitbox03-{boot0,boot1,firmware,factorysetup}-{debug,release}`.
+Use `<image>-debug` or `<image>-release` for explicit profiles, where `<image>` is `firmware`,
+`factorysetup`, `bootloader-stage0`, or `bootloader-stage1`. BitBox03 also retains
+`bitbox03-{boot0,boot1,firmware,factorysetup}-{debug,release}`.
 `bootloader-stage{0,1}-{production,development}` builds all BitBox02/Nova editions, sequentially in
 each product's directory. Production/development upgrade-firmware and upgrade-assets aliases are
 retained. Named product commands always use that product's directory.
@@ -277,12 +278,15 @@ USB hub can be used.
 Build first, then use the matching command. These commands consume existing ELF files and report
 the build command if one is missing.
 
-| Image | Program, verify, reset/run | Load in GDB and immediately continue |
-| --- | --- | --- |
-| Firmware | `make flash-firmware` | `make run-firmware` |
-| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` |
-| Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` |
-| Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` |
+| Image | Program, verify, reset/run | Run release build in GDB | Run debug build in GDB |
+| --- | --- | --- | --- |
+| Firmware | `make flash-firmware` | `make run-firmware` | `make debug-run-firmware` |
+| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` | `make debug-run-factorysetup` |
+| Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` | `make debug-run-bootloader-stage0` |
+| Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` | `make debug-run-bootloader-stage1` |
+
+`run-<image>` selects the release ELF built by `make <image>-release`; `debug-run-<image>` selects
+the debug ELF built by `make <image>-debug`. Both immediately continue with GDB attached.
 
 The selected probe software chooses SEGGER Commander/GDB Server or OpenOCD. For BitBox02/Nova,
 OpenOCD uses `scripts/openocd-bitbox02.cfg` with the J-Link adapter; install an OpenOCD build
@@ -293,10 +297,10 @@ The product configuration supplies the board's adapter through `PROBE_ADAPTER`: 
 dev-kit and J-Link for the testboard. Both share the reset and RTT work-area settings.
 
 Start `make debug-server` in a separate terminal and leave it running in the foreground before
-using a `run-*` command. SEGGER uses port 2331 with download verification enabled; OpenOCD uses
-3333. GDB resets/halts, loads the ELF, verifies sections, sets VTOR, SP and PC from the image vector
-table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup commands live in
-[`scripts/openocd.gdb`](scripts/openocd.gdb) and [`scripts/jlink.gdb`](scripts/jlink.gdb).
+using a `run-*` or `debug-run-*` command. SEGGER uses port 2331 with download verification enabled;
+OpenOCD uses 3333. GDB resets/halts, loads the ELF, verifies sections, sets VTOR, SP and PC from the
+image vector table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup commands
+live in [`scripts/openocd.gdb`](scripts/openocd.gdb) and [`scripts/jlink.gdb`](scripts/jlink.gdb).
 Edit the script for your probe software to add breakpoints or comment out the final `c` to stop
 at entry. The helper selects the script and supplies the image vector address each time.
 
@@ -308,8 +312,9 @@ uses `loadfile` with download verification. See the documentation for
 [SEGGER download verification](https://kb.segger.com/J-Link_GDB_Server#-vd).
 
 BitBox03 factorysetup is a RAM image and has no flash command. Use `make debug-server` followed by
-`make run-factorysetup` to load and verify it in RAM, initialize the vector/entry state, and resume
-without resetting after loading. Flash commands reset/run after programming.
+`make run-factorysetup` (release) or `make debug-run-factorysetup` (debug) to load and verify it in RAM,
+initialize the vector/entry state, and resume without resetting after loading. Flash commands
+reset/run after programming.
 
 Specialized `jlink-flash-*` image commands also use ELFs and retain their reset behavior.
 
@@ -367,9 +372,9 @@ simulator loads it if you restore from mnemonic.
 
 #### Debugging and RTT
 
-Build with the primary image target, start `make debug-server` in another terminal, then use the
-matching `run-*` command. For example, use `make firmware` followed by `make run-firmware`, or
-`make factorysetup` followed by `make run-factorysetup`.
+Build the desired profile, start `make debug-server` in another terminal, then use the matching
+run command. For example, use `make firmware-release` followed by `make run-firmware`, or
+`make factorysetup-debug` followed by `make debug-run-factorysetup`.
 
 Images with RTT enabled provide panic logging over
 [RTT](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/).
@@ -379,7 +384,7 @@ Let the image run until its RTT channels have initialized. With OpenOCD, interru
 on port 19022. SEGGER provides RTT on port 19021. Connect with `make rtt-client`.
 RTT availability follows existing build features; it is not enabled by selecting a probe backend.
 
-After rebuilding, exit GDB and rerun the matching `run-*` command to reload the image.
+After rebuilding, exit GDB and rerun the matching `run-*` or `debug-run-*` command to reload the image.
 
 > [!TIP]
 > In debug builds you can use the following functions to log:

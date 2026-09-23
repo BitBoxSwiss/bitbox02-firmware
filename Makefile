@@ -27,6 +27,10 @@ bootstrap:
 	./scripts/bootstrap-cargo-config
 
 IMAGES := firmware factorysetup bootloader-stage0 bootloader-stage1
+FLASH_IMAGES := $(IMAGES)
+ifeq ($(PRODUCT),bitbox03)
+FLASH_IMAGES := $(filter-out factorysetup,$(FLASH_IMAGES))
+endif
 BUILD_TARGETS := $(IMAGES) firmware-debug firmware-release factorysetup-debug factorysetup-release \
 	bootloader-stage0-production bootloader-stage0-development \
 	bootloader-stage1-production bootloader-stage1-development \
@@ -39,7 +43,7 @@ BUILD_TARGETS += $(foreach image,boot0 boot1 firmware factorysetup,\
 $(BUILD_TARGETS):
 	+python3 scripts/build_product.py $(CONFIG_OPTIONS) $@
 
-$(addprefix flash-,$(IMAGES)):
+$(addprefix flash-,$(FLASH_IMAGES)):
 	python3 scripts/probe.py $(CONFIG_OPTIONS) flash $(patsubst flash-%,%,$@)
 $(addprefix run-,$(IMAGES)):
 	python3 scripts/probe.py $(CONFIG_OPTIONS) run $(patsubst run-%,%,$@)
@@ -195,7 +199,7 @@ vendor-rust-deps:
 	./external/vendor-rust.sh
 
 # Mark all command aliases phony, including generated image/variant names.
-.PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(IMAGES)) $(addprefix run-,$(IMAGES))
+.PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(FLASH_IMAGES)) $(addprefix run-,$(IMAGES))
 .PHONY: config bootstrap debug-server \
 	build-build build-build-noasan simulator simulator-graphical simulator-graphical-bb03 \
 	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \

@@ -280,7 +280,7 @@ the build command if one is missing.
 | Image | Program, verify, reset/run | Load in GDB and immediately continue |
 | --- | --- | --- |
 | Firmware | `make flash-firmware` | `make run-firmware` |
-| Factorysetup | `make flash-factorysetup` | `make run-factorysetup` |
+| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` |
 | Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` |
 | Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` |
 
@@ -302,14 +302,14 @@ at entry. The helper selects the script and supplies the image vector address ea
 
 Flashing and GDB use the built ELF directly for all products, including BitBox02/Nova stage1,
 whose header is finalized during the build. Load addresses come from the ELF. J-Link Commander
-uses `loadfile` with download verification, including RAM verification. See the documentation for
+uses `loadfile` with download verification. See the documentation for
 [J-Link ELF loading](https://kb.segger.com/J-Link_Commander#LoadFile),
 [GDB loading](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Commands.html), and
 [SEGGER download verification](https://kb.segger.com/J-Link_GDB_Server#-vd).
 
-BitBox03 factorysetup is a RAM image: flashing loads and verifies RAM, initializes the vector/entry
-state, then resumes without resetting afterward. Its GDB workflow likewise never resets after
-loading. Other flash commands reset/run after programming.
+BitBox03 factorysetup is a RAM image and has no flash command. Use `make debug-server` followed by
+`make run-factorysetup` to load and verify it in RAM, initialize the vector/entry state, and resume
+without resetting after loading. Flash commands reset/run after programming.
 
 Specialized `jlink-flash-*` image commands also use ELFs and retain their reset behavior.
 

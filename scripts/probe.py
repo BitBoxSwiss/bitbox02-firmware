@@ -12,7 +12,6 @@ import subprocess
 import sys
 import tempfile
 
-from image_header import _elf_section
 from build_config import ROOT, IMAGES, Config, Image, add_config_arguments, from_args, image_info
 
 
@@ -92,23 +91,6 @@ def server_command(config: Config) -> list[str]:
 
 def openocd_flash_commands(info: Image) -> str:
     path = tcl_quote(info.elf)
-    if info.ram:
-        # load_image writes RAM directly. In particular, do not reset after loading.
-        return "; ".join(
-            [
-                "init",
-                "reset init",
-                "halt",
-                f"load_image {path}",
-                f"verify_image {path}",
-                f"mww 0xe000ed08 {info.vectors:#x}",
-                f"reg sp [lindex [read_memory {info.vectors:#x} 32 1] 0]",
-                f"reg pc [lindex [read_memory {info.vectors + 4:#x} 32 1] 0]",
-                "reg xpsr 0x01000000",
-                "resume",
-                "shutdown",
-            ]
-        )
     return f"program {path} verify reset exit"
 
 
@@ -117,24 +99,7 @@ def jlink_flash_commands(info: Image) -> str:
     path = str(info.elf)
     if any(char in path for char in ('"', "\n", "\r")):
         raise ValueError("Unsupported character in J-Link image path")
-    commands = ["r", "h", "exec SetVerifyRAMDownload = 1", f'loadfile "{path}" 0 noreset']
-    if info.ram:
-        address, offset, size = _elf_section(info.elf, ".vector_table")
-        vectors = info.elf.read_bytes()[offset : offset + 8]
-        if address != info.vectors or size < 8 or len(vectors) != 8:
-            raise ValueError("Unexpected RAM image vector table")
-        stack = int.from_bytes(vectors[:4], "little")
-        entry = int.from_bytes(vectors[4:], "little")
-        # Start the RAM image directly without resetting after loading.
-        commands += [
-            f"w4 0xe000ed08 {info.vectors:#x}",
-            f"wreg MSP {stack:#x}",
-            f"setpc {entry:#x}",
-            "wreg XPSR 0x01000000",
-        ]
-    else:
-        commands.append("r")
-    return "\n".join([*commands, "g", "q"]) + "\n"
+    return f'r\nh\nloadfile "{path}" 0 noreset\nr\ng\nq\n'
 
 
 def execute(
@@ -147,6 +112,8 @@ def execute(
         subprocess.run(command, check=True)
         return
     info = image_info(config, image, profile)
+    if action == "flash" and info.ram:
+        raise ValueError(f"{config.product} {image} runs from RAM; use make run-{image} instead")
     target = f"{image}-{profile}" if profile else image
     require_artifact(info.elf, target)
     if action == "flash":

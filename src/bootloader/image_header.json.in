@@ -1,0 +1,7 @@
+{
+  "magic": "BBS1",
+  "flags": @header_flags@,
+  "product_id": @product_id@,
+  "monotonic_version": 1,
+  "marketing_version": "@BOOTLOADER_VERSION_FULL@"
+}

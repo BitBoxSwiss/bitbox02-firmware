@@ -308,7 +308,6 @@ endif()
 
 add_subdirectory(external)
 add_subdirectory(src)
-add_subdirectory(scripts)
 
 #-----------------------------------------------------------------------------
 # Build Documentation

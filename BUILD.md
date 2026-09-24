@@ -165,8 +165,9 @@ make bootloader-stage1
 ```
 
 `make config` remembers selections in the git-ignored `config.mk`. It prompts for product, board,
-edition (`multi` or `btc-only`), probe software, and SWD speed in kHz, automatically selecting
-fields with one choice. `SWD_SPEED` defaults to `4000` for all products and both probe backends.
+edition (`multi` or `btc-only`), debug builds (`no` or `yes`), probe software, and SWD speed in kHz,
+automatically selecting fields with one choice. `DEBUG` defaults to `no`; `SWD_SPEED` defaults to
+`4000` for all products and both probe backends.
 Probe hardware is fixed by the board:
 
 | Product | Board | Probe | Software (default first) |
@@ -188,22 +189,26 @@ arguments run noninteractively; omitted fields use built-in defaults, independen
 make config CONFIG_ARGS="--product bitbox02 --edition btc-only --probe-software openocd"
 make config CONFIG_ARGS="--product bitbox03 --board dev-kit"
 make config CONFIG_ARGS="--product bitbox03 --board testboard"
+make config CONFIG_ARGS="--product bitbox03 --debug yes"
 make config CONFIG_ARGS="--product bitbox03 --swd-speed 1000"
 make config CONFIG_ARGS="--defaults"
 ```
 
 SWD speed must be a positive integer. It is saved in `config.mk` and can also be overridden for a
-command, for example `make debug-server SWD_SPEED=1000`. Specialized probe aliases use it too.
+command, for example `make debug-server SWD_SPEED=1000`.
+
+The debug setting is also saved in `config.mk` and can be overridden per command with `DEBUG=yes`
+or `DEBUG=no`. Build, flash, and run commands use the same configured profile.
 
 Invalid input, EOF, or Ctrl-C preserves the previous file. Interactive product changes reset
 incompatible saved choices. Run configuration separately from builds: `make config firmware` is
 rejected because Make has already parsed the old settings. Configuration and compilation require
 neither installed probe software nor attached hardware.
 
-BitBox02/Nova primary targets use `RelWithDebInfo`. Firmware follows the selected edition;
-factorysetup is edition-independent; stage0/stage1 select development images for the configured
-product and edition. BitBox03 primary targets use Cargo debug builds, with the existing RTT
-features. Build directories are flat:
+With `DEBUG=no`, BitBox02/Nova primary targets use `RelWithDebInfo` and BitBox03 uses Cargo release
+builds. `DEBUG=yes` selects debug builds for all products, with their existing RTT features.
+Firmware follows the selected edition; factorysetup is edition-independent; stage0/stage1 select
+development images for the configured product and edition. Build directories are flat:
 
 | Backend | Directory |
 | --- | --- |
@@ -221,16 +226,17 @@ build trees but preserves `config.mk`. Host tests and simulators still use `buil
 `build-build-noasan`.
 
 Use `<image>-debug` or `<image>-release` for explicit profiles, where `<image>` is `firmware`,
-`factorysetup`, `bootloader-stage0`, or `bootloader-stage1`. BitBox03 also retains
-`bitbox03-{boot0,boot1,firmware,factorysetup}-{debug,release}`.
+`factorysetup`, `bootloader-stage0`, or `bootloader-stage1`. These override `DEBUG`.
+For BitBox02/Nova, the explicit `-release` profile differs from the configured `RelWithDebInfo`
+default; use `scripts/probe.py` with `--profile release` to flash or run that ELF.
 `bootloader-stage{0,1}-{production,development}` builds all BitBox02/Nova editions, sequentially in
 each product's directory. Production/development upgrade-firmware and upgrade-assets aliases are
 retained. Named product commands always use that product's directory.
 
-The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and unsuffixed
+The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
 `bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above. Backend
-targets and artifact basenames remain unchanged. Profile configuration and additional BitBox03
-board/edition implementations are deferred.
+targets and artifact basenames remain unchanged. Additional BitBox03 board/edition implementations
+are deferred.
 
 Pass `-j<N>` to speed up a build, for example `make -j8 firmware`. Top-level aliases run sequentially.
 
@@ -278,15 +284,16 @@ USB hub can be used.
 Build first, then use the matching command. These commands consume existing ELF files and report
 the build command if one is missing.
 
-| Image | Program, verify, reset/run | Run release build in GDB | Run debug build in GDB |
-| --- | --- | --- | --- |
-| Firmware | `make flash-firmware` | `make run-firmware` | `make debug-run-firmware` |
-| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` | `make debug-run-factorysetup` |
-| Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` | `make debug-run-bootloader-stage0` |
-| Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` | `make debug-run-bootloader-stage1` |
+| Image | Program, verify, reset/run | Run in GDB |
+| --- | --- | --- |
+| Firmware | `make flash-firmware` | `make run-firmware` |
+| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` |
+| Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` |
+| Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` |
 
-`run-<image>` selects the release ELF built by `make <image>-release`; `debug-run-<image>` selects
-the debug ELF built by `make <image>-debug`. Both immediately continue with GDB attached.
+`run-<image>` selects the ELF built by `make <image>` with the same `DEBUG` setting and immediately
+continues with GDB attached. For example, `make firmware DEBUG=yes` followed by
+`make run-firmware DEBUG=yes` builds and runs the debug image.
 
 The selected probe software chooses SEGGER Commander/GDB Server or OpenOCD. For BitBox02/Nova,
 OpenOCD uses `scripts/openocd-bitbox02.cfg` with the J-Link adapter; install an OpenOCD build
@@ -297,7 +304,7 @@ The product configuration supplies the board's adapter through `PROBE_ADAPTER`: 
 dev-kit and J-Link for the testboard. Both share the reset and RTT work-area settings.
 
 Start `make debug-server` in a separate terminal and leave it running in the foreground before
-using a `run-*` or `debug-run-*` command. SEGGER uses port 2331 with download verification enabled;
+using a `run-*` command. SEGGER uses port 2331 with download verification enabled;
 OpenOCD uses 3333. GDB resets/halts, loads the ELF, verifies sections, sets VTOR, SP and PC from the
 image vector table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup commands
 live in [`scripts/openocd.gdb`](scripts/openocd.gdb) and [`scripts/jlink.gdb`](scripts/jlink.gdb).
@@ -312,11 +319,27 @@ uses `loadfile` with download verification. See the documentation for
 [SEGGER download verification](https://kb.segger.com/J-Link_GDB_Server#-vd).
 
 BitBox03 factorysetup is a RAM image and has no flash command. Use `make debug-server` followed by
-`make run-factorysetup` (release) or `make debug-run-factorysetup` (debug) to load and verify it in RAM,
+`make run-factorysetup` with the matching `DEBUG` setting to load and verify it in RAM,
 initialize the vector/entry state, and resume without resetting after loading. Flash commands
 reset/run after programming.
 
-Specialized `jlink-flash-*` image commands also use ELFs and retain their reset behavior.
+#### Run J-Link Commander scripts
+
+Run `.jlink` scripts directly with `JLinkExe` from the repository root. For example, to read the
+shared memory area on BitBox02/Nova:
+
+```sh
+JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -ExitOnError 1 \
+    -CommanderScript scripts/print-memory-shared.jlink
+```
+
+Replace the script path with the required script, such as `scripts/set-new-screen.jlink`,
+`scripts/reset-version.jlink`, or `scripts/bb02-set-factory-randomness.jlink`. These maintenance
+scripts use BitBox02/Nova memory addresses. Run from the repository root so scripts can find
+relative paths to data files.
+
+`-speed` is the SWD speed in kHz. Direct `JLinkExe` commands do not read `config.mk`; specify the
+device and speed explicitly. `ATSAMD51J20` is the device for both BitBox02 and BitBox02 Nova.
 
 #### Flash firmware using bootloader and python cli client
 
@@ -373,8 +396,8 @@ simulator loads it if you restore from mnemonic.
 #### Debugging and RTT
 
 Build the desired profile, start `make debug-server` in another terminal, then use the matching
-run command. For example, use `make firmware-release` followed by `make run-firmware`, or
-`make factorysetup-debug` followed by `make debug-run-factorysetup`.
+run command. For example, use `make firmware` followed by `make run-firmware`, or
+`make factorysetup DEBUG=yes` followed by `make run-factorysetup DEBUG=yes`.
 
 Images with RTT enabled provide panic logging over
 [RTT](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/).
@@ -384,7 +407,7 @@ Let the image run until its RTT channels have initialized. With OpenOCD, interru
 on port 19022. SEGGER provides RTT on port 19021. Connect with `make rtt-client`.
 RTT availability follows existing build features; it is not enabled by selecting a probe backend.
 
-After rebuilding, exit GDB and rerun the matching `run-*` or `debug-run-*` command to reload the image.
+After rebuilding, exit GDB and rerun the matching `run-*` command to reload the image.
 
 > [!TIP]
 > In debug builds you can use the following functions to log:

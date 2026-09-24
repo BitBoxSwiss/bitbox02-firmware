@@ -53,9 +53,10 @@ def cmake(config: Config, profile: str, targets: list[str]) -> None:
 def build_image(
     config: Config, image: str, profile: str | None = None, variant: str = "development"
 ) -> None:
+    profile = profile or config.profile
     info = image_info(config, image, profile, variant=variant)
     if config.product != "bitbox03":
-        cmake(config, profile or "relwithdebinfo", [f"{info.name}.elf"])
+        cmake(config, profile, [f"{info.name}.elf"])
         return
     config.describe()
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
@@ -92,15 +93,6 @@ def dispatch(config: Config, target: str) -> None:
     ):
         image, profile = target.rsplit("-", 1)
         build_image(config, image, profile)
-    elif target.startswith("bitbox03-"):
-        name, profile = target.rsplit("-", 1)
-        image = {
-            "bitbox03-boot0": "bootloader-stage0",
-            "bitbox03-boot1": "bootloader-stage1",
-            "bitbox03-firmware": "firmware",
-            "bitbox03-factorysetup": "factorysetup",
-        }[name]
-        build_image(defaults("bitbox03"), image, profile)
     elif target.startswith("firmware-blupgrade-"):
         product = target.split("-")[2]
         cmake(defaults(product), "relwithdebinfo", [target + ".elf"])

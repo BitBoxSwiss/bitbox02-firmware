@@ -114,7 +114,7 @@ def execute(
     info = image_info(config, image, profile)
     if action == "flash" and info.ram:
         raise ValueError(f"{config.product} {image} runs from RAM; use make run-{image} instead")
-    target = f"{image}-{profile}" if profile else image
+    target = f"{image}-{profile}" if profile else f"{image} DEBUG={config.debug}"
     require_artifact(info.elf, target)
     if action == "flash":
         command = (

@@ -331,11 +331,11 @@ jobs:
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Build ${{ matrix.target }}
+      - name: Build documentation
         run: |
           make bootstrap
-          (mkdir -p build; cd build; cmake -DDOC_GRAPHS=NO ..)
-          make -j$(($(nproc)+1)) docs
+          cmake -S . -B build -DDOC_GRAPHS=NO
+          make -C build -j$(($(nproc)+1)) doc
 
   report-artifacts:
     needs: [build]

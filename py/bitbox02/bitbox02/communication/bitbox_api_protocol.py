@@ -18,7 +18,7 @@ import semver
 from .devices import parse_device_version, DeviceInfo
 
 from .communication import TransportLayer
-from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLUS_BTC
+from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLUS_BTC, BITBOX03
 
 try:
     from .generated import hww_pb2 as hww
@@ -558,12 +558,13 @@ class BitBoxCommonAPI:
         """
         Can raise LibraryVersionOutdatedException. check_min_version() should be called following
         the instantiation.
-        If device_info is None, it is infered using the OP_INFO API call, available since
-        firmware version v5.0.0.
+        If device_info is None or the device is a BitBox03, version and edition are inferred using
+        the OP_INFO API call, available since firmware version v5.0.0. BitBox03 does not expose the
+        firmware version in its USB serial descriptor.
         """
         self.debug = False
 
-        if device_info is not None:
+        if device_info is not None and device_info["product_string"] != BITBOX03:
             version = device_info["serial_number"]
             if device_info["product_string"] in (BITBOX02MULTI, BITBOX02PLUS_MULTI):
                 edition = BitBox02Edition.MULTI

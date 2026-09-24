@@ -3,13 +3,14 @@
 """Tests for starting a fresh host session before regular connection setup."""
 
 import unittest
+from typing import Optional
 from unittest import mock
 
 import semver
 
 from bitbox02.communication import bitbox_api_protocol as protocol
 from bitbox02.communication.communication import TransportLayer
-from bitbox02.communication.devices import BITBOX02MULTI
+from bitbox02.communication.devices import BITBOX02MULTI, BITBOX03
 
 
 class TestSession(unittest.TestCase):
@@ -18,11 +19,12 @@ class TestSession(unittest.TestCase):
     def test_reset_session_version_gate_and_order(self) -> None:
         """Discover the version if needed, then reset supported devices before attestation."""
         for version in ("v9.27.2", "v9.28.0", "v9.28.0-dev", "v9.29.0"):
-            for discover_version in (False, True):
-                with self.subTest(version=version, discover_version=discover_version):
-                    self._check_session_setup(version, discover_version)
+            for product in (BITBOX02MULTI, BITBOX03, None):
+                with self.subTest(version=version, product=product):
+                    self._check_session_setup(version, product)
 
-    def _check_session_setup(self, version: str, discover_version: bool) -> None:
+    def _check_session_setup(self, version: str, product: Optional[str]) -> None:
+        discover_version = product in (BITBOX03, None)
         events = []
         transport = mock.Mock(spec=TransportLayer)
         transport.generate_cid.return_value = 123
@@ -33,17 +35,18 @@ class TestSession(unittest.TestCase):
             events.append(data)
             if data == protocol.HwwRequestCode.REQ_INFO:
                 encoded = version.encode("ascii")
-                return bytes([len(encoded)]) + encoded + bytes(4)
+                platform = 0x03 if product == BITBOX03 else 0x00
+                return bytes([len(encoded)]) + encoded + bytes([platform, 0, 0, 0])
             self.assertEqual(data, protocol.HwwRequestCode.REQ_RESET)
             return protocol.HwwResponseCode.RSP_ACK
 
         transport.query.side_effect = query
         device_info = (
             None
-            if discover_version
+            if product is None
             else {
-                "serial_number": version,
-                "product_string": BITBOX02MULTI,
+                "serial_number": "" if product == BITBOX03 else version,
+                "product_string": product,
                 "path": b"device",
             }
         )
@@ -60,7 +63,11 @@ class TestSession(unittest.TestCase):
             "noise_connect",
             side_effect=lambda _config: events.append("noise"),
         ):
-            protocol.BitBoxCommonAPI(transport, device_info, protocol.BitBoxNoiseConfig())
+            api = protocol.BitBoxCommonAPI(transport, device_info, protocol.BitBoxNoiseConfig())
+        self.assertEqual(
+            api.version, semver.VersionInfo.parse(version[1:]).replace(prerelease=None)
+        )
+        self.assertEqual(api.edition, protocol.BitBox02Edition.MULTI)
         expected = [protocol.HwwRequestCode.REQ_INFO] if discover_version else []
         if version != "v9.27.2":
             expected.append(protocol.HwwRequestCode.REQ_RESET)

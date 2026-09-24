@@ -231,11 +231,12 @@ async fn test_new_descriptors() {
     let driver = driver();
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
-    let (mut usb, _) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    let (mut usb, _) = new(driver, &mut buffers, "BitBox03");
 
     let device = request(&mut usb, &state, hex!("8006000100001200"));
     assert_eq!(&device[4..8], &hex!("00000040"));
     assert_eq!(&device[8..12], &hex!("eb030324"));
+    assert_eq!(device[16], 0); // no serial number descriptor
     let config = request(&mut usb, &state, hex!("8006000200004000"));
     assert_eq!(config.len(), 41);
     assert_eq!(config[4], 1); // one interface
@@ -261,7 +262,7 @@ async fn test_new_maximum_string_descriptor() {
     let state = driver.0.clone();
     let product = "x".repeat(126);
     let mut buffers = Buffers::default();
-    let (mut usb, _) = new(driver, &mut buffers, &product, "0.1.0");
+    let (mut usb, _) = new(driver, &mut buffers, &product);
     let response = request(&mut usb, &state, hex!("800602030904ff00"));
     assert_eq!(response.len(), 254);
     assert_eq!(&response[..2], &hex!("fe03"));
@@ -273,7 +274,7 @@ async fn test_read_rejects_incomplete_reports() {
     let driver = driver();
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
-    let (_usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    let (_usb, mut hid) = new(driver, &mut buffers, "BitBox03");
     state.borrow_mut().enabled = true;
     state.borrow_mut().reads.extend([
         Ok(vec![0xaa; 64]),
@@ -296,7 +297,7 @@ async fn test_write_disconnect() {
     let driver = driver();
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
-    let (_usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    let (_usb, mut hid) = new(driver, &mut buffers, "BitBox03");
     assert!(poll_once(hid.ready()).is_pending());
     assert_eq!(hid.write(&[0xaa; 64]).await, Err(EndpointError::Disabled));
     state.borrow_mut().enabled = true;
@@ -351,7 +352,7 @@ async fn test_run_fragmented_message_and_backpressure() {
     let driver = driver();
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
-    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03");
     request(&mut usb, &state, hex!("0009010000000000"));
     let vendor = Rc::new(RefCell::new(VendorState::default()));
     let mut transport = U2fHid::new(EchoHandler(vendor.clone()));
@@ -381,7 +382,7 @@ async fn test_run_timeout_without_another_report() {
     let driver = driver();
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
-    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03");
     request(&mut usb, &state, hex!("0009010000000000"));
     let vendor = Rc::new(RefCell::new(VendorState::default()));
     let mut transport = U2fHid::new(EchoHandler(vendor.clone()));
@@ -404,7 +405,7 @@ async fn test_run_reconnect_discards_requests_and_responses() {
             let driver = driver();
             let state = driver.0.clone();
             let mut buffers = Buffers::default();
-            let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+            let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03");
             request(&mut usb, &state, hex!("0009010000000000"));
             let vendor = Rc::new(RefCell::new(VendorState::default()));
             let mut transport = U2fHid::new(EchoHandler(vendor.clone()));

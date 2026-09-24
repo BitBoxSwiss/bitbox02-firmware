@@ -3,7 +3,9 @@
 The STM32U5A9J-DK firmware enumerates one vendor-defined HID interface using
 `embassy-usb` and the Rust Synopsys OTG driver. It retains the existing HWW VID/PID
 (`03eb:2403`), usage page (`ffff`), and unnumbered 64-byte input/output reports.
-The product string is `BitBox03`. The integrated HS PHY operates at full
+The product string is `BitBox03`, with no USB serial descriptor. `py/send_message.py`
+recognizes the device and queries its firmware version and edition through HWW INFO.
+The integrated HS PHY operates at full
 speed (12 Mbit/s), matching the descriptors and existing HWW transport. High-speed
 enumeration needs additional descriptor support and is not enabled.
 

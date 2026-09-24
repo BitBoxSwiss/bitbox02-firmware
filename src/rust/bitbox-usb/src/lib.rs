@@ -93,24 +93,19 @@ pub struct HwwHid<'d, D: Driver<'d>> {
 }
 
 /// Build a single HWW HID interface. Poll `UsbDevice::run()` concurrently with report I/O.
-///
-/// The serial string follows the existing BitBox convention of containing the firmware version.
 pub fn new<'d, D: Driver<'d>>(
     driver: D,
     buffers: &'d mut Buffers<'d>,
     product: &'d str,
-    version: &'d str,
 ) -> (UsbDevice<'d, D>, HwwHid<'d, D>) {
     // USB string descriptors have a one-byte length, including their two-byte header.
     assert!(product.encode_utf16().count() <= 126);
-    assert!(version.encode_utf16().count() <= 126);
     let mut config = Config::new(0x03eb, 0x2403);
     config.bcd_usb = embassy_usb::UsbVersion::Two;
     config.max_speed = embassy_usb::UsbDeviceSpeed::Full;
     config.device_release = 0x0100;
     config.manufacturer = Some("bitbox.swiss");
     config.product = Some(product);
-    config.serial_number = Some(version);
     config.device_class = 0;
     config.device_sub_class = 0;
     config.device_protocol = 0;

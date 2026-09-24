@@ -46,7 +46,6 @@ fn main() -> ! {
         driver,
         USB_BUFFERS.init(bitbox_usb::Buffers::default()),
         "BitBox03",
-        env!("CARGO_PKG_VERSION"),
     );
     EXECUTOR.spawn(async move { usb.run().await }).detach();
     EXECUTOR

@@ -45,6 +45,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include <unicode/uchar.h>
 #include <unicode/utf8.h>
 
 #define SCREEN_WIDTH 132
@@ -888,9 +889,9 @@ static void print_glyph_comment(FILE* out, UChar32 codepoint)
         fprintf(out, "\\\\");
         break;
     default:
-        if ((codepoint < 0x20) || (codepoint >= 0x7F && codepoint <= 0x9F) ||
-            (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
-            fprintf(out, "\\u%04X", (unsigned int)codepoint);
+        if (!u_isgraph(codepoint) ||
+            u_hasBinaryProperty(codepoint, UCHAR_DEFAULT_IGNORABLE_CODE_POINT)) {
+            fprintf(out, codepoint <= 0xFFFF ? "\\u%04X" : "\\U%08X", (unsigned int)codepoint);
         } else {
             print_utf8_codepoint(out, codepoint);
         }

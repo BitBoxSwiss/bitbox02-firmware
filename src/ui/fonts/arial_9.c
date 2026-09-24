@@ -27,7 +27,7 @@
 #if ARIAL_9
 
 static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
-    /* U+0020 " " */
+    /* U+0020 "\u0020" */
     0x00,
 
     /* U+0021 "!" */
@@ -312,7 +312,7 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     /* U+007E "~" */
     0xDB,
 
-    /* U+00A0 " " */
+    /* U+00A0 "\u00A0" */
     0x00,
 
     /* U+00A1 "¡" */
@@ -351,7 +351,7 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     /* U+00AC "¬" */
     0xF1, 0x10,
 
-    /* U+00AD "­" */
+    /* U+00AD "\u00AD" */
     0xC0,
 
     /* U+00AE "®" */

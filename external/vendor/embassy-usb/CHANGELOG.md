@@ -1,0 +1,73 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<!-- next-header -->
+## Unreleased - ReleaseDate
+
+- Bump usbd-hid from 0.9.0 to 0.10.0
+- `UAC1`: Add audio source
+- `UAC1`: `Speaker::new` now returns `Self` with the parts inside instead of a tuple
+- `CDC-NCM`: Handle `SetEthernetPacketFilter` and advertise it in `bmNetworkCapabilities`, which also works around a macOS bug that intermittently left the data interface disabled
+- `MIDI`: Allow sender-only or receiver-only configuration
+- `MIDI`: Change constructor to take a configuration struct instead of discrete arguments
+- `MIDI`: Add extra fields to endpoint descriptors
+- Make `InterfaceAltBuilder::endpoint_in` and `InterfaceAltBuilder::endpoint_out` public
+- Fix various typos in comments and internal variable names
+
+## 0.6.0 - 2026-03-10
+
+- Add support for USB HID Boot Protocol Mode
+- Bump usbd-hid from 0.8.1 to 0.9.0
+- Fix a bug where CDC ACM BufferedReceiver repeats data when its future is dropped
+- Expose `dtr()` and `rts()` on `cdc_acm::ControlChanged`
+- Add standalone DFU class implementation
+- Add method to signal firmware error in DFU
+- Allow `dfu_mode::Handler::start` to return a `Result` (fail gracefully)
+- Fix bug in USB DFU transition
+- Fix DFU GetStatus handler
+- Upgrade embassy-sync to 0.8.0
+- Upgrade embassy-net-driver-channel to 0.4.0
+
+## 0.5.1 - 2025-08-26
+
+## 0.5.0 - 2025-07-16
+
+- `UAC1`: unmute by default ([#3992](https://github.com/embassy-rs/embassy/pull/3992))
+- `cdc_acm`: `State::new` is now `const` ([#4000](https://github.com/embassy-rs/embassy/pull/4000))
+- Add support for CMSIS-DAP v2 USB class ([#4107](https://github.com/embassy-rs/embassy/pull/4107))
+- Reduce `UsbDevice` builder logs to `trace` ([#4130](https://github.com/embassy-rs/embassy/pull/4130))
+- Implement `embedded-io-async` traits for USB CDC ACM ([#4176](https://github.com/embassy-rs/embassy/pull/4176))
+- Update `embassy-sync` to v0.7.0
+- Fix CDC ACM BufferedReceiver buffer calculation
+
+## 0.4.0 - 2025-01-15
+
+- Change config defaults to to composite with IADs. This ensures embassy-usb Just Works in more cases when using classes with multiple interfaces, or multiple classes. (breaking change)
+    - `composite_with_iads` = `true`
+    - `device_class` = `0xEF`
+    - `device_sub_class` = `0x02`
+    - `device_protocol` = `0x01`
+- Add support for USB Audio Class 1.
+- Add support for isochronous endpoints.
+- Add support for setting the USB version number.
+- Add support for device qualifier descriptors.
+- Allow `bos_descriptor_buf` to be a zero length if BOS descriptors aren't used.
+
+## 0.3.0 - 2024-08-05
+
+- bump usbd-hid from 0.7.0 to 0.8.1
+- Add collapse_debuginfo to fmt.rs macros.
+- update embassy-sync dependency
+
+## 0.2.0 - 2024-05-20
+
+- [#2862](https://github.com/embassy-rs/embassy/pull/2862) WebUSB implementation by @chmanie
+- Removed dynamically sized `device_descriptor` fields
+
+## 0.1.0 - 2024-01-11
+
+- Initial Release

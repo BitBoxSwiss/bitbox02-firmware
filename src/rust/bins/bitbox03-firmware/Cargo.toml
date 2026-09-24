@@ -15,9 +15,14 @@ board-stm32u5a9j-dk = [
     "dep:bitbox-board-stm32u5a9j-dk-build",
 ]
 rtt = ["bitbox-debug/rtt"]
+# Bring-up only: echo complete HID reports without interpreting wallet commands.
+usb-echo = []
 
 [dependencies]
-bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", features = ["usb"], optional = true }
+bitbox-usb = { path = "../../bitbox-usb" }
+embassy-futures = "0.1.2"
+static_cell = "2.1.0"
 bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
 bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
 bitbox-debug = { path = "../../bitbox-debug" }

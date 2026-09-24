@@ -7,3 +7,6 @@ pub mod flash;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 mod inner;
+
+#[cfg(all(feature = "usb", target_arch = "arm", target_os = "none"))]
+pub mod usb;

@@ -1,0 +1,9 @@
+block_labels = ["needs-decision"]
+delete_merged_branches = true
+status = [
+  "clippy (1.56)",
+  "clippy (1.63)",
+  "rustfmt",
+  "test (1.56)",
+  "test (1.63)",
+]

@@ -3,14 +3,16 @@
 The STM32U5A9J-DK firmware enumerates one vendor-defined HID interface using
 `embassy-usb` and the Rust Synopsys OTG driver. It retains the existing HWW VID/PID
 (`03eb:2403`), usage page (`ffff`), and unnumbered 64-byte input/output reports.
-The normal product string is `BitBox03`. The integrated HS PHY operates at full
+The product string is `BitBox03`. The integrated HS PHY operates at full
 speed (12 Mbit/s), matching the descriptors and existing HWW transport. High-speed
 enumeration needs additional descriptor support and is not enabled.
 
-The firmware binary is still a stub: wallet commands, U2F, and bootloader updates
-are not connected to this interface. The optional `usb-echo` feature enables a
-report round-trip test and changes the product string to `BitBox03 USB echo`.
-It must not be used as a wallet command handler.
+The firmware routes reports through `bitbox-u2fhid` to the existing HWW
+handler with the BitBox03 HAL. HWW discovery and session reset are available;
+wallet commands requiring unimplemented HAL services (including persistent
+storage, randomness, and the secure chip) remain unsupported and can panic.
+Discovery reports an uninitialized device until persistent storage is implemented.
+U2F and bootloader updates are not connected.
 
 ## Build and test
 
@@ -18,30 +20,25 @@ From the repository root:
 
 ```sh
 source ~/.venv/bin/activate
-./scripts/dev_exec.sh make bitbox03-firmware-debug CARGOFLAGS="--features usb-echo"
+./scripts/dev_exec.sh make bitbox03-firmware-debug
 ```
 
 Load the resulting firmware using the normal BitBox03 debug/flash workflow, then
 connect the board's MCU USB-C port to the host. The ST-LINK port is a separate
-USB device and is not the port under test. With `hidapi` installed in the Python
-environment:
-
-```sh
-source ~/.venv/bin/activate
-python scripts/bitbox03_usb_test.py
-```
-
-The script selects only the echo product and checks 256 distinct report round
-trips. Repeat after unplug/replug while keeping ST-LINK power connected, and
+USB device and is not the port under test. Check enumeration and HWW communication
+after unplug/replug while keeping ST-LINK power connected, and
 after host suspend/resume. Test both a high-speed connection and a full-speed
 hub. Physical enumeration, transfer, and power-cycle checks require a board;
-host unit tests exercise descriptors and report validation with a fake driver.
+host unit tests exercise descriptors, report validation, message fragmentation,
+backpressure, idle timeouts, and reconnect cleanup with a fake driver.
 
 ## Integration
 
 - `bitbox-usb` owns the HID descriptors and exposes `HwwHid::ready`, `read`, and
   `write`. Reads return a complete `[u8; 64]` or an error; short reports are rejected.
-  Run `UsbDevice::run()` concurrently with report processing.
+  `HwwHid::run` connects reports to HWW framing, ticks its timeouts, and polls the
+  pending wallet task even when USB I/O is waiting. Run `UsbDevice::run()`
+  concurrently with report processing on the same thread.
 - `bitbox-platform-stm32u5::usb` adapts Embassy's Synopsys driver to the existing
   PAC and interrupt table. USB has nine endpoint slots and a 1024-word FIFO. The
   OUT buffer has static storage so interrupts cannot reference freed memory.
@@ -70,7 +67,9 @@ The Embassy USB stack and its coupled driver crates are pinned in
 discard buffered data from the previous USB session and abort interrupted
 transfers. The dependencies are vendored for the normal build workflow.
 
-The bring-up binary polls the root future without heap allocation. When wallet
-startup is available, run USB and the existing `bitbox-u2fhid` HWW framing on
-`bitbox-executor`; the USB stack does not require Embassy's executor. Reset the
-framing/session state on disconnect before accepting another host session.
+The firmware runs USB and HWW processing on `bitbox-executor`. A fixed 128 KiB
+heap backs executor tasks and transport allocations. The platform HAL tick
+provides elapsed milliseconds, extended across its 32-bit wrap for HWW timeouts.
+USB reset, deconfiguration, and disconnect discard partial requests and pending
+responses, cancel the wallet task, and reset the Noise/UI session. USB lifecycle
+events are tracked even when the host reconfigures before the HWW task runs again.

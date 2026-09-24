@@ -25,6 +25,7 @@ struct State {
     enabled: bool,
     reads: VecDeque<Result<Vec<u8>, EndpointError>>,
     writes: Vec<Vec<u8>>,
+    write_blocked: bool,
 }
 
 #[derive(Clone)]
@@ -90,11 +91,15 @@ impl Bus for FakeDriver {
     }
     async fn poll(&mut self) -> Event {
         poll_fn(|_| {
-            self.0
-                .borrow_mut()
-                .events
-                .pop_front()
-                .map_or(Poll::Pending, Poll::Ready)
+            let mut state = self.0.borrow_mut();
+            let Some(event) = state.events.pop_front() else {
+                return Poll::Pending;
+            };
+            if matches!(event, Event::Reset | Event::PowerRemoved) {
+                state.enabled = false;
+                state.reads.clear();
+            }
+            Poll::Ready(event)
         })
         .await
     }
@@ -130,7 +135,14 @@ impl Endpoint for FakeEndpoint {
 
 impl EndpointOut for FakeEndpoint {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, EndpointError> {
-        let packet = self.state.borrow_mut().reads.pop_front().unwrap()?;
+        let packet = poll_fn(|_| {
+            let mut state = self.state.borrow_mut();
+            if !state.enabled {
+                return Poll::Ready(Err(EndpointError::Disabled));
+            }
+            state.reads.pop_front().map_or(Poll::Pending, Poll::Ready)
+        })
+        .await?;
         if packet.len() > buf.len() {
             return Err(EndpointError::BufferOverflow);
         }
@@ -141,11 +153,18 @@ impl EndpointOut for FakeEndpoint {
 
 impl EndpointIn for FakeEndpoint {
     async fn write(&mut self, buf: &[u8]) -> Result<(), EndpointError> {
-        if !self.state.borrow().enabled {
-            return Err(EndpointError::Disabled);
-        }
-        self.state.borrow_mut().writes.push(buf.to_vec());
-        Ok(())
+        poll_fn(|_| {
+            let mut state = self.state.borrow_mut();
+            if !state.enabled {
+                return Poll::Ready(Err(EndpointError::Disabled));
+            }
+            if state.write_blocked {
+                return Poll::Pending;
+            }
+            state.writes.push(buf.to_vec());
+            Poll::Ready(Ok(()))
+        })
+        .await
     }
 }
 
@@ -255,6 +274,7 @@ async fn test_read_rejects_incomplete_reports() {
     let state = driver.0.clone();
     let mut buffers = Buffers::default();
     let (_usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    state.borrow_mut().enabled = true;
     state.borrow_mut().reads.extend([
         Ok(vec![0xaa; 64]),
         Ok(vec![0xbb; 1]),
@@ -283,4 +303,138 @@ async fn test_write_disconnect() {
     hid.ready().await;
     hid.write(&[0xbb; 64]).await.unwrap();
     assert_eq!(state.borrow().writes, vec![vec![0xbb; 64]]);
+}
+
+#[derive(Default)]
+struct VendorState {
+    requests: Vec<Vec<u8>>,
+    resets: usize,
+    ticks: Vec<u64>,
+}
+
+struct EchoHandler(Rc<RefCell<VendorState>>);
+
+impl VendorCommandHandler for EchoHandler {
+    fn handle_vendor_command(
+        &mut self,
+        _cid: u32,
+        cmd: u8,
+        payload: &[u8],
+        _now_ms: u64,
+    ) -> Result<Vec<u8>, bitbox_u2fhid::ErrorCode> {
+        assert_eq!(cmd, 0xc1);
+        self.0.borrow_mut().requests.push(payload.to_vec());
+        Ok(payload.to_vec())
+    }
+
+    fn tick(&mut self, now_ms: u64) {
+        self.0.borrow_mut().ticks.push(now_ms);
+    }
+
+    fn reset(&mut self) {
+        self.0.borrow_mut().resets += 1;
+    }
+}
+
+fn reports() -> [Vec<u8>; 2] {
+    // One 60-byte vendor message on channel 0x12345678, split across two reports.
+    let mut initial = vec![0; REPORT_SIZE];
+    initial[..7].copy_from_slice(&hex!("12345678c1003c"));
+    initial[7..].fill(0xab);
+    let mut continuation = vec![0; REPORT_SIZE];
+    continuation[..8].copy_from_slice(&hex!("1234567800ababab"));
+    [initial, continuation]
+}
+
+#[async_test::test]
+async fn test_run_fragmented_message_and_backpressure() {
+    let driver = driver();
+    let state = driver.0.clone();
+    let mut buffers = Buffers::default();
+    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    request(&mut usb, &state, hex!("0009010000000000"));
+    let vendor = Rc::new(RefCell::new(VendorState::default()));
+    let mut transport = U2fHid::new(EchoHandler(vendor.clone()));
+    let spins = Cell::new(0);
+    let now = Cell::new(0);
+    let mut run = pin!(hid.run(&mut transport, || now.get(), || spins.set(spins.get() + 1)));
+
+    state.borrow_mut().reads.push_back(Ok(vec![0xff; 63]));
+    state.borrow_mut().reads.extend(reports().map(Ok));
+    state.borrow_mut().write_blocked = true;
+    assert!(poll_once(run.as_mut()).is_pending());
+    assert_eq!(vendor.borrow().requests, vec![vec![0xab; 60]]);
+    assert!(state.borrow().writes.is_empty());
+    let previous_spins = spins.get();
+    now.set(100);
+    assert!(poll_once(run.as_mut()).is_pending());
+    assert!(spins.get() > previous_spins);
+    assert_eq!(vendor.borrow().ticks.last(), Some(&100));
+
+    state.borrow_mut().write_blocked = false;
+    assert!(poll_once(run.as_mut()).is_pending());
+    assert_eq!(state.borrow().writes, reports());
+}
+
+#[async_test::test]
+async fn test_run_timeout_without_another_report() {
+    let driver = driver();
+    let state = driver.0.clone();
+    let mut buffers = Buffers::default();
+    let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+    request(&mut usb, &state, hex!("0009010000000000"));
+    let vendor = Rc::new(RefCell::new(VendorState::default()));
+    let mut transport = U2fHid::new(EchoHandler(vendor.clone()));
+    let now = Cell::new(0);
+    let mut run = pin!(hid.run(&mut transport, || now.get(), || {}));
+    state.borrow_mut().reads.push_back(Ok(reports()[0].clone()));
+    assert!(poll_once(run.as_mut()).is_pending());
+    assert!(state.borrow().writes.is_empty());
+    now.set(501);
+    assert!(poll_once(run.as_mut()).is_pending());
+    assert!(vendor.borrow().requests.is_empty());
+    assert_eq!(&state.borrow().writes[0][..8], &hex!("12345678bf000105"));
+}
+
+#[async_test::test]
+async fn test_run_reconnect_discards_requests_and_responses() {
+    // Exercise both a partially received request and an interrupted multi-report response.
+    for pending_response in [false, true] {
+        for event in [Event::Reset, Event::PowerRemoved] {
+            let driver = driver();
+            let state = driver.0.clone();
+            let mut buffers = Buffers::default();
+            let (mut usb, mut hid) = new(driver, &mut buffers, "BitBox03", "0.1.0");
+            request(&mut usb, &state, hex!("0009010000000000"));
+            let vendor = Rc::new(RefCell::new(VendorState::default()));
+            let mut transport = U2fHid::new(EchoHandler(vendor.clone()));
+            let mut run = pin!(hid.run(&mut transport, || 0, || {}));
+            state.borrow_mut().reads.push_back(Ok(reports()[0].clone()));
+            if pending_response {
+                state.borrow_mut().reads.push_back(Ok(reports()[1].clone()));
+                state.borrow_mut().write_blocked = true;
+            }
+            assert!(poll_once(run.as_mut()).is_pending());
+            assert_eq!(vendor.borrow().resets, 1);
+
+            state.borrow_mut().events.push_back(event);
+            assert!(poll_once(usb.run()).is_pending());
+            // Reconfigure before polling the HWW task. Endpoint status alone cannot detect this.
+            state.borrow_mut().events.push_back(Event::PowerDetected);
+            request(&mut usb, &state, hex!("0009010000000000"));
+            state.borrow_mut().write_blocked = false;
+            state.borrow_mut().reads.push_back(Ok(reports()[1].clone()));
+            assert!(poll_once(run.as_mut()).is_pending());
+            assert_eq!(vendor.borrow().resets, 2);
+            assert!(state.borrow().writes.is_empty());
+            assert_eq!(
+                vendor.borrow().requests.len(),
+                usize::from(pending_response)
+            );
+
+            state.borrow_mut().reads.extend(reports().map(Ok));
+            assert!(poll_once(run.as_mut()).is_pending());
+            assert_eq!(state.borrow().writes, reports());
+        }
+    }
 }

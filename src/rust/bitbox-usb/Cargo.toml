@@ -8,6 +8,7 @@ license = "Apache-2.0"
 description = "Device-independent BitBox USB HID transport"
 
 [dependencies]
+bitbox-u2fhid = { path = "../bitbox-u2fhid" }
 embassy-usb = { version = "0.6.0", default-features = false }
 
 [dev-dependencies]

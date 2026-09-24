@@ -333,16 +333,12 @@ impl<V: VbusDetect> embassy_usb_driver::Bus for Bus<V> {
             self.init();
         }
         self.init_core();
-        let mut first_poll = true;
         let event = loop {
             let mut event = pin!(self.inner.poll());
             let event = poll_fn(|cx| {
                 let powered = V::poll_vbus(cx);
-                if first_poll || powered != self.powered {
-                    log::debug!("USB: VBUS {}", if powered { "present" } else { "absent" });
-                    first_poll = false;
-                }
                 if powered != self.powered {
+                    log::debug!("USB: VBUS {}", if powered { "present" } else { "absent" });
                     self.powered = powered;
                     // Feed the board's VBUS state into the core's comparator override.
                     regs().gccfg_v3().modify(|w| w.set_vbvaloval(powered));

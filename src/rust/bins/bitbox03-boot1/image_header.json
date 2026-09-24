@@ -1,3 +1,7 @@
 {
-  "magic": "BBB1"
+  "magic": "BBS1",
+  "flags": 0,
+  "product_id": 0,
+  "monotonic_version": 1,
+  "marketing_version": "dev"
 }

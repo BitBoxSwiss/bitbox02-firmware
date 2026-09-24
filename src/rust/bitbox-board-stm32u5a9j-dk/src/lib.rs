@@ -11,6 +11,12 @@ pub mod ffi {
 
 pub mod memory;
 
+#[cfg(all(feature = "usb", target_arch = "arm", target_os = "none"))]
+pub mod usb;
+
+#[cfg(any(all(feature = "usb", target_arch = "arm", target_os = "none"), test))]
+mod usb_vbus;
+
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 pub fn init() {
     unsafe {

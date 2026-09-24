@@ -1,3 +1,0 @@
-loadbin $file 0x00000000
-r
-q

@@ -138,30 +138,6 @@ def _unpack_header(header: bytes) -> Stage1Header:
     }
 
 
-def _pack_prefix(header: Stage1Header) -> bytes:
-    return struct.pack(
-        STAGE1_HEADER_PREFIX_FORMAT,
-        STAGE1_HEADER_MAGIC,
-        header["flags"],
-        STAGE1_HEADER_FORMAT_VERSION,
-        header["product_id"],
-        header["header_len"],
-        header["image_len"],
-        header["monotonic_version"],
-        header["stage1_marketing_version_len"],
-        header["stage1_marketing_version_field"],
-        header["reserved"],
-    )
-
-
-def _pack_header(prefix: bytes, sigs: list[bytes]) -> bytes:
-    if len(prefix) != STAGE1_HEADER_SIGNED_LEN:
-        raise RuntimeError("invalid signed header prefix length")
-    if len(sigs) != STAGE1_ROOT_KEY_COUNT or any(len(sig) != STAGE1_SIGNATURE_LEN for sig in sigs):
-        raise RuntimeError("invalid header signatures")
-    return prefix + b"".join(sigs)
-
-
 def _stage1_signed_digest(image: bytes) -> bytes:
     header = _unpack_header(image[:STAGE1_HEADER_LEN])
     if len(image) <= header["header_len"]:
@@ -214,18 +190,6 @@ def _validate_fixed_fields(header: Stage1Header, expected_product_id: int | None
         raise RuntimeError("reserved header bytes are not zero")
 
 
-def _validate_raw_stage1(image: bytes) -> Stage1Header:
-    header = _unpack_header(image[:STAGE1_HEADER_LEN])
-    _validate_fixed_fields(header)
-    if header["image_len"] != 0:
-        raise RuntimeError("raw stage1 image length field is not zero")
-    if not _signatures_are_zero(header):
-        raise RuntimeError("raw stage1 signatures are not zero")
-    if len(image) <= header["header_len"] or len(image) > STAGE1_MAX_LEN:
-        raise RuntimeError("raw stage1 image length is invalid")
-    return header
-
-
 def _validate_complete_stage1(
     image: bytes,
     expected_product_id: int | None,
@@ -249,19 +213,6 @@ def _write_if_changed(path: Path, data: bytes) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
-
-
-def prepare_stage1_unsigned(args: argparse.Namespace) -> None:
-    image = Path(args.raw_bin).read_bytes()
-    header = _validate_raw_stage1(image)
-    header["image_len"] = len(image)
-    prefix = _pack_prefix(header)
-    unsigned_stage1 = (
-        _pack_header(prefix, [b"\x00" * STAGE1_SIGNATURE_LEN] * STAGE1_ROOT_KEY_COUNT)
-        + image[STAGE1_HEADER_LEN:]
-    )
-    _validate_complete_stage1(unsigned_stage1, None, require_signatures=False)
-    _write_if_changed(Path(args.unsigned_bin), unsigned_stage1)
 
 
 def _stage1_expected_flags(development: bool) -> int:
@@ -327,20 +278,6 @@ def main() -> None:
         )
     )
     subparsers = parser.add_subparsers()
-
-    prepare_parser = subparsers.add_parser(
-        "prepare-stage1-unsigned",
-        help="create an unsigned stage1 image from a raw linked stage1 binary",
-        description=(
-            "Validate the raw stage1 binary produced by objcopy, fill the stage1 "
-            "image_len header field with the actual image length, keep the signature "
-            "array zeroed, and write the canonical unsigned stage1 image that is "
-            "ready to be signed."
-        ),
-    )
-    prepare_parser.add_argument("--raw-bin", required=True)
-    prepare_parser.add_argument("--unsigned-bin", required=True)
-    prepare_parser.set_defaults(func=prepare_stage1_unsigned)
 
     update_parser = subparsers.add_parser(
         "create-stage1-fw-embedding",

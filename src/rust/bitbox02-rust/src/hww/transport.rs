@@ -116,8 +116,7 @@ where
         }
         match request {
             HWW_REQ_RESET => {
-                crate::hww::reset_session(&mut self.hal);
-                self.deadline_ms = None;
+                self.reset();
                 Ok(vec![HWW_RSP_ACK])
             }
             HWW_REQ_INFO => {
@@ -170,6 +169,11 @@ where
             crate::async_usb::cancel();
             self.deadline_ms = None;
         }
+    }
+
+    fn reset(&mut self) {
+        crate::hww::reset_session(&mut self.hal);
+        self.deadline_ms = None;
     }
 }
 
@@ -254,6 +258,25 @@ mod tests {
             .unwrap();
         assert!(!response.is_empty());
         assert_eq!(response[response.len() - 4], 0x03);
+    }
+
+    #[test]
+    fn test_reset_cancels_pending_task() {
+        let _guard = test_guard();
+        let mut transport = hww_transport::<TestingHal<'static>>();
+        crate::async_usb::spawn(pending_task, &[]);
+        crate::async_usb::spin();
+        transport.handler_mut().refresh_timeout(0);
+        transport.reset();
+        assert!(crate::async_usb::is_idle());
+        assert_eq!(transport.handler().deadline_ms, None);
+        assert_eq!(
+            transport
+                .handler_mut()
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 1)
+                .unwrap(),
+            vec![HWW_RSP_NACK],
+        );
     }
 
     #[test]

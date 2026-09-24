@@ -207,6 +207,12 @@ find_program(CBINDGEN cbindgen)
 # cargo is the rust build system and dependency manager
 find_program(CARGO cargo)
 
+# Referencing $(MAKE) marks Cargo recipes as recursive, preserving GNU make's
+# jobserver pipes. JOB_SERVER_AWARE would require CMake 3.28 or newer.
+if(CMAKE_GENERATOR MATCHES "Makefiles")
+  set(CARGO_JOBSERVER_ENV "BITBOX_CARGO_MAKE=$(MAKE)")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(RUST_PROFILE "debug")
 else()
@@ -332,6 +338,7 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
+      ${CARGO_JOBSERVER_ENV}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       ${CARGO_CC_FLAGS_ENV}
@@ -485,12 +492,36 @@ if(CMAKE_CROSSCOMPILING)
   )
   set(BB02_BLUPD_FIRMWARE_TARGETS ${BB02_BLUPD_FIRMWARE_TARGETS} PARENT_SCOPE)
 
-  function(add_bb02_stage1_target target rustlib product bootloader_type is_plus)
+  function(add_bb02_stage1_target target rustlib product product_id bootloader_type is_plus)
+    set(header_dir ${CMAKE_CURRENT_BINARY_DIR}/bootloader/${target})
+    set(header_manifest ${header_dir}/image_header.json)
+    set(header_bin ${header_dir}/image_header.bin)
+    set(header_obj ${header_dir}/image_header.o)
+    set(header_flags 0)
+    if(bootloader_type STREQUAL "BOOTLOADER_DEVDEVICE")
+      set(header_flags 1)
+    endif()
+    configure_file(bootloader/image_header.json.in ${header_manifest} @ONLY)
+    add_custom_command(
+      OUTPUT ${header_bin} ${header_obj}
+      COMMAND
+        ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/image_header.py
+        render-header --manifest ${header_manifest} --output ${header_bin}
+      COMMAND
+        ${CMAKE_OBJCOPY} -I binary -O elf32-littlearm -B arm
+        --set-section-alignment .data=4
+        --rename-section .data=.stage1_header,alloc,load,readonly,data,contents
+        ${header_bin} ${header_obj}
+      DEPENDS ${header_manifest} ${CMAKE_SOURCE_DIR}/scripts/image_header.py
+      COMMENT "Generating image header for ${target}"
+      VERBATIM
+    )
+    set_source_files_properties(${header_obj} PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
     add_executable(${target}.elf
       ${BOOTLOADER-SOURCES}
       ${PLATFORM-BITBOX02-SOURCES}
       ${QTOUCH-SOURCES}
-      ${CMAKE_SOURCE_DIR}/src/bootloader/stage1_header.c
+      ${header_obj}
     )
     target_compile_options(${target}.elf PRIVATE -fno-lto)
     target_link_libraries(${target}.elf PRIVATE
@@ -526,65 +557,72 @@ if(CMAKE_CROSSCOMPILING)
     add_custom_command(
       TARGET ${target}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${target}.elf
-      COMMAND ${CMAKE_OBJCOPY} -O binary ${target}.elf ${target}.raw.bin
       COMMAND
         ${PYTHON_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
-        prepare-stage1-unsigned
-        --raw-bin ${target}.raw.bin
-        --unsigned-bin ${target}.bin
+        ${CMAKE_SOURCE_DIR}/scripts/image_header.py
+        finalize-elf --section .stage1_header ${target}.elf
+      COMMAND ${CMAKE_OBJCOPY} -O binary ${target}.elf ${target}.bin
       WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
       COMMENT "\nGenerating binary ${target}.bin"
     )
     set_property(TARGET ${target}.elf PROPERTY EXCLUDE_FROM_ALL ON)
   endfunction()
 
+  # Product IDs must match bootloader/bootloader_product.h.
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02-btconly-development
     bb02-bl-btconly-development_rust_c
     PRODUCT_BITBOX_BTCONLY
+    2
     BOOTLOADER_DEVDEVICE
     FALSE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02-btconly-production
     bb02-bl-btconly-production_rust_c
     PRODUCT_BITBOX_BTCONLY
+    2
     BOOTLOADER_PRODUCTION
     FALSE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02-multi-development
     bb02-bl-multi-development_rust_c
     PRODUCT_BITBOX_MULTI
+    1
     BOOTLOADER_DEVDEVICE
     FALSE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02-multi-production
     bb02-bl-multi-production_rust_c
     PRODUCT_BITBOX_MULTI
+    1
     BOOTLOADER_PRODUCTION
     FALSE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02nova-btconly-development
     bb02p-bl-btconly-development_rust_c
     PRODUCT_BITBOX_PLUS_BTCONLY
+    4
     BOOTLOADER_DEVDEVICE
     TRUE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02nova-btconly-production
     bb02p-bl-btconly-production_rust_c
     PRODUCT_BITBOX_PLUS_BTCONLY
+    4
     BOOTLOADER_PRODUCTION
     TRUE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02nova-multi-development
     bb02p-bl-multi-development_rust_c
     PRODUCT_BITBOX_PLUS_MULTI
+    3
     BOOTLOADER_DEVDEVICE
     TRUE)
   add_bb02_stage1_target(
     bootloader-stage1-bitbox02nova-multi-production
     bb02p-bl-multi-production_rust_c
     PRODUCT_BITBOX_PLUS_MULTI
+    3
     BOOTLOADER_PRODUCTION
     TRUE)
 

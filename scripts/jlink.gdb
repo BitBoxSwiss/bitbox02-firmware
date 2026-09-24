@@ -1,32 +1,21 @@
-# Connect to jlink gdb server
+# SPDX-License-Identifier: Apache-2.0
+
+# scripts/probe.py supplies the image's $vectors address.
+
+# Reset before loading, as recommended by the SEGGER GDB Server examples.
 target extended-remote :2331
-
-# It seems more reliable to reset the chip before loading the new firmware. It
-# is also how they do it in the example in the wiki:
-# https://kb.segger.com/J-Link_GDB_Server#Console
-
-# Reset the CPU
 monitor reset
+monitor halt
 
-# load the firmware into ROM
 load
+compare-sections
+# Rust images can select the Rust expression parser; these are C expressions.
+set language c
+set {unsigned int}0xe000ed08 = $vectors
+set $sp = *(unsigned int*)$vectors
+set $pc = *(unsigned int*)($vectors + 4)
+set $xpsr = 0x01000000
+set language auto
 
-define bootload
-  monitor reset
-  # Set VTOR (Vector Table Offset Register) to where the firmware is located
-  set *(uint32_t*)0xE000ED08=0x10000
-  # Set stack pointer to initial stack pointer according to exception table.
-  set $sp = *(uint32_t*)0x10000
-  # Set the program counter to the reset handler (second item in exception table)
-  set $pc = *(uint32_t*)0x10004
-end
-bootload
-
-#break Reset_Handler
-#break HardFault_Handler
-#break NMI_Handler
-#break MemManage_Handler
-
-# start running
-# change `continue` to `stepi` to stop execution at the start if you want to set breakpoints etc.
-continue
+# Add breakpoints here, or comment out c to stop before the first instruction.
+c

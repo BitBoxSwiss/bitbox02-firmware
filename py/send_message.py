@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 
-"""Script for interacting with bitbox v2"""
+"""Script for interacting with BitBox devices."""
 
 # pylint: disable=too-many-lines
 
@@ -2076,7 +2076,7 @@ def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
 
 def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     """
-    Connects and runs the main menu on a BitBox02 connected
+    Connects and runs the main menu on a BitBox02, BitBox02 Nova, or BitBox03 connected
     over USB.
     """
 
@@ -2110,7 +2110,7 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         return connect_to_bootloader()
 
     def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
-        print("Please compare and confirm the pairing code on your BitBox02:")
+        print(f"Please compare and confirm the pairing code on your {bitbox['product_string']}:")
         print(code)
         if not device_response():
             return False

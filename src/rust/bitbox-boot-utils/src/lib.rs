@@ -210,6 +210,9 @@ pub unsafe fn vector_table_from_image_header(
     ram_len: usize,
     expected_magic: [u8; 4],
 ) -> Result<*const u32, ()> {
+    if slot_len < IMAGE_HEADER_LEN {
+        return Err(());
+    }
     let bytes = unsafe { &*(slot_address as *const [u8; core::mem::size_of::<ImageHeader>()]) };
     let header = ImageHeader::try_from_bytes(bytes)?;
 
@@ -217,15 +220,15 @@ pub unsafe fn vector_table_from_image_header(
         return Err(());
     }
     let header_len = header.header_len as usize;
-    if header_len <= core::mem::size_of::<ImageHeader>() || !header_len.is_multiple_of(1024) {
+    if header_len < IMAGE_HEADER_LEN || !header_len.is_multiple_of(1024) {
         return Err(());
     }
-    let code_len = header.code_size as usize;
+    let image_len = usize::try_from(header.image_len).map_err(|_| ())?;
+    let code_len = image_len.checked_sub(header_len).ok_or(())?;
     if code_len < 8 {
         return Err(());
     }
 
-    let image_len = header_len.checked_add(code_len).ok_or(())?;
     if image_len > slot_len {
         return Err(());
     }
@@ -357,8 +360,10 @@ mod tests {
     ) -> [u8; core::mem::size_of::<ImageHeader>()] {
         let mut header = [0u8; core::mem::size_of::<ImageHeader>()];
         header[..4].copy_from_slice(&magic);
-        header[4..8].copy_from_slice(&header_len.to_le_bytes());
-        header[8..12].copy_from_slice(&code_size.to_le_bytes());
+        header[8..10].copy_from_slice(&1u16.to_le_bytes());
+        header[12..16].copy_from_slice(&header_len.to_le_bytes());
+        header[16..24]
+            .copy_from_slice(&(u64::from(header_len) + u64::from(code_size)).to_le_bytes());
         header
     }
 
@@ -455,15 +460,31 @@ mod tests {
 
     #[test]
     fn test_image_header_try_from_bytes() {
-        let bytes = [
-            b'B', b'B', b'F', b'W', 0x00, 0x04, 0x00, 0x00, 0x34, 0x12, 0x00, 0x00,
-        ];
+        let mut bytes = [0u8; IMAGE_HEADER_LEN];
+        bytes[..27].copy_from_slice(&[
+            b'B', b'B', b'F', b'W', 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x04,
+            0x00, 0x00, 0x34, 0x12, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xcd, 0xab, 0x06,
+        ]);
+        bytes[27..33].copy_from_slice(b"v1.2.3");
+        bytes[64..832].fill(0x5a);
+        bytes[832..896].fill(1);
+        bytes[896..960].fill(2);
+        bytes[960..1024].fill(3);
         let header = ImageHeader::try_from_bytes(&bytes).unwrap();
 
-        assert_eq!(core::mem::size_of::<ImageHeader>(), 12);
+        assert_eq!(core::mem::size_of::<ImageHeader>(), 1024);
+        assert_eq!(IMAGE_HEADER_MAGIC_BOOT1, *b"BBS1");
         assert_eq!(header.magic, IMAGE_HEADER_MAGIC_FIRMWARE);
+        assert_eq!(header.flags, 1);
+        assert_eq!(header.header_version, 1);
+        assert_eq!(header.product_id, 4);
         assert_eq!(header.header_len, IMAGE_HEADER_LEN as u32);
-        assert_eq!(header.code_size, 0x1234);
+        assert_eq!(header.image_len, 0x1_0000_1234);
+        assert_eq!(header.monotonic_version, 0xabcd);
+        assert_eq!(header.marketing_version_len, 6);
+        assert_eq!(&header.marketing_version[..6], b"v1.2.3");
+        assert_eq!(header.reserved, [0x5a; 768]);
+        assert_eq!(header.signatures, [[1; 64], [2; 64], [3; 64]]);
     }
 
     #[test]
@@ -487,7 +508,7 @@ mod tests {
     fn test_vector_table_from_image_header_header_len_too_small() {
         assert_test_image_invalid(
             IMAGE_HEADER_MAGIC_BOOT1,
-            core::mem::size_of::<ImageHeader>() as u32,
+            (IMAGE_HEADER_LEN - 1) as u32,
             8,
             TEST_IMAGE_LEN,
         );
@@ -530,6 +551,42 @@ mod tests {
             IMAGE_HEADER_LEN as u32,
             9,
             TEST_IMAGE_LEN,
+        );
+    }
+
+    #[test]
+    fn test_vector_table_from_image_header_invalid_image_len() {
+        for image_len in [0u64, 1023, 0x1_0000_0408, u64::MAX] {
+            let mut image = build_test_image::<TEST_IMAGE_LEN>(
+                IMAGE_HEADER_MAGIC_BOOT1,
+                IMAGE_HEADER_LEN as u32,
+                8,
+            );
+            image.0[16..24].copy_from_slice(&image_len.to_le_bytes());
+            assert_eq!(
+                // SAFETY: TestImage is u32-aligned, readable and immutable for
+                // the call, including both vector-table entries.
+                unsafe {
+                    vector_table_from_image_header(
+                        image.0.as_ptr() as usize,
+                        image.0.len(),
+                        TEST_RAM_BASE,
+                        TEST_RAM_LEN,
+                        IMAGE_HEADER_MAGIC_BOOT1,
+                    )
+                },
+                Err(())
+            );
+        }
+    }
+
+    #[test]
+    fn test_vector_table_from_image_header_slot_too_small() {
+        assert_test_image_invalid(
+            IMAGE_HEADER_MAGIC_BOOT1,
+            IMAGE_HEADER_LEN as u32,
+            8,
+            IMAGE_HEADER_LEN - 1,
         );
     }
 

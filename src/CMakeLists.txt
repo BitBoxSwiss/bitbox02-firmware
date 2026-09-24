@@ -207,6 +207,12 @@ find_program(CBINDGEN cbindgen)
 # cargo is the rust build system and dependency manager
 find_program(CARGO cargo)
 
+# Referencing $(MAKE) marks Cargo recipes as recursive, preserving GNU make's
+# jobserver pipes. JOB_SERVER_AWARE would require CMake 3.28 or newer.
+if(CMAKE_GENERATOR MATCHES "Makefiles")
+  set(CARGO_JOBSERVER_ENV "BITBOX_CARGO_MAKE=$(MAKE)")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(RUST_PROFILE "debug")
 else()
@@ -332,6 +338,7 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
+      ${CARGO_JOBSERVER_ENV}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       ${CARGO_CC_FLAGS_ENV}

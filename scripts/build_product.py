@@ -24,8 +24,10 @@ from build_config import (
 
 def run(command: list[str], cwd: Path = ROOT) -> None:
     print(shlex.join(command), flush=True)
-    flags = os.environ.get("MAKEFLAGS", "").split()
-    if flags and "n" in flags[0].lstrip("-") and "=" not in flags[0]:
+    # GNU make puts short flags first, followed by a space and other options.
+    # Preserve an empty first field so long options are not treated as short flags.
+    flags = os.environ.get("MAKEFLAGS", "").split(" ", 1)[0]
+    if "n" in flags:
         return
     # Keep GNU make's jobserver available to recursive backend builds.
     subprocess.run(command, cwd=cwd, check=True, close_fds=False)

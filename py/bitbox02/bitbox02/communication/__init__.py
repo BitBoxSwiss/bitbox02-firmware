@@ -5,6 +5,7 @@
 from .communication import PhysicalLayer, TransportLayer
 from .bitbox_api_protocol import (
     BitBoxNoiseConfig,
+    BitBoxConfig,
     BitBoxCommonAPI,
     Bitbox02Exception,
     UserAbortException,

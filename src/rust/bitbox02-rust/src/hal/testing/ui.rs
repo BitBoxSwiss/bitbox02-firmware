@@ -63,6 +63,13 @@ pub struct ProgressScreen {
 }
 
 type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
+type EnterStringAsyncCb<'a> = Box<
+    dyn FnMut(
+            &EnterStringParams<'_>,
+        ) -> core::pin::Pin<
+            Box<dyn core::future::Future<Output = Result<String, UserAbort>> + 'a>,
+        > + 'a,
+>;
 type EnterWordlistWordCb<'a> =
     Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, WordlistEntryAbort> + 'a>;
 type MenuCb<'a> = Box<dyn FnMut(&[&str], Option<&str>) -> Result<u8, UserAbort> + 'a>;
@@ -77,7 +84,7 @@ pub struct TestingUi<'a> {
     pub confirm_display_sizes: Vec<usize>,
     pub confirm_scrollable: Vec<bool>,
     progress_screens: Rc<RefCell<Vec<ProgressScreen>>>,
-    _enter_string: Option<EnterStringCb<'a>>,
+    _enter_string_async: Option<EnterStringAsyncCb<'a>>,
     _enter_wordlist_word: Option<EnterWordlistWordCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
@@ -227,6 +234,14 @@ impl Ui for TestingUi<'_> {
         });
     }
 
+    async fn waiting(&mut self, message: &str) {
+        self.screens.push(Screen::PrintScreen {
+            message: message.into(),
+            duration: Duration::ZERO,
+        });
+        core::future::pending::<()>().await;
+    }
+
     fn switch_to_logo(&mut self) {}
 
     fn reset(&mut self) {}
@@ -237,7 +252,9 @@ impl Ui for TestingUi<'_> {
         _can_cancel: CanCancel,
         _preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
-        self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
+        self._enter_string_async.as_mut().unwrap()(params)
+            .await
+            .map(zeroize::Zeroizing::new)
     }
 
     async fn enter_wordlist_word(
@@ -331,7 +348,7 @@ impl<'a> TestingUi<'a> {
             confirm_scrollable: vec![],
             progress_screens: Rc::new(RefCell::new(vec![])),
             _abort_nth: None,
-            _enter_string: None,
+            _enter_string_async: None,
             _enter_wordlist_word: None,
             _menu: None,
             _trinary_choice: None,
@@ -356,8 +373,14 @@ impl<'a> TestingUi<'a> {
         })
     }
 
-    pub fn set_enter_string(&mut self, cb: EnterStringCb<'a>) {
-        self._enter_string = Some(cb);
+    pub fn set_enter_string(&mut self, mut cb: EnterStringCb<'a>) {
+        self.set_enter_string_async(Box::new(move |params| {
+            Box::pin(core::future::ready(cb(params)))
+        }));
+    }
+
+    pub fn set_enter_string_async(&mut self, cb: EnterStringAsyncCb<'a>) {
+        self._enter_string_async = Some(cb);
     }
 
     pub fn set_enter_wordlist_word(&mut self, cb: EnterWordlistWordCb<'a>) {
@@ -365,7 +388,7 @@ impl<'a> TestingUi<'a> {
     }
 
     pub fn remove_enter_string(&mut self) {
-        self._enter_string = None;
+        self._enter_string_async = None;
     }
 
     pub fn set_menu(&mut self, cb: MenuCb<'a>) {
@@ -438,7 +461,7 @@ impl<'a> TestingUi<'a> {
         let words: Vec<String> = words.iter().map(|word| (*word).into()).collect();
         let mut first_words: VecDeque<String> = words[..23].iter().cloned().collect();
         let last_word = words[23].clone();
-        let mut fallback_enter_string = self._enter_string.take();
+        let mut fallback_enter_string = self._enter_string_async.take();
 
         self.set_trinary_choice(Box::new(
             |message, label_left, label_middle, label_right| {
@@ -460,11 +483,12 @@ impl<'a> TestingUi<'a> {
                 .unwrap())
         }));
 
-        self.set_enter_string(Box::new(move |params| {
+        self.set_enter_string_async(Box::new(move |params| {
             if params.wordlist.is_some() && params.title.ends_with(" of 24") {
-                return Ok(first_words
+                let word = first_words
                     .pop_front()
-                    .expect("too many mnemonic word entries"));
+                    .expect("too many mnemonic word entries");
+                return Box::pin(core::future::ready(Ok(word)));
             }
             if let Some(ref mut fallback) = fallback_enter_string {
                 return fallback(params);

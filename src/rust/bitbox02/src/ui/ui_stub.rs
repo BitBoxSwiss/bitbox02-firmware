@@ -54,6 +54,10 @@ pub fn status_create(_text: &str, _status_success: bool) -> Component {
     Component { is_pushed: false }
 }
 
+pub fn info_centered_create(_text: &str) -> Component {
+    Component { is_pushed: false }
+}
+
 pub async fn sdcard() -> SdcardResponse {
     panic!("not used");
 }

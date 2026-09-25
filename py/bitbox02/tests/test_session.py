@@ -10,6 +10,8 @@ import semver
 from bitbox02.communication import bitbox_api_protocol as protocol
 from bitbox02.communication.communication import TransportLayer
 from bitbox02.communication.devices import BITBOX02MULTI
+from bitbox02.communication.generated import hww_pb2 as hww
+from bitbox02.communication.generated import keystore_pb2 as keystore
 
 
 class TestSession(unittest.TestCase):
@@ -33,7 +35,7 @@ class TestSession(unittest.TestCase):
             events.append(data)
             if data == protocol.HwwRequestCode.REQ_INFO:
                 encoded = version.encode("ascii")
-                return bytes([len(encoded)]) + encoded + bytes(4)
+                return bytes([len(encoded)]) + encoded + b"\x00\x00\x00\x01"
             self.assertEqual(data, protocol.HwwRequestCode.REQ_RESET)
             return protocol.HwwResponseCode.RSP_ACK
 
@@ -59,13 +61,47 @@ class TestSession(unittest.TestCase):
             protocol.BitBoxProtocolV7,
             "noise_connect",
             side_effect=lambda _config: events.append("noise"),
+        ), mock.patch.object(
+            protocol.BitBoxCommonAPI,
+            "_unlock",
+            side_effect=lambda _config: events.append("encrypted unlock"),
         ):
             protocol.BitBoxCommonAPI(transport, device_info, protocol.BitBoxNoiseConfig())
         expected = [protocol.HwwRequestCode.REQ_INFO] if discover_version else []
         if version != "v9.27.2":
             expected.append(protocol.HwwRequestCode.REQ_RESET)
-        expected.extend(["attestation", "unlock", "noise"])
+        if version == "v9.27.2":
+            expected.extend(["attestation", "unlock", "noise"])
+        else:
+            expected.extend(["attestation", "noise", "encrypted unlock"])
         self.assertEqual(events, expected)
+
+    def test_unlock_without_initialization_query(self) -> None:
+        """An immediate DONE completes connection setup without querying initialization."""
+        # pylint: disable=no-member
+        transport = mock.Mock(spec=TransportLayer)
+        transport.query.side_effect = [protocol.HwwResponseCode.RSP_ACK]
+        enter = mock.Mock()
+        with mock.patch.object(protocol.BitBoxCommonAPI, "_perform_attestation"), mock.patch.object(
+            protocol.BitBoxProtocolV7, "noise_connect"
+        ), mock.patch.object(
+            protocol.BitBoxCommonAPI,
+            "_msg_query",
+            return_value=hww.Response(
+                unlock=keystore.UnlockResponse(state=keystore.UnlockResponse.DONE)
+            ),
+        ) as query:
+            protocol.BitBoxCommonAPI(
+                transport,
+                {"serial_number": "v9.28.0", "product_string": BITBOX02MULTI},
+                protocol.BitBoxNoiseConfig(),
+                protocol.BitBoxConfig(enter_mnemonic_passphrase=enter),
+            )
+        query.assert_called_once_with(
+            hww.Request(unlock=keystore.UnlockRequest()), expected_response="unlock"
+        )
+        self.assertEqual(transport.query.call_count, 1)
+        enter.assert_not_called()
 
     def test_reset_session_busy(self) -> None:
         """Wait for another owner of the UI before continuing startup."""

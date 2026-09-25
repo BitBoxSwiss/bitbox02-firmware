@@ -57,6 +57,10 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
 
 pub fn screen_process() {}
 
+pub fn info_centered_create(_text: &str) -> Component {
+    Component { is_pushed: false }
+}
+
 pub fn status_create(text: &str, _status_success: bool) -> Component {
     crate::print_stdout(&format!(
         "STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n",

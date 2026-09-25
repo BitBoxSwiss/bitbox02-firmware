@@ -62,6 +62,11 @@ fn next_task_token() -> u32 {
 /// Must be called from the same single-threaded, non-reentrant execution context as all other
 /// U2F workflow C API calls.
 unsafe fn try_start_workflow() -> Option<ActiveWorkflowGuard> {
+    // A multi-request HWW workflow still owns the UI between requests, even though the
+    // C transport lock is released while waiting for the next request.
+    if !bitbox02_rust::async_usb::is_idle() {
+        return None;
+    }
     let guard = ActiveWorkflowGuard::try_new()?;
     unsafe {
         if !matches!(UNLOCK_STATE.get().as_ref().unwrap(), TaskState::Nothing)
@@ -262,5 +267,21 @@ mod tests {
         unsafe {
             UNLOCK_STATE.get().write(TaskState::Nothing);
         }
+
+        // The HWW task owns the UI even after an intermediate response has been read.
+        async fn host_input(_request: alloc::vec::Vec<u8>) -> alloc::vec::Vec<u8> {
+            bitbox02_rust::async_usb::next_request(alloc::vec![1]).await
+        }
+        bitbox02_rust::async_usb::spawn(host_input, &[]);
+        bitbox02_rust::async_usb::spin();
+        assert!(unsafe { try_start_workflow() }.is_none());
+        assert_eq!(
+            bitbox02_rust::async_usb::take_response().unwrap(),
+            alloc::vec![1]
+        );
+        assert!(bitbox02_rust::async_usb::waiting_for_next_request());
+        assert!(unsafe { try_start_workflow() }.is_none());
+        bitbox02_rust::async_usb::cancel();
+        assert!(unsafe { try_start_workflow() }.is_some());
     }
 }

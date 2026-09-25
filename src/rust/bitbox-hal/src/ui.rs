@@ -119,6 +119,10 @@ pub trait Ui {
 
     async fn status(&mut self, title: &str, status_success: bool);
 
+    /// Display a message without controls until this future is dropped. Dropping it removes
+    /// the screen, including when the enclosing workflow is cancelled.
+    async fn waiting(&mut self, message: &str);
+
     /// Demo/testing only: show a screen with all navigation icon buttons. Defaults to a no-op so
     /// only platforms that implement it (BitBox03) do anything.
     async fn show_demo_nav_buttons(&mut self) {}

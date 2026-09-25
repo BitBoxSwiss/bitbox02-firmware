@@ -3,12 +3,14 @@
 """BitBox02"""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import os
 import enum
 import sys
 import base64
 import hashlib
 import time
+import threading
 from typing import Callable, Optional, Dict, Tuple, Union, Sequence
 
 import ecdsa
@@ -23,6 +25,7 @@ from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLU
 try:
     from .generated import hww_pb2 as hww
     from .generated import system_pb2 as system
+    from .generated import keystore_pb2 as keystore
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()
@@ -258,6 +261,39 @@ class UnsupportedException(Exception):
                 need_atleast
             )
         )
+
+
+@dataclass
+class BitBoxConfig:
+    """Callbacks for optional BIP39 passphrase entry during unlock.
+
+    When the device's passphrase setting is enabled, entry starts on the device.
+    Set enter_mnemonic_passphrase to let your app ask for the passphrase after device
+    approval. With this callback alone, the library automatically requests host entry
+    once per unlock. Rejection, cancellation or invalid input falls back to device entry.
+
+    To let your app choose when to request host entry, also set
+    on_host_passphrase_available. For example, your app can offer an
+    "Enter passphrase on host" button and request host entry when it is clicked.
+
+    The library handles device communication and polling. Callbacks run on the thread
+    performing connection/unlock. GUI apps must run this work on a worker thread and
+    schedule UI updates on the UI thread. Callbacks must not make other device queries.
+    """
+
+    # Notifies when host entry can be requested; requires enter_mnemonic_passphrase.
+    # Use the supplied callable to request device consent, e.g. bind it to a button.
+    # None withdraws availability: hide the button if using one. Return immediately.
+    # The supplied callable is thread-safe and wakes the unlock loop without device I/O.
+    # None is sent before host consent or device confirmation, and when unlock ends.
+    # If entry restarts, a fresh callable is supplied; old callables have no effect.
+    on_host_passphrase_available: Optional[Callable[[Optional[Callable[[], None]]], None]] = None
+
+    # Called only after device approval. Wait for host input and return the passphrase
+    # as a string (including "" for an empty passphrase), or None to cancel host input.
+    # GUI apps can open a dialog on the UI thread and wait here for its result.
+    # Without an availability callback, host entry is requested automatically once per unlock.
+    enter_mnemonic_passphrase: Optional[Callable[[], Optional[str]]] = None
 
 
 class BitBoxNoiseConfig:
@@ -554,6 +590,7 @@ class BitBoxCommonAPI:
         transport: TransportLayer,
         device_info: Optional[DeviceInfo],
         noise_config: BitBoxNoiseConfig,
+        bitbox_config: Optional[BitBoxConfig] = None,
     ):
         """
         Can raise LibraryVersionOutdatedException. check_min_version() should be called following
@@ -604,9 +641,79 @@ class BitBoxCommonAPI:
 
         if self.version >= semver.VersionInfo(2, 0, 0):
             noise_config.attestation_check(self._perform_attestation())
-            self._bitbox_protocol.unlock_query()
+            if self.version < semver.VersionInfo(9, 28, 0):
+                self._bitbox_protocol.unlock_query()
 
         self._bitbox_protocol.noise_connect(noise_config)
+
+        if self.version >= semver.VersionInfo(9, 28, 0):
+            self._unlock(bitbox_config or BitBoxConfig())
+
+    def _unlock(self, config: BitBoxConfig) -> None:
+        """Own all protocol I/O, including polling while device entry is available."""
+        # pylint: disable=no-member
+        available = config.on_host_passphrase_available
+        enter = config.enter_mnemonic_passphrase
+        auto_request_host_entry = enter is not None and available is None
+        host_entry: Optional[threading.Event] = None
+
+        def withdraw() -> None:
+            nonlocal host_entry
+            if host_entry is not None:
+                host_entry = None
+                assert available is not None
+                available(None)
+
+        request = hww.Request(unlock=keystore.UnlockRequest())
+        consent_requested = False
+        try:
+            while True:
+                reply = self._msg_query(request, expected_response="unlock").unlock
+                if reply.state == keystore.UnlockResponse.DONE:
+                    return
+                if reply.state == keystore.UnlockResponse.PASSPHRASE_PENDING:
+                    consent_requested = False
+                    if auto_request_host_entry:
+                        # Request only once per unlock so rejection/cancellation can fall back
+                        # to device entry without immediately prompting for host entry again.
+                        auto_request_host_entry = False
+                        consent_requested = True
+                    elif available is not None and enter is not None:
+                        if host_entry is None:
+                            # Each device-entry phase gets its own thread-safe, coalescing event.
+                            # Stale callbacks only signal their old, unused event.
+                            host_entry = threading.Event()
+                            available(host_entry.set)
+                        consent_requested = host_entry.wait(0.1)
+                        if consent_requested:
+                            withdraw()
+                    else:
+                        time.sleep(0.1)
+                    request = hww.Request(
+                        unlock_continue=keystore.UnlockContinueRequest(
+                            request_host_entry=consent_requested
+                        )
+                    )
+                elif reply.state == keystore.UnlockResponse.PASSPHRASE_ENTERED:
+                    consent_requested = False
+                    withdraw()
+                    # The next response waits for confirmation. Do not offer host entry or
+                    # report successful completion while the user is still confirming.
+                    request = hww.Request(unlock_continue=keystore.UnlockContinueRequest())
+                elif reply.state == keystore.UnlockResponse.HOST_ENTRY_READY and consent_requested:
+                    assert enter is not None
+                    consent_requested = False
+                    passphrase = enter()
+                    if passphrase is not None and not isinstance(passphrase, str):
+                        raise TypeError("Passphrase callback must return a string or None")
+                    request = hww.Request(
+                        unlock_host_info=keystore.UnlockHostInfoRequest(passphrase=passphrase)
+                    )
+                    del passphrase
+                else:
+                    raise Exception("Unexpected unlock phase")
+        finally:
+            withdraw()
 
     # pylint: disable=too-many-return-statements
     def _perform_attestation(self) -> bool:
@@ -660,7 +767,10 @@ class BitBoxCommonAPI:
         """
         # pylint: disable=no-member
         if self.debug:
-            print(request)
+            if request.WhichOneof("request") == "unlock_host_info":
+                print("unlock_host_info { <redacted> }")
+            else:
+                print(request)
         response_bytes = self._bitbox_protocol.encrypted_query(request.SerializeToString())
         response = hww.Response()
         response.ParseFromString(response_bytes)

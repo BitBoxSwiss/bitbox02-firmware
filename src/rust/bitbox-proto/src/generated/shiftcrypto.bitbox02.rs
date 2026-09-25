@@ -1924,6 +1924,74 @@ impl EthAddressCase {
         }
     }
 }
+/// Unlock inside the paired Noise channel (since v9.28.0). Uninitialized and already unlocked
+/// devices return DONE immediately and are left unchanged. Continuations are only valid within
+/// this workflow.
+/// If the passphrase feature is enabled, device entry returns PASSPHRASE_PENDING. The host
+/// polls with UnlockContinueRequest until entry completes or it requests host entry.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnlockRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnlockContinueRequest {
+    /// False polls device entry; true interrupts it to ask for host-entry consent.
+    /// After PASSPHRASE_ENTERED, continue to await confirmation and unlock;
+    /// host entry is ignored.
+    #[prost(bool, tag = "1")]
+    pub request_host_entry: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnlockHostInfoRequest {
+    /// Only sent after HOST_ENTRY_READY. Absent cancels host input and restarts device entry;
+    /// the empty string submits the empty passphrase. The device confirms the actual value.
+    #[prost(string, optional, tag = "1")]
+    pub passphrase: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnlockResponse {
+    #[prost(enumeration = "unlock_response::State", tag = "1")]
+    pub state: i32,
+}
+/// Nested message and enum types in `UnlockResponse`.
+pub mod unlock_response {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum State {
+        PassphrasePending = 0,
+        HostEntryReady = 1,
+        /// Passphrase entry on the device finished; confirmation may still be pending.
+        /// Withdraw host entry and send UnlockContinue to await completion.
+        PassphraseEntered = 2,
+        Done = 3,
+    }
+    impl State {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                State::PassphrasePending => "PASSPHRASE_PENDING",
+                State::HostEntryReady => "HOST_ENTRY_READY",
+                State::PassphraseEntered => "PASSPHRASE_ENTERED",
+                State::Done => "DONE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "PASSPHRASE_PENDING" => Some(Self::PassphrasePending),
+                "HOST_ENTRY_READY" => Some(Self::HostEntryReady),
+                "PASSPHRASE_ENTERED" => Some(Self::PassphraseEntered),
+                "DONE" => Some(Self::Done),
+                _ => None,
+            }
+        }
+    }
+}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ElectrumEncryptionKeyRequest {
@@ -2067,7 +2135,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -2136,6 +2204,12 @@ pub mod request {
         ChangePassword(super::ChangePasswordRequest),
         #[prost(message, tag = "31")]
         BitboxSync(super::BitBoxSyncRequest),
+        #[prost(message, tag = "32")]
+        Unlock(super::UnlockRequest),
+        #[prost(message, tag = "33")]
+        UnlockContinue(super::UnlockContinueRequest),
+        #[prost(message, tag = "34")]
+        UnlockHostInfo(super::UnlockHostInfoRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -2143,7 +2217,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -2187,5 +2261,7 @@ pub mod response {
         Bluetooth(super::BluetoothResponse),
         #[prost(message, tag = "18")]
         BitboxSync(super::BitBoxSyncResponse),
+        #[prost(message, tag = "19")]
+        Unlock(super::UnlockResponse),
     }
 }

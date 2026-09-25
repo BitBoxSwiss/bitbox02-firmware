@@ -8,6 +8,8 @@
 #include <stddef.h>
 
 // including null terminator
+// Keep INPUT_STRING_MAX_SIZE - 1 in sync with MAX_PASSPHRASE_LEN in
+// src/rust/bitbox02-rust/src/hww/api/unlock.rs.
 #define INPUT_STRING_MAX_SIZE 150
 
 typedef struct {

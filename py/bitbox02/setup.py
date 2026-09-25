@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """BitBox python package"""
+
 import os.path
 import re
 import setuptools
@@ -31,11 +32,11 @@ setuptools.setup(
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     url="https://github.com/BitBoxSwiss/bitbox02-firmware",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
     keywords="digitalbitbox BitBoxSwiss bitbox bitbox02 bitcoin litecoin ethereum erc20 u2f",
     # https://mypy.readthedocs.io/en/stable/installed_packages.html#installed-packages
@@ -67,7 +68,7 @@ setuptools.setup(
         "protobuf>=3.20",
         "ecdsa>=0.14",
         "semver>=2.8.1",
-        # Needed as long as we support python < 3.7
+        # Backports TypedDict and Protocol for Python 3.7.
         "typing_extensions>=3.7.4",
         "base58>=2.0.0",
     ],

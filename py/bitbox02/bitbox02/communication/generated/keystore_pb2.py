@@ -14,21 +14,31 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\x1a\x1bgoogle/protobuf/empty.proto\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\"\x97\x01\n\x0c\x42IP85Request\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x36\n\x02ln\x18\x02 \x01(\x0b\x32(.shiftcrypto.bitbox02.BIP85Request.AppLnH\x00\x1a\x1f\n\x05\x41ppLn\x12\x16\n\x0e\x61\x63\x63ount_number\x18\x01 \x01(\rB\x05\n\x03\x61pp\"M\n\rBIP85Response\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0c\n\x02ln\x18\x02 \x01(\x0cH\x00\x42\x05\n\x03\x61ppb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeystore.proto\x12\x14shiftcrypto.bitbox02\x1a\x1bgoogle/protobuf/empty.proto\"\x0f\n\rUnlockRequest\"3\n\x15UnlockContinueRequest\x12\x1a\n\x12request_host_entry\x18\x01 \x01(\x08\"?\n\x15UnlockHostInfoRequest\x12\x17\n\npassphrase\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\r\n\x0b_passphrase\"\xa4\x01\n\x0eUnlockResponse\x12\x39\n\x05state\x18\x01 \x01(\x0e\x32*.shiftcrypto.bitbox02.UnlockResponse.State\"W\n\x05State\x12\x16\n\x12PASSPHRASE_PENDING\x10\x00\x12\x14\n\x10HOST_ENTRY_READY\x10\x01\x12\x16\n\x12PASSPHRASE_ENTERED\x10\x02\x12\x08\n\x04\x44ONE\x10\x03\"/\n\x1c\x45lectrumEncryptionKeyRequest\x12\x0f\n\x07keypath\x18\x01 \x03(\r\",\n\x1d\x45lectrumEncryptionKeyResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\"\x97\x01\n\x0c\x42IP85Request\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x36\n\x02ln\x18\x02 \x01(\x0b\x32(.shiftcrypto.bitbox02.BIP85Request.AppLnH\x00\x1a\x1f\n\x05\x41ppLn\x12\x16\n\x0e\x61\x63\x63ount_number\x18\x01 \x01(\rB\x05\n\x03\x61pp\"M\n\rBIP85Response\x12\'\n\x05\x62ip39\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0c\n\x02ln\x18\x02 \x01(\x0cH\x00\x42\x05\n\x03\x61ppb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'keystore_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_start=69
-  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_end=116
-  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_start=118
-  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_end=162
-  _BIP85REQUEST._serialized_start=165
-  _BIP85REQUEST._serialized_end=316
-  _BIP85REQUEST_APPLN._serialized_start=278
-  _BIP85REQUEST_APPLN._serialized_end=309
-  _BIP85RESPONSE._serialized_start=318
-  _BIP85RESPONSE._serialized_end=395
+  _UNLOCKREQUEST._serialized_start=69
+  _UNLOCKREQUEST._serialized_end=84
+  _UNLOCKCONTINUEREQUEST._serialized_start=86
+  _UNLOCKCONTINUEREQUEST._serialized_end=137
+  _UNLOCKHOSTINFOREQUEST._serialized_start=139
+  _UNLOCKHOSTINFOREQUEST._serialized_end=202
+  _UNLOCKRESPONSE._serialized_start=205
+  _UNLOCKRESPONSE._serialized_end=369
+  _UNLOCKRESPONSE_STATE._serialized_start=282
+  _UNLOCKRESPONSE_STATE._serialized_end=369
+  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_start=371
+  _ELECTRUMENCRYPTIONKEYREQUEST._serialized_end=418
+  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_start=420
+  _ELECTRUMENCRYPTIONKEYRESPONSE._serialized_end=464
+  _BIP85REQUEST._serialized_start=467
+  _BIP85REQUEST._serialized_end=618
+  _BIP85REQUEST_APPLN._serialized_start=580
+  _BIP85REQUEST_APPLN._serialized_end=611
+  _BIP85RESPONSE._serialized_start=620
+  _BIP85RESPONSE._serialized_end=697
 # @@protoc_insertion_point(module_scope)

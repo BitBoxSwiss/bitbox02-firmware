@@ -45,6 +45,7 @@ static char _alphabet_lowercase[] = "abcdefghijklmnopqrstuvwxyz";
 static char _digits[] = "0123456789";
 // ` and ~ are missing here as they don't legible on the device with arial 9x9. Can add them back
 // after tuning the font.
+// Keep in sync with SPECIAL in src/rust/bitbox02-rust/src/hww/api/unlock.rs.
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
 static const UG_FONT* _font = &font_password_11X12;

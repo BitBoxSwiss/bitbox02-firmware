@@ -17,6 +17,9 @@ import textwrap
 import json
 from pathlib import Path
 import os
+import getpass
+import select
+import threading
 
 import requests
 import base58
@@ -83,6 +86,79 @@ def ask_user(
         print("Invalid input")
         return None
     return choices[ans - 1][1]
+
+
+def passphrase_demo() -> bitbox_api_protocol.BitBoxConfig:
+    """Terminal equivalent of the host-entry button, with no competing stdin readers.
+
+    The library withdraws availability on completion and errors, stopping the watcher
+    and restoring the terminal.
+    GUI apps instead run connection on a worker and marshal these notifications to their
+    UI thread. The click callable itself never communicates with the device.
+    """
+    stop = threading.Event()
+    watcher: Optional[threading.Thread] = None
+
+    def withdraw() -> None:
+        nonlocal watcher
+        stop.set()
+        if watcher is not None:
+            watcher.join()
+            watcher = None
+
+    def available(request_host_entry: Optional[Callable[[], None]]) -> None:
+        nonlocal watcher
+        withdraw()
+        if request_host_entry is None:
+            print("Host passphrase entry is unavailable; h is disabled.")
+            return
+        import termios  # pylint: disable=import-outside-toplevel
+
+        # A new device-entry phase gets a new button. Discard keys typed while the previous
+        # button was hidden, before announcing that h is available again.
+        termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+        stop.clear()
+        print("Enter the passphrase on the device, or press h to request host entry.")
+
+        def watch() -> None:
+            # Only used with a POSIX terminal. Read one key without leaving a blocked
+            # input() behind when device entry finishes or the connection fails.
+            import tty  # pylint: disable=import-outside-toplevel
+
+            fd = sys.stdin.fileno()
+            previous = termios.tcgetattr(fd)
+            try:
+                # Preserve a shortcut typed immediately after the notification, before this
+                # thread starts. The default TCSAFLUSH would discard that queued key.
+                tty.setcbreak(fd, termios.TCSANOW)
+                while not stop.is_set():
+                    readable, _, _ = select.select([fd], [], [], 0.05)
+                    if readable and not stop.is_set():
+                        key = os.read(fd, 1)
+                        if key == b"h":
+                            request_host_entry()
+                            return
+                        if not key:
+                            return
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, previous)
+
+        watcher = threading.Thread(target=watch, daemon=True)
+        watcher.start()
+
+    def enter() -> Optional[str]:
+        try:
+            # Ctrl-D only raises EOFError before any input; after typing it can submit the text.
+            return getpass.getpass("Host passphrase (Ctrl-C cancels): ")
+        except (EOFError, KeyboardInterrupt):
+            print("\nHost input cancelled; continue on the device.")
+            return None
+
+    interactive = sys.stdin.isatty() and os.name == "posix"
+    return bitbox_api_protocol.BitBoxConfig(
+        on_host_passphrase_available=available if interactive else None,
+        enter_mnemonic_passphrase=enter if interactive else None,
+    )
 
 
 BITBOXSYNC_CHALLENGE = bytes([0x10]) * 32
@@ -1973,7 +2049,7 @@ class U2FApp:
         try:
             res = self._device.u2f_register(self.APPID)
             if res is not None:
-                (self._dev_pubkey, self._dev_keyhandle) = res
+                self._dev_pubkey, self._dev_keyhandle = res
         except u2f.ConditionsNotSatisfiedException:
             print("Not registered")
 
@@ -2065,7 +2141,9 @@ def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
         transport=u2fhid.U2FHid(simulator),
         device_info=None,
         noise_config=noise_config,
+        bitbox_config=passphrase_demo(),
     )
+    print("Connection ready.")
     try:
         bitbox_connection.check_min_version()
     except FirmwareVersionOutdatedException as exc:
@@ -2155,8 +2233,12 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         print("Could not connect to the BitBox, device may be already connected to another app.")
         return 1
     bitbox_connection = bitbox02.BitBox02(
-        transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
+        transport=u2fhid.U2FHid(hid_device),
+        device_info=bitbox,
+        noise_config=config,
+        bitbox_config=passphrase_demo(),
     )
+    print("Connection ready.")
     try:
         bitbox_connection.check_min_version()
     except FirmwareVersionOutdatedException as exc:

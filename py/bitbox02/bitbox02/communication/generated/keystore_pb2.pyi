@@ -10,10 +10,111 @@ import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.empty_pb2
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
+import sys
 import typing
 
+if sys.version_info >= (3, 10):
+    import typing as typing_extensions
+else:
+    import typing_extensions
+
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+
+@typing.final
+class UnlockRequest(google.protobuf.message.Message):
+    """Unlock inside the paired Noise channel (since v9.28.0). Uninitialized and already unlocked
+    devices return DONE immediately and are left unchanged. Continuations are only valid within
+    this workflow.
+    If the passphrase feature is enabled, device entry returns PASSPHRASE_PENDING. The host
+    polls with UnlockContinueRequest until entry completes or it requests host entry.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UnlockRequest = UnlockRequest
+
+@typing.final
+class UnlockContinueRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REQUEST_HOST_ENTRY_FIELD_NUMBER: builtins.int
+    request_host_entry: builtins.bool
+    """False polls device entry; true interrupts it to ask for host-entry consent.
+    After PASSPHRASE_ENTERED, continue to await confirmation and unlock;
+    host entry is ignored.
+    """
+    def __init__(
+        self,
+        *,
+        request_host_entry: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["request_host_entry", b"request_host_entry"]) -> None: ...
+
+global___UnlockContinueRequest = UnlockContinueRequest
+
+@typing.final
+class UnlockHostInfoRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PASSPHRASE_FIELD_NUMBER: builtins.int
+    passphrase: builtins.str
+    """Only sent after HOST_ENTRY_READY. Absent cancels host input and restarts device entry;
+    the empty string submits the empty passphrase. The device confirms the actual value.
+    """
+    def __init__(
+        self,
+        *,
+        passphrase: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_passphrase", b"_passphrase", "passphrase", b"passphrase"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_passphrase", b"_passphrase", "passphrase", b"passphrase"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_passphrase", b"_passphrase"]) -> typing.Literal["passphrase"] | None: ...
+
+global___UnlockHostInfoRequest = UnlockHostInfoRequest
+
+@typing.final
+class UnlockResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    class _State:
+        ValueType = typing.NewType("ValueType", builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+
+    class _StateEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[UnlockResponse._State.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        PASSPHRASE_PENDING: UnlockResponse._State.ValueType  # 0
+        HOST_ENTRY_READY: UnlockResponse._State.ValueType  # 1
+        PASSPHRASE_ENTERED: UnlockResponse._State.ValueType  # 2
+        """Passphrase entry on the device finished; confirmation may still be pending.
+        Withdraw host entry and send UnlockContinue to await completion.
+        """
+        DONE: UnlockResponse._State.ValueType  # 3
+
+    class State(_State, metaclass=_StateEnumTypeWrapper): ...
+    PASSPHRASE_PENDING: UnlockResponse.State.ValueType  # 0
+    HOST_ENTRY_READY: UnlockResponse.State.ValueType  # 1
+    PASSPHRASE_ENTERED: UnlockResponse.State.ValueType  # 2
+    """Passphrase entry on the device finished; confirmation may still be pending.
+    Withdraw host entry and send UnlockContinue to await completion.
+    """
+    DONE: UnlockResponse.State.ValueType  # 3
+
+    STATE_FIELD_NUMBER: builtins.int
+    state: global___UnlockResponse.State.ValueType
+    def __init__(
+        self,
+        *,
+        state: global___UnlockResponse.State.ValueType = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["state", b"state"]) -> None: ...
+
+global___UnlockResponse = UnlockResponse
 
 @typing.final
 class ElectrumEncryptionKeyRequest(google.protobuf.message.Message):

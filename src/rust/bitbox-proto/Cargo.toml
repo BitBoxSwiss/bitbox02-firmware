@@ -13,3 +13,8 @@ license = "Apache-2.0"
 version = "0.13.1"
 default-features = false
 features = ["derive"]
+
+[dependencies.zeroize]
+version = "1.7.0"
+default-features = false
+features = ["alloc"]

@@ -123,6 +123,20 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         Timer::delay_for(Duration::from_millis(2000)).await;
     }
 
+    async fn waiting(&mut self, message: &str) {
+        let screen = LvObj::new().unwrap();
+        screen.set_style_bg_color(lvgl::color::black(), 0);
+        screen.set_style_text_color(lvgl::color::white(), 0);
+        let label = LvLabel::new(&screen).unwrap();
+        label.set_width(380);
+        label.set_text(message).unwrap();
+        label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
+        label.set_style_text_font(lvgl::fonts::INTER_REGULAR_32, 0);
+        label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
+        let _screen = self.push_guard(screen);
+        core::future::pending::<()>().await;
+    }
+
     fn print_screen(&mut self, _duration: core::time::Duration, _msg: &str) {
         todo!()
     }

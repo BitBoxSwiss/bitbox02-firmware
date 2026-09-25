@@ -4,14 +4,14 @@
 #include "memory/memory_shared.h"
 #include "memory/spi_mem.h"
 #include <driver_init.h>
+#include <platform/platform_config.h>
 #include <ui/oled/oled.h>
 #if defined(BOOTLOADER)
     #include <bootloader_version.h>
-#else
+#elif FACTORYSETUP == 0
     #include "sd_mmc/sd_mmc_start.h"
 #endif
 #include "util.h"
-#include <platform/platform_config.h>
 #include <version.h>
 
 #if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
@@ -35,7 +35,7 @@ void platform_init(void)
     // these two functions are noops if "rtt" feature isn't enabled in rust
     util_log_init();
     util_log(PREFIX ": platform_init");
-#if !defined(BOOTLOADER)
+#if !defined(BOOTLOADER) && FACTORYSETUP == 0
     sd_mmc_start();
 #endif
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {

@@ -40,7 +40,8 @@ where
     if miniscript.ext.tree_height >= MAX_MINISCRIPT_ENCODE_DEPTH {
         return Err(Error::InvalidInput);
     }
-    // Hash fragments are not supported. Reject them before a policy can be registered or used.
+    // Hash fragments and raw public-key hashes are not supported. Reject them before a policy can
+    // be registered or used.
     if miniscript.iter().any(|fragment| {
         matches!(
             fragment.node,
@@ -48,6 +49,7 @@ where
                 | miniscript::Terminal::Hash256(_)
                 | miniscript::Terminal::Hash160(_)
                 | miniscript::Terminal::Ripemd160(_)
+                | miniscript::Terminal::RawPkH(_)
         )
     }) {
         return Err(Error::InvalidInput);
@@ -761,9 +763,8 @@ pub async fn parse<'a>(
         }
         // Match tr(...).
         [b't', b'r', b'(', .., b')'] => {
-            // During parsing, the leaf scripts are created using `Miniscript::from_str()`, which
-            // calls the equivalent of the sanity check. We call it anyway below in case the
-            // miniscript library extends/changes the main sanity_check function.
+            // Taproot parsing does not apply all Miniscript sanity checks. Validate every leaf
+            // and check the descriptor explicitly.
             let tr = miniscript::descriptor::Tr::from_str(desc).map_err(|_| Error::InvalidInput)?;
             for leaf in tr.leaves() {
                 validate_miniscript(leaf.miniscript())?;
@@ -1084,6 +1085,30 @@ mod tests {
                     Error::InvalidInput,
                 );
             }
+        }
+    }
+
+    #[async_test::test]
+    async fn test_parse_rejects_raw_pkh() {
+        mock_unlocked();
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
+        let raw_pkh = format!("c:expr_raw_pkh({})", "11".repeat(20));
+        for descriptor in [
+            format!("tr(@0/**,{raw_pkh})"),
+            format!("tr(@0/**,and_v(v:pk(@0/<2;3>/*),{raw_pkh}))"),
+            format!("tr(@0/**,{{pk(@0/<2;3>/*),{raw_pkh}}})"),
+        ] {
+            let policy = make_policy(&descriptor, core::slice::from_ref(&our_key));
+            assert_eq!(
+                parse(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &policy,
+                    BtcCoin::Tbtc,
+                )
+                .await
+                .unwrap_err(),
+                Error::InvalidInput,
+            );
         }
     }
 

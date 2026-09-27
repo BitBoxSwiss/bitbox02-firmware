@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 #[derive(Debug)]
 pub enum Error {
@@ -43,15 +43,6 @@ impl BackupData {
     /// when using C (and nanopb protobuf), with the seed_length indicating the actual length.
     pub fn get_seed(&self) -> &[u8] {
         &self.0.seed[..self.0.seed_length as _]
-    }
-}
-
-impl Zeroize for BackupData {
-    fn zeroize(&mut self) {
-        self.0.seed_length.zeroize();
-        self.0.seed.zeroize();
-        self.0.birthdate.zeroize();
-        self.0.generator.zeroize();
     }
 }
 
@@ -122,13 +113,13 @@ fn compute_checksum(
     Ok(hasher.finalize().to_vec())
 }
 
-fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaData), ()> {
+fn load_from_buffer(buf: &[u8]) -> Result<(BackupData, pb_backup::BackupMetaData), ()> {
     let backup = pb_backup::Backup::decode(buf).or(Err(()))?;
     match backup.backup_version {
         Some(pb_backup::backup::BackupVersion::BackupV1(pb_backup::BackupV1 {
             content: Some(content),
         })) => {
-            let mut backup_data: Zeroizing<BackupData> = Default::default();
+            let mut backup_data: BackupData = Default::default();
             backup_data.0.merge(content.data.as_slice()).or(Err(()))?;
             if !matches!(backup_data.0.seed_length, 16 | 24 | 32) {
                 return Err(());
@@ -148,7 +139,7 @@ fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::Bac
 fn load_from_buffer_for_dir(
     buf: &[u8],
     dir: &str,
-) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaData), ()> {
+) -> Result<(BackupData, pb_backup::BackupMetaData), ()> {
     let (backup_data, metadata) = load_from_buffer(buf)?;
     if id(backup_data.get_seed()) != dir {
         return Err(());
@@ -183,7 +174,7 @@ fn bitwise_recovery(buf1: &[u8], buf2: &[u8], buf3: &[u8]) -> Result<Zeroizing<V
 pub async fn load(
     hal: &mut impl crate::hal::Hal,
     dir: &str,
-) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaData), ()> {
+) -> Result<(BackupData, pb_backup::BackupMetaData), ()> {
     let files = hal.sd().list_subdir(Some(dir)).await?;
     if files.len() != 3 {
         return Err(());
@@ -214,12 +205,12 @@ pub async fn create(
     backup_create_timestamp: u32,
     seed_birthdate_timestamp: u32,
 ) -> Result<(), Error> {
-    let backup_data = zeroize::Zeroizing::new(BackupData(Box::new(pb_backup::BackupData {
+    let backup_data = BackupData(Box::new(pb_backup::BackupData {
         seed_length: seed.len() as _,
         seed: padded_seed(seed).to_vec(),
         birthdate: seed_birthdate_timestamp,
         generator: crate::version::FIRMWARE_VERSION_SHORT.into(),
-    })));
+    }));
     let length: u32 = {
         // See the documentation in the backup.proto file - the length field is obsolete, but for
         // backwards compatbility still set, as it is part of the checksum.

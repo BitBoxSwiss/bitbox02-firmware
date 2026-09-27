@@ -14,8 +14,7 @@ message BackupMetaData {
 }
 
 /**
- * BackupData is encoded in the data field of the BackupContent
- * and depends on the BackupMode.
+ * BackupData is the plaintext data message of BackupContent.
  * Defining it as a protobuf message allows language/architecture independent
  * encoding/decoding.
  */
@@ -40,12 +39,15 @@ message BackupContent {
     // be loaded and the checksum verified. Other than that, it serves no purpose, as it is not
     // needed to deserialize or interpret the data.
     uint32 length = 3;
-    bytes data = 4;
+    // Previously bytes containing an encoded BackupData. A nested message uses the same
+    // length-delimited field tag and payload, preserving normal backup encodings.
+    BackupData data = 4;
 }
 
 /* NOTE! Once the firmware is released to the general public and there are actual backups it is
- * strictly forbidden to modify BackupV1 and any types contained within BackupV1 because the
- * checksum covers all fields. */
+ * strictly forbidden to change the wire format or checksum semantics of BackupV1 and its types.
+ * The bytes-to-BackupData representation change above preserves both for existing normal backups;
+ * it does not introduce a new backup format or alter the obsolete length field's checksum role. */
 
 message BackupV1 {
     BackupContent content = 1;

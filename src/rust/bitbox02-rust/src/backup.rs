@@ -119,8 +119,7 @@ fn load_from_buffer(buf: &[u8]) -> Result<(BackupData, pb_backup::BackupMetaData
         Some(pb_backup::backup::BackupVersion::BackupV1(pb_backup::BackupV1 {
             content: Some(content),
         })) => {
-            let mut backup_data: BackupData = Default::default();
-            backup_data.0.merge(content.data.as_slice()).or(Err(()))?;
+            let backup_data = BackupData(Box::new(content.data.ok_or(())?));
             if !matches!(backup_data.0.seed_length, 16 | 24 | 32) {
                 return Err(());
             }
@@ -205,12 +204,12 @@ pub async fn create(
     backup_create_timestamp: u32,
     seed_birthdate_timestamp: u32,
 ) -> Result<(), Error> {
-    let backup_data = BackupData(Box::new(pb_backup::BackupData {
+    let backup_data = pb_backup::BackupData {
         seed_length: seed.len() as _,
         seed: padded_seed(seed).to_vec(),
         birthdate: seed_birthdate_timestamp,
         generator: crate::version::FIRMWARE_VERSION_SHORT.into(),
-    }));
+    };
     let length: u32 = {
         // See the documentation in the backup.proto file - the length field is obsolete, but for
         // backwards compatbility still set, as it is part of the checksum.
@@ -225,11 +224,11 @@ pub async fn create(
     // We cap at 19/63 because the previous implementation in C/nanopb used null terminated strings
     // with a buffer of 20/64 bytes when decoding the protobuf message. This allows the backup to be
     // restored on older firmware.
-    if backup_data.0.generator.len() > 19 || metadata.name.len() > 63 {
+    if backup_data.generator.len() > 19 || metadata.name.len() > 63 {
         return Err(Error::Generic);
     }
 
-    let checksum = compute_checksum(&metadata, &backup_data.0, length).or(Err(Error::Generic))?;
+    let checksum = compute_checksum(&metadata, &backup_data, length).or(Err(Error::Generic))?;
     let backup = pb_backup::Backup {
         backup_version: Some(pb_backup::backup::BackupVersion::BackupV1(
             pb_backup::BackupV1 {
@@ -237,12 +236,14 @@ pub async fn create(
                     checksum,
                     metadata: Some(metadata),
                     length,
-                    data: backup_data.0.encode_to_vec(),
+                    data: Some(backup_data),
                 }),
             },
         )),
     };
-    let backup_encoded = backup.encode_to_vec();
+    let backup_encoded = Zeroizing::new(backup.encode_to_vec());
+    // Wipe the seed-bearing message before any SD operation can suspend or return early.
+    drop(backup);
     let dir = id(seed);
     let files = hal
         .sd()
@@ -304,6 +305,94 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use core::convert::TryInto;
 
+    // The former backup representation, with an independently serialized message in field 4.
+    #[derive(Clone, PartialEq, Message)]
+    struct LegacyBackupContent {
+        #[prost(bytes = "vec", tag = "1")]
+        checksum: Vec<u8>,
+        #[prost(message, optional, tag = "2")]
+        metadata: Option<pb_backup::BackupMetaData>,
+        #[prost(uint32, tag = "3")]
+        length: u32,
+        #[prost(bytes = "vec", tag = "4")]
+        data: Vec<u8>,
+    }
+
+    #[derive(Clone, PartialEq, Message)]
+    struct LegacyBackupV1 {
+        #[prost(message, optional, tag = "1")]
+        content: Option<LegacyBackupContent>,
+    }
+
+    #[derive(Clone, PartialEq, Message)]
+    struct LegacyBackup {
+        #[prost(message, optional, tag = "1")]
+        backup_v1: Option<LegacyBackupV1>,
+    }
+
+    #[async_test::test]
+    async fn test_create_load_wire_compatibility() {
+        let seed_bytes =
+            hex_lit::hex!("5220a4e9ceeac6805df23609f6b478bb28ca69b51695ed7c03bf743aa5dee37e");
+        for seed_length in [16, 24, 32] {
+            let seed = &seed_bytes[..seed_length];
+            for (name, timestamp, birthdate) in [
+                (String::new(), 0, 0),
+                (String::from("test backup"), 1601281809, 1601249409),
+                ("a".repeat(63), u32::MAX, u32::MAX),
+            ] {
+                let data = pb_backup::BackupData {
+                    seed_length: seed_length as _,
+                    seed: padded_seed(seed).to_vec(),
+                    birthdate,
+                    generator: crate::version::FIRMWARE_VERSION_SHORT.into(),
+                };
+                let metadata = pb_backup::BackupMetaData {
+                    timestamp,
+                    name: name.clone(),
+                    mode: pb_backup::BackupMode::Plaintext as _,
+                };
+                let mut legacy = LegacyBackup {
+                    backup_v1: Some(LegacyBackupV1 {
+                        content: Some(LegacyBackupContent {
+                            checksum: compute_checksum(&metadata, &data, 0).unwrap(),
+                            metadata: Some(metadata.clone()),
+                            length: 0,
+                            data: data.encode_to_vec(),
+                        }),
+                    }),
+                };
+                let legacy_bytes = legacy.encode_to_vec();
+                let dir = id(seed);
+                let (loaded, loaded_metadata) =
+                    load_from_buffer_for_dir(&legacy_bytes, &dir).unwrap();
+                assert_eq!(loaded.0.as_ref(), &data);
+                assert_eq!(loaded_metadata, metadata);
+
+                let mut hal = TestingHal::new();
+                create(&mut hal, seed, &name, timestamp, birthdate)
+                    .await
+                    .unwrap();
+                for file in hal.sd.list_subdir(Some(&dir)).await.unwrap() {
+                    let bytes = hal.sd.load_bin(&file, &dir).await.unwrap();
+                    assert_eq!(bytes.as_slice(), legacy_bytes.as_slice());
+                    assert_eq!(LegacyBackup::decode(bytes.as_slice()).unwrap(), legacy);
+                }
+
+                // Legacy nonzero length values remain checksum input, not a parsing boundary.
+                let content = legacy.backup_v1.as_mut().unwrap().content.as_mut().unwrap();
+                content.length = 71;
+                assert!(load_from_buffer(&legacy.encode_to_vec()).is_err());
+                let content = legacy.backup_v1.as_mut().unwrap().content.as_mut().unwrap();
+                content.checksum = compute_checksum(&metadata, &data, content.length).unwrap();
+                let (loaded, loaded_metadata) =
+                    load_from_buffer_for_dir(&legacy.encode_to_vec(), &dir).unwrap();
+                assert_eq!(loaded.0.as_ref(), &data);
+                assert_eq!(loaded_metadata, metadata);
+            }
+        }
+    }
+
     #[test]
     fn test_id() {
         // Seeds of different lengths (16, 24, 32 bytes)
@@ -348,7 +437,7 @@ mod tests {
                             checksum,
                             metadata: Some(metadata),
                             length,
-                            data: data.encode_to_vec(),
+                            data: Some(data),
                         }),
                     },
                 )),
@@ -373,7 +462,7 @@ mod tests {
                         checksum: vec![],
                         metadata: None,
                         length: 0,
-                        data: data.encode_to_vec(),
+                        data: Some(data),
                     }),
                 },
             )),

@@ -84,6 +84,12 @@ bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf i
 * For Rust code changes, run
   `./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml --all` to format the code.
 
+### Code Comments
+
+- Describe the current behavior, constraints, and rationale. Do not narrate refactors or compare
+  with removed implementations, such as "matching the previous C implementation". Put change
+  history in commit messages or PR descriptions.
+
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
 behavior is mocked; follow the `test_<feature>.c` naming pattern and update CMake lists. Rust crates

@@ -150,37 +150,91 @@ cd bitbox02-firmware
 > git remote add upstream https://github.com/bitboxswiss/bitbox02-firmware
 > ```
 
-### Build the firmware
+### Configure and build
 
-Run the following commands to enter the container and build the firmware:
+Inside the development container, run `make bootstrap` once to initialize submodules. From the
+host, use `./scripts/dev_exec.sh make <target>` for builds (or set
+`BITBOX_FW_EXEC_MODE=docker` to use the container toolchain).
 
 ```sh
-make dockerdev
-make bootstrap
+make config
 make firmware
+make factorysetup
+make bootloader-stage0
+make bootloader-stage1
 ```
 
-`make bootstrap` must be run before compiling firmware. It initializes submodules and writes the
-local Cargo configuration needed for the firmware ARM targets.
+`make config` remembers selections in the git-ignored `config.mk`. It prompts for product, board,
+edition (`multi` or `btc-only`), debug builds (`no` or `yes`), probe software, and SWD speed in kHz,
+automatically selecting fields with one choice. `DEBUG` defaults to `no`; `SWD_SPEED` defaults to
+`4000` for all products and both probe backends.
+Probe hardware is fixed by the board:
 
-> [!TIP]
-> If you have multiple cores you can speed up compilation by passing `-j<N>`, for example `-j8`.
+| Product | Board | Probe | Software (default first) |
+| --- | --- | --- | --- |
+| `bitbox02` | `bitbox02` | J-Link | `jlink`, `openocd` |
+| `bitbox02nova` | `bitbox02nova` | J-Link | `jlink`, `openocd` |
+| `bitbox03` | `dev-kit` | ST-Link | `openocd` |
+| `bitbox03` | `testboard` | J-Link | `openocd`, `jlink` |
+| `bitbox03` | `bitbox03` (disabled) | J-Link | `jlink`, `openocd` |
 
-### Build the bootloader
+BitBox03 supports `dev-kit` and `testboard` selections; the testboard defaults to OpenOCD with
+the J-Link adapter and currently uses the dev-kit build target. The production board remains
+disabled until its build support is implemented. Both BitBox03 editions currently build the same stub.
 
-Run the following commands to enter the container and build the bootloader:
+Without a configuration, defaults are BitBox02, multi edition, and J-Link software. Explicit
+arguments run noninteractively; omitted fields use built-in defaults, independent of saved choices:
 
 ```sh
-make dockerdev
-make bootloader
+make config CONFIG_ARGS="--product bitbox02 --edition btc-only --probe-software openocd"
+make config CONFIG_ARGS="--product bitbox03 --board dev-kit"
+make config CONFIG_ARGS="--product bitbox03 --board testboard"
+make config CONFIG_ARGS="--product bitbox03 --debug yes"
+make config CONFIG_ARGS="--product bitbox03 --swd-speed 1000"
+make config CONFIG_ARGS="--defaults"
 ```
 
-> [!NOTE]
-> To create a bootloader for a development or a production device, use `make
-> bootloader-devdevice` or `make bootloader-production` respectively.
+SWD speed must be a positive integer. It is saved in `config.mk` and can also be overridden for a
+command, for example `make debug-server SWD_SPEED=1000`.
 
-> [!NOTE]
-> To run unsigned firmwares you need a development bootloader.
+The debug setting is also saved in `config.mk` and can be overridden per command with `DEBUG=yes`
+or `DEBUG=no`. Build, flash, and run commands use the same configured profile.
+
+Invalid input, EOF, or Ctrl-C preserves the previous file. Interactive product changes reset
+incompatible saved choices. Run configuration separately from builds: `make config firmware` is
+rejected because Make has already parsed the old settings. Configuration and compilation require
+neither installed probe software nor attached hardware.
+
+With `DEBUG=no`, BitBox02/Nova primary targets use `RelWithDebInfo` and BitBox03 uses Cargo release
+builds. `DEBUG=yes` selects debug builds for all products, with their existing RTT features.
+Firmware follows the selected edition; factorysetup is edition-independent; stage0/stage1 select
+development images for the configured product and edition. Build directories are flat:
+
+| Backend | Directory |
+| --- | --- |
+| BitBox02/Nova CMake | `build-<product>-cmake-<profile>` |
+| BitBox03 Cargo | `build-bitbox03-cargo` |
+
+For example, `build-bitbox02-cmake-relwithdebinfo/bin/firmware.elf`,
+`build-bitbox02nova-cmake-debug/bin/firmware-btc.elf`, and
+`build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-firmware`.
+Cargo receives an absolute target directory; backend-managed contents keep their native layouts.
+CMake Rust feature caches remain inside their product/profile directory. Images and editions share
+those caches. Switching products and switching back reuses previous results; changing probe
+software or SWD speed does not affect compilation. Configuration never cleans. `make clean` removes
+build trees but preserves `config.mk`. Host tests and simulators still use `build-build` and
+`build-build-noasan`.
+
+`bootloader-stage{0,1}-{production,development}` builds all BitBox02/Nova editions, sequentially in
+each product's directory. Production/development upgrade-firmware and upgrade-assets aliases are
+retained. Named product commands always use that product's directory.
+
+The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
+`bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above. Backend
+targets and artifact basenames remain unchanged. Additional BitBox03 board/edition implementations
+are deferred.
+
+Pass `-j<N>` to speed up a build, for example `make -j8 firmware`. Top-level aliases run sequentially.
 
 ### Build the simulator
 
@@ -221,25 +275,67 @@ interface](https://developer.arm.com/documentation/101636/0100/Debug-and-Trace/J
 Plug **both** the J-Link probe and the BitBox02 into the computer using USB. A
 USB hub can be used.
 
-#### Flash bootloader using J-Link
+#### Flash or run a built image
 
-Load the bootloader by JLink (requires `JLinkExe` in `$PATH`).
+Build first, then use the matching command. These commands consume existing ELF files and report
+the build command if one is missing.
+
+| Image | Program, verify, reset/run | Run in GDB |
+| --- | --- | --- |
+| Firmware | `make flash-firmware` | `make run-firmware` |
+| Factorysetup | `make flash-factorysetup` (BitBox02/Nova only) | `make run-factorysetup` |
+| Stage0 | `make flash-bootloader-stage0` | `make run-bootloader-stage0` |
+| Stage1 | `make flash-bootloader-stage1` | `make run-bootloader-stage1` |
+
+`run-<image>` selects the ELF built by `make <image>` with the same `DEBUG` setting and immediately
+continues with GDB attached. For example, `make firmware DEBUG=yes` followed by
+`make run-firmware DEBUG=yes` builds and runs the debug image.
+
+The selected probe software chooses SEGGER Commander/GDB Server or OpenOCD. For BitBox02/Nova,
+OpenOCD uses `scripts/openocd-bitbox02.cfg` with the J-Link adapter; install an OpenOCD build
+containing the upstream
+[`target/atsame5x.cfg`](https://raw.githubusercontent.com/openocd-org/openocd/master/tcl/target/atsame5x.cfg)
+SAMD51 driver. BitBox03 uses the shared `scripts/openocd-bitbox03.cfg` with `target/stm32u5x.cfg`.
+The product configuration supplies the board's adapter through `PROBE_ADAPTER`: ST-Link for the
+dev-kit and J-Link for the testboard. Both share the reset and RTT work-area settings.
+
+Start `make debug-server` in a separate terminal and leave it running in the foreground before
+using a `run-*` command. SEGGER uses port 2331 with download verification enabled;
+OpenOCD uses 3333. GDB resets/halts, loads the ELF, verifies sections, sets VTOR, SP and PC from the
+image vector table, and issues `c`. It stays attached for Ctrl-C and breakpoints. The startup commands
+live in [`scripts/openocd.gdb`](scripts/openocd.gdb) and [`scripts/jlink.gdb`](scripts/jlink.gdb).
+Edit the script for your probe software to add breakpoints or comment out the final `c` to stop
+at entry. The helper selects the script and supplies the image vector address each time.
+
+Flashing and GDB use the built ELF directly for all products, including BitBox02/Nova stage1,
+whose header is finalized during the build. Load addresses come from the ELF. J-Link Commander
+uses `loadfile` with download verification. See the documentation for
+[J-Link ELF loading](https://kb.segger.com/J-Link_Commander#LoadFile),
+[GDB loading](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Commands.html), and
+[SEGGER download verification](https://kb.segger.com/J-Link_GDB_Server#-vd).
+
+BitBox03 factorysetup is a RAM image and has no flash command. Use `make debug-server` followed by
+`make run-factorysetup` with the matching `DEBUG` setting to load and verify it in RAM,
+initialize the vector/entry state, and resume without resetting after loading. Flash commands
+reset/run after programming.
+
+#### Run J-Link Commander scripts
+
+Run `.jlink` scripts directly with `JLinkExe` from the repository root. For example, to read the
+shared memory area on BitBox02/Nova:
 
 ```sh
-make jlink-flash-bootloader
+JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -ExitOnError 1 \
+    -CommanderScript scripts/print-memory-shared.jlink
 ```
 
-> [!NOTE]
-> To flash a bootloader for a development device
-> `make jlink-flash-bootloader-development`.
+Replace the script path with the required script, such as `scripts/set-new-screen.jlink`,
+`scripts/reset-version.jlink`, or `scripts/bb02-set-factory-randomness.jlink`. These maintenance
+scripts use BitBox02/Nova memory addresses. Run from the repository root so scripts can find
+relative paths to data files.
 
-#### Flash firmware using J-Link
-
-Load the firmware by JLink:
-
-```sh
-make jlink-flash-firmware
-```
+`-speed` is the SWD speed in kHz. Direct `JLinkExe` commands do not read `config.mk`; specify the
+device and speed explicitly. `ATSAMD51J20` is the device for both BitBox02 and BitBox02 Nova.
 
 #### Flash firmware using bootloader and python cli client
 
@@ -260,7 +356,7 @@ make flash-dev-firmware
 make docs
 ```
 
-To view the results, open `build/docs/html/index.html` in a web browser.
+To view the results, open `build-bitbox02-cmake-relwithdebinfo/docs/html/index.html` in a web browser.
 
 ### Debugging
 
@@ -293,48 +389,21 @@ The graphical simulator does it with the flag `--preseed`. The original
 simulator loads it if you restore from mnemonic.
 
 
-#### Debugging using the J-Link probe and GDB
+#### Debugging and RTT
 
-The *debug firmware* enables pretty printing of panics over [RTT](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/).
+Build the desired profile, start `make debug-server` in another terminal, then use the matching
+run command. For example, use `make firmware` followed by `make run-firmware`, or
+`make factorysetup DEBUG=yes` followed by `make run-factorysetup DEBUG=yes`.
 
-Run the following commands to build the debug firmware.
+Images with RTT enabled provide panic logging over
+[RTT](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/).
 
-```sh
-make dockerdev
-make firmware-debug
-```
+Let the image run until its RTT channels have initialized. With OpenOCD, interrupt GDB, issue
+`rtt_start`, and continue with `c`. This starts channel 0 on port 19021 and channel 1 (API traffic)
+on port 19022. SEGGER provides RTT on port 19021. Connect with `make rtt-client`.
+RTT availability follows existing build features; it is not enabled by selecting a probe backend.
 
-Run the following command to run the J-Link GDB Server.
-
-```sh
-make jlink-gdb-server
-```
-
-> [!IMPORTANT]
-> The J-Link GDB Server must be left running in the background.
-
-Run the following command to connect with telnet to the J-Link GDB Server to
-see the RTT output.
-
-```sh
-make rtt-client
-```
-
-Run the following command to run GDB. GDB will connect to the J-Link GDB
-server, flash the debug firmware and then start execution from the bootloader
-(as if the device was just plugged in).
-
-```sh
-make run-debug
-```
-
-> [!TIP]
-> After rebuilding the firmware, exit GDB and rerun `run-debug` to flash and reset the device.
-
-> [!TIP]
-> The initial set of GDB commands that are run are specified in the [gdb init
-> script](./scripts/jlink.gdb). You may want to modify it if you are debugging
-> something specific.
+After rebuilding, exit GDB and rerun the matching `run-*` command to reload the image.
 
 > [!TIP]
 > In debug builds you can use the following functions to log:

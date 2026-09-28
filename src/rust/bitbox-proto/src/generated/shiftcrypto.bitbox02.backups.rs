@@ -44,8 +44,6 @@ pub struct BackupContent {
     /// needed to deserialize or interpret the data.
     #[prost(uint32, tag = "3")]
     pub length: u32,
-    /// Previously bytes containing an encoded BackupData. A nested message uses the same
-    /// length-delimited field tag and payload, preserving normal backup encodings.
     #[prost(message, optional, tag = "4")]
     pub data: ::core::option::Option<BackupData>,
 }

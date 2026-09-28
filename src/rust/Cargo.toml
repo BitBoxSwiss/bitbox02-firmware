@@ -33,6 +33,7 @@ members = [
     "bitbox-securechip-sys",
     "bitbox-test-vectors",
     "bitbox-u2fhid",
+    "bitbox-usb",
     "bitbox-usb-report-queue",
     "bitbox02",
     "bitbox02-rust",
@@ -77,6 +78,13 @@ grounded = { version = "0.2.0", default-features = false, features = ["critical-
 critical-section = { version = "1.2.0", default-features = false }
 
 [patch.crates-io]
+# USB reset must discard buffered reports and recover interrupted transfers.
+# Keep the USB stack and its coupled crates on the same revision until the next OTG release.
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "96375c267b51e4c7eb268504ef11e79bb3067612" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git", rev = "96375c267b51e4c7eb268504ef11e79bb3067612" }
+embassy-usb-synopsys-otg = { git = "https://github.com/embassy-rs/embassy.git", rev = "96375c267b51e4c7eb268504ef11e79bb3067612" }
+embassy-usb-driver = { git = "https://github.com/embassy-rs/embassy.git", rev = "96375c267b51e4c7eb268504ef11e79bb3067612" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "96375c267b51e4c7eb268504ef11e79bb3067612" }
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "08309db569ff5b93e9e77165984e32ebb22de277" }
 
 [profile.release]

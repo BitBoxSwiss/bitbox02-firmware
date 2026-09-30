@@ -62,9 +62,11 @@ static void _truncate_to_fit(
 
     // Truncate if too long to a size where "<name>..." fits.
     const size_t text_capacity = out_len - 4;
-    size_t truncate_len = MIN(strlen(in), text_capacity);
+    const size_t in_len = strlen(in);
+    size_t truncate_len = MIN(in_len, text_capacity);
     do {
-        const intptr_t result = util_utf8_copy(out, out_len, in, truncate_len);
+        // Limit the copied prefix while validating the complete UTF-8 input.
+        const intptr_t result = util_utf8_copy(out, truncate_len + 1, in, in_len);
         if (result < 0) {
             out[0] = 0;
             return;
@@ -72,10 +74,10 @@ static void _truncate_to_fit(
         const size_t copied_len = (size_t)result;
         memcpy(&out[copied_len], "...", 4);
         UG_MeasureStringCentered(&width, &height, out);
-        if (truncate_len == 0) {
+        if (copied_len == 0) {
             break;
         }
-        truncate_len--;
+        truncate_len = copied_len - 1;
     } while (width >= max_width);
 }
 

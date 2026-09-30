@@ -51,6 +51,8 @@ else()
      ""
      ui_components
      ""
+     lockscreen
+     ""
      ui_util
      ""
      ui_component_gestures

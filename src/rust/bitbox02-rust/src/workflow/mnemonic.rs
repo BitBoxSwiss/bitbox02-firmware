@@ -12,6 +12,10 @@ const NUM_RANDOM_WORDS: u8 = 5;
 /// Number of words in the BIP-39 wordlist.
 const BIP39_WORDLIST_LEN: u16 = 2048;
 
+// English BIP39 words contain at most 8 ASCII bytes. Reserve space for 24 words and 23 separators
+// before writing any recovery words, avoiding reallocations that could leave unwiped copies.
+const MAX_MNEMONIC_BYTES: usize = 24 * 8 + 23;
+
 fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
     v.iter().map(|s| s.as_str()).collect()
 }
@@ -132,12 +136,22 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<u16> {
     let mut seed: zeroize::Zeroizing<Vec<u8>> = {
         let mut i = 0;
         loop {
-            let mnemonic = zeroize::Zeroizing::new(format!(
-                "{} {}",
-                entered_words.join(" "),
-                crate::bip39::get_word(i).unwrap().as_str(),
-            ));
-            if let Ok(seed) = crate::bip39::mnemonic_to_seed(&mnemonic) {
+            let mut mnemonic = zeroize::Zeroizing::new(Vec::with_capacity(MAX_MNEMONIC_BYTES));
+            for word in entered_words {
+                mnemonic.extend_from_slice(word.as_bytes());
+                mnemonic.push(b' ');
+            }
+            let last_word = crate::bip39::get_word(i).unwrap();
+            mnemonic.extend_from_slice(last_word.as_bytes());
+            #[cfg(test)]
+            assert_eq!(
+                mnemonic.capacity(),
+                MAX_MNEMONIC_BYTES,
+                "mnemonic buffer must not reallocate"
+            );
+            if let Ok(seed) =
+                crate::bip39::mnemonic_to_seed(core::str::from_utf8(mnemonic.as_slice()).unwrap())
+            {
                 break seed;
             }
             i += 1;
@@ -719,6 +733,17 @@ mod tests {
         let result = get(&mut ui).await;
         assert!(result.is_err(), "confirmed cancel must abort the restore");
         assert!(ui.contains_confirm("Restore", "Cancel restore?"));
+    }
+
+    #[test]
+    fn test_lastword_choices_max_length() {
+        // These eight-byte words fill all 215 bytes when "abstract" is tried as the last word,
+        // before reaching the first checksum-valid candidate, "banner". The capacity assertion in
+        // lastword_choices checks that the buffer does not grow while constructing these phrases.
+        let entered_words = ["abstract"; 23];
+        let expected = bruteforce_lastword(&entered_words);
+        assert_eq!(expected[0].as_str(), "banner");
+        assert_eq!(lastword_choices_strings(&entered_words), expected);
     }
 
     #[test]

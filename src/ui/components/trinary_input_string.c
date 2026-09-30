@@ -14,6 +14,7 @@
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
+#include <ui/fonts/arial_fonts.h>
 #include <ui/fonts/password_12.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
@@ -480,12 +481,17 @@ component_t* trinary_input_string_create(
     component->position.top = 0;
     component->position.left = 0;
 
+    // Word entry has a regular title row; other keyboards align with the mode switch.
+    const int16_t button_top =
+        params->wordlist != NULL ? font_arial_11.line_height - font_arial_11.base_line - 9 : 0;
     if (cancel_cb != NULL) {
         data->cancel_component =
             icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, component);
+        data->cancel_component->position.top = button_top;
         ui_util_add_sub_component(component, data->cancel_component);
     }
     data->left_arrow_component = left_arrow_create(top_slider, component, _back, component);
+    data->left_arrow_component->position.top += button_top;
     ui_util_add_sub_component(component, data->left_arrow_component);
 
     if (params->longtouch) {
@@ -494,6 +500,7 @@ component_t* trinary_input_string_create(
         data->confirm_component =
             icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm_button_cb, component);
     }
+    data->confirm_component->position.top = button_top;
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (params->wordlist == NULL && !params->number_input) {

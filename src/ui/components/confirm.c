@@ -139,7 +139,9 @@ component_t* confirm_create(
         ui_util_add_sub_component(confirm, cancel);
     }
     if (params->longtouch) {
-        ui_util_add_sub_component(confirm, confirm_gesture_create(_on_confirm, confirm));
+        component_t* accept = confirm_gesture_create(_on_confirm, confirm);
+        accept->position.top = button_top;
+        ui_util_add_sub_component(confirm, accept);
     } else {
         component_t* accept = icon_button_create(
             slider_position,

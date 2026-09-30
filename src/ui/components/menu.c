@@ -11,6 +11,7 @@
 #include <hardfault.h>
 #include <screen.h>
 #include <touch/gestures.h>
+#include <ui/fonts/arial_fonts.h>
 
 #include <string.h>
 
@@ -273,8 +274,10 @@ component_t* menu_create(
     }
 
     if (cancel_cb != NULL) {
-        ui_util_add_sub_component(
-            menu, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, menu));
+        component_t* cancel = icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, menu);
+        // Align the icon with the visible letters of the title or word index.
+        cancel->position.top = font_arial_11.line_height - font_arial_11.base_line - 9;
+        ui_util_add_sub_component(menu, cancel);
     }
 
     data->back_arrow = left_arrow_create(bottom_slider, menu, _back, menu);
@@ -282,6 +285,12 @@ component_t* menu_create(
 
     data->forward_arrow = right_arrow_create(bottom_slider, menu, _forward, menu);
     ui_util_add_sub_component(menu, data->forward_arrow);
+
+    if (select_word_cb != NULL) {
+        // Align the arrows with the Select button's baseline.
+        data->back_arrow->position.top -= font_arial_11.base_line;
+        data->forward_arrow->position.top -= font_arial_11.base_line;
+    }
 
     _update_arrow_visibility(data, 0);
     _init_positions(menu);

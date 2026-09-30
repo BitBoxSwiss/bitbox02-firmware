@@ -23,10 +23,10 @@ impl FeePercentageBasis {
     fn warning_message(&self, fee_percentage: &str) -> String {
         match self {
             FeePercentageBasis::SendAmount => {
-                format!("The fee is {}%\nthe send amount.\nProceed?", fee_percentage)
+                format!("Fee is {}%\nof the send amount.\nProceed?", fee_percentage)
             }
             FeePercentageBasis::TotalInputs => {
-                format!("The fee is {}%\nof all inputs.\nProceed?", fee_percentage)
+                format!("Fee is {}%\nof all inputs.\nProceed?", fee_percentage)
             }
         }
     }

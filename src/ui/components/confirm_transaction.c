@@ -108,7 +108,9 @@ static component_t* _confirm_transaction_create(
     ui_util_add_sub_component(confirm, cancel);
 
     if (longtouch) {
-        ui_util_add_sub_component(confirm, confirm_gesture_create(_confirm_cb, confirm));
+        component_t* accept = confirm_gesture_create(_confirm_cb, confirm);
+        accept->position.top = button_top;
+        ui_util_add_sub_component(confirm, accept);
     } else {
         component_t* next = icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm);
         next->position.top = button_top;

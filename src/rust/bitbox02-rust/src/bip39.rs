@@ -2,6 +2,11 @@
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use core::fmt::Write;
+
+// English BIP39 words contain at most 8 ASCII bytes. Reserve space for 24 words and 23 separators
+// before writing any recovery words, avoiding reallocations that could leave unwiped copies.
+pub(crate) const MAX_MNEMONIC_BYTES: usize = 24 * 8 + 23;
 
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
@@ -17,7 +22,9 @@ pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
 /// Encode a seed as a BIP39 mnemonic.
 pub fn mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mnemonic = bip39::Mnemonic::from_entropy(seed).map_err(|_| ())?;
-    Ok(zeroize::Zeroizing::new(mnemonic.to_string()))
+    let mut result = zeroize::Zeroizing::new(String::with_capacity(MAX_MNEMONIC_BYTES));
+    write!(&mut result, "{mnemonic}").unwrap();
+    Ok(result)
 }
 
 /// Decode a BIP39 mnemonic.
@@ -145,6 +152,19 @@ mod tests {
 
         // Invalid seed side
         assert!(mnemonic_from_seed(b"foo").is_err());
+    }
+
+    #[test]
+    fn test_mnemonic_from_seed_max_length() {
+        // This entropy produces 24 eight-byte words, filling the entire reserved buffer.
+        let seed =
+            hex_lit::hex!("0200400801002004008010020040080100200400801002004008010020040081");
+        let mut expected_words = ["acoustic"; 24];
+        expected_words[23] = "decrease";
+        let mnemonic = mnemonic_from_seed(&seed).unwrap();
+        assert_eq!(mnemonic.as_str(), expected_words.join(" "));
+        assert_eq!(mnemonic.len(), MAX_MNEMONIC_BYTES);
+        assert_eq!(mnemonic.capacity(), MAX_MNEMONIC_BYTES);
     }
 
     #[test]

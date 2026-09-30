@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::bip39::MAX_MNEMONIC_BYTES;
 use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort};
 
 use alloc::string::String;
@@ -11,10 +12,6 @@ const NUM_RANDOM_WORDS: u8 = 5;
 
 /// Number of words in the BIP-39 wordlist.
 const BIP39_WORDLIST_LEN: u16 = 2048;
-
-// English BIP39 words contain at most 8 ASCII bytes. Reserve space for 24 words and 23 separators
-// before writing any recovery words, avoiding reallocations that could leave unwiped copies.
-const MAX_MNEMONIC_BYTES: usize = 24 * 8 + 23;
 
 fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
     v.iter().map(|s| s.as_str()).collect()

@@ -130,20 +130,24 @@ component_t* confirm_create(
     }
 
     // Create buttons
+    // Center the icons alongside the title's visible letters, below the font's accent space.
+    const int16_t button_top = font->line_height - font->base_line - 9;
     if (!params->accept_only) {
-        ui_util_add_sub_component(
-            confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel, confirm));
+        component_t* cancel =
+            icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel, confirm);
+        cancel->position.top = button_top;
+        ui_util_add_sub_component(confirm, cancel);
     }
     if (params->longtouch) {
         ui_util_add_sub_component(confirm, confirm_gesture_create(_on_confirm, confirm));
     } else {
-        ui_util_add_sub_component(
-            confirm,
-            icon_button_create(
-                slider_position,
-                params->accept_is_nextarrow ? ICON_BUTTON_NEXT : ICON_BUTTON_CHECK,
-                _on_confirm,
-                confirm));
+        component_t* accept = icon_button_create(
+            slider_position,
+            params->accept_is_nextarrow ? ICON_BUTTON_NEXT : ICON_BUTTON_CHECK,
+            _on_confirm,
+            confirm);
+        accept->position.top = button_top;
+        ui_util_add_sub_component(confirm, accept);
     }
 
     return confirm;

@@ -33,7 +33,7 @@ impl HalEmpty for BitBox02Empty {}
 
 fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
-        Font::Default => crate::ui::Font::Default,
+        Font::Regular11 => crate::ui::Font::Regular11,
         Font::Password12 => crate::ui::Font::Password12,
         Font::Monogram16 => crate::ui::Font::Monogram16,
     }
@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn test_to_bitbox02_font() {
         let cases = [
-            (Font::Default, crate::ui::Font::Default),
+            (Font::Regular11, crate::ui::Font::Regular11),
             (Font::Password12, crate::ui::Font::Password12),
             (Font::Monogram16, crate::ui::Font::Monogram16),
         ];
@@ -330,16 +330,16 @@ mod tests {
 
     #[test]
     fn test_has_glyph_uses_actual_bitbox02_font() {
-        assert!(to_bitbox02_font(Font::Default).has_glyph('A'));
-        assert!(to_bitbox02_font(Font::Default).has_glyph('ü'));
-        assert!(!to_bitbox02_font(Font::Default).has_glyph('ȑ'));
-        assert!(!to_bitbox02_font(Font::Default).has_glyph('\t'));
+        assert!(to_bitbox02_font(Font::Regular11).has_glyph('A'));
+        assert!(to_bitbox02_font(Font::Regular11).has_glyph('ü'));
+        assert!(!to_bitbox02_font(Font::Regular11).has_glyph('ȑ'));
+        assert!(!to_bitbox02_font(Font::Regular11).has_glyph('\t'));
     }
 
     #[test]
     fn test_to_bitbox02_confirm_params() {
         let fonts = [
-            (Font::Default, crate::ui::Font::Default),
+            (Font::Regular11, crate::ui::Font::Regular11),
             (Font::Password12, crate::ui::Font::Password12),
             (Font::Monogram16, crate::ui::Font::Monogram16),
         ];

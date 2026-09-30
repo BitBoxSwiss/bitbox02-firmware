@@ -481,7 +481,7 @@ async fn encode_member<U: sha3::digest::Update>(
                 let has_all_glyphs = {
                     let ui = hal.ui();
                     fmt.chars()
-                        .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+                        .all(|c| c == '\n' || ui.has_glyph(Font::Regular11, c))
                 };
                 if !has_all_glyphs {
                     return Err(Error::InvalidInput);

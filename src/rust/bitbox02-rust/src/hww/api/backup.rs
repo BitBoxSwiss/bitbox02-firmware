@@ -31,7 +31,7 @@ pub async fn check(
     if !silent {
         let name = {
             let ui = hal.ui();
-            backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Default, c))
+            backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Regular11, c))
         };
         hal.ui()
             .confirm(&ConfirmParams {

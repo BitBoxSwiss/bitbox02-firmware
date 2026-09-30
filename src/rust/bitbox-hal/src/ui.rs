@@ -24,7 +24,7 @@ pub enum WordlistEntryAbort {
 #[derive(Copy, Clone, Default)]
 pub enum Font {
     #[default]
-    Default,
+    Regular11,
     Password12,
     Monogram16,
 }

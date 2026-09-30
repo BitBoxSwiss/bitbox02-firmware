@@ -156,7 +156,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         title
             .chars()
             .chain(body.chars())
-            .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+            .all(|c| c == '\n' || ui.has_glyph(Font::Regular11, c))
     };
     if !util::display::is_safe_text(title, true)
         || !util::display::is_safe_text(body, true)

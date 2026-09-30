@@ -16,19 +16,19 @@ impl core::convert::From<crate::hal::ui::UserAbort> for Error {
     }
 }
 
-fn is_displayable_with_default_font(ui: &impl Ui, bytes: &[u8]) -> bool {
+fn is_displayable_with_regular11_font(ui: &impl Ui, bytes: &[u8]) -> bool {
     let Ok(msg) = core::str::from_utf8(bytes) else {
         return false;
     };
     util::display::is_safe_text(msg, true)
         && msg
             .chars()
-            .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+            .all(|c| c == '\n' || ui.has_glyph(Font::Regular11, c))
 }
 
 /// Verify a message.
 ///
-/// If the bytes are valid UTF-8 and all codepoints are safe and covered by the default display
+/// If the bytes are valid UTF-8 and all codepoints are safe and covered by the Regular11 display
 /// font, the message is confirmed one line at a time (the str is split into lines).
 ///
 /// Otherwise, it is displayed as hex.
@@ -46,7 +46,7 @@ pub async fn verify(
 ) -> Result<(), Error> {
     let is_displayable = {
         let ui = hal.ui();
-        is_displayable_with_default_font(&*ui, msg)
+        is_displayable_with_regular11_font(&*ui, msg)
     };
 
     if is_displayable {
@@ -313,48 +313,48 @@ mod tests {
     }
 
     #[test]
-    fn test_is_displayable_with_default_font() {
+    fn test_is_displayable_with_regular11_font() {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_has_glyph(Box::new(|_, _| true));
-        assert!(is_displayable_with_default_font(
+        assert!(is_displayable_with_regular11_font(
             &mock_hal.ui,
             "Zürich".as_bytes()
         ));
-        assert!(is_displayable_with_default_font(
+        assert!(is_displayable_with_regular11_font(
             &mock_hal.ui,
             "µ\nA".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "Aȑ".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "東京".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "tab\t".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "non\u{a0}breaking space".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "soft\u{ad}hyphen".as_bytes()
         ));
-        assert!(!is_displayable_with_default_font(&mock_hal.ui, &[0xff]));
+        assert!(!is_displayable_with_regular11_font(&mock_hal.ui, &[0xff]));
 
         mock_hal.ui.set_has_glyph(Box::new(|_, c| c != 'ü'));
-        assert!(!is_displayable_with_default_font(
+        assert!(!is_displayable_with_regular11_font(
             &mock_hal.ui,
             "Zürich".as_bytes()
         ));
     }
 
     #[async_test::test]
-    async fn test_verify_displayable_with_default_font() {
+    async fn test_verify_displayable_with_regular11_font() {
         let mut mock_hal = TestingHal::new();
         let result = verify(
             &mut mock_hal,
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[async_test::test]
-    async fn test_verify_hex_if_not_displayable_with_default_font() {
+    async fn test_verify_hex_if_not_displayable_with_regular11_font() {
         let mut mock_hal = TestingHal::new();
         let result = verify(
             &mut mock_hal,
@@ -409,7 +409,7 @@ mod tests {
     }
 
     #[async_test::test]
-    async fn test_verify_hex_if_glyph_missing_from_default_font() {
+    async fn test_verify_hex_if_glyph_missing_from_regular11_font() {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_has_glyph(Box::new(|_font, c| c != 'ȑ'));
 

@@ -34,7 +34,7 @@ pub async fn from_file(
 
     let device_name = {
         let ui = hal.ui();
-        crate::backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Default, c))
+        crate::backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Regular11, c))
     };
     hal.ui()
         .confirm(&ConfirmParams {

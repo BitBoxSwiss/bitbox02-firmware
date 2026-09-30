@@ -13,18 +13,20 @@ const _: () = assert!(MAX_LABEL_SIZE == bitbox02_sys::MAX_LABEL_SIZE as usize);
 #[derive(Default)]
 pub enum Font {
     #[default]
-    Default,
+    Regular11,
     Password12,
     Monogram16,
+    Regular9,
 }
 
 impl Font {
     #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     pub(crate) fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
         match self {
-            Font::Default => core::ptr::null() as *const _,
+            Font::Regular11 => core::ptr::null() as *const _,
             Font::Password12 => unsafe { &bitbox02_sys::font_password_12 },
             Font::Monogram16 => unsafe { &bitbox02_sys::font_monogram_16 },
+            Font::Regular9 => unsafe { &bitbox02_sys::font_arial_9 },
         }
     }
 
@@ -35,9 +37,10 @@ impl Font {
         }
         let font = match self {
             // This mirrors the default font used by the C label component.
-            Font::Default => unsafe { &bitbox02_sys::font_arial_11 },
+            Font::Regular11 => unsafe { &bitbox02_sys::font_arial_11 },
             Font::Password12 => unsafe { &bitbox02_sys::font_password_12 },
             Font::Monogram16 => unsafe { &bitbox02_sys::font_monogram_16 },
+            Font::Regular9 => unsafe { &bitbox02_sys::font_arial_9 },
         };
         let mut width = 0u16;
         unsafe { bitbox02_sys::UG_GetCharWidth(font, c as u32, &mut width) }

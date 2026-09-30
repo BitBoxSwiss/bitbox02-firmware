@@ -95,7 +95,7 @@ async fn get_name(
     };
     let has_all_glyphs = {
         let ui = hal.ui();
-        name.chars().all(|c| ui.has_glyph(Font::Default, c))
+        name.chars().all(|c| ui.has_glyph(Font::Regular11, c))
     };
     if !util::name::validate(&name, bitbox_hal::memory::MULTISIG_NAME_MAX_LEN) || !has_all_glyphs {
         return Err(Error::InvalidInput);

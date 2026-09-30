@@ -22,12 +22,10 @@ const LABEL_TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 4;
 
 /// Keep this check at the common UI boundary so unsupported text cannot be silently omitted by
 /// the renderer. The returned buffer is wiped on drop.
-fn display_str_to_cstr_vec(text: &str) -> Zeroizing<Vec<c_char>> {
+fn display_str_to_cstr_vec(text: &str, font: &Font) -> Zeroizing<Vec<c_char>> {
     assert!(
         util::display::is_safe_text(text, true)
-            && text
-                .chars()
-                .all(|c| c == '\n' || Font::Default.has_glyph(c)),
+            && text.chars().all(|c| c == '\n' || font.has_glyph(c)),
         "BitBox02 UI text contains unsupported characters"
     );
     // UI strings can contain passphrases or mnemonic words. Include the NUL in the initial
@@ -35,25 +33,39 @@ fn display_str_to_cstr_vec(text: &str) -> Zeroizing<Vec<c_char>> {
     util::strings::str_to_cstr_vec_zeroizing(text).unwrap()
 }
 
-/// `font` must be null or point to a font with static lifetime, including its glyph data and
-/// fallback fonts. The C function retains the selected font in the current GUI.
-fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
-    let text = display_str_to_cstr_vec(text);
-    unsafe { bitbox02_sys::label_fits_width(text.as_ptr(), font, bitbox02_sys::SCREEN_WIDTH as _) }
+/// The C function retains the selected font, so every `Font` refers to static font data.
+fn label_fits_width(text: &str, font: &Font) -> bool {
+    let text = display_str_to_cstr_vec(text, font);
+    unsafe {
+        bitbox02_sys::label_fits_width(
+            text.as_ptr(),
+            font.as_ptr(),
+            bitbox02_sys::SCREEN_WIDTH as _,
+        )
+    }
+}
+
+/// Mirrors the amount font selection in the C transaction and swap components.
+fn transaction_amount_font(amount: &str) -> Font {
+    if label_fits_width(amount, &Font::Regular11) {
+        Font::Regular11
+    } else {
+        Font::Regular9
+    }
 }
 
 /// Returns true if the amount fits the transaction screen, using the smaller font if necessary.
 pub fn transaction_amount_fits(amount: &str) -> bool {
-    if label_fits_width(amount, unsafe { &bitbox02_sys::font_arial_11 }) {
+    if label_fits_width(amount, &Font::Regular11) {
         true
     } else {
-        label_fits_width(amount, unsafe { &bitbox02_sys::font_arial_9 })
+        label_fits_width(amount, &Font::Regular9)
     }
 }
 
 /// Returns true if the fee fits the transaction screen's smaller fee font.
 pub fn transaction_fee_fits(fee: &str) -> bool {
-    label_fits_width(fee, unsafe { &bitbox02_sys::font_arial_9 })
+    label_fits_width(fee, &Font::Regular9)
 }
 
 /// Wraps the C component_t to be used in Rust.
@@ -172,10 +184,10 @@ pub async fn trinary_input_string(
         (None, core::ptr::null_mut())
     };
 
-    let title = display_str_to_cstr_vec(util::strings::truncate_str(
-        params.title,
-        LABEL_TRUNCATE_SIZE,
-    ));
+    let title = display_str_to_cstr_vec(
+        util::strings::truncate_str(params.title, LABEL_TRUNCATE_SIZE),
+        &Font::Regular11,
+    );
     let c_params = bitbox02_sys::trinary_input_string_params_t {
         title: title.as_ptr().cast(),
         wordlist: match params.wordlist {
@@ -205,7 +217,7 @@ pub async fn trinary_input_string(
         unsafe {
             bitbox02_sys::trinary_input_string_set_input(
                 component,
-                display_str_to_cstr_vec(preset).as_ptr(),
+                display_str_to_cstr_vec(preset, &Font::Password12).as_ptr(),
             )
         }
     }
@@ -264,14 +276,14 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
         }
     }
 
-    let title = display_str_to_cstr_vec(util::strings::truncate_str(
-        params.title,
-        LABEL_TRUNCATE_SIZE,
-    ));
-    let body = display_str_to_cstr_vec(util::strings::truncate_str(
-        params.body,
-        LABEL_TRUNCATE_SIZE,
-    ));
+    let title = display_str_to_cstr_vec(
+        util::strings::truncate_str(params.title, LABEL_TRUNCATE_SIZE),
+        &Font::Regular11,
+    );
+    let body = display_str_to_cstr_vec(
+        util::strings::truncate_str(params.body, LABEL_TRUNCATE_SIZE),
+        &params.font,
+    );
     let c_params = bitbox02_sys::confirm_params_t {
         title: title.as_ptr().cast(),
         title_autowrap: params.title_autowrap,
@@ -323,7 +335,7 @@ pub fn screen_process() {
 pub fn status_create(text: &str, status_success: bool) -> Component {
     let component = unsafe {
         bitbox02_sys::status_create(
-            display_str_to_cstr_vec(text).as_ptr(), // copied in C
+            display_str_to_cstr_vec(text, &Font::Regular11).as_ptr(), // copied in C
             status_success,
         )
     };
@@ -337,7 +349,7 @@ pub fn info_centered_create(text: &str) -> Component {
     Component {
         component: unsafe {
             bitbox02_sys::info_centered_create(
-                display_str_to_cstr_vec(text).as_ptr(), // copied in C
+                display_str_to_cstr_vec(text, &Font::Regular11).as_ptr(), // copied in C
                 None,
             )
         },
@@ -460,7 +472,7 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
     let words: Vec<_> = params
         .words
         .iter()
-        .map(|word| display_str_to_cstr_vec(word))
+        .map(|word| display_str_to_cstr_vec(word, &Font::Regular11))
         .collect();
     // Step two: collect pointers. This var also has to be valid until menu() finishes, or
     // the pointer will be invalid.
@@ -482,7 +494,9 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
             shared_state_ptr, // passed to continue_on_last_cb as `user_data`.
         ),
     };
-    let title = params.title.map(display_str_to_cstr_vec);
+    let title = params
+        .title
+        .map(|title| display_str_to_cstr_vec(title, &Font::Regular11));
     let component = unsafe {
         bitbox02_sys::menu_create(
             c_words.as_ptr(),
@@ -576,13 +590,13 @@ pub async fn trinary_choice(
         }
     }
 
-    let label_left = label_left.map(display_str_to_cstr_vec);
-    let label_middle = label_middle.map(display_str_to_cstr_vec);
-    let label_right = label_right.map(display_str_to_cstr_vec);
+    let label_left = label_left.map(|label| display_str_to_cstr_vec(label, &Font::Regular11));
+    let label_middle = label_middle.map(|label| display_str_to_cstr_vec(label, &Font::Regular11));
+    let label_right = label_right.map(|label| display_str_to_cstr_vec(label, &Font::Regular11));
 
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            display_str_to_cstr_vec(message).as_ptr(), // copied in C
+            display_str_to_cstr_vec(message, &Font::Regular11).as_ptr(), // copied in C
             // copied in C
             label_left
                 .as_ref()
@@ -655,8 +669,8 @@ pub async fn confirm_transaction_address(amount: &str, address: &str) -> Confirm
 
     let component = unsafe {
         bitbox02_sys::confirm_transaction_address_create(
-            display_str_to_cstr_vec(amount).as_ptr(),  // copied in C
-            display_str_to_cstr_vec(address).as_ptr(), // copied in C
+            display_str_to_cstr_vec(amount, &transaction_amount_font(amount)).as_ptr(), // copied in C
+            display_str_to_cstr_vec(address, &Font::Regular11).as_ptr(), // copied in C
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
         )
@@ -716,9 +730,9 @@ pub async fn confirm_swap(title: &str, from: &str, to: &str) -> ConfirmResponse 
 
     let component = unsafe {
         bitbox02_sys::confirm_swap_create(
-            display_str_to_cstr_vec(title).as_ptr(), // copied in C
-            display_str_to_cstr_vec(from).as_ptr(),  // copied in C
-            display_str_to_cstr_vec(to).as_ptr(),    // copied in C
+            display_str_to_cstr_vec(title, &Font::Regular11).as_ptr(), // copied in C
+            display_str_to_cstr_vec(from, &transaction_amount_font(from)).as_ptr(), // copied in C
+            display_str_to_cstr_vec(to, &transaction_amount_font(to)).as_ptr(), // copied in C
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
         )
@@ -778,8 +792,8 @@ pub async fn confirm_transaction_fee(amount: &str, fee: &str, longtouch: bool) -
 
     let component = unsafe {
         bitbox02_sys::confirm_transaction_fee_create(
-            display_str_to_cstr_vec(amount).as_ptr(), // copied in C
-            display_str_to_cstr_vec(fee).as_ptr(),    // copied in C
+            display_str_to_cstr_vec(amount, &transaction_amount_font(amount)).as_ptr(), // copied in C
+            display_str_to_cstr_vec(fee, &Font::Regular9).as_ptr(), // copied in C
             longtouch,
             Some(callback),
             shared_state_ptr, // passed to callback as `user_data`.
@@ -818,7 +832,7 @@ pub fn screen_stack_pop_all() {
 pub fn progress_create(title: &str) -> Component {
     let component = unsafe {
         bitbox02_sys::progress_create(
-            display_str_to_cstr_vec(title).as_ptr(), // copied in C
+            display_str_to_cstr_vec(title, &Font::Regular11).as_ptr(), // copied in C
         )
     };
 
@@ -926,4 +940,53 @@ pub async fn choose_orientation() -> bool {
         }
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_display_str_to_cstr_vec() {
+        for (font, text) in [
+            (Font::Regular11, "Café\nŁódź"),
+            (Font::Regular9, "Café\nŁódź"),
+            (Font::Password12, "Café\nŁódź"),
+            (Font::Monogram16, "ABCD 1234\nEFGH 5678"),
+        ] {
+            let encoded = display_str_to_cstr_vec(text, &font);
+            let decoded = unsafe { core::ffi::CStr::from_ptr(encoded.as_ptr()) };
+            assert_eq!(decoded.to_str().unwrap(), text);
+        }
+    }
+
+    #[async_test::test]
+    #[should_panic(expected = "BitBox02 UI text contains unsupported characters")]
+    async fn test_confirm_rejects_missing_body_glyph() {
+        confirm(&ConfirmParams {
+            title: "Confirm",
+            body: "Café",
+            font: Font::Monogram16,
+            ..Default::default()
+        })
+        .await;
+    }
+
+    #[async_test::test]
+    async fn test_confirm_uses_regular11_font_for_title() {
+        crate::screen::init(|_, _, _| {}, |_| {}, || {});
+        let params = ConfirmParams {
+            title: "Café",
+            body: "ABCD 1234",
+            font: Font::Monogram16,
+            ..Default::default()
+        };
+        assert!(
+            futures_lite::future::poll_once(confirm(&params))
+                .await
+                .is_none()
+        );
+        // Dropping the pending confirmation queues its C component for cleanup.
+        crate::screen::process(true);
+    }
 }

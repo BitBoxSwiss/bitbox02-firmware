@@ -29,8 +29,9 @@ objects and the generated headers include `<ugui.h>` and declare `extern const U
 For BitBox02 uGUI use, keep the generated font in the compact subset consumed by `ugui.c`: 1bpp,
 `stride = 0`, no kerning, and `LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY` cmaps only. The local
 `lv_font_get_glyph_dsc_fmt_txt` and `lv_font_get_bitmap_fmt_txt` callbacks only support this subset.
-If the historical uGUI layout height differs from the generated FreeType line height, set
-`.line_height` to the uGUI layout height.
+Keep the generated `.line_height` and `.base_line` so every glyph fits inside its line box.
+Adjust component spacing and offsets when font metrics change. Password fonts must use the same
+line metrics as their Arial fallback.
 
 ## libfreetype note
 

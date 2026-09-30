@@ -292,6 +292,38 @@ static void _test_ugui_fonts_use_supported_subset(void** state)
     _assert_supported_font_subset(&font_password_12);
 }
 
+static void _test_ugui_glyphs_fit_line(void** state)
+{
+    (void)state;
+    const UG_FONT* fonts[] = {
+        &font_arial_9,
+        &font_arial_11,
+        &font_arial_12,
+        &font_password_9,
+        &font_password_12,
+        &font_monogram_16,
+    };
+    for (size_t i = 0; i < sizeof(fonts) / sizeof(*fonts); i++) {
+        const UG_FONT* font = fonts[i];
+        if (font->fallback != NULL) {
+            assert_int_equal(font->line_height, font->fallback->line_height);
+            assert_int_equal(font->base_line, font->fallback->base_line);
+        }
+        for (uint32_t codepoint = 32; codepoint < 384; codepoint++) {
+            for (const UG_FONT* resolved = font; resolved != NULL; resolved = resolved->fallback) {
+                lv_font_glyph_dsc_t glyph = {0};
+                if (!resolved->get_glyph_dsc(resolved, &glyph, codepoint, 0)) {
+                    continue;
+                }
+                const int top = font->line_height - resolved->base_line - glyph.box_h - glyph.ofs_y;
+                assert_true(top >= 0);
+                assert_true(top + glyph.box_h <= font->line_height);
+                break;
+            }
+        }
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -303,6 +335,7 @@ int main(void)
         cmocka_unit_test(_test_ugui_lvgl_font),
         cmocka_unit_test(_test_ugui_lvgl_font_fallback),
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
+        cmocka_unit_test(_test_ugui_glyphs_fit_line),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

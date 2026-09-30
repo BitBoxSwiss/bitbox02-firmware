@@ -165,7 +165,7 @@ static void _render(component_t* component)
     UG_S16 x1 = data->labels[data->index]->position.left - 1;
     UG_S16 x2 = x1 + data->labels[data->index]->dimension.width - 1;
     UG_S16 y =
-        data->labels[data->index]->position.top + data->labels[data->index]->dimension.height + 2;
+        data->labels[data->index]->position.top + data->labels[data->index]->dimension.height;
     UG_DrawLine(x1, y, x2, y, screen_front_color);
 
     ui_util_component_render_subcomponents(component);

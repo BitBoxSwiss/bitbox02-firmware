@@ -12,6 +12,9 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
+// Three regular-font lines fit below a one-line confirmation title on the 64-pixel display.
+#define LINE_SPACING 1
+
 typedef struct {
     // +3 for '...' if truncated, +1 for null terminator.
     char text[MAX_LABEL_SIZE + 3 + 1];
@@ -107,7 +110,7 @@ static void _render(component_t* component)
         }
     }
     // Label
-    UG_FontSetVSpace(2);
+    UG_FontSetVSpace(LINE_SPACING);
     UG_FontSelect(data->font);
     if (data->scrollable) {
         UG_PutStringNoBreak(
@@ -180,7 +183,7 @@ void _measure_label_dimensions(component_t* label)
 {
     data_t* data = (data_t*)label->data;
 
-    UG_FontSetVSpace(2);
+    UG_FontSetVSpace(LINE_SPACING);
     UG_FontSelect(data->font);
     if (data->scrollable) {
         UG_MeasureStringNoBreak(&(label->dimension.width), &(label->dimension.height), data->text);

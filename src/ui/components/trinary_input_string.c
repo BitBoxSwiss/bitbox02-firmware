@@ -32,7 +32,8 @@
 #define BLINK_RATE 200
 
 #define STRING_POS_X_START 5
-#define STRING_POS_Y 29
+// Leave room below the input for two keyboard rows, including their line spacing.
+#define STRING_POS_Y 20
 
 // After entering too many chars and exceeding the screen width, the right end of the last char will
 // end up be at this position.
@@ -96,7 +97,7 @@ typedef struct {
     bool show_last_character;
 
     // If the title should be drawn at the top of the screen. If true, the title is always
-    // visible. If false, the title is rendered in the center, and hidden as soon as the user starts
+    // visible. If false, the title occupies the input row and is hidden as soon as the user starts
     // typing.
     bool title_on_top;
 
@@ -154,7 +155,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
-    // show title (if in center)?
+    // Show the input-row title until typing begins.
     bool show_title =
         (data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component) &&
          !confirm_gesture_active);
@@ -197,7 +198,11 @@ static void _render(component_t* component)
         }
         if (string_x >= 0) {
             if (chr == '\0') {
-                UG_FillCircle(string_x + 3, string_y + 4, 2, screen_front_color);
+                UG_FillCircle(
+                    string_x + 3,
+                    string_y + _font->line_height - _font->base_line - 6,
+                    2,
+                    screen_front_color);
             } else {
                 UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color);
             }
@@ -502,8 +507,8 @@ component_t* trinary_input_string_create(
     }
 
     data->title_on_top = params->wordlist != NULL;
-    data->title_component =
-        label_create(params->title, NULL, data->title_on_top ? CENTER_TOP : CENTER, component);
+    data->title_component = label_create_offset(
+        params->title, NULL, CENTER_TOP, 0, data->title_on_top ? 0 : STRING_POS_Y, component);
     ui_util_add_sub_component(component, data->title_component);
 
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);

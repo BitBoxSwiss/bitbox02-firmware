@@ -79,6 +79,7 @@ component_t* confirm_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
+    UG_S16 footer_height = 0;
     if (params->display_size) {
         char size_label[20];
         // Ignore warning, %u works for 32bit but not 64 bit (unit tests). %zu does not work with
@@ -87,14 +88,15 @@ component_t* confirm_create(
 #pragma GCC diagnostic ignored "-Wformat"
         snprintf(size_label, sizeof(size_label), "Size: %uB", params->display_size);
 #pragma GCC diagnostic pop
-        ui_util_add_sub_component(
-            confirm, label_create(size_label, params->font, LEFT_BOTTOM, confirm));
+        component_t* size_component = label_create(size_label, params->font, LEFT_BOTTOM, confirm);
+        footer_height = size_component->dimension.height + 1;
+        ui_util_add_sub_component(confirm, size_component);
     }
 
     slider_location_t slider_position = top_slider;
 
-    // Create labels. We nest them in a body component that covers the screen minus the title bar,
-    // so that the CENTER positioning starts below the title bar.
+    // Create labels. We nest them in a body component between the title bar and optional size
+    // footer, so that CENTER positioning stays within the available space.
 
     const UG_FONT* font = &font_arial_11;
     const char* title = params->title;
@@ -112,10 +114,10 @@ component_t* confirm_create(
 
     component_t* body_container = empty_create();
     body_container->position.left = 0;
-    // title bar height plus small padding
-    body_container->position.top = title_component->dimension.height + 1;
+    // The title measurement includes the spacing after its last line.
+    body_container->position.top = title_component->dimension.height;
     body_container->dimension.width = SCREEN_WIDTH;
-    body_container->dimension.height = SCREEN_HEIGHT - body_container->position.top;
+    body_container->dimension.height = SCREEN_HEIGHT - body_container->position.top - footer_height;
     ui_util_add_sub_component(confirm, body_container);
 
     if (params->scrollable) {

@@ -938,7 +938,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "High fee".into(),
-                    body: "Fee is 12.0%\nof the send amount.\nProceed?".into(),
+                    body: "The fee is 12.0%\nthe send amount.\nProceed?".into(),
                     longtouch: true,
                 },
                 Screen::Status {
@@ -1000,7 +1000,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "High fee".into(),
-                    body: "Fee is 12.0%\nof the send amount.\nProceed?".into(),
+                    body: "The fee is 12.0%\nthe send amount.\nProceed?".into(),
                     longtouch: true,
                 },
                 Screen::Status {

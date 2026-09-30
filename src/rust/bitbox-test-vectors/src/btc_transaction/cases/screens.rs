@@ -113,7 +113,7 @@ fn high_fee(percent: u32) -> Screen {
 fn high_fee_decimal(percent: &str) -> Screen {
     Screen::Confirm {
         title: "High fee".into(),
-        body: format!("Fee is {percent}%\nof the send amount.\nProceed?"),
+        body: format!("The fee is {percent}%\nthe send amount.\nProceed?"),
         longtouch: true,
     }
 }
@@ -121,7 +121,7 @@ fn high_fee_decimal(percent: &str) -> Screen {
 fn high_fee_total_inputs(percent: u32) -> Screen {
     Screen::Confirm {
         title: "High fee".into(),
-        body: format!("Fee is {percent}.0%\nof all inputs.\nProceed?"),
+        body: format!("The fee is {percent}.0%\nof all inputs.\nProceed?"),
         longtouch: true,
     }
 }

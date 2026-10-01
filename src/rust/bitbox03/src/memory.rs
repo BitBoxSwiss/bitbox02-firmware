@@ -80,7 +80,9 @@ impl hal::memory::Memory for BitBox03Memory {
     }
 
     fn is_initialized(&mut self) -> bool {
-        todo!()
+        // Persistent wallet storage is not implemented yet. Report the device as uninitialized
+        // so HWW discovery works during hardware bring-up.
+        false
     }
 
     fn set_initialized(&mut self) -> Result<(), ()> {

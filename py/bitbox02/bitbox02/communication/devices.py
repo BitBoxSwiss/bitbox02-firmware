@@ -20,6 +20,8 @@ BITBOX02PLUS_BTC_BOOTLOADER = "BitBox02 Nova BTC-only bl"
 BITBOX02PLUS_MULTI = "BitBox02 Nova Multi"
 BITBOX02PLUS_BTC = "BitBox02 Nova BTC-only"
 
+BITBOX03 = "BitBox03"
+
 
 class TooManyFoundException(Exception):
     def __init__(self, count: int) -> None:
@@ -99,7 +101,7 @@ def get_bitbox02btc_bootloaders() -> List[DeviceInfo]:
 
 def get_any_bitbox02s() -> List[DeviceInfo]:
     """
-    Searches for both btc-only and non-btc-only devices
+    Searches for BitBox02, BitBox02 Nova, and BitBox03 devices in all editions.
     Returns:
         List of devices
     """
@@ -107,12 +109,13 @@ def get_any_bitbox02s() -> List[DeviceInfo]:
     devices.extend(get_bitbox02btc_devices())
     devices.extend(get_devices(BITBOX02PLUS_MULTI))
     devices.extend(get_devices(BITBOX02PLUS_BTC))
+    devices.extend(get_devices(BITBOX03))
     return devices
 
 
 def get_any_bitbox02() -> DeviceInfo:
     """
-    Searches for both btc-only and non-btc-only devices
+    Searches for BitBox02, BitBox02 Nova, and BitBox03 devices in all editions.
     Raises:
         TooManyFoundException: If more than 1 is found
     Returns:

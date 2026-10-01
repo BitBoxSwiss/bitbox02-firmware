@@ -36,7 +36,7 @@ else()
      cleanup
      "-Wl,--wrap=util_cleanup_32"
      da14531_handler
-     "-Wl,--wrap=confirm_create"
+     "-Wl,--wrap=confirm_create,--wrap=usb_packet_process"
      gestures
      ""
      hww

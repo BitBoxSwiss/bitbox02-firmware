@@ -90,6 +90,10 @@ int main(void)
         rust_communication_mode_ble_disable();
     }
 
+    // Ask for the current connection state before announcing readiness to the app. The BLE
+    // connection can survive an MCU reboot, but wallet frames require a reported secured state.
+    rust_da14531_get_connection_state(uart_write_queue);
+
     // Set product to bootloader string, this is necessary if we have rebooted from firmware. Must
     // be done after usb_processing is initalized to avoid getting request from the app to early.
     size_t product_len;
@@ -104,9 +108,6 @@ int main(void)
     char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_random_name(buf);
     rust_da14531_set_name(rust_util_bytes((const uint8_t*)buf, strlen(buf)), uart_write_queue);
-
-    // Ask for the current conection state
-    rust_da14531_get_connection_state(uart_write_queue);
 
     da14531_protocol_init();
 #endif

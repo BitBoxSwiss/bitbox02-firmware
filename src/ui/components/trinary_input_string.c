@@ -111,8 +111,7 @@ static void _cleanup(component_t* component)
 /**
  * Computes width of inputted string, including trailing underscore.  If hidden, the last letter is
  * treated as masked as well, so that different widths of letters do not change the total width for
- * the purpose of scrolling (since going backwards would be a different width than going forward,
- * with the last letter never being shown when going backwards).
+ * the purpose of scrolling.
  *
  */
 static UG_S16 _constant_string_width(const component_t* component)
@@ -372,7 +371,7 @@ static void _back(void* user_data)
     if (data->string_index > 0) {
         data->string_index--;
         data->string[data->string_index] = '\0';
-        data->show_last_character = false;
+        data->show_last_character = true;
         UG_S16 string_width = _constant_string_width(self);
         if (data->target_x < STRING_POS_X_START &&
             data->target_x + string_width < SCROLL_LEFT_PAD) {

@@ -250,7 +250,7 @@ async fn test_process_host_requires_actual_confirmation() {
         ));
         assert!(screens.iter().any(|s| matches!(s, Screen::PrintScreen { message, .. } if message == "Enter passphrase\non host")));
         let expected = if value.is_empty() {
-            "Use empty passphrase?"
+            "Use empty\npassphrase?"
         } else {
             value
         };

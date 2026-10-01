@@ -22,7 +22,7 @@ pub(crate) async fn confirm_mnemonic_passphrase(
                 .ui()
                 .confirm(&ConfirmParams {
                     title: "Confirm",
-                    body: "Use empty passphrase?",
+                    body: "Use empty\npassphrase?",
                     longtouch: true,
                     ..Default::default()
                 })

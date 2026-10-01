@@ -51,6 +51,8 @@ else()
      ""
      ui_components
      ""
+     lockscreen
+     ""
      ui_util
      ""
      ui_component_gestures
@@ -68,7 +70,7 @@ else()
      util
      ""
      ugui
-     ""
+     "-Wl,--wrap=Abort"
   )
 
   list(LENGTH TEST_LIST TEST_LIST_LEN)

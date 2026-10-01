@@ -28,6 +28,7 @@ static const component_functions_t _component_functions = {
 
 // Outputs `in` as is if it can be rendered to fit in `max_width`.
 // If it can't, it is truncated (with appended "...") to a size where it fits.
+// `font` must have static lifetime because it remains selected in the current GUI.
 static void _truncate_to_fit(
     const char* in,
     char* out,
@@ -46,10 +47,6 @@ static void _truncate_to_fit(
         out[0] = 0;
         return;
     }
-    if (!util_is_printable_ascii(in, false)) {
-        out[0] = 0;
-        return;
-    }
     UG_S16 width = 0;
     UG_S16 height = 0;
     UG_FontSelect(font);
@@ -57,15 +54,19 @@ static void _truncate_to_fit(
 
     // Name fits without truncation.
     if (width <= max_width) {
-        util_utf8_strlcpy(out, in, out_len);
+        if (util_utf8_strlcpy(out, in, out_len) < 0) {
+            out[0] = 0;
+        }
         return;
     }
 
     // Truncate if too long to a size where "<name>..." fits.
     const size_t text_capacity = out_len - 4;
-    size_t truncate_len = MIN(strlen(in), text_capacity);
+    const size_t in_len = strlen(in);
+    size_t truncate_len = MIN(in_len, text_capacity);
     do {
-        const intptr_t result = util_utf8_copy(out, out_len, in, truncate_len);
+        // Limit the copied prefix while validating the complete UTF-8 input.
+        const intptr_t result = util_utf8_copy(out, truncate_len + 1, in, in_len);
         if (result < 0) {
             out[0] = 0;
             return;
@@ -73,10 +74,10 @@ static void _truncate_to_fit(
         const size_t copied_len = (size_t)result;
         memcpy(&out[copied_len], "...", 4);
         UG_MeasureStringCentered(&width, &height, out);
-        if (truncate_len == 0) {
+        if (copied_len == 0) {
             break;
         }
-        truncate_len--;
+        truncate_len = copied_len - 1;
     } while (width >= max_width);
 }
 
@@ -92,7 +93,7 @@ component_t* lockscreen_create(void)
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
 
-    const UG_FONT* device_name_font = &font_font_a_9X9;
+    const UG_FONT* device_name_font = &font_arial_9;
 
     char device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_get_device_name(device_name);

@@ -8,9 +8,12 @@
 #include <cmocka.h>
 
 #include <touch/gestures.h>
+#include <ui/components/confirm_gesture.h>
 #include <ui/components/left_arrow.h>
 #include <ui/components/right_arrow.h>
+#include <ui/fonts/arial_fonts.h>
 #include <ui/screen_stack.h>
+#include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 
 #include "fake_component.h"
@@ -77,11 +80,54 @@ static void test_ui_left_arrow_tap(void** state)
     mock_component->f->cleanup(mock_component);
 }
 
+static bool pixels_clipped;
+
+static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    if (color != C_BLACK && (x < 0 || x >= 128 || y < 0 || y >= 64)) {
+        pixels_clipped = true;
+    }
+}
+
+static void test_ui_confirm_gesture_position(void** state)
+{
+    (void)state;
+    static UG_GUI gui;
+    UG_Init(&gui, _set_pixel, &font_arial_11, 128, 64);
+    const int16_t offsets[] = {0, 3};
+    for (size_t i = 0; i < sizeof(offsets) / sizeof(*offsets); i++) {
+        bool confirmed = false;
+        component_t* gesture = confirm_gesture_create(_cb, &confirmed);
+        gesture->position.top = offsets[i];
+        event_t touch = {
+            .id = EVENT_CONTINUOUS_TAP, .data = {.source = top_slider, .position = MAX_SLIDER_POS}};
+        gesture->f->on_event(&touch, gesture);
+        for (size_t frame = 0; frame < 40; frame++) {
+            pixels_clipped = false;
+            gesture->f->render(gesture);
+            assert_false(confirmed);
+        }
+        // The lower arrow must be fully visible after sliding in, before the second touch.
+        assert_false(pixels_clipped);
+        touch.data.source = bottom_slider;
+        gesture->f->on_event(&touch, gesture);
+        // Both layouts must require the full hold, confirming on the same animation frame.
+        for (size_t frame = 0; frame < 150; frame++) {
+            gesture->f->render(gesture);
+            assert_false(confirmed);
+        }
+        gesture->f->render(gesture);
+        assert_true(confirmed);
+        gesture->f->cleanup(gesture);
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_ui_right_arrow_tap),
         cmocka_unit_test(test_ui_left_arrow_tap),
+        cmocka_unit_test(test_ui_confirm_gesture_position),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

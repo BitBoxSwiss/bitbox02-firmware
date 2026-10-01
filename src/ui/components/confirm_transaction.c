@@ -101,38 +101,43 @@ static component_t* _confirm_transaction_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    ui_util_add_sub_component(
-        confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_cb, confirm));
+    // Align the navigation icons with the regular-font title row.
+    const int16_t button_top = font_arial_11.line_height - font_arial_11.base_line - 9;
+    component_t* cancel = icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_cb, confirm);
+    cancel->position.top = button_top;
+    ui_util_add_sub_component(confirm, cancel);
 
     if (longtouch) {
-        ui_util_add_sub_component(confirm, confirm_gesture_create(_confirm_cb, confirm));
+        component_t* accept = confirm_gesture_create(_confirm_cb, confirm);
+        accept->position.top = button_top;
+        ui_util_add_sub_component(confirm, accept);
     } else {
-        ui_util_add_sub_component(
-            confirm, icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm));
+        component_t* next = icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm);
+        next->position.top = button_top;
+        ui_util_add_sub_component(confirm, next);
     }
 
     if (data->has_address) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 20, confirm));
+            confirm, label_create_scrollable_offset(address, NULL, CENTER_TOP, 0, 44, confirm));
     }
     if (strlens(fee)) {
         ui_util_add_sub_component(
-            confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+            confirm, label_create_offset("Fee", &font_arial_9, CENTER_TOP, 0, 32, confirm));
 
         ui_util_add_sub_component(
-            confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
+            confirm, label_create_offset(fee, &font_arial_9, CENTER_TOP, 0, 46, confirm));
     }
     const UG_FONT* amount_font =
-        label_fits_width(amount, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
+        label_fits_width(amount, NULL, SCREEN_WIDTH) ? &font_arial_11 : &font_arial_9;
+    // Keep amounts on the same baseline when a long value needs the smaller font.
+    const uint8_t amount_top =
+        (verify_total ? 28 : 26) - (amount_font->line_height - amount_font->base_line);
     if (verify_total) {
-        ui_util_add_sub_component(
-            confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
-        ui_util_add_sub_component(
-            confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, 22, confirm));
-    } else {
-        ui_util_add_sub_component(
-            confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, 17, confirm));
+        ui_util_add_sub_component(confirm, label_create("Total", NULL, CENTER_TOP, confirm));
     }
+    ui_util_add_sub_component(
+        confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, amount_top, confirm));
 
     return confirm;
 }

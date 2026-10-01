@@ -14,7 +14,8 @@
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
-#include <ui/fonts/password_11X12.h>
+#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/password_12.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -32,7 +33,8 @@
 #define BLINK_RATE 200
 
 #define STRING_POS_X_START 5
-#define STRING_POS_Y 29
+// Leave room below the input for two keyboard rows, including their line spacing.
+#define STRING_POS_Y 20
 
 // After entering too many chars and exceeding the screen width, the right end of the last char will
 // end up be at this position.
@@ -48,7 +50,14 @@ static char _digits[] = "0123456789";
 // Keep in sync with SPECIAL in src/rust/bitbox02-rust/src/hww/api/unlock.rs.
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
-static const UG_FONT* _font = &font_password_11X12;
+static const UG_FONT* _font = &font_password_12;
+
+static UG_U16 _char_width(char chr)
+{
+    UG_U16 width = 0;
+    UG_GetCharWidth(_font, (uint8_t)chr, &width);
+    return width;
+}
 
 static void _get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
 {
@@ -89,7 +98,7 @@ typedef struct {
     bool show_last_character;
 
     // If the title should be drawn at the top of the screen. If true, the title is always
-    // visible. If false, the title is rendered in the center, and hidden as soon as the user starts
+    // visible. If false, the title occupies the input row and is hidden as soon as the user starts
     // typing.
     bool title_on_top;
 
@@ -122,10 +131,10 @@ static UG_S16 _constant_string_width(const component_t* component)
     for (size_t i = 0; i <= data->string_index; i++) {
         if (i == data->string_index) {
             char chr = EMPTY_CHAR;
-            width += _font->widths[chr - _font->start_char];
+            width += _char_width(chr);
         } else if (!data->hide) {
             char chr = data->string[i];
-            width += _font->widths[chr - _font->start_char];
+            width += _char_width(chr);
         } else {
             width += MASK_CHAR_WIDTH;
         }
@@ -147,7 +156,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     bool confirm_gesture_active =
         data->can_confirm && data->longtouch && confirm_gesture_is_active(data->confirm_component);
-    // show title (if in center)?
+    // Show the input-row title until typing begins.
     bool show_title =
         (data->string_index == 0 && !trinary_input_char_in_progress(data->trinary_char_component) &&
          !confirm_gesture_active);
@@ -175,14 +184,14 @@ static void _render(component_t* component)
         }
 
         char chr;
-        uint8_t width;
+        UG_U16 width;
         if (i == data->string_index) {
             chr = EMPTY_CHAR;
-            width = _font->widths[chr - _font->start_char];
+            width = _char_width(chr);
         } else if ((data->show_last_character && i == data->string_index - 1) || !data->hide) {
             // Show character (or only last entered character in if input is hidden).
             chr = data->string[i];
-            width = _font->widths[chr - _font->start_char];
+            width = _char_width(chr);
         } else {
             // ad-hoc encoding of the masked char, which will be drawn as a filled circle below.
             chr = '\0';
@@ -190,7 +199,11 @@ static void _render(component_t* component)
         }
         if (string_x >= 0) {
             if (chr == '\0') {
-                UG_FillCircle(string_x + 3, string_y + 4, 2, screen_front_color);
+                UG_FillCircle(
+                    string_x + 3,
+                    string_y + _font->line_height - _font->base_line - 6,
+                    2,
+                    screen_front_color);
             } else {
                 UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color);
             }
@@ -205,7 +218,7 @@ static void _render(component_t* component)
     // Draw '...' when the left part scrolled out of view.
     if (data->target_x < STRING_POS_X_START) {
         // HACK: blank out the chars rendered at this position first.
-        UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->char_height, screen_back_color);
+        UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->line_height, screen_back_color);
         UG_PutString(0, STRING_POS_Y, "...");
     }
 
@@ -468,12 +481,17 @@ component_t* trinary_input_string_create(
     component->position.top = 0;
     component->position.left = 0;
 
+    // Word entry has a regular title row; other keyboards align with the mode switch.
+    const int16_t button_top =
+        params->wordlist != NULL ? font_arial_11.line_height - font_arial_11.base_line - 9 : 0;
     if (cancel_cb != NULL) {
         data->cancel_component =
             icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, component);
+        data->cancel_component->position.top = button_top;
         ui_util_add_sub_component(component, data->cancel_component);
     }
     data->left_arrow_component = left_arrow_create(top_slider, component, _back, component);
+    data->left_arrow_component->position.top += button_top;
     ui_util_add_sub_component(component, data->left_arrow_component);
 
     if (params->longtouch) {
@@ -482,6 +500,7 @@ component_t* trinary_input_string_create(
         data->confirm_component =
             icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm_button_cb, component);
     }
+    data->confirm_component->position.top = button_top;
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (params->wordlist == NULL && !params->number_input) {
@@ -495,8 +514,8 @@ component_t* trinary_input_string_create(
     }
 
     data->title_on_top = params->wordlist != NULL;
-    data->title_component =
-        label_create(params->title, NULL, data->title_on_top ? CENTER_TOP : CENTER, component);
+    data->title_component = label_create_offset(
+        params->title, NULL, CENTER_TOP, 0, data->title_on_top ? 0 : STRING_POS_Y, component);
     ui_util_add_sub_component(component, data->title_component);
 
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);

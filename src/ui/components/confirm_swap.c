@@ -88,16 +88,20 @@ component_t* confirm_swap_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    ui_util_add_sub_component(
-        confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_cb, confirm));
-    ui_util_add_sub_component(
-        confirm, icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm));
+    // Align navigation with the visible letters of the title.
+    const int16_t button_top = font_arial_11.line_height - font_arial_11.base_line - 9;
+    component_t* cancel = icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_cb, confirm);
+    cancel->position.top = button_top;
+    ui_util_add_sub_component(confirm, cancel);
+    component_t* next = icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm);
+    next->position.top = button_top;
+    ui_util_add_sub_component(confirm, next);
 
-    component_t* title_component = label_create(title, &font_font_a_11X10, CENTER_TOP, confirm);
+    component_t* title_component = label_create(title, &font_arial_11, CENTER_TOP, confirm);
     ui_util_add_sub_component(confirm, title_component);
 
-    const UG_FONT* from_font = label_fits_width(from, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
-    const UG_FONT* to_font = label_fits_width(to, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
+    const UG_FONT* from_font = label_fits_width(from, NULL, SCREEN_WIDTH) ? NULL : &font_arial_9;
+    const UG_FONT* to_font = label_fits_width(to, NULL, SCREEN_WIDTH) ? NULL : &font_arial_9;
 
     ui_util_add_sub_component(
         confirm, label_create_offset(from, from_font, CENTER_TOP, 0, 17, confirm));

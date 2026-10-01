@@ -24,7 +24,7 @@ pub async fn confirm(hal: &mut impl crate::hal::Hal, hash: &[u8; 32]) -> Result<
     let params = ConfirmParams {
         title: "Pairing code",
         body: &format_hash(hash),
-        font: Font::Monogram5X9,
+        font: Font::Monogram16,
         ..Default::default()
     };
 

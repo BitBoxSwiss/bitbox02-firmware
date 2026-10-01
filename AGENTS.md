@@ -141,8 +141,9 @@ reviews conclude.
   util::Bytes::BytesMut ot pass in buffers and write to out buffers.
   Always initialize C buffers passed to `rust_util_bytes_mut` to zeroes, e.g.
   `uint8_t buf[32] = {0}`.
-- when using Zeroizing<...> for buffers, use Zeroizing<Vec<u8>>. For other sensitive data, use
-  Zeroizing<Box<...>>.
+- Keep sensitive data in heap-backed storage, such as Zeroizing<Vec<u8>>, Zeroizing<String>,
+  or Zeroizing<Box<T>>. Avoid reallocations after writing sensitive data, since discarded
+  allocations are not wiped automatically.
 - when wrapping C functions, always use a '-sys' crate for the bindings, make it safe idiomatic
   Rust, with no C types in the input/output, especially no pointers. Results should be returned,
   not passed to an out param. Check all invariants in the C code and panic in case they are not met.

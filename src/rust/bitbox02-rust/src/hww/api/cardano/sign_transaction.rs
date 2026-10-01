@@ -1090,7 +1090,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "High fee".into(),
-                    body: "The fee is 17.0%\nthe send amount.\nProceed?".into(),
+                    body: "Fee is 17.0%\nof the send amount.\nProceed?".into(),
                     longtouch: true
                 },
                 Screen::Status {
@@ -1305,7 +1305,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "High fee".into(),
-                    body: "The fee is 17.0%\nthe send amount.\nProceed?".into(),
+                    body: "Fee is 17.0%\nof the send amount.\nProceed?".into(),
                     longtouch: true
                 },
                 Screen::Status {
@@ -1357,7 +1357,7 @@ mod tests {
         assert!(
             mock_hal
                 .ui
-                .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?")
+                .contains_confirm("High fee", "Fee is 17.0%\nof the send amount.\nProceed?")
         );
     }
 

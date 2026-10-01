@@ -57,7 +57,7 @@ pub fn transaction_vector(
             options: psbt_options,
         },
         expected_needs_prevtxs,
-        expectations,
+        expectations: super::screens::with_historical_fee_warnings(expectations),
         registrations: vec![],
         expected_signatures,
         expected_generated_outputs: BTreeMap::new(),

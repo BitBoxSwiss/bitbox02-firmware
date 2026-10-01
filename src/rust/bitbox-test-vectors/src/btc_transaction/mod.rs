@@ -456,6 +456,93 @@ mod tests {
     }
 
     #[test]
+    fn test_test_vectors_high_fee_wording() {
+        let file = super::test_vectors();
+        for (id, version, expected) in [
+            (
+                "high-fee-rounding",
+                "9.20.0",
+                Some("The fee is 18.1%\nthe send amount.\nProceed?"),
+            ),
+            (
+                "high-fee-rounding",
+                "9.26.0",
+                Some("The fee is 18.1%\nthe send amount.\nProceed?"),
+            ),
+            (
+                "high-fee-rounding",
+                "9.27.2",
+                Some("The fee is 18.1%\nthe send amount.\nProceed?"),
+            ),
+            (
+                "high-fee-rounding",
+                "9.28.0",
+                Some("Fee is 18.1%\nof the send amount.\nProceed?"),
+            ),
+            (
+                "high-fee-rounding",
+                "10.0.0",
+                Some("Fee is 18.1%\nof the send amount.\nProceed?"),
+            ),
+            ("all-change-high-fee", "9.26.0", None),
+            (
+                "all-change-high-fee",
+                "9.27.1",
+                Some("The fee is 70.0%\nof all inputs.\nProceed?"),
+            ),
+            (
+                "all-change-high-fee",
+                "9.28.0",
+                Some("Fee is 70.0%\nof all inputs.\nProceed?"),
+            ),
+            (
+                "payment-request-owned-output",
+                "9.26.2",
+                Some("The fee is 50.0%\nthe send amount.\nProceed?"),
+            ),
+            ("payment-request-owned-output", "9.26.3", None),
+        ] {
+            let vector = file.vectors.iter().find(|vector| vector.id == id).unwrap();
+            let version = super::Version::parse(version).unwrap();
+            let expectations: Vec<_> = vector
+                .expectations
+                .iter()
+                .filter(|expectation| {
+                    expectation
+                        .min_version
+                        .as_deref()
+                        .is_none_or(|min| version >= super::Version::parse(min).unwrap())
+                        && expectation
+                            .max_version_exclusive
+                            .as_deref()
+                            .is_none_or(|max| version < super::Version::parse(max).unwrap())
+                })
+                .collect();
+            assert_eq!(expectations.len(), 1, "{id} at {version}");
+            let warnings: Vec<_> = expectations[0]
+                .screens
+                .iter()
+                .filter_map(|screen| match screen {
+                    super::Screen::Confirm {
+                        title,
+                        body,
+                        longtouch,
+                    } if title == "High fee" => {
+                        assert!(longtouch);
+                        Some(body.as_str())
+                    }
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(
+                warnings,
+                expected.into_iter().collect::<Vec<_>>(),
+                "{id} at {version}"
+            );
+        }
+    }
+
+    #[test]
     fn test_validate_vector_identity() {
         assert_invalid(|file| file.vectors[0].id.clear(), "empty id");
         assert_invalid(

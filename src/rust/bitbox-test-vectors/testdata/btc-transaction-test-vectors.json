@@ -41,6 +41,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -58,6 +59,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 400.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "1.00000000 TBTC",
+              "fee": "0.80000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 400.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -123,6 +152,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -140,6 +170,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 900.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "2.00000000 TBTC",
+              "fee": "1.80000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 900.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -286,6 +344,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -315,6 +374,46 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "1-of-2\nBTC Testnet multisig",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "test wsh multisig",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -445,6 +544,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -498,6 +598,70 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n2 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test wsh policy",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "wsh(or_b(pk(@0/<0;1>/*),s:pk(@1/<0;1>/*)))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/2",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/2",
+              "body": "tpubDFgycCkexSxkdZfeyaasDHityE97kiYM1BeCNoivDHvydGugKtoNobt4vEX6YSHNPy2cqmWQHKjKxciJuocepsGPGxcDZVmiMBnxgA1JKQk",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -628,6 +792,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -675,6 +840,64 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n1 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test tr keyspend policy",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "tr(@0/<0;1>/*)",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/1",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -811,6 +1034,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -864,6 +1088,70 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n2 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test tr scriptspend policy",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "tr(@0/<0;1>/*,pk(@1/<0;1>/*))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/2",
+              "body": "tpubDFgycCkexSxkdZfeyaasDHityE97kiYM1BeCNoivDHvydGugKtoNobt4vEX6YSHNPy2cqmWQHKjKxciJuocepsGPGxcDZVmiMBnxgA1JKQk",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/2",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -943,6 +1231,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -960,6 +1249,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 400.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "1.00000000 TBTC",
+              "fee": "0.80000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 400.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -1038,6 +1355,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -1055,6 +1373,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 900.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 BTC",
+              "address": "sp1q qgst e7k9 hx0q ftg6 qmwl kqtw uy6c ycya vzmz j85c 6qdf hjdp djtd gqju exzk 6mur w56s uy3e 0rd2 cgqv ycxt tddw svgx e2us fpxu mr70 xc9p kqwv"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "2.00000000 BTC",
+              "fee": "1.80000000 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 900.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -1158,6 +1504,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -1175,6 +1522,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 150.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "This BitBox (same account): tb1q l34n y8mc pgjq r0ng snjm lpzj pgnc yz2y gh2g ye"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.50000000 TBTC",
+              "fee": "0.30000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 150.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -1263,6 +1638,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -1280,6 +1656,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 150.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "This BitBox (account #2): tb1q vrcm 2akp 30d7 ecnq djk8 qdu0 9962 ak00 5rcp 6j"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.50000000 TBTC",
+              "fee": "0.30000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 150.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -1382,6 +1786,7 @@
         },
         {
           "min_version": "9.27.2",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -1417,6 +1822,52 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 150.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "Test Merchant"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Memo from: Test Merchant",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Memo 1/2",
+              "body": "TextMemo line1",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Memo 2/2",
+              "body": "TextMemo line2",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.50000000 TBTC",
+              "fee": "0.30000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 150.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -1914,6 +2365,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -1952,6 +2404,55 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 18.1%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "1.00000000 BTC",
+              "address": "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH"
+            },
+            {
+              "type": "transaction_address",
+              "amount": "10.34567890 BTC",
+              "address": "34oV nh4g NviJ GMnN vgqu MeLA xvXJ uaRV MZ"
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.00006000 BTC",
+              "address": "bc1q xven xven xven xven xven xven xven xven 2ymj t8"
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.00007000 BTC",
+              "address": "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4"
+            },
+            {
+              "type": "confirm",
+              "title": "Warning",
+              "body": "There are 2\nchange outputs.\nProceed?",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "13.39999900 BTC",
+              "fee": "2.05419010 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 18.1%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2022,6 +2523,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2045,6 +2547,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 BTC",
+              "address": "Test Merchant"
+            },
+            {
+              "type": "swap",
+              "title": "Swap",
+              "from": "0.20000000 BTC",
+              "to": "0.25 ETH"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 BTC",
+              "fee": "0.10000000 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2160,6 +2696,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2177,6 +2714,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2236,6 +2801,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2253,6 +2819,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2312,6 +2906,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2329,6 +2924,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2429,6 +3052,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2452,6 +3076,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2552,6 +3210,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2575,6 +3234,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2675,6 +3368,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2698,6 +3392,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 LTC",
+              "address": "ltc1 qw50 8d6q ejxt dg4y 5r3z arva ry0c 5xw7 kgmn 4n9"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 LTC",
+              "fee": "0.10000000 LTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2798,6 +3526,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2821,6 +3550,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 LTC",
+              "address": "ltc1 qw50 8d6q ejxt dg4y 5r3z arva ry0c 5xw7 kgmn 4n9"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 LTC",
+              "fee": "0.10000000 LTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -2880,6 +3643,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -2897,6 +3661,34 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 BTC",
+              "address": "bc1p mg5d hafm s6h9 nts4 dteh gkan ym6y eccf mk5h x3ts 3jxn m4zh 2knq v80h a5"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 BTC",
+              "fee": "0.10000000 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -3092,6 +3884,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3115,6 +3908,40 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "OP_RETURN\ndata (hex)",
+              "body": "0102030405",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -3256,6 +4083,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3268,6 +4096,29 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 70.0%\nof all inputs.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_fee",
+              "amount": "0.70000000 BTC",
+              "fee": "0.70000000 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 70.0%\nof all inputs.\nProceed?",
               "longtouch": true
             },
             {
@@ -3328,6 +4179,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3346,6 +4198,35 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 70.0%\nof all inputs.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "OP_RETURN",
+              "body": "metadata",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.70000000 BTC",
+              "fee": "0.70000000 BTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 70.0%\nof all inputs.\nProceed?",
               "longtouch": true
             },
             {
@@ -3498,6 +4379,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3527,6 +4409,46 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "1-of-2\nBTC Testnet multisig",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "test sh-wsh multisig",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -3642,6 +4564,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3671,6 +4594,46 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "7-of-15\nBTC Testnet multisig",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "test large multisig",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -3820,6 +4783,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -3873,6 +4837,70 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n2 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test tr tweaked keyspend",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "tr(@0/**,pk(@1/**))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/2",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/2",
+              "body": "tpubDFfyBnQAERJZWHv4W5rrhkpKJnPjycGzBpv8H1WgFjpkK7bVpuKw6JkeNvXqJix6csrQP3QgPZ19Yed2kbc7sniVHtNiQkX3cHsBxEqnz7Y",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -4021,6 +5049,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -4080,6 +5109,76 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n3 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test unspendable policy",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "tr(@0/<0;1>/*,multi_a(2,@1/<0;1>/*,@2/<0;1>/*))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/3",
+              "body": "Provably unspendable: tpubD6NzVbkrYhZ4XnyFMCH9qsN7VhcUSwyj5MN4juKrFBbgE9e3qCpEQsHSmq4zHA2FAkSwBQEzFGKjvXtb2xrRLioqRdqAkqN3Y9WrBf7yNj8",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/3",
+              "body": "tpubDF93VcTYKK2grTowjbqJMst4gS19G6rtWTNKcBnxCpQfs2BaFShNYoBDisxqhTsBWj4YhigxVArhhZN43NyWBH4E3puXS7tCrHsbjb2dvBi",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 3/3",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -4234,6 +5333,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -4293,6 +5393,76 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n3 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test complex unspendable",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "tr(@0/<0;1>/*,{and_v(v:multi_a(1,@1/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@1/<0;1>/*,@2/<0;1>/*)})",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/3",
+              "body": "Provably unspendable: tpubD6NzVbkrYhZ4YRYppNDw8BpfEz6cSU8qt45Eoqpj8YtPLFXoZsb3dYdAyLFp32GeY3b5ccVdtr45ajBGBDHgapb53xT9kMBcpHSF7yA8kXm",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/3",
+              "body": "[4040280c/48'/1'/0'/2']tpubDEWR7iVng7GH7BhbVBa6avnELDTSWEWHtAethvSrYYLEFm1XB1qT4Fb9xkPGZ9S7zU1FFrpVc6wRSo5BRNYvDAP7Edr5a6FJSjeCt7tWgQR",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 3/3",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -4369,6 +5539,7 @@
         },
         {
           "min_version": "9.27.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -4422,6 +5593,70 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n1 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test timestamp locktime",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "wsh(and_v(v:pk(@0/**),after(1800000000)))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/1",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime (UTC):\n2027-01-15\n08:00:00",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {
@@ -4552,6 +5787,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.28.0",
           "outcome": "success",
           "screens": [
             {
@@ -4605,6 +5841,70 @@
               "type": "confirm",
               "title": "High fee",
               "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.28.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n2 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test multipath policy",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "wsh(multi(2,@0/<10;11>/*,@1/<20;21>/*))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/2",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 2/2",
+              "body": "tpubDFfyBnQAERJZWHv4W5rrhkpKJnPjycGzBpv8H1WgFjpkK7bVpuKw6JkeNvXqJix6csrQP3QgPZ19Yed2kbc7sniVHtNiQkX3cHsBxEqnz7Y",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "Fee is 50.0%\nof the send amount.\nProceed?",
               "longtouch": true
             },
             {

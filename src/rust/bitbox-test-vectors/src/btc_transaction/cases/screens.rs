@@ -2,6 +2,7 @@
 
 use super::common::SOME_XPUB;
 use crate::btc_transaction::{Coin, Outcome, Screen, VersionExpectation};
+use semver::Version;
 
 const TBTC_EXTERNAL_ADDRESS: &str =
     "tb1pff8vkq80pu2cgtu7ttgad2znw62v2lguhw6ptrppwns6nrpqau2qcuz37d";
@@ -25,7 +26,53 @@ const PSBT_OTHER_ACCOUNT_ADDRESS_GROUPED: &str =
 // cannot be mistaken for the screens shown by the device.
 const COMPLETE_TRANSACTION_SCREEN_CAPTURE_VERSION: &str = "9.20.0";
 const LOCKTIME_CONFIRMATION_UPDATE_VERSION: &str = "9.27.0";
+const HIGH_FEE_WORDING_UPDATE_VERSION: &str = "9.28.0";
 pub const DEVICE_POLICY_XPUB: &str = "[4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv";
+
+/// Preserve the pre-v9.28 fee wording, splitting only ranges that span the wording change.
+pub(super) fn with_historical_fee_warnings(
+    expectations: Vec<VersionExpectation>,
+) -> Vec<VersionExpectation> {
+    let update_version = Version::parse(HIGH_FEE_WORDING_UPDATE_VERSION).unwrap();
+    let mut result = Vec::new();
+    for mut expectation in expectations {
+        if expectation
+            .min_version
+            .as_deref()
+            .is_some_and(|min| Version::parse(min).unwrap() >= update_version)
+        {
+            result.push(expectation);
+            continue;
+        }
+
+        let mut previous = expectation.clone();
+        for screen in &mut previous.screens {
+            if let Screen::Confirm { title, body, .. } = screen
+                && title == "High fee"
+                && let Some(message) = body.strip_prefix("Fee is ")
+            {
+                *body = format!(
+                    "The fee is {}",
+                    message.replace("%\nof the send amount.", "%\nthe send amount.")
+                );
+            }
+        }
+        if previous.screens == expectation.screens {
+            result.push(expectation);
+        } else if expectation
+            .max_version_exclusive
+            .as_deref()
+            .is_some_and(|max| Version::parse(max).unwrap() <= update_version)
+        {
+            result.push(previous);
+        } else {
+            previous.max_version_exclusive = Some(HIGH_FEE_WORDING_UPDATE_VERSION.into());
+            expectation.min_version = Some(HIGH_FEE_WORDING_UPDATE_VERSION.into());
+            result.extend([previous, expectation]);
+        }
+    }
+    result
+}
 
 fn success(
     min_version: Option<&str>,
@@ -113,7 +160,7 @@ fn high_fee(percent: u32) -> Screen {
 fn high_fee_decimal(percent: &str) -> Screen {
     Screen::Confirm {
         title: "High fee".into(),
-        body: format!("The fee is {percent}%\nthe send amount.\nProceed?"),
+        body: format!("Fee is {percent}%\nof the send amount.\nProceed?"),
         longtouch: true,
     }
 }
@@ -121,7 +168,7 @@ fn high_fee_decimal(percent: &str) -> Screen {
 fn high_fee_total_inputs(percent: u32) -> Screen {
     Screen::Confirm {
         title: "High fee".into(),
-        body: format!("The fee is {percent}.0%\nof all inputs.\nProceed?"),
+        body: format!("Fee is {percent}.0%\nof all inputs.\nProceed?"),
         longtouch: true,
     }
 }

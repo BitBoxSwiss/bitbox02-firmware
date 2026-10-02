@@ -538,7 +538,7 @@ static void _test_memory_get_device_name(void** state)
     char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(chunk);
     memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
-    const char* device_name = "foo bar";
+    const char* device_name = "BïtBöx";
     snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", device_name);
 
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
@@ -588,6 +588,7 @@ static void _test_memory_device_name(void** state)
 
     const char* device_name = "test name";
     _set_device_name(device_name);
+    _set_device_name("BïtBöx");
     const char* device_name2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
     _set_device_name(device_name2);
 }

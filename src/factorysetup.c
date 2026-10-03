@@ -16,9 +16,6 @@
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "uart.h"
-#include "usb/usb.h"
-#include "usb/usb_packet.h"
-#include "usb/usb_processing.h"
 #include <rust/rust.h>
 #include <ui/oled/oled.h>
 
@@ -27,8 +24,6 @@
 
 // Size of length prefix (2 bytes).
 #define LENSIZE 2
-
-#define FACTORYSETUP_CMD (HID_VENDOR_FIRST + 0x02) // factory setup commands
 
 // We commit to the BLE firmware hash here to avoid accidentally installing an unexpected firmware.
 static const uint8_t _allowed_ble_fw_hash[32] = {

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::borrow::ToOwned;
-use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
 use super::label::LvLabel;
-use crate::{LvHandle, LvObj, LvTextAlign, ObjExt, class, ffi};
+use crate::{LvHandle, LvObj, LvTextAlign, ObjExt, ZeroizingText, class, ffi};
 use util::strings::optional_cstr_from_ptr;
 
 pub type LvTextareaTextError = super::LvTextError;
@@ -18,7 +16,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn add_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = ZeroizingText::new(txt)?;
         unsafe { ffi::lv_textarea_add_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -32,13 +30,13 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn set_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = ZeroizingText::new(txt)?;
         unsafe { ffi::lv_textarea_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
 
     fn set_placeholder_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = ZeroizingText::new(txt)?;
         unsafe { ffi::lv_textarea_set_placeholder_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -56,7 +54,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn set_password_bullet(&self, bullet: &str) -> Result<(), LvTextareaTextError> {
-        let bullet = CString::new(bullet).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let bullet = ZeroizingText::new(bullet)?;
         unsafe { ffi::lv_textarea_set_password_bullet(self.as_ptr(), bullet.as_ptr()) }
         Ok(())
     }
@@ -99,19 +97,30 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_set_align(self.as_ptr(), align) }
     }
 
-    fn get_text(&self) -> Option<CString> {
+    fn get_text(&self) -> Option<ZeroizingText> {
         unsafe {
             // Snapshot the current text instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_text(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(ZeroizingText::from_cstr)
         }
     }
 
-    fn get_placeholder_text(&self) -> Option<CString> {
+    /// Reads UTF-8 text through a zeroizing snapshot, treating a missing buffer as empty.
+    ///
+    /// The callback can update the textarea: it never borrows LVGL-owned storage that an
+    /// update could invalidate. Panics if the textarea contains invalid UTF-8.
+    fn with_text<R>(&self, f: impl FnOnce(&str) -> R) -> R {
+        let text = self.get_text();
+        f(text.as_ref().map_or("", |text| {
+            text.to_str().expect("textarea content must be valid UTF-8")
+        }))
+    }
+
+    fn get_placeholder_text(&self) -> Option<ZeroizingText> {
         unsafe {
             // Snapshot the current placeholder instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_placeholder_text(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(ZeroizingText::from_cstr)
         }
     }
 
@@ -131,11 +140,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_password_mode(self.as_ptr()) }
     }
 
-    fn get_password_bullet(&self) -> Option<CString> {
+    fn get_password_bullet(&self) -> Option<ZeroizingText> {
         unsafe {
             // Snapshot the current bullet instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_password_bullet(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(ZeroizingText::from_cstr)
         }
     }
 
@@ -143,11 +152,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_one_line(self.as_ptr()) }
     }
 
-    fn get_accepted_chars(&self) -> Option<CString> {
+    fn get_accepted_chars(&self) -> Option<ZeroizingText> {
         unsafe {
             // Snapshot the accepted-char list instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_accepted_chars(self.as_ptr()))
-                .map(|text| text.to_owned())
+                .map(ZeroizingText::from_cstr)
         }
     }
 
@@ -203,3 +212,26 @@ impl LvHandle<class::TextareaTag> {
 }
 
 impl TextareaExt for LvHandle<class::TextareaTag> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_with_text_allows_replacement() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(64, 64).unwrap();
+        let screen = display.screen_active().unwrap();
+        let textarea = LvTextarea::new(&screen).unwrap();
+        assert!(textarea.with_text(str::is_empty));
+        textarea.set_text("öäü").unwrap();
+        let len = textarea.with_text(|text| {
+            textarea.set_text("replacement").unwrap();
+            assert_eq!(text, "öäü");
+            text.len()
+        });
+        assert_eq!(len, 6);
+        textarea.with_text(|text| assert_eq!(text, "replacement"));
+        unsafe { textarea.delete() };
+    }
+}

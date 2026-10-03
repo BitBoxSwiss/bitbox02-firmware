@@ -10,8 +10,7 @@ pub struct BackupMetaData {
     pub mode: i32,
 }
 /// *
-/// BackupData is encoded in the data field of the BackupContent
-/// and depends on the BackupMode.
+/// BackupData is the plaintext data message of BackupContent.
 /// Defining it as a protobuf message allows language/architecture independent
 /// encoding/decoding.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -45,8 +44,8 @@ pub struct BackupContent {
     /// needed to deserialize or interpret the data.
     #[prost(uint32, tag = "3")]
     pub length: u32,
-    #[prost(bytes = "vec", tag = "4")]
-    pub data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "4")]
+    pub data: ::core::option::Option<BackupData>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

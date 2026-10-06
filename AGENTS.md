@@ -86,9 +86,14 @@ bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf i
 
 ### Code Comments
 
-- Describe the current behavior, constraints, and rationale. Do not narrate refactors or compare
-  with removed implementations, such as "matching the previous C implementation". Put change
-  history in commit messages or PR descriptions.
+- Default to adding no comments or docstrings.
+- NEVER restate what names, types, or code already make clear. This applies to inline comments,
+  block comments, and docstrings.
+- Add a comment only to explain behavior, constraints, or rationale that a reader cannot readily
+  infer from the code.
+- Use the fewest words needed to convey that information. Omit filler and repetition.
+- Do not narrate refactors or compare with removed implementations, such as "matching the previous
+  C implementation". Put change history in commit messages or PR descriptions.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

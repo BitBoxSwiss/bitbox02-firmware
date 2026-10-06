@@ -70,7 +70,8 @@ pub fn create_to_spend_txid(msg: &[u8], script_pubkey: &[u8]) -> [u8; 32] {
 /// `to_sign` virtual transaction with a single taproot input.
 ///
 /// Used by BTCSignMessage, which signs for one P2TR address. BTCSign computes the sighash of
-/// `to_sign` from the streamed transaction instead, which covers every script type.
+/// `to_sign` from the streamed transaction instead, which covers every script type and proofs of
+/// funds.
 ///
 /// The `to_sign` transaction spends the `to_spend` output:
 ///   - vin[0]: prevout=(to_spend.txid(), 0), scriptSig=empty

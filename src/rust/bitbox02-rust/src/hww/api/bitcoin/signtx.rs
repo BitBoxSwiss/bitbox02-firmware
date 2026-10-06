@@ -902,21 +902,27 @@ async fn sign_input(
 /// Handle a BIP-322 message signing request received through the signtx streaming protocol.
 ///
 /// This is called from `_process` when `bip322_message` is set in the init request. It follows the
-/// same streaming protocol as a regular transaction (two inputs passes, outputs), but validates the
-/// BIP-322 `to_sign` structure and shows message-signing UI instead of transaction UI.
+/// same streaming protocol as a regular transaction (two inputs passes, previous transactions,
+/// outputs), but validates the BIP-322 `to_sign` structure and shows message-signing UI instead of
+/// transaction UI.
 ///
 /// The first input must spend the `to_spend` virtual transaction committing to the message and to
 /// the scriptPubKey of the address whose control is proven (the message challenge). Any further
-/// input would make the request a proof of funds, which is not supported.
+/// inputs make the request a proof of funds: they spend real coins of the account, which are
+/// authenticated like the inputs of a regular transaction and whose total is shown to the user.
 ///
-/// The input is signed with the regular BIP-143/BIP-341 sighash of `to_sign`, as a BIP-322 verifier
-/// runs the signature through the standard script interpreter. SIGHASH_ALL (or SIGHASH_DEFAULT)
-/// makes the signature commit to the `to_spend` outpoint, whose transaction can never be mined.
+/// Every input is signed with the regular BIP-143/BIP-341 sighash of `to_sign`, as a BIP-322
+/// verifier runs the signatures through the standard script interpreter. SIGHASH_ALL (or
+/// SIGHASH_DEFAULT) makes every signature commit to all prevouts, including the `to_spend` outpoint
+/// of the first input, whose transaction can never be mined. This is what keeps the signatures of
+/// the proof-of-funds inputs from being usable in a transaction that spends the coins.
+#[allow(clippy::too_many_arguments)]
 async fn process_bip322(
     hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
     message: &[u8],
     coin: pb::BtcCoin,
+    format_unit: FormatUnit,
     validated_script_configs: &[ValidatedScriptConfigWithKeypath<'_>],
     mut xpub_cache: Bip32XpubCache,
     mut next_response: NextResponse,
@@ -925,6 +931,20 @@ async fn process_bip322(
 
     let coin_params = super::params::get(coin);
 
+    // See `_process`: the previous transactions are only streamed to authenticate the amounts and
+    // scripts of non-taproot inputs. The first input is exempt either way: its prevout is the
+    // `to_spend` transaction, which is recomputed and checked against its prevOutHash instead.
+    let taproot_only = validated_script_configs.iter().all(is_taproot);
+    let num_proven = request.num_inputs - 1;
+
+    let mut progress_component = if num_proven > 0 {
+        Some(hal.ui().progress_create("Loading proof..."))
+    } else {
+        None
+    };
+
+    // Will contain the sum of the coins whose control is proven (all inputs but the first).
+    let mut proven_sum_pass1: u64 = 0;
     // The address whose control is proven, from the first input.
     let mut challenge_address: Option<String> = None;
 
@@ -934,6 +954,10 @@ async fn process_bip322(
     let mut hasher_scriptpubkeys = Sha256::new();
 
     for input_index in 0..request.num_inputs {
+        if let Some(ref mut c) = progress_component {
+            c.set_fraction(input_index, request.num_inputs);
+        }
+
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
@@ -959,8 +983,21 @@ async fn process_bip322(
             bip322::validate_input(&tx_input, message, &pk_script)?;
             challenge_address = Some(payload.address(coin_params)?);
         } else {
-            // A proof of funds, which is not supported.
-            return Err(Error::InvalidInput);
+            validate_input(&tx_input, coin_params, script_config_account)?;
+            proven_sum_pass1 = proven_sum_pass1
+                .checked_add(tx_input.prev_out_value)
+                .ok_or(Error::InvalidInput)?;
+            if !taproot_only {
+                handle_prevtx(
+                    input_index,
+                    &tx_input,
+                    pk_script.as_slice(),
+                    request.num_inputs,
+                    progress_component.as_mut().unwrap(),
+                    &mut next_response,
+                )
+                .await?;
+            }
         }
 
         // Same accumulation as in `_process`.
@@ -976,6 +1013,7 @@ async fn process_bip322(
     // scriptPubKey `OP_RETURN`.
     let tx_output = get_tx_output(0, &mut next_response).await?;
     bip322::validate_output(&tx_output)?;
+    drop(progress_component.take());
     let mut hasher_outputs = Sha256::new();
     hasher_outputs.update(0u64.to_le_bytes());
     hasher_outputs.update(serialize(&VarInt(1)));
@@ -1012,31 +1050,59 @@ async fn process_bip322(
         })
         .await?;
 
+    if num_proven > 0 {
+        let body = format!(
+            "{} {}\n{}",
+            num_proven,
+            if num_proven == 1 { "coin" } else { "coins" },
+            format_amount(coin_params, format_unit, proven_sum_pass1)?,
+        );
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: "Proof of funds",
+                body: &body,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+    }
+
     verify_message::verify(hal, "Sign message", "Sign", message, true).await?;
 
-    // Sign the input (second pass).
+    // Sign the inputs (second pass).
+    let mut proven_sum_pass2: u64 = 0;
     for input_index in 0..request.num_inputs {
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
 
-        validate_keypath(
-            coin_params,
-            script_config_account,
-            &tx_input.keypath,
-            keypath::ReceiveSpend::Spend,
-        )?;
-        let pk_script = common::Payload::from(
-            hal,
-            &mut xpub_cache,
-            coin_params,
-            &tx_input.keypath,
-            script_config_account,
-        )
-        .await?
-        .pk_script(coin_params)?;
-        bip322::validate_input(&tx_input, message, &pk_script)?;
+        if input_index == 0 {
+            validate_keypath(
+                coin_params,
+                script_config_account,
+                &tx_input.keypath,
+                keypath::ReceiveSpend::Spend,
+            )?;
+            let pk_script = common::Payload::from(
+                hal,
+                &mut xpub_cache,
+                coin_params,
+                &tx_input.keypath,
+                script_config_account,
+            )
+            .await?
+            .pk_script(coin_params)?;
+            bip322::validate_input(&tx_input, message, &pk_script)?;
+        } else {
+            validate_input(&tx_input, coin_params, script_config_account)?;
+            proven_sum_pass2 = proven_sum_pass2
+                .checked_add(tx_input.prev_out_value)
+                .ok_or(Error::InvalidInput)?;
+            if proven_sum_pass2 > proven_sum_pass1 {
+                return Err(Error::InvalidInput);
+            }
+        }
 
         sign_input(
             hal,
@@ -1049,6 +1115,10 @@ async fn process_bip322(
             &mut next_response,
         )
         .await?;
+    }
+
+    if proven_sum_pass1 != proven_sum_pass2 {
+        return Err(Error::InvalidInput);
     }
 
     next_response.next.r#type = NextType::Done as _;
@@ -1141,6 +1211,7 @@ async fn _process(
             request,
             message,
             coin,
+            format_unit,
             &validated_script_configs,
             xpub_cache,
             next_response,
@@ -3404,9 +3475,17 @@ mod tests {
             .unwrap_or_else(|error| panic!("script verification failed: {error:?}"));
     }
 
+    /// Returns the body of the proof-of-funds confirmation among `screens`, if it was shown.
+    fn bip322_proof_of_funds_screen(screens: &[Screen]) -> Option<&str> {
+        screens.iter().find_map(|screen| match screen {
+            Screen::Confirm { title, body, .. } if title == "Proof of funds" => Some(body.as_str()),
+            _ => None,
+        })
+    }
+
     #[async_test::test]
     async fn test_bip322_p2wpkh() {
-        let (_, psbt) = bip322_sign(
+        let (screens, psbt) = bip322_sign(
             SimpleType::P2wpkh,
             &[84 + HARDENED, HARDENED, HARDENED],
             &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
@@ -3417,6 +3496,7 @@ mod tests {
         .await
         .unwrap();
         assert_bip322_psbt_valid(psbt);
+        assert_eq!(bip322_proof_of_funds_screen(&screens), None);
     }
 
     #[async_test::test]
@@ -3434,8 +3514,8 @@ mod tests {
         assert_bip322_psbt_valid(psbt);
     }
 
-    /// A BIP-322 request is rejected if to_sign does not spend to_spend, its output is not a bare
-    /// OP_RETURN, or it has more than one input (a proof of funds, which is not supported).
+    /// A BIP-322 request is rejected if to_sign does not spend to_spend or its output is not a bare
+    /// OP_RETURN.
     #[async_test::test]
     async fn test_bip322_invalid() {
         let tampers: [fn(&mut Transaction); 3] = [
@@ -3458,20 +3538,104 @@ mod tests {
             .await;
             assert_eq!(result.err(), Some(Error::InvalidInput));
         }
+    }
 
-        let result = bip322_sign(
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_p2wpkh() {
+        let keypath_account = [84 + HARDENED, HARDENED, HARDENED];
+        let (screens, psbt) = bip322_sign(
             SimpleType::P2wpkh,
-            &[84 + HARDENED, HARDENED, HARDENED],
+            &keypath_account,
             &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
-            b"BIP-322 p2wpkh message",
+            b"BIP-322 p2wpkh proof of funds",
+            &[
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 0, 1],
+                    value: 50_000,
+                },
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 1, 0],
+                    value: 25_000,
+                },
+            ],
+            |_| {},
+        )
+        .await
+        .unwrap();
+        assert_bip322_psbt_valid(psbt);
+        assert_eq!(
+            bip322_proof_of_funds_screen(&screens),
+            Some("2 coins\n0.00075000 BTC")
+        );
+    }
+
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_p2tr() {
+        let (screens, psbt) = bip322_sign(
+            SimpleType::P2tr,
+            &[86 + HARDENED, HARDENED, HARDENED],
+            &[86 + HARDENED, HARDENED, HARDENED, 0, 0],
+            b"BIP-322 p2tr proof of funds",
             &[Bip322Coin {
-                keypath: vec![84 + HARDENED, HARDENED, HARDENED, 0, 1],
-                value: 50_000,
+                keypath: vec![86 + HARDENED, HARDENED, HARDENED, 0, 3],
+                value: 100_000,
             }],
             |_| {},
         )
-        .await;
-        assert_eq!(result.err(), Some(Error::InvalidInput));
+        .await
+        .unwrap();
+        assert_bip322_psbt_valid(psbt);
+        assert_eq!(
+            bip322_proof_of_funds_screen(&screens),
+            Some("1 coin\n0.00100000 BTC")
+        );
+    }
+
+    /// A proof of funds is rejected if the first input does not spend to_spend or a coin's
+    /// amount or script is not the one of its previous transaction.
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_invalid() {
+        let coins = || {
+            [
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 0, 1],
+                    value: 50_000,
+                },
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 1, 0],
+                    value: 25_000,
+                },
+            ]
+        };
+        let tampers: [fn(&mut Transaction); 4] = [
+            // The message challenge is missing: the first input is a real coin.
+            |tx| {
+                tx.inputs.remove(0);
+            },
+            // The message challenge is not the first input.
+            |tx| tx.inputs.swap(0, 1),
+            // A coin claims a different amount than its previous transaction pays.
+            |tx| tx.inputs[1].input.prev_out_value += 1,
+            // A coin of zero value.
+            |tx| {
+                let input = &mut tx.inputs[2];
+                input.input.prev_out_value = 0;
+                input.prevtx_outputs[0].value = 0;
+                input.input.prev_out_hash = prevtx_hash(input);
+            },
+        ];
+        for tamper in tampers {
+            let result = bip322_sign(
+                SimpleType::P2wpkh,
+                &[84 + HARDENED, HARDENED, HARDENED],
+                &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
+                b"BIP-322 p2wpkh proof of funds",
+                &coins(),
+                tamper,
+            )
+            .await;
+            assert_eq!(result.err(), Some(Error::InvalidInput));
+        }
     }
 
     /// Test invalid input cases.

@@ -12,6 +12,8 @@ recorded separately.
 - Hold the screen reset pin low until firmware is ready initalize it.
 - Cardano: limit xpub requests to 20 keypaths per batch
 - API: add a session reset command for clean host reconnects after interrupted operations
+- Bitcoin: allow signing messages with taproot (P2TR) keys, as BIP-322 simple signatures
+- Bitcoin: sign BIP-322 messages and proofs of funds for any account, including multisig and policies, as PSBTs through transaction signing
 
 ### v9.27.1
 - API: include the installed bootloader version in the device info response

@@ -1869,6 +1869,7 @@ mod tests {
                     .outputs
                     .iter()
                     .any(|output| output.silent_payment.is_some()),
+                bip322_message: None,
             }
         }
 
@@ -1892,6 +1893,7 @@ mod tests {
                 locktime: self.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         }
 
@@ -2238,6 +2240,7 @@ mod tests {
                 .outputs
                 .iter()
                 .any(|output| output.silent_payment_address.is_some()),
+            bip322_message: None,
         }
     }
 
@@ -2726,6 +2729,7 @@ mod tests {
             locktime: 0,
             format_unit: FormatUnit::Default as _,
             contains_silent_payment_outputs: false,
+            bip322_message: None,
         };
 
         {
@@ -2925,6 +2929,7 @@ mod tests {
                         locktime: 0,
                         format_unit: FormatUnit::Default as _,
                         contains_silent_payment_outputs: false,
+                        bip322_message: None,
                     }
                 )
                 .await,

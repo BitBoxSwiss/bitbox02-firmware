@@ -17,7 +17,9 @@ use bitcoin::{
     absolute::LockTime, transaction::Version,
 };
 
+use super::Error;
 use super::bip341;
+use super::pb;
 
 /// The BIP-322 tag used for the tagged message hash.
 const BIP322_TAG: &[u8] = b"BIP0322-signed-message";
@@ -67,7 +69,8 @@ pub fn create_to_spend_txid(msg: &[u8], script_pubkey: &[u8]) -> [u8; 32] {
 /// Compute the BIP-341 sighash (SIGHASH_DEFAULT, key-path spend, no annex) of the BIP-322
 /// `to_sign` virtual transaction with a single taproot input.
 ///
-/// Used by BTCSignMessage, which signs for one P2TR address.
+/// Used by BTCSignMessage, which signs for one P2TR address. BTCSign computes the sighash of
+/// `to_sign` from the streamed transaction instead, which covers every script type.
 ///
 /// The `to_sign` transaction spends the `to_spend` output:
 ///   - vin[0]: prevout=(to_spend.txid(), 0), scriptSig=empty
@@ -114,6 +117,72 @@ pub fn sighash(
         )
         .expect("sighash computation failed")
         .to_byte_array()
+}
+
+/// Validate the BIP-322 init request against the spec-level rules for `to_sign`.
+///
+/// Per BIP-322 v1.0.0:
+///   - version must be 0 or 2 (upgradeable rule §4)
+///   - exactly one output (the OP_RETURN)
+///   - at least one input: the first spends `to_spend`, any further ones make the request a proof
+///     of funds
+///   - locktime is unrestricted (full format may set it for timelocks)
+pub fn validate_init(request: &pb::BtcSignInitRequest) -> Result<(), Error> {
+    if request.version != 0 && request.version != 2 {
+        return Err(Error::InvalidInput);
+    }
+    if request.num_outputs != 1 {
+        return Err(Error::InvalidInput);
+    }
+    if request.num_inputs < 1 {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
+/// Validate the BIP-322 first input.
+///
+/// Checks: prevOutIndex=0, prevOutValue=0, and prevOutHash matches the computed
+/// to_spend txid from the message and scriptPubKey. `sequence` is unrestricted (full format
+/// may set it for timelocks).
+pub fn validate_input(
+    input: &pb::BtcSignInputRequest,
+    message: &[u8],
+    script_pubkey: &[u8],
+) -> Result<(), Error> {
+    if input.prev_out_index != 0 {
+        return Err(Error::InvalidInput);
+    }
+    if input.prev_out_value != 0 {
+        return Err(Error::InvalidInput);
+    }
+    let expected_txid = create_to_spend_txid(message, script_pubkey);
+    if input.prev_out_hash.as_slice() != expected_txid {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
+/// Validate the BIP-322 output.
+///
+/// Checks: value=0, type=OP_RETURN with an empty payload, i.e. the scriptPubKey is the single byte
+/// `OP_RETURN` that BIP-322 prescribes, and none of the fields that only apply to regular outputs
+/// (ours, silent payment, payment request) are set.
+pub fn validate_output(output: &pb::BtcSignOutputRequest) -> Result<(), Error> {
+    if output.value != 0 {
+        return Err(Error::InvalidInput);
+    }
+    if pb::BtcOutputType::try_from(output.r#type)? != pb::BtcOutputType::OpReturn {
+        return Err(Error::InvalidInput);
+    }
+    if !output.payload.is_empty()
+        || output.ours
+        || output.silent_payment.is_some()
+        || output.payment_request_index.is_some()
+    {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
 }
 
 /// The variant prefix for the "simple" BIP-322 signature format.
@@ -190,6 +259,162 @@ mod tests {
         assert_ne!(hash, sighash(b"", &script_pubkey, 2, 0, 0));
         assert_ne!(hash, sighash(b"", &script_pubkey, 0, 1, 0));
         assert_ne!(hash, sighash(b"", &script_pubkey, 0, 0, 1));
+    }
+
+    #[test]
+    fn test_validate_init_ok() {
+        // Simple format defaults.
+        let request = pb::BtcSignInitRequest {
+            version: 0,
+            locktime: 0,
+            num_inputs: 1,
+            num_outputs: 1,
+            ..Default::default()
+        };
+        assert!(validate_init(&request).is_ok());
+
+        // Full format: version=2, non-zero locktime is allowed.
+        let request = pb::BtcSignInitRequest {
+            version: 2,
+            locktime: 100,
+            num_inputs: 1,
+            num_outputs: 1,
+            ..Default::default()
+        };
+        assert!(validate_init(&request).is_ok());
+    }
+
+    #[test]
+    fn test_validate_init_bad_version() {
+        // Per spec, only version 0 or 2 is allowed.
+        let request = pb::BtcSignInitRequest {
+            version: 1,
+            locktime: 0,
+            num_inputs: 1,
+            num_outputs: 1,
+            ..Default::default()
+        };
+        assert!(validate_init(&request).is_err());
+
+        let request = pb::BtcSignInitRequest {
+            version: 3,
+            locktime: 0,
+            num_inputs: 1,
+            num_outputs: 1,
+            ..Default::default()
+        };
+        assert!(validate_init(&request).is_err());
+    }
+
+    #[test]
+    fn test_validate_init_num_inputs() {
+        let request = pb::BtcSignInitRequest {
+            version: 0,
+            locktime: 0,
+            num_inputs: 0,
+            num_outputs: 1,
+            ..Default::default()
+        };
+        assert!(validate_init(&request).is_err());
+
+        // Proof of funds: additional inputs after the one spending to_spend.
+        let request = pb::BtcSignInitRequest {
+            num_inputs: 3,
+            ..request
+        };
+        assert!(validate_init(&request).is_ok());
+    }
+
+    #[test]
+    fn test_validate_input_ok() {
+        let script_pubkey =
+            hex_lit::hex!("5120a60869f0dbcf1dc659c9cecbee8b89cea43c4a2906acdb10a681b4bbaef14274");
+        let txid = create_to_spend_txid(b"hello", &script_pubkey);
+        let input = pb::BtcSignInputRequest {
+            prev_out_hash: txid.to_vec(),
+            prev_out_index: 0,
+            prev_out_value: 0,
+            sequence: 0,
+            ..Default::default()
+        };
+        assert!(validate_input(&input, b"hello", &script_pubkey).is_ok());
+    }
+
+    #[test]
+    fn test_validate_input_bad_txid() {
+        let script_pubkey =
+            hex_lit::hex!("5120a60869f0dbcf1dc659c9cecbee8b89cea43c4a2906acdb10a681b4bbaef14274");
+        let input = pb::BtcSignInputRequest {
+            prev_out_hash: vec![0u8; 32], // wrong txid
+            prev_out_index: 0,
+            prev_out_value: 0,
+            sequence: 0,
+            ..Default::default()
+        };
+        assert!(validate_input(&input, b"hello", &script_pubkey).is_err());
+    }
+
+    #[test]
+    fn test_validate_output_ok() {
+        let output = pb::BtcSignOutputRequest {
+            value: 0,
+            r#type: pb::BtcOutputType::OpReturn as _,
+            ..Default::default()
+        };
+        assert!(validate_output(&output).is_ok());
+    }
+
+    #[test]
+    fn test_validate_output_bad_value() {
+        let output = pb::BtcSignOutputRequest {
+            value: 100,
+            r#type: pb::BtcOutputType::OpReturn as _,
+            ..Default::default()
+        };
+        assert!(validate_output(&output).is_err());
+    }
+
+    #[test]
+    fn test_validate_output_bad_type() {
+        let output = pb::BtcSignOutputRequest {
+            value: 0,
+            r#type: pb::BtcOutputType::P2tr as _,
+            ..Default::default()
+        };
+        assert!(validate_output(&output).is_err());
+    }
+
+    #[test]
+    fn test_validate_output_not_bare_op_return() {
+        let op_return = pb::BtcSignOutputRequest {
+            value: 0,
+            r#type: pb::BtcOutputType::OpReturn as _,
+            ..Default::default()
+        };
+
+        // OP_RETURN followed by a data push.
+        let output = pb::BtcSignOutputRequest {
+            payload: b"data".to_vec(),
+            ..op_return.clone()
+        };
+        assert!(validate_output(&output).is_err());
+
+        // Fields that only apply to regular outputs.
+        let output = pb::BtcSignOutputRequest {
+            ours: true,
+            ..op_return.clone()
+        };
+        assert!(validate_output(&output).is_err());
+        let output = pb::BtcSignOutputRequest {
+            silent_payment: Some(Default::default()),
+            ..op_return.clone()
+        };
+        assert!(validate_output(&output).is_err());
+        let output = pb::BtcSignOutputRequest {
+            payment_request_index: Some(0),
+            ..op_return
+        };
+        assert!(validate_output(&output).is_err());
     }
 
     #[test]

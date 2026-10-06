@@ -16,6 +16,7 @@ use crate::secp256k1::SECP256K1;
 use crate::workflow::transaction;
 use crate::xpubcache::Bip32XpubCache;
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -684,6 +685,208 @@ fn format_locktime(locktime: u32) -> Result<String, Error> {
     ))
 }
 
+/// Compute the TaprootSpendInfo for a taproot input.
+///
+/// For SimpleType::P2tr this is a BIP-86 key-path spend (tweak by hash of pubkey, no merkle root).
+/// For Policy with a Taproot descriptor, it delegates to the parsed policy.
+async fn get_taproot_spend_info(
+    hal: &mut impl crate::hal::Hal,
+    xpub_cache: &mut Bip32XpubCache,
+    script_config_account: &ValidatedScriptConfigWithKeypath<'_>,
+    keypath: &[u32],
+) -> Result<TaprootSpendInfo, Error> {
+    match &script_config_account.config {
+        ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
+            // This is a BIP-86 spend, so we tweak the private key by the hash of the public
+            // key only, as there is no Taproot merkle root.
+            let xpub = xpub_cache.get_xpub(hal, keypath).await?;
+            let pubkey =
+                bitcoin::PublicKey::from_slice(xpub.public_key()).map_err(|_| Error::Generic)?;
+            Ok(TaprootSpendInfo::KeySpend(
+                bitcoin::TapTweakHash::from_key_and_tweak(pubkey.into(), None),
+            ))
+        }
+        ValidatedScriptConfig::Policy { parsed_policy, .. } => {
+            // Get the Taproot tweak based on whether we spend using the internal key (key
+            // path spend) or if we spend using a leaf script. For key path spends, we must
+            // first tweak the private key to match the Taproot output key. For leaf
+            // scripts, we do not tweak.
+
+            Ok(parsed_policy
+                .taproot_spend_info(hal, xpub_cache, keypath)
+                .await?)
+        }
+        _ => Err(Error::Generic),
+    }
+}
+
+/// Sign a taproot input given its sighash and spend info.
+///
+/// Returns the 64-byte Schnorr signature.
+async fn sign_taproot_input(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    sighash: &[u8; 32],
+    spend_info: &TaprootSpendInfo,
+) -> Result<Vec<u8>, Error> {
+    Ok(crate::keystore::secp256k1_schnorr_sign(
+        hal,
+        keypath,
+        sighash,
+        if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
+            Some(tweak_hash.as_byte_array())
+        } else {
+            None
+        },
+    )
+    .await?
+    .to_vec())
+}
+
+/// Sign an ECDSA input given its sighash, handling the anti-klepto protocol if needed.
+///
+/// Returns the 64-byte compact signature (R, S).
+async fn sign_ecdsa_input(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    sighash: &[u8; 32],
+    host_nonce_commitment: &Option<pb::AntiKleptoHostNonceCommitment>,
+    input_index: u32,
+    next_response: &mut NextResponse,
+) -> Result<Vec<u8>, Error> {
+    let private_key = crate::keystore::secp256k1_get_private_key(hal, keypath).await?;
+    // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
+    let host_nonce: [u8; 32] = match host_nonce_commitment {
+        Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
+            let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
+                private_key.as_slice().try_into().unwrap(),
+                sighash,
+                commitment
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?,
+            )?;
+            next_response.next.anti_klepto_signer_commitment =
+                Some(pb::AntiKleptoSignerCommitment {
+                    commitment: signer_commitment.to_vec(),
+                });
+
+            get_antiklepto_host_nonce(input_index, next_response)
+                .await?
+                .host_nonce
+                .as_slice()
+                .try_into()
+                .or(Err(Error::InvalidInput))?
+        }
+        // Return the signature directly without the anti-klepto protocol for backwards
+        // compatibility. Preserve the historical zero-contribution S2C signature; this
+        // differs from plain RFC6979 and does not provide anti-klepto protection.
+        None => [0; 32],
+    };
+
+    let sign_result = crate::secp256k1::secp256k1_sign(
+        private_key.as_slice().try_into().unwrap(),
+        sighash,
+        Some(&host_nonce),
+    )?;
+    drop(private_key);
+    Ok(sign_result.signature.to_vec())
+}
+
+/// The transaction-wide hashes the sighash of every input commits to, accumulated while streaming
+/// the inputs (first pass) and the outputs. Each is the single SHA256 of the serialized data, as
+/// used by BIP-341; BIP-143 uses their double SHA256.
+struct TxHashes {
+    hash_prevouts: [u8; 32],
+    hash_sequence: [u8; 32],
+    hash_amounts: [u8; 32],
+    hash_scriptpubkeys: [u8; 32],
+    hash_outputs: [u8; 32],
+}
+
+/// Signs the input at `input_index` with SIGHASH_ALL (SIGHASH_DEFAULT for taproot inputs) and
+/// stores the signature in `next_response`.
+#[allow(clippy::too_many_arguments)]
+async fn sign_input(
+    hal: &mut impl crate::hal::Hal,
+    xpub_cache: &mut Bip32XpubCache,
+    request: &pb::BtcSignInitRequest,
+    tx_hashes: &TxHashes,
+    input_index: u32,
+    tx_input: &pb::BtcSignInputRequest,
+    script_config_account: &ValidatedScriptConfigWithKeypath<'_>,
+    next_response: &mut NextResponse,
+) -> Result<(), Error> {
+    if is_taproot(script_config_account) {
+        // This is a taproot (P2TR) input.
+
+        // Anti-Klepto protocol not supported yet for Schnorr signatures.
+        if tx_input.host_nonce_commitment.is_some() {
+            return Err(Error::InvalidInput);
+        }
+
+        let spend_info =
+            get_taproot_spend_info(hal, xpub_cache, script_config_account, &tx_input.keypath)
+                .await?;
+        let sighash = bip341::sighash(&bip341::Args {
+            version: request.version,
+            locktime: request.locktime,
+            hash_prevouts: tx_hashes.hash_prevouts,
+            hash_amounts: tx_hashes.hash_amounts,
+            hash_scriptpubkeys: tx_hashes.hash_scriptpubkeys,
+            hash_sequences: tx_hashes.hash_sequence,
+            hash_outputs: tx_hashes.hash_outputs,
+            input_index,
+            tapleaf_hash: if let TaprootSpendInfo::ScriptSpend(leaf_hash) = &spend_info {
+                Some(leaf_hash.to_byte_array())
+            } else {
+                None
+            },
+        });
+
+        next_response.next.signature =
+            sign_taproot_input(hal, &tx_input.keypath, &sighash, &spend_info).await?;
+        next_response.next.has_signature = true;
+    } else {
+        // Sign all other supported inputs.
+
+        const SIGHASH_ALL: u32 = 0x01;
+        let sighash = bip143::sighash(&bip143::Args {
+            version: request.version,
+            hash_prevouts: Sha256::digest(tx_hashes.hash_prevouts).into(),
+            hash_sequence: Sha256::digest(tx_hashes.hash_sequence).into(),
+            outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
+            outpoint_index: tx_input.prev_out_index,
+            sighash_script: &sighash_script(
+                hal,
+                xpub_cache,
+                script_config_account,
+                &tx_input.keypath,
+            )
+            .await?,
+            prevout_value: tx_input.prev_out_value,
+            sequence: tx_input.sequence,
+            hash_outputs: Sha256::digest(tx_hashes.hash_outputs).into(),
+            locktime: request.locktime,
+            sighash_flags: SIGHASH_ALL,
+        });
+
+        // sign_ecdsa_input may engage the anti-klepto exchange which resets next_response.next
+        // via get_request. We therefore set has_signature only AFTER it returns.
+        next_response.next.signature = sign_ecdsa_input(
+            hal,
+            &tx_input.keypath,
+            &sighash,
+            &tx_input.host_nonce_commitment,
+            input_index,
+            next_response,
+        )
+        .await?;
+        next_response.next.has_signature = true;
+    }
+    Ok(())
+}
+
 /// Signing flow:
 ///
 /// init
@@ -1188,7 +1391,13 @@ async fn _process(
     .await?;
     hal.ui().status("Transaction\nconfirmed", true).await;
 
-    let hash_outputs = hasher_outputs.finalize();
+    let tx_hashes = TxHashes {
+        hash_prevouts: hash_prevouts.into(),
+        hash_sequence: hash_sequence.into(),
+        hash_amounts: hash_amounts.into(),
+        hash_scriptpubkeys: hash_scriptpubkeys.into(),
+        hash_outputs: hasher_outputs.finalize().into(),
+    };
 
     // Stop rendering the empty component.
     drop(empty_component);
@@ -1218,131 +1427,18 @@ async fn _process(
             return Err(Error::InvalidInput);
         }
 
-        if is_taproot(script_config_account) {
-            // This is a taproot (P2TR) input.
-
-            // Anti-Klepto protocol not supported yet for Schnorr signatures.
-            if tx_input.host_nonce_commitment.is_some() {
-                return Err(Error::InvalidInput);
-            }
-
-            let spend_info = match &script_config_account.config {
-                ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
-                    // This is a BIP-86 spend, so we tweak the private key by the hash of the public
-                    // key only, as there is no Taproot merkle root.
-                    let xpub = xpub_cache.get_xpub(hal, &tx_input.keypath).await?;
-                    let pubkey = bitcoin::PublicKey::from_slice(xpub.public_key())
-                        .map_err(|_| Error::Generic)?;
-                    TaprootSpendInfo::KeySpend(bitcoin::TapTweakHash::from_key_and_tweak(
-                        pubkey.into(),
-                        None,
-                    ))
-                }
-                ValidatedScriptConfig::Policy { parsed_policy, .. } => {
-                    // Get the Taproot tweak based on whether we spend using the internal key (key
-                    // path spend) or if we spend using a leaf script. For key path spends, we must
-                    // first tweak the private key to match the Taproot output key. For leaf
-                    // scripts, we do not tweak.
-
-                    parsed_policy
-                        .taproot_spend_info(hal, &mut xpub_cache, &tx_input.keypath)
-                        .await?
-                }
-                _ => return Err(Error::Generic),
-            };
-            let sighash = bip341::sighash(&bip341::Args {
-                version: request.version,
-                locktime: request.locktime,
-                hash_prevouts: hash_prevouts.into(),
-                hash_amounts: hash_amounts.into(),
-                hash_scriptpubkeys: hash_scriptpubkeys.into(),
-                hash_sequences: hash_sequence.into(),
-                hash_outputs: hash_outputs.into(),
-                input_index,
-                tapleaf_hash: if let TaprootSpendInfo::ScriptSpend(leaf_hash) = &spend_info {
-                    Some(leaf_hash.to_byte_array())
-                } else {
-                    None
-                },
-            });
-
-            next_response.next.has_signature = true;
-            next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
-                hal,
-                &tx_input.keypath,
-                &sighash,
-                if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
-                    Some(tweak_hash.as_byte_array())
-                } else {
-                    None
-                },
-            )
-            .await?
-            .to_vec();
-        } else {
-            // Sign all other supported inputs.
-
-            const SIGHASH_ALL: u32 = 0x01;
-            let sighash = bip143::sighash(&bip143::Args {
-                version: request.version,
-                hash_prevouts: Sha256::digest(hash_prevouts).into(),
-                hash_sequence: Sha256::digest(hash_sequence).into(),
-                outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
-                outpoint_index: tx_input.prev_out_index,
-                sighash_script: &sighash_script(
-                    hal,
-                    &mut xpub_cache,
-                    script_config_account,
-                    &tx_input.keypath,
-                )
-                .await?,
-                prevout_value: tx_input.prev_out_value,
-                sequence: tx_input.sequence,
-                hash_outputs: Sha256::digest(hash_outputs).into(),
-                locktime: request.locktime,
-                sighash_flags: SIGHASH_ALL,
-            });
-
-            let private_key =
-                crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath).await?;
-            // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-            let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
-                Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
-                    let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
-                        private_key.as_slice().try_into().unwrap(),
-                        &sighash,
-                        commitment
-                            .as_slice()
-                            .try_into()
-                            .or(Err(Error::InvalidInput))?,
-                    )?;
-                    next_response.next.anti_klepto_signer_commitment =
-                        Some(pb::AntiKleptoSignerCommitment {
-                            commitment: signer_commitment.to_vec(),
-                        });
-
-                    get_antiklepto_host_nonce(input_index, &mut next_response)
-                        .await?
-                        .host_nonce
-                        .as_slice()
-                        .try_into()
-                        .or(Err(Error::InvalidInput))?
-                }
-                // Return the signature directly without the anti-klepto protocol for backwards
-                // compatibility. Preserve the historical zero-contribution S2C signature; this
-                // differs from plain RFC6979 and does not provide anti-klepto protection.
-                None => [0; 32],
-            };
-
-            let sign_result = crate::secp256k1::secp256k1_sign(
-                private_key.as_slice().try_into().unwrap(),
-                &sighash,
-                Some(&host_nonce),
-            )?;
-            drop(private_key);
-            next_response.next.has_signature = true;
-            next_response.next.signature = sign_result.signature.to_vec();
-        }
+        // Boxed so that the signing state does not enlarge the future of every request.
+        Box::pin(sign_input(
+            hal,
+            &mut xpub_cache,
+            request,
+            &tx_hashes,
+            input_index,
+            &tx_input,
+            script_config_account,
+            &mut next_response,
+        ))
+        .await?;
 
         // Update progress.
         if let Some(ref mut c) = progress_component {

@@ -43,6 +43,8 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     // the fw. Send it over.
     let device_name = hal.memory().get_device_name();
     bitbox_da14531::set_name(&device_name, &mut uart_write_queue);
+    // The BLE connection can survive an MCU reboot, so refresh its state before accepting data.
+    bitbox_da14531::get_connection_state(&mut uart_write_queue);
 
     // This starts the async startup workflow, which is processed by the loop below.
     spawn(Box::pin(async {

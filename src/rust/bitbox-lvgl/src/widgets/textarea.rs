@@ -7,7 +7,7 @@ use core::ptr::NonNull;
 
 use super::label::LvLabel;
 use crate::{LvHandle, LvObj, LvTextAlign, ObjExt, class, ffi};
-use util::strings::optional_cstr_from_ptr;
+use util::strings::{optional_cstr_from_ptr, str_to_cstr_vec_zeroizing};
 
 pub type LvTextareaTextError = super::LvTextError;
 pub type LvTextarea = LvHandle<class::TextareaTag>;
@@ -18,7 +18,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn add_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = str_to_cstr_vec_zeroizing(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
         unsafe { ffi::lv_textarea_add_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }
@@ -32,7 +32,7 @@ pub trait TextareaExt: ObjExt {
     }
 
     fn set_text(&self, txt: &str) -> Result<(), LvTextareaTextError> {
-        let txt = CString::new(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
+        let txt = str_to_cstr_vec_zeroizing(txt).map_err(|_| LvTextareaTextError::ContainsNul)?;
         unsafe { ffi::lv_textarea_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }

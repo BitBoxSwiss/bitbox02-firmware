@@ -776,7 +776,7 @@ pub fn build_pin_screen(
 
 /// Adds the masked entry display: a bare centred row of one filled circle per masked character —
 /// drawn as LVGL objects, since the ASCII-only fonts have no bullet glyph — with the last
-/// entered character in plaintext until the next keystroke (deleting re-masks everything). The
+/// character in plaintext after typing or deleting, until the next keystroke. The
 /// row has `flex_grow`, so it fills and centres within the space the screen's flex flow leaves
 /// between the title and whatever follows.
 ///
@@ -814,7 +814,7 @@ fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
     textarea.set_max_length(149);
     let textarea = Rc::new(textarea);
 
-    // The circle pool plus the plaintext label for the last entered character. The circle count
+    // The circle pool plus the plaintext label for the last character. The circle count
     // saturates at what fits the row: the dots are identical, so a saturated display is
     // indistinguishable from a scrolled one.
     let mut dots = Vec::with_capacity(MASK_DOT_COUNT_MAX);
@@ -856,8 +856,8 @@ fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
     let prev_len = core::cell::Cell::new(usize::MAX);
     let refresh_display = Rc::new(move || {
         let (len, last) = textarea_len_and_last(display_textarea.as_ref());
-        // Only a just-entered character is readable; any other change (deletion) re-masks.
-        let reveal = len > 0 && prev_len.get() < len;
+        // Reveal the last character after typing or deleting, but not on the initial refresh.
+        let reveal = len > 0 && prev_len.get() != usize::MAX && prev_len.get() != len;
         prev_len.set(len);
         let shown = core::cmp::min(if reveal { len - 1 } else { len }, MASK_DOT_COUNT_MAX);
         for (i, dot) in dots.iter().enumerate() {
@@ -1632,12 +1632,18 @@ mod tests {
         assert_eq!(harness.revealed_char().as_deref(), Some("1"));
         assert_eq!(harness.text().as_str(), "qw1");
 
-        // Deleting re-masks everything (the deleted character was the last one entered).
+        // Deleting reveals the last remaining character.
         let backspace = harness.backspace();
         harness.tap_button(&backspace);
+        assert_eq!(harness.shown_dots(), 1);
+        assert_eq!(harness.revealed_char().as_deref(), Some("w"));
+        assert_eq!(harness.text().as_str(), "qw");
+
+        // An update without a length change still re-masks everything.
+        harness.textarea().set_text("qw").unwrap();
+        pump_for(40);
         assert_eq!(harness.shown_dots(), 2);
         assert_eq!(harness.revealed_char(), None);
-        assert_eq!(harness.text().as_str(), "qw");
 
         // The circles must not shift vertically when the last-character label hides (the flex
         // track shrinks to the tallest visible child; the track must stay centred).
@@ -1647,6 +1653,35 @@ mod tests {
             (dot_after.y1, dot_after.y2),
             "masking circles moved vertically"
         );
+
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "q");
+        assert_eq!(harness.shown_dots(), 0);
+        assert_eq!(harness.revealed_char().as_deref(), Some("q"));
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "");
+        assert_eq!(harness.shown_dots(), 0);
+        assert_eq!(harness.revealed_char(), None);
+
+        harness.tap_char_key(false, false, 1, 0); // q
+        assert_eq!(harness.text().as_str(), "q");
+        assert_eq!(harness.shown_dots(), 0);
+        assert_eq!(harness.revealed_char().as_deref(), Some("q"));
+    }
+
+    #[test]
+    fn test_masking_preset_stays_hidden_until_edited() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::with_params(&passphrase_params(), CanCancel::No, "qw1");
+
+        assert_eq!(harness.shown_dots(), 3);
+        assert_eq!(harness.revealed_char(), None);
+
+        let backspace = harness.backspace();
+        harness.tap_button(&backspace);
+        assert_eq!(harness.text().as_str(), "qw");
+        assert_eq!(harness.shown_dots(), 1);
+        assert_eq!(harness.revealed_char().as_deref(), Some("w"));
     }
 
     #[test]

@@ -14,9 +14,14 @@ board-stm32u5a9j-dk = [
     "dep:bitbox-board-stm32u5a9j-dk",
     "dep:bitbox-board-stm32u5a9j-dk-build",
 ]
+board-testboard = [
+    "dep:bitbox-board-testboard",
+    "dep:bitbox-board-testboard-build",
+]
 
 [dependencies]
 bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-board-testboard = { path = "../../bitbox-board-testboard", optional = true }
 bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
 bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
 cortex-m = { workspace = true }
@@ -26,4 +31,6 @@ rtt-target = { version = "0.6.2", features = ["log"] }
 
 [build-dependencies]
 bitbox-board-stm32u5a9j-dk-build = { path = "../../bitbox-board-stm32u5a9j-dk-build", optional = true }
+bitbox-board-testboard-build = { path = "../../bitbox-board-testboard-build", optional = true }
 bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-board-testboard = { path = "../../bitbox-board-testboard", optional = true }

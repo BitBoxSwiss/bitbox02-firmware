@@ -1,5 +1,7 @@
-#[cfg(feature = "board-stm32u5a9j-dk")]
+#[cfg(all(feature = "board-stm32u5a9j-dk", not(feature = "board-testboard")))]
 use bitbox_board_stm32u5a9j_dk_build::build_hal_overrides_object;
+#[cfg(feature = "board-testboard")]
+use bitbox_board_testboard_build::build_hal_overrides_object;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -54,8 +56,10 @@ fn generate_header_object(manifest_dir: &Path, out_dir: &Path, repo_root: &Path)
 fn main() {
     let target = std::env::var("TARGET").expect("TARGET not set");
     if target.starts_with("thumb") {
-        if !cfg!(feature = "board-stm32u5a9j-dk") {
-            panic!("select a BitBox03 board feature, e.g. `board-stm32u5a9j-dk`")
+        if cfg!(feature = "board-stm32u5a9j-dk") == cfg!(feature = "board-testboard") {
+            panic!(
+                "select exactly one BitBox03 board feature: `board-stm32u5a9j-dk` or `board-testboard`"
+            )
         }
 
         let manifest_dir =
@@ -81,7 +85,7 @@ fn main() {
             println!("cargo::rustc-link-arg=--defsym=__bitbox03_production=1");
         }
 
-        #[cfg(feature = "board-stm32u5a9j-dk")]
+        #[cfg(any(feature = "board-stm32u5a9j-dk", feature = "board-testboard"))]
         build_hal_overrides_object(&repo_root, &out_dir);
     }
 }

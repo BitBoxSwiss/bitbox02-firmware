@@ -54,8 +54,10 @@ fn main() {
     let target = std::env::var("TARGET").expect("TARGET not set");
 
     if target.starts_with("thumb") {
-        if !cfg!(feature = "board-stm32u5a9j-dk") {
-            panic!("select a BitBox03 board feature, e.g. `board-stm32u5a9j-dk`")
+        if cfg!(feature = "board-stm32u5a9j-dk") == cfg!(feature = "board-testboard") {
+            panic!(
+                "select exactly one BitBox03 board feature: `board-stm32u5a9j-dk` or `board-testboard`"
+            )
         }
 
         let manifest_dir =

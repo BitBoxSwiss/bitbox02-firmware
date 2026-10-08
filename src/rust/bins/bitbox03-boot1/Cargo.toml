@@ -11,11 +11,13 @@ bench = false
 
 [features]
 board-stm32u5a9j-dk = ["dep:bitbox-board-stm32u5a9j-dk"]
+board-testboard = ["dep:bitbox-board-testboard"]
 rtt = ["bitbox-debug/rtt"]
 
 [dependencies]
 bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
 bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-board-testboard = { path = "../../bitbox-board-testboard", optional = true }
 bitbox-debug = { path = "../../bitbox-debug" }
 bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
 cortex-m-rt = "0.7"

@@ -52,6 +52,8 @@ class Config:
 
     @property
     def chip_type(self) -> str:
+        if self.product == "bitbox03" and self.board == "testboard":
+            return "STM32U5G9ZJ"
         return CHIP_TYPES[self.product]
 
     @property
@@ -88,8 +90,6 @@ class Config:
         print(f"SWD speed: {self.swd_speed} kHz")
         if self.product == "bitbox03":
             print("BitBox03: multi and btc-only currently build the same stub.")
-            if self.board == "testboard":
-                print("BitBox03 testboard currently uses the dev-kit build target.")
 
 
 def defaults(product: str = "bitbox02") -> Config:
@@ -195,7 +195,7 @@ def save_config(path: Path, config: Config) -> None:
 
 def build_dir(config: Config, profile: str | None = None, root: Path = ROOT) -> Path:
     if config.product == "bitbox03":
-        return root / "build-bitbox03-cargo"
+        return root / "build-bitbox03-cargo" / config.board
     return root / f"build-{config.product}-cmake-{profile or config.profile}"
 
 

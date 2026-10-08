@@ -62,10 +62,11 @@ def build_image(config: Config, image: str, variant: str = "development") -> Non
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
     # Execute Cargo from src/rust so it loads the vendored dependency configuration.
     suffix = "-release" if profile == "release" else ""
+    board = {"dev-kit": "stm32u5a9j-dk", "testboard": "testboard"}[config.board]
     run(
         [
             "cargo",
-            f"{info.name}-stm32u5a9j-dk{suffix}",
+            f"{info.name}-{board}{suffix}",
             *shlex.split(os.environ.get("CARGOFLAGS", "")),
             "--target-dir",
             str(build_dir(config)),

@@ -120,9 +120,15 @@ fn pixel_fn(x: i16, y: i16, c: UG_COLOR) {
     let y = y as u32;
     let mut screen = SCREEN_FB.lock().unwrap();
 
-    if c != 0 {
-        screen.put_pixel(x, y, Rgba([0xff, 0xff, 0xff, 0xff]));
-    }
+    screen.put_pixel(
+        x,
+        y,
+        if c != 0 {
+            Rgba([0xff, 0xff, 0xff, 0xff])
+        } else {
+            Rgba([0, 0, 0, 0])
+        },
+    );
 }
 
 fn clear_fn() {
@@ -140,9 +146,7 @@ fn mirror_fn(_: bool) {
 
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
-fn init_hww(
-    preseed: bool,
-) -> Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>> {
+fn init_hww(preseed: bool) -> Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>> {
     bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     bitbox02::screen::splash();
 
@@ -711,9 +715,9 @@ impl ApplicationHandler<UserEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        self.startup_task = Some(Box::pin(
-            bitbox02::hal::system::BitBox02System::<bitbox_platform_host::timer::HostTimer>::startup(),
-        ));
+        self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::<
+            bitbox_platform_host::timer::HostTimer,
+        >::startup()));
     }
 }
 

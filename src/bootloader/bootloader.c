@@ -358,9 +358,12 @@ static void _render_hash(const char* title, const uint8_t* hash)
             SCREEN_WIDTH - timer_str_width, SCREEN_HEIGHT - f_regular->line_height, timer_buf);
 
         UG_FontSelect(f_mono);
+        // Space the seven-pixel hex rows ten pixels apart.
+        UG_FontSetVSpace(3);
         UG_PutString(0, title_margin + f_regular->line_height, hash_multiline);
 
         UG_FontSelect(f_regular);
+        UG_FontSetVSpace(1);
 
         UG_SendBuffer();
         delay_ms(1000);

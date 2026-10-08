@@ -33,28 +33,30 @@ static void _render(component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
     UG_FontSelect(&font_regular_11);
+    // The ASCII mode labels share a baseline with the top-row icons.
+    const UG_S16 y = 9 - (font_regular_11.line_height - font_regular_11.base_line);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
     case LOWER_CASE:
         UG_MeasureString(&w, &h, "ABC");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "ABC");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, y, "ABC");
         break;
     case UPPER_CASE:
         UG_MeasureString(&w, &h, "123");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "123");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 1, y, "123");
         break;
     case DIGITS:
         if (ks_data->special_chars) {
             UG_MeasureString(&w, &h, "&?+");
-            UG_PutString((SCREEN_WIDTH - w) / 2 + 1, 1, "&?+");
+            UG_PutString((SCREEN_WIDTH - w) / 2 + 1, y, "&?+");
         } else {
             UG_MeasureString(&w, &h, "abc");
-            UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc");
+            UG_PutString((SCREEN_WIDTH - w) / 2 + 2, y, "abc");
         }
         break;
     case SPECIAL_CHARS:
         UG_MeasureString(&w, &h, "abc");
-        UG_PutString((SCREEN_WIDTH - w) / 2 + 2, 1, "abc");
+        UG_PutString((SCREEN_WIDTH - w) / 2 + 2, y, "abc");
         break;
     default:
         Abort("Keyboard mode unrecognized");
@@ -63,9 +65,9 @@ static void _render(component_t* component)
     if (ks_data->active) {
         UG_DrawLine(
             (SCREEN_WIDTH - w) / 2 + 1,
-            h + 2,
+            y + h,
             (SCREEN_WIDTH + w) / 2 - 1,
-            h + 2,
+            y + h,
             screen_front_color);
     }
 }

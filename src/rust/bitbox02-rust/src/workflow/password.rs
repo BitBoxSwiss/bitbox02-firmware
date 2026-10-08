@@ -132,7 +132,7 @@ pub async fn enter_twice(
                 .ui()
                 .confirm(&ConfirmParams {
                     title: "WARNING",
-                    body: "Your password\n has fewer than\n 4 characters.\nContinue?",
+                    body: "Your password has\nunder 4 characters.\nContinue?",
                     longtouch: true,
                     ..Default::default()
                 })

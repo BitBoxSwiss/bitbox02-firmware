@@ -8,5 +8,9 @@ authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 description = "Rust bindings for the STM32U5 platform in bitbox02-firmware"
 license = "Apache-2.0"
 
+[features]
+stm32u5a9 = []
+stm32u5g9 = []
+
 [build-dependencies]
 cc = { version = "1.2", features = ["parallel"] }

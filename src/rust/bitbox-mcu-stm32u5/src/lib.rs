@@ -2,4 +2,5 @@
 
 #![no_std]
 
-pub use stm32u5::stm32u5a9 as pac;
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+pub use stm32_metapac as pac;

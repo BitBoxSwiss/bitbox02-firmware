@@ -39,6 +39,10 @@
       (#) Flash Memory Erase functions:
            (++) Lock and Unlock the FLASH interface using HAL_FLASH_Unlock() and
                 HAL_FLASH_Lock() functions
+         (++) Lock and unlock the non-secure FLASH control registers using
+           HAL_FLASH_Unlock_NS() and HAL_FLASH_Lock_NS() functions in secure context
+         (++) Lock and unlock the secure FLASH control registers using
+           HAL_FLASH_Unlock_S() and HAL_FLASH_Lock_S() functions in secure context
            (++) Erase function: page Erase and Bank/Mass Erase
            (++) There are two modes of erase :
              (+++) Polling Mode using HAL_FLASHEx_Erase()
@@ -1553,12 +1557,12 @@ static uint32_t FLASH_OB_GetRDP(void)
   *         @ref FLASH_OB_USER_nRST_SHUTDOWN, @ref FLASH_OB_USER_SRAM_RST,
   *         @ref FLASH_OB_USER_IWDG_SW, @ref FLASH_OB_USER_IWDG_STOP,
   *         @ref FLASH_OB_USER_IWDG_STANDBY, @ref FLASH_OB_USER_WWDG_SW,
-  *         @ref OB_USER_SWAP_BANK, @ref FLASH_OB_USER_DUALBANK,
+  *         @ref FLASH_OB_USER_SWAP_BANK, @ref FLASH_OB_USER_DUALBANK,
   *         @ref FLASH_OB_USER_BKPRAM_RST, @ref FLASH_OB_USER_SRAM3_ECC,
   *         @ref FLASH_OB_USER_SRAM2_ECC, @ref FLASH_OB_USER_SRAM2_RST,
   *         @ref FLASH_OB_USER_nSWBOOT0, @ref FLASH_OB_USER_nBOOT0,
   *         @ref FLASH_OB_USER_PA15_PUPEN, @ref FLASH_OB_USER_IO_VDD_HSLV,
-  *         @ref FLASH_OB_USER_IO_VDDIO2_HSLV and @ref OB_USER_TZEN
+  *         @ref FLASH_OB_USER_IO_VDDIO2_HSLV and @ref FLASH_OB_USER_TZEN
   */
 static uint32_t FLASH_OB_GetUser(void)
 {

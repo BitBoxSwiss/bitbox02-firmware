@@ -123,6 +123,7 @@ name = "bitbox-board-stm32u5a9j-dk"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk-sys",
+ "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5-sys",
 ]
 
@@ -135,6 +136,29 @@ dependencies = [
 
 [[package]]
 name = "bitbox-board-stm32u5a9j-dk-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "bitbox-board-testboard"
+version = "0.1.0"
+dependencies = [
+ "bitbox-board-testboard-sys",
+ "bitbox-mcu-stm32u5",
+ "bitbox-platform-stm32u5-sys",
+]
+
+[[package]]
+name = "bitbox-board-testboard-build"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "bitbox-board-testboard-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
@@ -231,7 +255,7 @@ dependencies = [
 name = "bitbox-mcu-stm32u5"
 version = "0.1.0"
 dependencies = [
- "stm32u5",
+ "stm32-metapac",
 ]
 
 [[package]]
@@ -467,6 +491,7 @@ name = "bitbox03-boot0"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
+ "bitbox-board-testboard",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -479,6 +504,7 @@ name = "bitbox03-boot1"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
+ "bitbox-board-testboard",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -492,6 +518,8 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
+ "bitbox-board-testboard",
+ "bitbox-board-testboard-build",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",
  "cortex-m",
@@ -506,6 +534,8 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
+ "bitbox-board-testboard",
+ "bitbox-board-testboard-build",
  "bitbox-debug",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",
@@ -1489,15 +1519,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "stm32u5"
-version = "0.16.0"
+name = "stm32-metapac"
+version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d618b263f62f04405cb1a67976740dd89dfe82eb70f42811dc63ce24b09198f"
+checksum = "e74b78632cea498cfb28386a29f8bfae7476d6570a78733eb5fecbee66c2f4ce"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
- "critical-section",
- "vcell",
 ]
 
 [[package]]

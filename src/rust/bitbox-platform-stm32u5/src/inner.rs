@@ -32,28 +32,24 @@ fn SysTick() {
 ///   updates `SystemCoreClock` through the HAL RCC code we link.
 #[pre_init]
 unsafe fn system_init() {
-    let rcc = unsafe { &*RCC::PTR };
+    let rcc = RCC;
 
     // Reset the RCC clock configuration to the default reset state.
-    rcc.cr().write(|w| w.msison().enabled());
-    rcc.cfgr1().write(|w| unsafe { w.bits(0) });
-    rcc.cfgr2().write(|w| unsafe { w.bits(0) });
-    rcc.cfgr3().write(|w| unsafe { w.bits(0) });
-    rcc.cr().modify(|_, w| {
-        w.hseon()
-            .disabled()
-            .csson()
-            .disabled()
-            .hsion()
-            .disabled()
-            .pll1on()
-            .disabled()
-            .pll2on()
-            .disabled()
-            .pll3on()
-            .disabled()
+    // RCC_CR reset value keeps both MSIS and MSIK enabled.
+    rcc.cr()
+        .write_value(bitbox_mcu_stm32u5::pac::rcc::regs::Cr(0x35));
+    rcc.cfgr1().write_value(Default::default());
+    rcc.cfgr2().write_value(Default::default());
+    rcc.cfgr3().write_value(Default::default());
+    rcc.cr().modify(|w| {
+        w.set_hseon(false);
+        w.set_csson(false);
+        w.set_hsion(false);
+        w.set_pllon(0, false);
+        w.set_pllon(1, false);
+        w.set_pllon(2, false);
     });
-    rcc.pll1cfgr().write(|w| unsafe { w.bits(0) });
-    rcc.cr().modify(|_, w| w.hsebyp().not_bypassed());
-    rcc.cier().write(|w| unsafe { w.bits(0) });
+    rcc.pll1cfgr().write_value(Default::default());
+    rcc.cr().modify(|w| w.set_hsebyp(false));
+    rcc.cier().write_value(Default::default());
 }

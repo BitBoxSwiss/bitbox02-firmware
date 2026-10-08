@@ -1,0 +1,77 @@
+include!("../metadata_0765.rs");
+use crate::metadata::PeripheralRccKernelClock::{Clock, Mux};
+pub static METADATA: Metadata = Metadata {
+    name: "STM32N655B0",
+    family: "STM32N6",
+    line: "STM32N6x5",
+    memory: &[&[
+        MemoryRegion {
+            name: "FLEXRAM",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24000000,
+            size: 409600,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24064000,
+            size: 638976,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM2",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24100000,
+            size: 1048576,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM3",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24200000,
+            size: 458752,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM4",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24270000,
+            size: 458752,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM5",
+            kind: MemoryRegionKind::Ram,
+            address: 0x242e0000,
+            size: 458752,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "AXISRAM6",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24350000,
+            size: 458752,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "NPURAM",
+            kind: MemoryRegionKind::Ram,
+            address: 0x243c0000,
+            size: 262144,
+            settings: None,
+        },
+        MemoryRegion {
+            name: "VENCRAM",
+            kind: MemoryRegionKind::Ram,
+            address: 0x24400000,
+            size: 131072,
+            settings: None,
+        },
+    ]],
+    peripherals: PERIPHERALS,
+    nvic_priority_bits: Some(4),
+    interrupts: INTERRUPTS,
+    dma_channels: DMA_CHANNELS,
+    pins: PINS,
+};

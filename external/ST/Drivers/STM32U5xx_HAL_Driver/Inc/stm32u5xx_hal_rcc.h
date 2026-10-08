@@ -772,6 +772,10 @@ typedef struct
 #endif /* GPU2D */
 
 #if defined(DCACHE2)
+/**
+  * @note   This clock should be enabled only when GPU2D is in use,
+  *         because DCACHE2 operates in conjunction with GPU2D.
+  */
 #define __HAL_RCC_DCACHE2_CLK_ENABLE()          do { \
                                                      __IO uint32_t tmpreg; \
                                                      SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DCACHE2EN); \

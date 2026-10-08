@@ -13,7 +13,7 @@ use super::sighash::DataProducer;
 use super::truncating_hex_preview_byte_cap;
 
 use crate::hal::Ui;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use crate::keystore;
 use crate::workflow::confirm;
 
@@ -297,7 +297,11 @@ async fn get_value_from_host(
 ///
 /// Returns the 32 byte encoded value as well as a human readable representation that can be used
 /// for user verification.
-fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), Error> {
+fn encode_value(
+    ui: &impl Ui,
+    typ: &MemberType,
+    value: Vec<u8>,
+) -> Result<(Vec<u8>, String), Error> {
     let result = match DataType::try_from(typ.r#type)? {
         DataType::Unknown => return Err(Error::InvalidInput),
         DataType::Bytes => {
@@ -358,12 +362,18 @@ fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), E
             (encoded, super::address::format_display_address(&value_str))
         }
         DataType::String => {
-            if !util::ascii::is_printable_ascii(&value, util::ascii::Charset::AllNewline) {
+            let value_str = String::from_utf8(value).or(Err(Error::InvalidInput))?;
+            if !value_str
+                .chars()
+                .all(|c| c == '\n' || ui.has_glyph(Font::Regular11, c))
+            {
                 return Err(Error::InvalidInput);
             }
             (
-                sha3::Keccak256::digest(&value).as_slice().to_vec(),
-                String::from_utf8(value).or(Err(Error::InvalidInput))?,
+                sha3::Keccak256::digest(value_str.as_bytes())
+                    .as_slice()
+                    .to_vec(),
+                value_str,
             )
         }
         DataType::Array | DataType::Struct => panic!("encode_value"),
@@ -473,7 +483,7 @@ async fn encode_member<U: sha3::digest::Update>(
             format!("0x{}", hex::encode(producer.preview()))
         } else {
             let value_len = req.value.len();
-            let (value_encoded, fmt) = encode_value(member_type, req.value)?;
+            let (value_encoded, fmt) = encode_value(&*hal.ui(), member_type, req.value)?;
             hasher.update(&value_encoded);
             if data_type == DataType::Bytes {
                 display_size = value_len;
@@ -1233,6 +1243,7 @@ mod tests {
 
     #[test]
     fn test_encode_value_address() {
+        let mock_hal = TestingHal::new();
         let value = |len: usize| {
             let mut value = b"0x".to_vec();
             value.resize(2 + len * 2, b'1');
@@ -1240,9 +1251,71 @@ mod tests {
         };
         let typ = mk_type(DataType::Address);
 
-        assert_eq!(encode_value(&typ, value(19)), Err(Error::InvalidInput));
-        assert!(encode_value(&typ, value(20)).is_ok());
-        assert_eq!(encode_value(&typ, value(21)), Err(Error::InvalidInput));
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, value(19)),
+            Err(Error::InvalidInput)
+        );
+        assert!(encode_value(&mock_hal.ui, &typ, value(20)).is_ok());
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, value(21)),
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[test]
+    fn test_encode_value_string() {
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_has_glyph(Box::new(|_, c| matches!(c, ' '..='~' | 'ü' | '€')));
+        let typ = mk_type(DataType::String);
+        let value = "Zürich\n10 €";
+        let (encoded, formatted) =
+            encode_value(&mock_hal.ui, &typ, value.as_bytes().to_vec()).unwrap();
+        assert_eq!(
+            encoded,
+            sha3::Keccak256::digest(value.as_bytes()).as_slice()
+        );
+        assert_eq!(formatted, value);
+
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, "tab\t".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, "東京".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, "µ".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
+        for value in ["non\u{a0}breaking space", "soft\u{ad}hyphen"] {
+            assert_eq!(
+                encode_value(&mock_hal.ui, &typ, value.as_bytes().to_vec()),
+                Err(Error::InvalidInput)
+            );
+        }
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, vec![0xff]),
+            Err(Error::InvalidInput)
+        );
+
+        mock_hal.ui.set_has_glyph(Box::new(|_, _| true));
+        let value = "東京 µ";
+        let (encoded, formatted) =
+            encode_value(&mock_hal.ui, &typ, value.as_bytes().to_vec()).unwrap();
+        assert_eq!(
+            encoded,
+            sha3::Keccak256::digest(value.as_bytes()).as_slice()
+        );
+        assert_eq!(formatted, value);
+
+        mock_hal.ui.set_has_glyph(Box::new(|_, c| c != 'ü'));
+        assert_eq!(
+            encode_value(&mock_hal.ui, &typ, "Zürich".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
     }
 
     #[test]

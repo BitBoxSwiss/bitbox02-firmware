@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use crate::pb;
 
 use pb::response::Response;
@@ -20,7 +20,11 @@ pub async fn process(
         return Ok(Response::Success(pb::Success {}));
     }
 
-    if !util::name::validate(name, bitbox_hal::memory::DEVICE_NAME_MAX_LEN) {
+    let has_all_glyphs = {
+        let ui = hal.ui();
+        name.chars().all(|c| ui.has_glyph(Font::Regular11, c))
+    };
+    if !util::name::validate(name, bitbox_hal::memory::DEVICE_NAME_MAX_LEN) || !has_all_glyphs {
         return Err(Error::InvalidInput);
     }
 
@@ -48,7 +52,7 @@ mod tests {
 
     #[async_test::test]
     pub async fn test_set_device_name() {
-        const SOME_NAME: &str = "foo";
+        const SOME_NAME: &str = "BïtBöx";
 
         // All good.
         let mut mock_hal = TestingHal::new();
@@ -94,7 +98,7 @@ mod tests {
             }]
         );
 
-        // Non-ascii character.
+        // Unsupported character.
         assert_eq!(
             process(
                 &mut TestingHal::new(),
@@ -105,6 +109,35 @@ mod tests {
             .await,
             Err(Error::InvalidInput)
         );
+
+        // A character that is unavailable in the active font is rejected.
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_has_glyph(Box::new(|_, character| character != 'ï'));
+        assert_eq!(
+            process(
+                &mut mock_hal,
+                &pb::SetDeviceNameRequest {
+                    name: SOME_NAME.into()
+                }
+            )
+            .await,
+            Err(Error::InvalidInput)
+        );
+
+        mock_hal.ui.set_has_glyph(Box::new(|_, _| true));
+        assert_eq!(
+            process(
+                &mut mock_hal,
+                &pb::SetDeviceNameRequest {
+                    name: "東京".into()
+                }
+            )
+            .await,
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(mock_hal.memory.get_device_name(), "東京");
 
         // Non-printable character.
         assert_eq!(

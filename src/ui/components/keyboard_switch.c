@@ -7,7 +7,7 @@
 #include <hardfault.h>
 #include <screen.h>
 #include <touch/gestures.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/regular_fonts.h>
 #include <ui/ui_util.h>
 
 #include <stdbool.h>
@@ -32,7 +32,7 @@ typedef struct {
 static void _render(component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
-    UG_FontSelect(&font_font_a_11X10);
+    UG_FontSelect(&font_regular_11);
     UG_S16 w = 0, h = 0;
     switch (ks_data->mode) {
     case LOWER_CASE:

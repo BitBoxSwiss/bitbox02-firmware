@@ -5,7 +5,9 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include "ui/fonts/arial_fonts.h"
+#include "ui/fonts/password_12.h"
+#include "ui/fonts/password_9.h"
+#include "ui/fonts/regular_fonts.h"
 #include "ui/ugui/ugui.h"
 #include <string.h>
 
@@ -25,6 +27,41 @@ static UG_S16 last_x;
 static UG_S16 last_y;
 static UG_COLOR last_color;
 static uint8_t pixels_set;
+static size_t set_pixel_count = 0;
+static size_t black_pixel_count = 0;
+
+void __wrap_Abort(const char* msg)
+{
+    check_expected(msg);
+    mock_assert(false, msg, __FILE__, __LINE__);
+}
+
+static void _assert_supported_font_subset(const UG_FONT* font)
+{
+    assert_non_null(font);
+    assert_ptr_equal(font->get_glyph_dsc, lv_font_get_glyph_dsc_fmt_txt);
+    assert_ptr_equal(font->get_glyph_bitmap, lv_font_get_bitmap_fmt_txt);
+    assert_non_null(font->dsc);
+
+    const lv_font_fmt_txt_dsc_t* font_dsc = (const lv_font_fmt_txt_dsc_t*)font->dsc;
+    assert_int_equal(font_dsc->bpp, 1);
+    assert_int_equal(font_dsc->stride, 0);
+    assert_int_equal(font_dsc->bitmap_format, LV_FONT_FMT_TXT_PLAIN);
+    assert_null(font_dsc->kern_dsc);
+    assert_int_equal(font_dsc->kern_scale, 0);
+    assert_int_equal(font_dsc->kern_classes, 0);
+    for (uint16_t i = 0; i < font_dsc->cmap_num; i++) {
+        const lv_font_fmt_txt_cmap_t* cmap = &font_dsc->cmaps[i];
+        assert_int_equal(cmap->type, LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY);
+        assert_null(cmap->unicode_list);
+        assert_null(cmap->glyph_id_ofs_list);
+        assert_int_equal(cmap->list_length, 0);
+    }
+
+    if (font->fallback != NULL) {
+        _assert_supported_font_subset(font->fallback);
+    }
+}
 
 static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 {
@@ -32,6 +69,10 @@ static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
     last_y = y;
     last_color = color;
     pixels_set++;
+    set_pixel_count++;
+    if (color == C_BLACK) {
+        black_pixel_count++;
+    }
 }
 
 static void _reset_pixel_capture(void)
@@ -45,7 +86,7 @@ static void _reset_pixel_capture(void)
 static void _test_ugui_word_wrap(void** state)
 {
     (void)state; /* unused */
-    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_regular_9, 128, 64);
     for (size_t i = 0; i < sizeof(data) / sizeof(*data); ++i) {
         char buf[1024] = {0};
         printf("test:\n%s\n", data[i][0]);
@@ -64,7 +105,7 @@ static void _draw_pixel(void* ctx)
 static void _test_ugui_render_rotated_180(void** state)
 {
     (void)state; /* unused */
-    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
 
     _reset_pixel_capture();
     UG_RenderRotated180(10, 20, 30, 10, _draw_pixel, NULL);
@@ -83,7 +124,7 @@ static void _test_ugui_render_rotated_180(void** state)
 static void _test_ugui_measure_string_centered(void** state)
 {
     (void)state;
-    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
 
     UG_S16 centered_width = 0;
     UG_S16 centered_height = 0;
@@ -96,12 +137,246 @@ static void _test_ugui_measure_string_centered(void** state)
     assert_int_equal(centered_height, 2 * single_line_height + 2 * gui.char_v_space);
 }
 
+static bool _capture_glyph_dsc(
+    const lv_font_t* font,
+    lv_font_glyph_dsc_t* glyph_dsc,
+    uint32_t codepoint,
+    uint32_t codepoint_next)
+{
+    (void)font;
+    check_expected(codepoint);
+    (void)codepoint_next;
+    memset(glyph_dsc, 0, sizeof(*glyph_dsc));
+    glyph_dsc->adv_w = 1;
+    return true;
+}
+
+static void _test_ugui_utf8_validation(void** state)
+{
+    (void)state;
+    static const UG_FONT capture_font = {
+        .get_glyph_dsc = _capture_glyph_dsc,
+        .line_height = 1,
+    };
+    UG_Init(&gui, _set_pixel, &capture_font, 128, 64);
+    UG_FontSetHSpace(0);
+
+    const struct {
+        const char* text;
+        uint32_t codepoint;
+    } valid[] = {
+        {"A", 0x41},
+        {"\xc2\x80", 0x80},
+        {"\xdf\xbf", 0x7ff},
+        {"\xe0\xa0\x80", 0x800},
+        {"\xed\x9f\xbf", 0xd7ff},
+        {"\xee\x80\x80", 0xe000},
+        {"\xef\xbf\xbf", 0xffff},
+        {"\xf0\x90\x80\x80", 0x10000},
+        {"\xf4\x8f\xbf\xbf", 0x10ffff},
+    };
+    UG_S16 width = 0;
+    UG_MeasureStringNoBreak(&width, NULL, "");
+    assert_int_equal(width, 0);
+    for (size_t i = 0; i < sizeof(valid) / sizeof(*valid); ++i) {
+        expect_value(_capture_glyph_dsc, codepoint, valid[i].codepoint);
+        UG_MeasureStringNoBreak(&width, NULL, valid[i].text);
+        assert_int_equal(width, 1);
+    }
+
+    const char* invalid[] = {
+        "\x80", // Stray continuation byte.
+        "\xbf",
+        "\xc0\xaf", // Overlong encodings.
+        "\xc1\xbf",
+        "\xe0\x80\xaf",
+        "\xf0\x80\x80\xaf",
+        "\xed\xa0\x80", // Surrogate.
+        "\xf4\x90\x80\x80", // Above U+10FFFF.
+        "\xf5\x80\x80\x80", // Invalid leading bytes.
+        "\xff",
+        "\xc2", // Truncated sequences.
+        "\xe4",
+        "\xe0\xa0",
+        "\xf0",
+        "\xf0\x90",
+        "\xf0\x90\x80",
+        "\xc2"
+        "A", // Invalid continuation bytes.
+        "\xe0\xa0"
+        "A",
+        "\xf0\x90\x80"
+        "A",
+    };
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(*invalid); ++i) {
+        expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+        expect_assert_failure(UG_MeasureStringNoBreak(&width, NULL, invalid[i]));
+    }
+
+    // Reject malformed input after a valid prefix as well.
+    expect_value(_capture_glyph_dsc, codepoint, 'A');
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_MeasureStringNoBreak(&width, NULL, "A\xff"));
+}
+
+static void _test_ugui_word_wrap_invalid_utf8(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_regular_9, 128, 64);
+    char output[32] = {0};
+
+    // Reject malformed input when measuring the first or a following word.
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("\xff", output, 55));
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("A \xff", output, 55));
+
+    // A tab ends the initial width scan, so copying detects this error.
+    expect_string(__wrap_Abort, msg, "Invalid UTF-8 string");
+    expect_assert_failure(UG_WrapTitleString("\t\xff", output, 55));
+}
+
+static void _test_ugui_lvgl_font(void** state)
+{
+    (void)state; /* unused */
+    UG_Init(&gui, _set_pixel, &font_regular_9, 128, 64);
+
+    UG_S16 width = 0;
+    UG_S16 height = 0;
+    UG_MeasureStringNoBreak(
+        &width,
+        &height,
+        "A"
+        "\xc3"
+        "\xa4");
+    assert_true(width > 0);
+    assert_int_equal(height, font_regular_9.line_height);
+
+    set_pixel_count = 0;
+    black_pixel_count = 0;
+    UG_PutString(0, 0, " ");
+    assert_true(set_pixel_count >= (size_t)font_regular_9.line_height);
+    assert_int_equal(set_pixel_count, black_pixel_count);
+}
+
+static void _test_ugui_lvgl_font_fallback(void** state)
+{
+    (void)state; /* unused */
+    UG_Init(&gui, _set_pixel, &font_password_12, 128, 64);
+
+    UG_U16 width = 0;
+    assert_true(UG_GetCharWidth(&font_password_12, ' ', &width));
+    assert_true(width > 0);
+    assert_true(UG_GetCharWidth(&font_password_12, 'A', &width));
+    assert_true(width > 0);
+
+    set_pixel_count = 0;
+    black_pixel_count = 0;
+    UG_PutString(0, 0, " ");
+    assert_true(set_pixel_count > black_pixel_count);
+
+    set_pixel_count = 0;
+    black_pixel_count = 0;
+    UG_PutString(0, 0, "A");
+    assert_true(set_pixel_count > black_pixel_count);
+}
+
+static void _test_ugui_fonts_use_supported_subset(void** state)
+{
+    (void)state; /* unused */
+    _assert_supported_font_subset(&font_regular_9);
+    _assert_supported_font_subset(&font_regular_11);
+    _assert_supported_font_subset(&font_regular_12);
+    _assert_supported_font_subset(&font_monogram_16);
+    _assert_supported_font_subset(&font_password_9);
+    _assert_supported_font_subset(&font_password_12);
+}
+
+static void _test_ugui_fonts_exclude_ambiguous_characters(void** state)
+{
+    (void)state;
+    const UG_FONT* fonts[] = {
+        &font_regular_9,
+        &font_regular_11,
+        &font_regular_12,
+        &font_monogram_16,
+        &font_password_9,
+        &font_password_12,
+    };
+    for (size_t i = 0; i < sizeof(fonts) / sizeof(*fonts); i++) {
+        UG_U16 width = 0;
+        assert_true(UG_GetCharWidth(fonts[i], ' ', &width));
+        assert_true(UG_GetCharWidth(fonts[i], '-', &width));
+        assert_false(UG_GetCharWidth(fonts[i], 0x00A0, &width)); // Non-breaking space.
+        assert_false(UG_GetCharWidth(fonts[i], 0x00AD, &width)); // Soft hyphen.
+    }
+}
+
+static uint8_t _glyph_pixels[32][32];
+
+static void _set_glyph_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    assert_in_range(x, 0, 31);
+    assert_in_range(y, 0, 31);
+    _glyph_pixels[y][x] = color == C_WHITE;
+}
+
+static uint32_t _hash_bytes(uint32_t hash, const uint8_t* bytes, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        hash = (hash ^ bytes[i]) * 16777619u;
+    }
+    return hash;
+}
+
+static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
+{
+    (void)state;
+    // Lock down printable ASCII glyph pixels, positions, advances and line heights.
+    const struct {
+        const UG_FONT* font;
+        uint32_t hash;
+    } cases[] = {
+        {&font_regular_9, 0xea2a3af8},
+        {&font_regular_11, 0x7a72fbc2},
+        {&font_regular_12, 0x3f5b6308},
+        {&font_password_9, 0x3e5071ab},
+        {&font_password_12, 0xf1db9eeb},
+        {&font_monogram_16, 0xd2698414},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
+        UG_Init(&gui, _set_glyph_pixel, cases[i].font, 32, 32);
+        UG_FontSetHSpace(0);
+        uint32_t hash = 2166136261u;
+        for (uint8_t codepoint = 32; codepoint <= 126; codepoint++) {
+            memset(_glyph_pixels, 0, sizeof(_glyph_pixels));
+            UG_PutChar((char)codepoint, 8, 8, C_WHITE, C_BLACK);
+            const char text[] = {(char)codepoint, '\0'};
+            UG_S16 width = 0;
+            UG_S16 height = 0;
+            UG_MeasureStringNoBreak(&width, &height, text);
+            const uint8_t metrics[] = {
+                (uint8_t)width, (uint8_t)(width >> 8), (uint8_t)height, (uint8_t)(height >> 8)};
+            hash = _hash_bytes(hash, metrics, sizeof(metrics));
+            hash = _hash_bytes(hash, (const uint8_t*)_glyph_pixels, sizeof(_glyph_pixels));
+        }
+        assert_int_equal(hash, cases[i].hash);
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_ugui_word_wrap),
         cmocka_unit_test(_test_ugui_render_rotated_180),
         cmocka_unit_test(_test_ugui_measure_string_centered),
+        cmocka_unit_test(_test_ugui_utf8_validation),
+        cmocka_unit_test(_test_ugui_word_wrap_invalid_utf8),
+        cmocka_unit_test(_test_ugui_lvgl_font),
+        cmocka_unit_test(_test_ugui_lvgl_font_fallback),
+        cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
+        cmocka_unit_test(_test_ugui_fonts_exclude_ambiguous_characters),
+        cmocka_unit_test(_test_ugui_ascii_font_pixels_and_metrics),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

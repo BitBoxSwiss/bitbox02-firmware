@@ -63,9 +63,6 @@ intptr_t util_utf8_copy(char* dst, size_t dst_len, const char* src, size_t src_l
  */
 intptr_t util_utf8_strlcpy(char* dst, const char* src, size_t dst_len);
 
-/** Returns true if `str` contains only printable ASCII, optionally including newlines. */
-bool util_is_printable_ascii(const char* str, bool allow_newline);
-
 // `out` must be of size in_len*2+1. Use BB_HEX_SIZE() to compute the size.
 void util_uint8_to_hex(const uint8_t* in_bin, size_t in_len, char* out);
 

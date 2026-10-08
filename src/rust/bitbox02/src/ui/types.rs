@@ -13,19 +13,30 @@ const _: () = assert!(MAX_LABEL_SIZE == bitbox02_sys::MAX_LABEL_SIZE as usize);
 #[derive(Default)]
 pub enum Font {
     #[default]
-    Default,
-    Password11X12,
-    Monogram5X9,
+    Regular11,
+    Password12,
+    Monogram16,
+    Regular9,
 }
 
 impl Font {
     #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     pub(crate) fn as_ptr(&self) -> *const bitbox02_sys::UG_FONT {
         match self {
-            Font::Default => core::ptr::null() as *const _,
-            Font::Password11X12 => unsafe { &bitbox02_sys::font_password_11X12 },
-            Font::Monogram5X9 => unsafe { &bitbox02_sys::font_monogram_5X9 },
+            Font::Regular11 => unsafe { &bitbox02_sys::font_regular_11 },
+            Font::Password12 => unsafe { &bitbox02_sys::font_password_12 },
+            Font::Monogram16 => unsafe { &bitbox02_sys::font_monogram_16 },
+            Font::Regular9 => unsafe { &bitbox02_sys::font_regular_9 },
         }
+    }
+
+    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
+    pub(crate) fn has_glyph(&self, c: char) -> bool {
+        if c.is_control() {
+            return false;
+        }
+        let mut width = 0u16;
+        unsafe { bitbox02_sys::UG_GetCharWidth(self.as_ptr(), c as u32, &mut width) }
     }
 }
 

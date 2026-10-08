@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use crate::pb;
 
 use alloc::vec::Vec;
@@ -148,10 +148,14 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::TextMemo(text_memo)),
             } => {
-                if !util::ascii::is_printable_ascii(
-                    &text_memo.note,
-                    util::ascii::Charset::AllNewline,
-                ) {
+                let has_all_glyphs = {
+                    let ui = hal.ui();
+                    text_memo
+                        .note
+                        .chars()
+                        .all(|c| c == '\n' || ui.has_glyph(Font::Regular11, c))
+                };
+                if !has_all_glyphs {
                     return Err(Error::InvalidInput);
                 }
                 hal.ui()
@@ -1573,7 +1577,7 @@ mod tests {
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "POCKET".into(),
-                memos: vec![make_text_memo("Pocket memo")],
+                memos: vec![make_text_memo("Pöcket memo")],
                 nonce: vec![],
                 total_amount: 1234567890,
                 signature: vec![],
@@ -1597,12 +1601,44 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Memo".into(),
-                    body: "Pocket memo".into(),
+                    body: "Pöcket memo".into(),
                     longtouch: false,
                 },
             ]
         );
         assert_eq!(mock_hal.ui.confirm_scrollable, vec![true, true]);
+    }
+
+    #[async_test::test]
+    async fn test_user_verify_text_memo_glyphs() {
+        for (note, valid) in [("Pöcket memo", false), ("東京\nµ", true)] {
+            let mut mock_hal = TestingHal::new();
+            mock_hal.ui.set_has_glyph(alloc::boxed::Box::new(|font, c| {
+                assert!(matches!(font, Font::Regular11));
+                c != 'ö' && !c.is_control()
+            }));
+            let result = user_verify(
+                &mut mock_hal,
+                &pb::BtcPaymentRequestRequest {
+                    recipient_name: "POCKET".into(),
+                    memos: vec![make_text_memo(note)],
+                    ..Default::default()
+                },
+                "0.25 BTC",
+            )
+            .await;
+            if valid {
+                result.unwrap();
+                assert_eq!(mock_hal.ui.screens.len(), 4);
+                assert!(matches!(
+                    &mock_hal.ui.screens[2],
+                    Screen::Confirm { title, body, .. } if title == "Memo 1/2" && body == "東京"
+                ));
+            } else {
+                assert_eq!(result, Err(Error::InvalidInput));
+                assert_eq!(mock_hal.ui.screens.len(), 1);
+            }
+        }
     }
 
     #[async_test::test]

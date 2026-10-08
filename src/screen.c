@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ui/components/ui_images.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/regular_fonts.h>
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>
@@ -55,7 +55,7 @@ void screen_print_debug(const char* message, int duration)
     char print[100] = {0};
     _escape_debug_string(print, sizeof(print), message);
     screen_clear();
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_regular_9);
     UG_PutString(0, 0, print);
     UG_SendBuffer();
 #ifndef TESTING
@@ -124,9 +124,9 @@ void screen_init(
     _mirror_fn = mirror_fn;
     _clear_fn = clear_fn;
 #ifdef BOOTLOADER
-    UG_Init(&guioled, pixel_fn, &font_font_a_9X9, SCREEN_WIDTH, SCREEN_HEIGHT);
+    UG_Init(&guioled, pixel_fn, &font_regular_9, SCREEN_WIDTH, SCREEN_HEIGHT);
 #else
-    UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);
+    UG_Init(&guioled, pixel_fn, &font_regular_11, SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
 }
 

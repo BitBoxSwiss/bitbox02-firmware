@@ -11,6 +11,7 @@ use crate::{LvHandle, class, ffi};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LvTextError {
     ContainsNul,
+    TooLong,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

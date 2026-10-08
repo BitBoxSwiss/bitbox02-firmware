@@ -10,29 +10,35 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
+rust-version = "1.60"
 name = "embedded-hal"
-version = "0.2.7"
-authors = ["The Embedded HAL Team <embedded-hal@teams.rust-embedded.org>", "Jorge Aparicio <jorge@japaric.io>", "Jonathan 'theJPster' Pallant <github@thejpster.org.uk>"]
+version = "1.0.0"
+authors = [
+    "The Embedded HAL Team <embedded-hal@teams.rust-embedded.org>",
+    "Jorge Aparicio <jorge@japaric.io>",
+    "Jonathan 'theJPster' Pallant <github@thejpster.org.uk>",
+]
 description = " A Hardware Abstraction Layer (HAL) for embedded systems "
 documentation = "https://docs.rs/embedded-hal"
 readme = "README.md"
-keywords = ["hal", "IO"]
-categories = ["asynchronous", "embedded", "hardware-support", "no-std"]
+keywords = [
+    "hal",
+    "IO",
+]
+categories = [
+    "asynchronous",
+    "embedded",
+    "hardware-support",
+    "no-std",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-embedded/embedded-hal"
-[package.metadata.docs.rs]
-features = ["unproven"]
-[dependencies.nb]
-version = "0.1.3"
 
-[dependencies.void]
-version = "1.0.2"
-default-features = false
-[dev-dependencies.futures]
-version = "0.1.17"
-
-[dev-dependencies.stm32f30x]
-version = "0.8.0"
+[dependencies.defmt-03]
+version = "0.3"
+optional = true
+package = "defmt"
 
 [features]
-unproven = ["nb/unstable"]
+defmt-03 = ["dep:defmt-03"]

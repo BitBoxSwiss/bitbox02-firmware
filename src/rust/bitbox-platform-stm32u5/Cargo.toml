@@ -12,7 +12,16 @@ license = "Apache-2.0"
 test = false
 doctest = false
 
+[features]
+usb = ["dep:embassy-usb-driver", "dep:embassy-usb-synopsys-otg", "dep:embassy-sync", "dep:critical-section", "dep:cortex-m", "dep:log"]
+
 [dependencies]
+embassy-usb-driver = { version = "0.2.2", optional = true }
+embassy-usb-synopsys-otg = { version = "0.4.0", optional = true }
+embassy-sync = { version = "0.8.0", optional = true }
+critical-section = { workspace = true, optional = true }
+cortex-m = { workspace = true, optional = true }
+log = { version = "0.4.22", default-features = false, optional = true }
 bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5" }
 bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }
 # Set stack pointer and vector offset in startup code to make it easier to run

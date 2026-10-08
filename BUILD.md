@@ -201,9 +201,9 @@ Probe hardware is fixed by the board:
 | `bitbox03` | `testboard` | J-Link | `openocd`, `jlink` |
 | `bitbox03` | `bitbox03` (disabled) | J-Link | `jlink`, `openocd` |
 
-BitBox03 supports `dev-kit` and `testboard` selections; the testboard defaults to OpenOCD with
-the J-Link adapter and currently uses the dev-kit build target. The production board remains
-disabled until its build support is implemented. Both BitBox03 editions currently build the same stub.
+BitBox03 supports `dev-kit` (STM32U5A9) and `testboard` (STM32U5G9) builds. The testboard defaults
+to OpenOCD with the J-Link adapter. The production board remains disabled until its build support is
+implemented. Both BitBox03 editions currently build the same stub.
 
 Without a configuration, defaults are BitBox02, multi edition, and J-Link software. Explicit
 arguments run noninteractively; omitted fields use built-in defaults, independent of saved choices:
@@ -240,16 +240,16 @@ With `DEBUG=no`, BitBox02/Nova primary targets use `RelWithDebInfo` and BitBox03
 builds. `DEBUG=yes` selects debug builds for all products, with their existing RTT features.
 Firmware follows the selected edition; factorysetup is edition-independent; stage0/stage1 select
 images for the configured product, edition, `LOCKED`, and `DEVELOPMENT` settings. Build directories
-are flat:
+are:
 
 | Backend | Directory |
 | --- | --- |
 | BitBox02/Nova CMake | `build-<product>-cmake-<profile>` |
-| BitBox03 Cargo | `build-bitbox03-cargo` |
+| BitBox03 Cargo | `build-bitbox03-cargo/<board>` |
 
 For example, `build-bitbox02-cmake-relwithdebinfo/bin/firmware.elf`,
 `build-bitbox02nova-cmake-debug/bin/firmware-btc.elf`, and
-`build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-firmware`.
+`build-bitbox03-cargo/testboard/thumbv8m.main-none-eabihf/debug/bitbox03-firmware`.
 Cargo receives an absolute target directory; backend-managed contents keep their native layouts.
 CMake Rust feature caches remain inside their product/profile directory. Images and editions share
 those caches. Switching products and switching back reuses previous results; changing probe
@@ -266,7 +266,6 @@ for development devices. Named product commands always use that product's direct
 
 The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
 `bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above.
-Additional BitBox03 board/edition implementations are deferred.
 
 Pass `-j<N>` to speed up a build, for example `make -j8 firmware`. Top-level aliases run sequentially.
 

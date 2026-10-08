@@ -16,7 +16,8 @@
 /**
  * Returns true if the text fits within max_width without wrapping using the given font.
  * @param[in] text The text to measure.
- * @param[in] font The font to use. If NULL, the default 11x10 font is used.
+ * @param[in] font The font to use. If NULL, the default 11x10 font is used. A non-NULL font
+ * must have static lifetime: it remains selected in the current GUI after this call.
  * @param[in] max_width The available width in pixels.
  */
 bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width);
@@ -32,7 +33,8 @@ void label_update(component_t* component, const char* text);
  * Creates a label with the given font. If the text is longer than MAX_LABEL_SIZE, it is truncated
  * and suffixed with '...'.
  * @param[in] text The text of the label.
- * @param[in] font The font of the label.
+ * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
+ * must have static lifetime.
  * @param[in] position The position of the label.
  * @param[in] parent The parent component.
  */
@@ -45,7 +47,8 @@ component_t* label_create(
 /**
  * Creates a label with the given font.
  * @param[in] text The text of the label.
- * @param[in] font The font of the label.
+ * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
+ * must have static lifetime.
  * @param[in] position The position of the label.
  * @param[in] xoffset The horizontal offset.
  * @param[in] yoffset The vertical offset.
@@ -62,7 +65,8 @@ component_t* label_create_offset(
 /**
  * Creates a label with the given font that can be scrolled.
  * @param[in] text The text of the label.
- * @param[in] font The font of the label.
+ * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
+ * must have static lifetime.
  * @param[in] position The position of the label.
  * @param[in] parent The parent component.
  */
@@ -75,7 +79,8 @@ component_t* label_create_scrollable(
 /**
  * Creates a label with the given font that can be scrolled.
  * @param[in] text The text of the label.
- * @param[in] font The font of the label.
+ * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
+ * must have static lifetime.
  * @param[in] position The position of the label.
  * @param[in] xoffset The horizontal offset.
  * @param[in] yoffset The vertical offset.

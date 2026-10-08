@@ -9,7 +9,7 @@
 
 #include <hardfault.h>
 #include <screen.h>
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/regular_fonts.h>
 #include <ui/ugui/ugui.h>
 
 #include <string.h>
@@ -96,7 +96,7 @@ component_t* confirm_create(
     // Create labels. We nest them in a body component that covers the screen minus the title bar,
     // so that the CENTER positioning starts below the title bar.
 
-    const UG_FONT* font = &font_font_a_11X10;
+    const UG_FONT* font = &font_regular_11;
     const char* title = params->title;
     // Arbitrary size big enough to fit all wrapped titles. Increase if needed.
     char wrapped_title[128] = {0};

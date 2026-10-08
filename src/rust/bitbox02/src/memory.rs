@@ -11,6 +11,29 @@ pub use bitbox02_sys::memory_optiga_config_version_t as OptigaConfigVersion;
 pub use bitbox02_sys::memory_password_stretch_algo_t as PasswordStretchAlgo;
 pub use bitbox02_sys::memory_result_t as MemoryError;
 
+/// Calls `util::name::validate()` on the provided C string and checks glyph availability.
+///
+/// # Safety
+///
+/// `buf` must point to a valid buffer of size `max_len`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_util_is_name_valid(buf: *const u8, max_len: usize) -> bool {
+    if max_len == 0 {
+        return false;
+    }
+    let slice = unsafe { core::slice::from_raw_parts(buf, max_len) };
+    match core::ffi::CStr::from_bytes_until_nul(slice) {
+        Ok(cstr) => match cstr.to_str() {
+            Ok(s) => {
+                util::name::validate(s, max_len - 1)
+                    && s.chars().all(|c| crate::ui::Font::Regular11.has_glyph(c))
+            }
+            Err(_) => false,
+        },
+        Err(_) => false,
+    }
+}
+
 pub fn get_device_name() -> String {
     let mut name = [0u8; DEVICE_NAME_MAX_LEN + 1];
     unsafe { bitbox02_sys::memory_get_device_name(name.as_mut_ptr().cast()) }
@@ -417,6 +440,10 @@ mod tests {
         set_device_name(new_name).unwrap();
         assert_eq!(get_device_name(), new_name);
 
+        let utf8_name = "BïtBöx Zürich";
+        set_device_name(utf8_name).unwrap();
+        assert_eq!(get_device_name(), utf8_name);
+
         // A name with the maximum allowed length is accepted.
         let max_len_name = "DeviceName_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxy";
         assert_eq!(max_len_name.len(), DEVICE_NAME_MAX_LEN);
@@ -435,8 +462,8 @@ mod tests {
             " name",    // leading space
             "name ",    // trailing space
             "foo\nbar", // control character
-            "Ä",        // non-ASCII
-            "漢字",     // non-ASCII
+            "漢字",     // unsupported character
+            "emoji 😃", // unsupported character
         ];
 
         for invalid in invalid_names {
@@ -850,5 +877,26 @@ mod tests {
             get_optiga_config_version(),
             Ok(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1),
         ));
+    }
+
+    #[test]
+    // For clarity we want explicit null terminators in the strings below, not CStr literals
+    // `c"..."`.
+    #[allow(clippy::manual_c_str_literals)]
+    fn test_rust_util_is_name_valid() {
+        unsafe {
+            // Valid
+            assert!(rust_util_is_name_valid("foo\0".as_ptr(), 4));
+            assert!(rust_util_is_name_valid("foo\0........".as_ptr(), 12));
+            assert!(rust_util_is_name_valid("BïtBöx\0".as_ptr(), 10));
+
+            // Invalid
+            assert!(!rust_util_is_name_valid("fo\no\0".as_ptr(), 5));
+            assert!(!rust_util_is_name_valid("".as_ptr(), 0));
+            assert!(!rust_util_is_name_valid("foo\0".as_ptr(), 3));
+            assert!(!rust_util_is_name_valid("foo".as_ptr(), 3));
+            assert!(!rust_util_is_name_valid("東京\0".as_ptr(), 7));
+            assert!(!rust_util_is_name_valid("ȑ\0".as_ptr(), 3));
+        }
     }
 }

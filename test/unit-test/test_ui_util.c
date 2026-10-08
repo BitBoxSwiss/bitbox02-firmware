@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <ui/fonts/arial_fonts.h>
+#include <ui/fonts/regular_fonts.h>
 #include <ui/ui_util.h>
 
 #include "fake_component.h"
@@ -213,7 +213,7 @@ static void test_ui_util_position_right_top(void** state)
 static void test_ui_util_component_render_rotated_180(void** state)
 {
     (void)state;
-    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
     component_t component = {
         .f = &_pixel_component_functions,
         .dimension = {.width = 10, .height = 8},

@@ -213,6 +213,11 @@ jobs:
           - {target: bootloader-stage1, product: bitbox03, edition: multi}
           - {target: factorysetup, product: bitbox03, edition: multi}
           - {target: firmware, product: bitbox03, edition: multi}
+          - {target: bootloader-stage0, product: bitbox03, board: testboard, edition: multi}
+          - {target: bootloader-stage1, product: bitbox03, board: testboard, edition: multi}
+          - {target: factorysetup, product: bitbox03, board: testboard, edition: multi}
+          - {target: firmware, product: bitbox03, board: testboard, edition: multi}
+          - {target: firmware, product: bitbox03, board: testboard, edition: multi, debug: 'yes'}
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -234,7 +239,7 @@ jobs:
         run: ./scripts/bootstrap-cargo-config
 
       - name: Configure product
-        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }}"
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --board ${{ matrix.board || (matrix.product == 'bitbox03' && 'dev-kit' || matrix.product) }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }}"
 
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
@@ -259,7 +264,7 @@ jobs:
         if: github.event_name == 'push' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-${{github.sha}}.bin
+          name: ${{matrix.product}}${{ matrix.board && format('-{0}', matrix.board) || '' }}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-${{github.sha}}.bin
           path: |
             build*/bin/*.bin
             build*/bin/*.elf

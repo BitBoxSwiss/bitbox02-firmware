@@ -142,6 +142,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-board-testboard"
+version = "0.1.0"
+dependencies = [
+ "bitbox-board-testboard-sys",
+ "bitbox-mcu-stm32u5",
+ "bitbox-platform-stm32u5-sys",
+]
+
+[[package]]
+name = "bitbox-board-testboard-build"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "bitbox-board-testboard-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "bitbox-boot-utils"
 version = "0.1.0"
 dependencies = [

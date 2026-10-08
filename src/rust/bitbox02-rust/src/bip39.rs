@@ -4,9 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt::Write;
 
-// English BIP39 words contain at most 8 ASCII bytes. Reserve space for 24 words and 23 separators
-// before writing any recovery words, avoiding reallocations that could leave unwiped copies.
-pub(crate) const MAX_MNEMONIC_BYTES: usize = 24 * 8 + 23;
+pub(crate) use crate::hal::ui::MAX_MNEMONIC_BYTES;
 
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {

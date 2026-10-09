@@ -98,10 +98,34 @@ fn main() {
         .flatten()
         .map(|token| token.unit.as_str())
         .collect();
+    let alphabet: String = units.chars().collect::<BTreeSet<_>>().into_iter().collect();
+    assert!(
+        alphabet.len() <= 64,
+        "ERC-20 unit alphabet exceeds 64 characters"
+    );
+    let mut packed_units = vec![0u8; (units.len() * 6).div_ceil(8)];
+    for (index, byte) in units.bytes().enumerate() {
+        let code = alphabet.as_bytes().binary_search(&byte).unwrap() as u8;
+        let bit_offset = index * 6;
+        let shift = bit_offset % 8;
+        packed_units[bit_offset / 8] |= code << shift;
+        if shift > 2 {
+            packed_units[bit_offset / 8 + 1] |= code >> (8 - shift);
+        }
+    }
     writeln!(
         output_file,
-        "const UNITS: &str = \"{}\";",
-        units.escape_default(),
+        "const UNIT_ALPHABET: &[u8] = b\"{}\";",
+        alphabet.escape_default(),
+    )
+    .unwrap();
+    writeln!(
+        output_file,
+        "const UNITS: &[u8] = b\"{}\";",
+        packed_units
+            .iter()
+            .map(|byte| format!("\\x{byte:02x}"))
+            .collect::<String>(),
     )
     .unwrap();
 

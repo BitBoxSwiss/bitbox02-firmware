@@ -9,6 +9,7 @@ license = "Apache-2.0"
 
 [dev-dependencies]
 hex = { workspace = true }
+hex_lit = { workspace = true }
 
 [build-dependencies]
 hex = { workspace = true }

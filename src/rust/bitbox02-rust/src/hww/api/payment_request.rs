@@ -11,6 +11,7 @@ use num_bigint::BigUint;
 use pb::btc_payment_request_request::{Memo, memo};
 
 use crate::hal::Ui;
+use crate::i18n::I18n as _;
 use crate::secp256k1::SECP256K1;
 use crate::workflow::verify_message;
 
@@ -158,24 +159,29 @@ pub async fn user_verify(
                 if !has_all_glyphs {
                     return Err(Error::InvalidInput);
                 }
+                let body =
+                    crate::tr_format!(hal, "Memo from: {}", &[&payment_request.recipient_name]);
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "",
-                        body: &format!("Memo from: {}", payment_request.recipient_name),
+                        body: &body,
                         scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
                     .await?;
-                verify_message::verify(hal, "Memo", "Memo", text_memo.note.as_bytes(), false)
+                let title = crate::tr!(hal, "Memo");
+                let accept = crate::tr!(hal, "Memo");
+                verify_message::verify(hal, &title, &accept, text_memo.note.as_bytes(), false)
                     .await?;
             }
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
                 parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
+                let title = crate::tr!(hal, "Swap");
                 hal.ui()
-                    .confirm_swap("Swap", displayed_source_amount, &coin_purchase_memo.amount)
+                    .confirm_swap(&title, displayed_source_amount, &coin_purchase_memo.amount)
                     .await?;
             }
             _ => return Err(Error::InvalidInput),

@@ -126,7 +126,9 @@ static const component_functions_t _refresh_webpage_component_functions = {
 
 static component_t* _create_refresh_webpage(void)
 {
-    component_t* component = info_centered_create("Refresh webpage", NULL);
+    char refresh_webpage[32] = {0};
+    rust_i18n_translate_copy("Refresh webpage", refresh_webpage, sizeof(refresh_webpage));
+    component_t* component = info_centered_create(refresh_webpage, NULL);
     component->f = &_refresh_webpage_component_functions;
     return component;
 }
@@ -191,7 +193,12 @@ static void _create_nudge_label(void)
         return;
     }
 
-    _nudge_label = info_centered_create("Initialize with BitBoxApp\nto use U2F", _nudge_label_cb);
+    char initialize_with_bitboxapp[64] = {0};
+    rust_i18n_translate_copy(
+        "Initialize with BitBoxApp\nto use U2F",
+        initialize_with_bitboxapp,
+        sizeof(initialize_with_bitboxapp));
+    _nudge_label = info_centered_create(initialize_with_bitboxapp, _nudge_label_cb);
     _nudge_label->f = &_nudge_label_component_functions;
     ui_screen_stack_push(_nudge_label);
 }

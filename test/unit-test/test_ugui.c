@@ -364,6 +364,20 @@ static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
     }
 }
 
+static void _test_ugui_put_string_centered_max_lines(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+
+    char text[UG_MAX_LINE_ROWS + 2];
+    memset(text, '\n', UG_MAX_LINE_ROWS);
+    text[UG_MAX_LINE_ROWS] = 'A';
+    text[UG_MAX_LINE_ROWS + 1] = '\0';
+    _reset_pixel_capture();
+    UG_PutStringCentered(0, 0, 128, 64, text);
+    assert_true(pixels_set > 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -377,6 +391,7 @@ int main(void)
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
         cmocka_unit_test(_test_ugui_fonts_exclude_ambiguous_characters),
         cmocka_unit_test(_test_ugui_ascii_font_pixels_and_metrics),
+        cmocka_unit_test(_test_ugui_put_string_centered_max_lines),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

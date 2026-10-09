@@ -99,7 +99,7 @@ const APPS: &[App] = &[
 ];
 
 /// Returns the site name/identifier to be displayed during U2F registration/auth.
-fn app_string(app_id: &[u8; 32]) -> String {
+fn app_string(app_id: &[u8; 32], unknown_site: &str) -> String {
     if let Some(&App { name, .. }) = APPS.iter().find(|app| app.app_id == app_id) {
         return name.into();
     }
@@ -107,7 +107,8 @@ fn app_string(app_id: &[u8; 32]) -> String {
     let m = bip39::Mnemonic::from_entropy_in(bip39::Language::English, app_id).unwrap();
     let words: Vec<&'static str> = m.words().collect();
     alloc::format!(
-        "Unknown site:\n{} {}\n{} {}",
+        "{}\n{} {}\n{} {}",
+        unknown_site,
         words[0],
         words[1],
         words[2],
@@ -115,10 +116,16 @@ fn app_string(app_id: &[u8; 32]) -> String {
     )
 }
 
-// app_id must be of length 32, and out must be a least 60 bytes.
+// app_id must be of length 32, unknown_site must be valid UTF-8, and out must be large enough for
+// unknown_site and the four mnemonic words.
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_u2f_app_string(app_id: util::bytes::Bytes, mut out: util::bytes::BytesMut) {
-    let app_str = app_string(app_id.as_ref().try_into().unwrap());
+pub extern "C" fn rust_u2f_app_string(
+    app_id: util::bytes::Bytes,
+    unknown_site: util::bytes::Bytes,
+    mut out: util::bytes::BytesMut,
+) {
+    let unknown_site = core::str::from_utf8(unknown_site.as_ref()).unwrap();
+    let app_str = app_string(app_id.as_ref().try_into().unwrap(), unknown_site);
     let bytes = app_str.as_bytes();
     let out = out.as_mut();
     out[..bytes.len()].clone_from_slice(bytes);
@@ -135,6 +142,7 @@ mod tests {
         let mut string = [0u8; 100];
         rust_u2f_app_string(
             unsafe { util::bytes::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
+            unsafe { util::bytes::rust_util_bytes(core::ptr::null(), 0) },
             unsafe { util::bytes::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(
@@ -152,6 +160,9 @@ mod tests {
         let mut string = [0u8; 100];
         rust_u2f_app_string(
             unsafe { util::bytes::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
+            unsafe {
+                util::bytes::rust_util_bytes("Unknown site:".as_ptr(), "Unknown site:".len())
+            },
             unsafe { util::bytes::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(
@@ -160,6 +171,25 @@ mod tests {
                 .to_str()
                 .unwrap(),
             "Unknown site:\ncatch turn\ntask hen"
+        );
+    }
+
+    #[test]
+    fn test_rust_u2f_app_string_unknown_custom_prefix() {
+        let app_id = b"\x24\x1d\x5b\x78\x35\x90\xc2\x1f\x79\x69\x8e\x7c\xe8\x92\xdd\x03\xfb\x2c\x8f\xad\xc2\x44\x0e\xc2\x3a\xa5\xde\x9e\x2d\x23\x81\xb0";
+        let unknown_site = "Unbekannte Seite:";
+        let mut string = [0u8; 100];
+        rust_u2f_app_string(
+            unsafe { util::bytes::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
+            unsafe { util::bytes::rust_util_bytes(unknown_site.as_ptr(), unknown_site.len()) },
+            unsafe { util::bytes::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+        );
+        assert_eq!(
+            core::ffi::CStr::from_bytes_until_nul(&string)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "Unbekannte Seite:\ncatch turn\ntask hen"
         );
     }
 }

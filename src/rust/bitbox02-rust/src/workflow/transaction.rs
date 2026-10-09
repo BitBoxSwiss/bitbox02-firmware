@@ -3,6 +3,7 @@
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
 use crate::hal::ui::UserAbort;
+use crate::i18n::I18n as _;
 
 use alloc::string::String;
 
@@ -20,13 +21,21 @@ pub enum FeePercentageBasis {
 }
 
 impl FeePercentageBasis {
-    fn warning_message(&self, fee_percentage: &str) -> String {
+    fn warning_message(&self, hal: &mut impl crate::hal::Hal, fee_percentage: &str) -> String {
         match self {
             FeePercentageBasis::SendAmount => {
-                format!("Fee is {}%\nof the send amount.\nProceed?", fee_percentage)
+                crate::tr_format!(
+                    hal,
+                    "Fee is {}%\nof the send amount.\nProceed?",
+                    &[fee_percentage]
+                )
             }
             FeePercentageBasis::TotalInputs => {
-                format!("Fee is {}%\nof all inputs.\nProceed?", fee_percentage)
+                crate::tr_format!(
+                    hal,
+                    "Fee is {}%\nof all inputs.\nProceed?",
+                    &[fee_percentage]
+                )
             }
         }
     }
@@ -61,11 +70,12 @@ pub async fn verify_total_fee_maybe_warn_with_basis(
     hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
+        let title = crate::tr!(hal, "High fee");
         let warning_message =
-            fee_percentage_basis.warning_message(&format_percentage(fee_percentage));
+            fee_percentage_basis.warning_message(hal, &format_percentage(fee_percentage));
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "High fee",
+                title: &title,
                 body: &warning_message,
                 longtouch: true,
                 ..Default::default()

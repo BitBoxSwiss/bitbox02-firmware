@@ -6,6 +6,7 @@
 #include "label.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 
 #include <string.h>
@@ -44,8 +45,10 @@ component_t* info_centered_create(const char* text, void (*skip_callback)(compon
 
     ui_util_add_sub_component(info_centered, label_create(text, NULL, CENTER, info_centered));
     if (skip_callback != NULL) {
-        component_t* skip_button =
-            button_create("Skip", bottom_slider, SCREEN_WIDTH / 2, skip_callback, info_centered);
+        char skip_label[20] = {0};
+        rust_i18n_translate_copy("Skip", skip_label, sizeof(skip_label));
+        component_t* skip_button = button_create(
+            skip_label, bottom_slider, SCREEN_WIDTH / 2, skip_callback, info_centered);
         ui_util_add_sub_component(info_centered, skip_button);
     }
 

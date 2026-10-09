@@ -26,7 +26,12 @@ static struct {
 static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
 {
     memset(out, 0, out_len);
-    rust_u2f_app_string(rust_util_bytes(app_id, 32), rust_util_bytes_mut((uint8_t*)out, out_len));
+    char unknown_site[32] = {0};
+    rust_i18n_translate_copy("Unknown site:", unknown_site, sizeof(unknown_site));
+    rust_u2f_app_string(
+        rust_util_bytes(app_id, 32),
+        rust_util_bytes((const uint8_t*)unknown_site, strlen(unknown_site)),
+        rust_util_bytes_mut((uint8_t*)out, out_len));
 }
 
 static bool _is_app_id_bogus(const uint8_t* app_id)
@@ -39,6 +44,7 @@ bool u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
     char app_string[100] = {0};
     const char* title;
+    bool translate_app_string = false;
     switch (type) {
     case U2F_APP_REGISTER:
         if (!_is_app_id_bogus(app_id)) {
@@ -49,6 +55,7 @@ bool u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
             // registrations to make the device blink.
             title = "";
             snprintf(app_string, sizeof(app_string), "%s", "Use U2F?");
+            translate_app_string = true;
         }
         break;
     case U2F_APP_AUTHENTICATE:
@@ -57,6 +64,16 @@ bool u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
         break;
     default:
         Abort("u2f_app_confirm: Internal error");
+    }
+    char translated_title[64] = {0};
+    if (title[0] != '\0') {
+        rust_i18n_translate_copy(title, translated_title, sizeof(translated_title));
+        title = translated_title;
+    }
+    if (translate_app_string) {
+        char translated_app_string[sizeof(app_string)] = {0};
+        rust_i18n_translate_copy(app_string, translated_app_string, sizeof(translated_app_string));
+        memcpy(app_string, translated_app_string, sizeof(app_string));
     }
     if (!rust_workflow_spawn_confirm(title, app_string)) {
         return false;

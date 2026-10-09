@@ -9,6 +9,7 @@ use pb::response::Response;
 
 use crate::backup;
 use crate::hal::{Memory, Sd, Ui};
+use crate::i18n::I18n as _;
 use crate::workflow::unlock;
 
 pub async fn check(
@@ -24,7 +25,8 @@ pub async fn check(
     let (backup_data, metadata) = backup::load(hal, &id).await?;
     if seed.as_slice() != backup_data.get_seed() {
         if !silent {
-            hal.ui().status("Backup missing\nor invalid", false).await;
+            let status = crate::tr!(hal, "Backup missing\nor invalid");
+            hal.ui().status(&status, false).await;
         }
         return Err(Error::Generic);
     }
@@ -33,9 +35,10 @@ pub async fn check(
             let ui = hal.ui();
             backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Regular11, c))
         };
+        let title = crate::tr!(hal, "Name?");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Name?",
+                title: &title,
                 body: &name,
                 scrollable: true,
                 accept_is_nextarrow: true,
@@ -43,16 +46,18 @@ pub async fn check(
             })
             .await?;
 
+        let title = crate::tr!(hal, "ID?");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "ID?",
+                title: &title,
                 body: &id,
                 scrollable: true,
                 ..Default::default()
             })
             .await?;
 
-        hal.ui().status("Backup valid", true).await;
+        let status = crate::tr!(hal, "Backup valid");
+        hal.ui().status(&status, true).await;
     }
     Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
 }
@@ -72,19 +77,23 @@ pub async fn create(
         timezone_offset,
     }: &pb::CreateBackupRequest,
 ) -> Result<Response, Error> {
+    let title = crate::tr!(hal, "Is today?");
+    let body = hal
+        .tr_datetime(timestamp, timezone_offset, true)
+        .map_err(|_| Error::InvalidInput)?;
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "Is today?",
-            body: &util::datetime::format_datetime(timestamp, timezone_offset, true)
-                .map_err(|_| Error::InvalidInput)?,
+            title: &title,
+            body: &body,
             ..Default::default()
         })
         .await?;
 
+    let body = crate::tr!(hal, "Create backup?");
     hal.ui()
         .confirm(&ConfirmParams {
             title: "",
-            body: "Create backup?",
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
@@ -102,7 +111,8 @@ pub async fn create(
     let is_initialized = hal.memory().is_initialized();
 
     let seed = if is_initialized {
-        unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
+        let title = crate::tr!(hal, "Unlock device");
+        unlock::unlock_keystore(hal, &title, CanCancel::Yes).await?
     } else {
         let seed = crate::keystore::copy_seed(hal).await?;
         // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
@@ -133,13 +143,15 @@ pub async fn create(
             // process again.
             let _ = hal.memory().set_initialized();
 
-            hal.ui().status("Backup created", true).await;
+            let status = crate::tr!(hal, "Backup created");
+            hal.ui().status(&status, true).await;
             Ok(Response::Success(pb::Success {}))
         }
         Err(err) => {
-            let msg = format!(
+            let msg = crate::tr_format!(
+                hal,
                 "Backup not created\nPlease contact\nsupport ({})",
-                backup::format_error(&err)
+                &[backup::format_error(&err)],
             );
             hal.ui().status(&msg, false).await;
             Err(Error::Generic)
@@ -221,6 +233,50 @@ mod tests {
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
             }))
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_create_german_date() {
+        const TIMESTAMP: u32 = 1779964200;
+
+        mock_unlocked();
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .set_device_language(bitbox_hal::memory::Language::German)
+            .unwrap();
+        mock_hal.sd.inserted = Some(true);
+        assert_eq!(
+            create(
+                &mut mock_hal,
+                &pb::CreateBackupRequest {
+                    timestamp: TIMESTAMP,
+                    timezone_offset: 0,
+                }
+            )
+            .await,
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Ist heute?".into(),
+                    body: "Do 28.05.2026".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Backup erstellen?".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Backup erstellt".into(),
+                    success: true
+                }
+            ]
         );
     }
 

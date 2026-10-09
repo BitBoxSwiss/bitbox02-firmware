@@ -360,7 +360,7 @@ async fn verify_erc20_transaction(
     if let Some(payment_request) = payment_request {
         let token_params = erc20_params.ok_or(Error::InvalidInput)?;
         let displayed_source_amount = Amount {
-            unit: token_params.unit,
+            unit: &token_params.unit,
             decimals: token_params.decimals as _,
             value: erc20_value.clone(),
         }
@@ -385,7 +385,7 @@ async fn verify_erc20_transaction(
     let (formatted_value, formatted_total) = match erc20_params {
         Some(erc20_params) => {
             let value = Amount {
-                unit: erc20_params.unit,
+                unit: &erc20_params.unit,
                 decimals: erc20_params.decimals as _,
                 value: erc20_value,
             }

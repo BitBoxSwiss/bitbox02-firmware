@@ -53,7 +53,7 @@ fn main() {
             .insert(token.contract_address);
     }
 
-    // Group tokens by decimals
+    // Group tokens by decimals and unit length.
     let mut grouped_tokens: BTreeMap<(u8, u8), Vec<&Token>> = BTreeMap::new();
     for token in &tokens {
         grouped_tokens
@@ -85,15 +85,14 @@ fn main() {
         tokens.sort_by_key(|token| token.contract_address);
         writeln!(
             output_file,
-            "const PARAMS_D{}_U{}: &[P] = &[",
+            "const ADDRESSES_D{}_U{}: &[[u8; 20]] = &[",
             decimals, unit_len
         )
         .unwrap();
-        for token in tokens {
+        for token in tokens.iter() {
             writeln!(
                 output_file,
-                "    P {{ unit: b\"{}\".as_ptr(), contract_address: *b\"{}\" }},",
-                token.unit,
+                "    *b\"{}\",",
                 token
                     .contract_address
                     .iter()
@@ -103,16 +102,25 @@ fn main() {
             .unwrap();
         }
         writeln!(output_file, "];").unwrap();
+        let units: String = tokens.iter().map(|token| token.unit.as_str()).collect();
+        writeln!(
+            output_file,
+            "const UNITS_D{}_U{}: &str = \"{}\";",
+            decimals,
+            unit_len,
+            units.escape_default(),
+        )
+        .unwrap();
     }
 
     writeln!(
         output_file,
-        "const ALL: &[(u8, u8, &[P])] = &[{}];",
+        "const ALL: &[Group] = &[{}];",
         grouped_tokens
             .keys()
             .map(|(decimal, unit_len)| format!(
-                "({}, {}, PARAMS_D{}_U{})",
-                decimal, unit_len, decimal, unit_len
+                "Group {{ decimals: {}, unit_len: {}, units: UNITS_D{}_U{}, contract_addresses: ADDRESSES_D{}_U{} }}",
+                decimal, unit_len, decimal, unit_len, decimal, unit_len
             ))
             .collect::<Vec<String>>()
             .join(", ")

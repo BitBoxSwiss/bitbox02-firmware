@@ -2,6 +2,7 @@
 
 #![allow(clippy::format_collect)]
 
+use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
@@ -53,14 +54,34 @@ fn main() {
             .insert(token.contract_address);
     }
 
-    // Group tokens by decimals, unit length and ambiguity.
-    let mut grouped_tokens: BTreeMap<(u8, u8, bool), Vec<&Token>> = BTreeMap::new();
+    // The 32 most frequent characters fit in five bits.
+    let mut frequencies = BTreeMap::<u8, usize>::new();
+    for byte in tokens.iter().flat_map(|token| token.unit.bytes()) {
+        *frequencies.entry(byte).or_default() += 1;
+    }
+    let mut alphabet: Vec<u8> = frequencies.keys().copied().collect();
+    alphabet.sort_by_key(|byte| (Reverse(frequencies[byte]), *byte));
+    assert!(
+        alphabet.len() <= 64,
+        "ERC-20 unit alphabet exceeds 64 characters"
+    );
+    let alphabet: String = alphabet.into_iter().map(char::from).collect();
+    let encode_char = |byte| alphabet.bytes().position(|ch| ch == byte).unwrap() as u8;
+
+    // Group tokens by decimals, unit length, ambiguity and encoding width.
+    let mut grouped_tokens: BTreeMap<(u8, u8, bool, u8), Vec<&Token>> = BTreeMap::new();
     for token in &tokens {
+        let bits_per_char = if token.unit.bytes().all(|byte| encode_char(byte) < 32) {
+            5
+        } else {
+            6
+        };
         grouped_tokens
             .entry((
                 token.decimals,
                 token.unit.len().try_into().unwrap(),
                 contracts_by_unit[token.unit.as_str()].len() > 1,
+                bits_per_char,
             ))
             .or_default()
             .push(token);
@@ -93,24 +114,19 @@ fn main() {
         }
     }
     writeln!(output_file, "];").unwrap();
-    let units: String = grouped_tokens
-        .values()
-        .flatten()
-        .map(|token| token.unit.as_str())
-        .collect();
-    let alphabet: String = units.chars().collect::<BTreeSet<_>>().into_iter().collect();
-    assert!(
-        alphabet.len() <= 64,
-        "ERC-20 unit alphabet exceeds 64 characters"
-    );
-    let mut packed_units = vec![0u8; (units.len() * 6).div_ceil(8)];
-    for (index, byte) in units.bytes().enumerate() {
-        let code = alphabet.as_bytes().binary_search(&byte).unwrap() as u8;
-        let bit_offset = index * 6;
-        let shift = bit_offset % 8;
-        packed_units[bit_offset / 8] |= code << shift;
-        if shift > 2 {
-            packed_units[bit_offset / 8 + 1] |= code >> (8 - shift);
+    let mut packed_units = Vec::<u8>::new();
+    let mut bit_offset = 0usize;
+    // Emit one bit at a time; this runs only at build time.
+    for ((_, _, _, bits_per_char), tokens) in &grouped_tokens {
+        for byte in tokens.iter().flat_map(|token| token.unit.bytes()) {
+            let code = encode_char(byte);
+            for bit in 0..*bits_per_char {
+                if bit_offset.is_multiple_of(8) {
+                    packed_units.push(0);
+                }
+                packed_units[bit_offset / 8] |= ((code >> bit) & 1) << (bit_offset % 8);
+                bit_offset += 1;
+            }
         }
     }
     writeln!(
@@ -134,9 +150,9 @@ fn main() {
         "const ALL: &[Group] = &[{}];",
         grouped_tokens
             .iter()
-            .map(|((decimals, unit_len, unit_is_ambiguous), tokens)| {
+            .map(|((decimals, unit_len, unit_is_ambiguous, bits_per_char), tokens)| {
                 let count: u16 = tokens.len().try_into().unwrap();
-                format!("Group {{ count: {count}, decimals: {decimals}, unit_len: {unit_len}, unit_is_ambiguous: {unit_is_ambiguous} }}")
+                format!("Group {{ count: {count}, decimals: {decimals}, unit_len: {unit_len}, unit_is_ambiguous: {unit_is_ambiguous}, bits_per_char: {bits_per_char} }}")
             })
             .collect::<Vec<String>>()
             .join(", ")

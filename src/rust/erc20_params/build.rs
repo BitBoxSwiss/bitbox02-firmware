@@ -79,16 +79,11 @@ fn main() {
     }
     writeln!(output_file, "];\n").unwrap();
 
-    for ((decimals, unit_len), tokens) in &mut grouped_tokens {
+    writeln!(output_file, "const CONTRACT_ADDRESSES: &[[u8; 20]] = &[").unwrap();
+    for tokens in grouped_tokens.values_mut() {
         // Sort by contract address so we can look up by contract
         // address more efficiently.
         tokens.sort_by_key(|token| token.contract_address);
-        writeln!(
-            output_file,
-            "const ADDRESSES_D{}_U{}: &[[u8; 20]] = &[",
-            decimals, unit_len
-        )
-        .unwrap();
         for token in tokens.iter() {
             writeln!(
                 output_file,
@@ -101,27 +96,29 @@ fn main() {
             )
             .unwrap();
         }
-        writeln!(output_file, "];").unwrap();
-        let units: String = tokens.iter().map(|token| token.unit.as_str()).collect();
-        writeln!(
-            output_file,
-            "const UNITS_D{}_U{}: &str = \"{}\";",
-            decimals,
-            unit_len,
-            units.escape_default(),
-        )
-        .unwrap();
     }
+    writeln!(output_file, "];").unwrap();
+    let units: String = grouped_tokens
+        .values()
+        .flatten()
+        .map(|token| token.unit.as_str())
+        .collect();
+    writeln!(
+        output_file,
+        "const UNITS: &str = \"{}\";",
+        units.escape_default(),
+    )
+    .unwrap();
 
     writeln!(
         output_file,
         "const ALL: &[Group] = &[{}];",
         grouped_tokens
-            .keys()
-            .map(|(decimal, unit_len)| format!(
-                "Group {{ decimals: {}, unit_len: {}, units: UNITS_D{}_U{}, contract_addresses: ADDRESSES_D{}_U{} }}",
-                decimal, unit_len, decimal, unit_len, decimal, unit_len
-            ))
+            .iter()
+            .map(|((decimals, unit_len), tokens)| {
+                let count: u16 = tokens.len().try_into().unwrap();
+                format!("Group {{ count: {count}, decimals: {decimals}, unit_len: {unit_len} }}")
+            })
             .collect::<Vec<String>>()
             .join(", ")
     )

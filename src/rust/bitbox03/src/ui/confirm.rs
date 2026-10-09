@@ -1,26 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::string::String;
+use alloc::vec::Vec;
 use bitbox_hal::ui::{ConfirmParams, MAX_CONFIRM_BODY_SIZE, UserAbort};
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvObjFlag, LvOpacityLevel, ObjExt,
+    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvObjFlag, LvOpacityLevel,
+    LvZeroizingLabel, ObjExt,
 };
 use util::futures::completion::Responder;
+use zeroize::Zeroizing;
 
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
-fn truncate_body(body: &str) -> String {
+fn truncate_body(body: &str) -> Zeroizing<Vec<u8>> {
     if body.len() <= MAX_CONFIRM_BODY_SIZE {
-        return String::from(body);
+        return Zeroizing::new(body.as_bytes().to_vec());
     }
 
     let mut end = MAX_CONFIRM_BODY_SIZE;
     while !body.is_char_boundary(end) {
         end -= 1;
     }
-    let mut truncated = String::from(&body[..end]);
-    truncated.push_str("...");
+    // Reserve the ellipsis too: growing a secret buffer could leave an unwiped allocation.
+    let mut truncated = Zeroizing::new(Vec::with_capacity(end + 3));
+    truncated.extend_from_slice(&body.as_bytes()[..end]);
+    truncated.extend_from_slice(b"...");
     truncated
 }
 
@@ -65,10 +69,15 @@ pub fn build_confirm_screen(
     body_container.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
     body_container.add_flag(LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
 
-    let body = LvLabel::new(&body_container).unwrap();
+    let body_text = truncate_body(params.body);
+    // Confirmation bodies can contain passphrases. Keep the text in a fixed zeroizing buffer
+    // borrowed by LVGL, so deleting the screen also wipes it when confirmation is cancelled.
+    let body = LvZeroizingLabel::new(&body_container, body_text.len()).unwrap();
     body.set_width(380);
-    body.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
-    body.set_text(&truncate_body(params.body)).unwrap();
+    // Labels wrap by default; retain that mode for scrolling long confirmation contents.
+    body.set_text(core::str::from_utf8(body_text.as_slice()).unwrap())
+        .unwrap();
+    drop(body_text);
     body.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
@@ -119,22 +128,104 @@ pub fn build_confirm_screen(
 
 #[cfg(test)]
 mod tests {
+    use super::super::{BitBox03Ui, test_util};
     use super::*;
+    use alloc::{boxed::Box, rc::Rc, string::String};
+    use core::cell::{Cell, RefCell};
+    use core::future::Future;
+    use core::task::{Context, Poll, Waker};
+    use lvgl::{LvDisplay, LvEventCode, class};
 
     #[test]
     fn test_truncate_body() {
+        assert!(truncate_body("").is_empty());
+        assert_eq!(truncate_body("passphrase").as_slice(), b"passphrase");
         let exact = "a".repeat(MAX_CONFIRM_BODY_SIZE);
-        assert_eq!(truncate_body(&exact), exact);
+        assert_eq!(truncate_body(&exact).as_slice(), exact.as_bytes());
 
         let overlong = "a".repeat(MAX_CONFIRM_BODY_SIZE + 1);
         let mut expected = String::from(&overlong[..MAX_CONFIRM_BODY_SIZE]);
         expected.push_str("...");
-        assert_eq!(truncate_body(&overlong), expected);
+        assert_eq!(truncate_body(&overlong).as_slice(), expected.as_bytes());
 
         let mut utf8 = "a".repeat(MAX_CONFIRM_BODY_SIZE - 1);
         utf8.push('€');
         let truncated = truncate_body(&utf8);
         assert_eq!(truncated.len(), MAX_CONFIRM_BODY_SIZE + 2);
-        assert!(truncated.ends_with("..."));
+        assert_eq!(
+            truncated.as_slice(),
+            [&utf8.as_bytes()[..MAX_CONFIRM_BODY_SIZE - 1], b"..."].concat()
+        );
+        assert!(core::str::from_utf8(truncated.as_slice()).is_ok());
+    }
+
+    #[async_test::test]
+    async fn test_build_confirm_screen_teardown() {
+        let _lock = test_util::lock_and_init();
+        let mut ui = BitBox03Ui::<()>::new();
+        ui.display = Some(LvDisplay::new(480, 800).unwrap());
+
+        for longtouch in [false, true] {
+            for outcome in [Some(Ok(())), Some(Err(UserAbort)), None] {
+                let cleared = Rc::new(Cell::new(false));
+                let responder = RefCell::new(None);
+                let params = ConfirmParams {
+                    title: "Confirm passphrase",
+                    body: "secret passphrase",
+                    longtouch,
+                    ..Default::default()
+                };
+                let mut result = Box::pin(ui.with_result_screen(|screen_responder| {
+                    responder.replace(Some(screen_responder.clone()));
+                    let screen = build_confirm_screen(&params, screen_responder);
+                    let container = screen.child(1).unwrap();
+                    let body = container
+                        .child(0)
+                        .unwrap()
+                        .try_downcast::<class::LabelTag>()
+                        .unwrap();
+                    assert_eq!(body.get_text().unwrap().to_str().unwrap(), params.body);
+                    assert_eq!(
+                        body.get_long_mode(),
+                        LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP
+                    );
+                    let body_on_delete = container
+                        .child(0)
+                        .unwrap()
+                        .try_downcast::<class::LabelTag>()
+                        .unwrap();
+                    let cleared = Rc::clone(&cleared);
+                    body.add_event_cb(LvEventCode::LV_EVENT_DELETE, move || {
+                        // The zeroizing label detaches its buffer before later delete callbacks.
+                        assert!(body_on_delete.get_text().unwrap().to_bytes().is_empty());
+                        cleared.set(true);
+                    })
+                    .unwrap();
+                    screen
+                }));
+                assert!(
+                    result
+                        .as_mut()
+                        .poll(&mut Context::from_waker(Waker::noop()))
+                        .is_pending()
+                );
+                assert!(!cleared.get());
+                if let Some(outcome) = outcome {
+                    let accepted = outcome.is_ok();
+                    responder.borrow().as_ref().unwrap().resolve(outcome);
+                    // Completion is ready: poll without suspending while holding the LVGL lock.
+                    assert_eq!(
+                        result
+                            .as_mut()
+                            .poll(&mut Context::from_waker(Waker::noop()))
+                            .map(|outcome| outcome.is_ok()),
+                        Poll::Ready(accepted)
+                    );
+                }
+                drop(result);
+                assert!(cleared.get());
+                assert!(ui.stack.is_empty());
+            }
+        }
     }
 }

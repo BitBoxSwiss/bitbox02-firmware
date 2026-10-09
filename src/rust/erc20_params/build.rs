@@ -53,11 +53,15 @@ fn main() {
             .insert(token.contract_address);
     }
 
-    // Group tokens by decimals and unit length.
-    let mut grouped_tokens: BTreeMap<(u8, u8), Vec<&Token>> = BTreeMap::new();
+    // Group tokens by decimals, unit length and ambiguity.
+    let mut grouped_tokens: BTreeMap<(u8, u8, bool), Vec<&Token>> = BTreeMap::new();
     for token in &tokens {
         grouped_tokens
-            .entry((token.decimals, token.unit.len().try_into().unwrap()))
+            .entry((
+                token.decimals,
+                token.unit.len().try_into().unwrap(),
+                contracts_by_unit[token.unit.as_str()].len() > 1,
+            ))
             .or_default()
             .push(token);
     }
@@ -69,15 +73,6 @@ fn main() {
         .truncate(true)
         .open(out_filename)
         .unwrap();
-
-    // BTreeMap iteration keeps this list sorted for binary search at runtime.
-    writeln!(output_file, "const AMBIGUOUS_UNITS: &[&str] = &[").unwrap();
-    for (unit, contracts) in &contracts_by_unit {
-        if contracts.len() > 1 {
-            writeln!(output_file, "    \"{}\",", unit.escape_default()).unwrap();
-        }
-    }
-    writeln!(output_file, "];\n").unwrap();
 
     writeln!(output_file, "const CONTRACT_ADDRESSES: &[[u8; 20]] = &[").unwrap();
     for tokens in grouped_tokens.values_mut() {
@@ -115,9 +110,9 @@ fn main() {
         "const ALL: &[Group] = &[{}];",
         grouped_tokens
             .iter()
-            .map(|((decimals, unit_len), tokens)| {
+            .map(|((decimals, unit_len, unit_is_ambiguous), tokens)| {
                 let count: u16 = tokens.len().try_into().unwrap();
-                format!("Group {{ count: {count}, decimals: {decimals}, unit_len: {unit_len} }}")
+                format!("Group {{ count: {count}, decimals: {decimals}, unit_len: {unit_len}, unit_is_ambiguous: {unit_is_ambiguous} }}")
             })
             .collect::<Vec<String>>()
             .join(", ")

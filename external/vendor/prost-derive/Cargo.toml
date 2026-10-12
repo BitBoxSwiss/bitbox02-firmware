@@ -11,28 +11,36 @@
 
 [package]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.85"
 name = "prost-derive"
-version = "0.13.1"
+version = "0.14.4"
 authors = [
     "Dan Burkert <dan@danburkert.com>",
     "Lucio Franco <luciofranco14@gmail.com>",
     "Casper Meijn <casper@meijn.net>",
     "Tokio Contributors <team@tokio.rs>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Generate encoding and decoding implementations for Prost annotated types."
 readme = "README.md"
 license = "Apache-2.0"
 repository = "https://github.com/tokio-rs/prost"
 
 [lib]
-proc_macro = true
+name = "prost_derive"
+path = "src/lib.rs"
+proc-macro = true
 
 [dependencies.anyhow]
 version = "1.0.1"
 
 [dependencies.itertools]
-version = ">=0.10.1, <=0.13"
+version = ">=0.10.1, <=0.14"
 
 [dependencies.proc-macro2]
 version = "1.0.60"
@@ -43,3 +51,6 @@ version = "1"
 [dependencies.syn]
 version = "2"
 features = ["extra-traits"]
+
+[lints.clippy]
+collapsible_if = "allow"

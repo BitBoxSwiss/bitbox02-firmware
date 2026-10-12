@@ -3,18 +3,16 @@ use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use core::fmt::Debug;
-
 use bytes::{Buf, BufMut};
 
-use crate::encoding::{
-    decode_key, encode_varint, encoded_len_varint, message, DecodeContext, WireType,
-};
+use crate::encoding::varint::{encode_varint, encoded_len_varint};
+use crate::encoding::wire_type::WireType;
+use crate::encoding::{decode_key, message, DecodeContext};
 use crate::DecodeError;
 use crate::EncodeError;
 
 /// A Protocol Buffers message.
-pub trait Message: Debug + Send + Sync {
+pub trait Message: Send + Sync {
     /// Encodes the message to a buffer.
     ///
     /// This method will panic if the buffer has insufficient capacity.

@@ -6,6 +6,7 @@ Core firmware and bootloader code sits in `src/`, grouped by subsystem (`bootloa
 `hardware-fakes/` for device shims, and `simulator/` assets. The BitB02 Python client library is in
 `py/bitbox02`. Supporting tooling is in `scripts/` (CI, J-Link macros), and `doc/` for
 manuals. Vendored dependencies are tracked in `external/`.
+For Rust dependencies, run `./external/vendor-rust.sh` to update `external/vendor/`.
 
 The firmware has C and Rust code. Rust code lives in src/rust. The most important rust crates are:
 - bitbox02-rust: the main app logic. It can expose functions to C using extern "C". If it needs

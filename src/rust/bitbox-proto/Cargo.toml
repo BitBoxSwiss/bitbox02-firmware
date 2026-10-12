@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build-proto/Cargo.toml and src/rust/bitbox02-rust/Cargo.toml.
-version = "0.13.1"
+version = "0.14.4"
 default-features = false
 features = ["derive"]
 

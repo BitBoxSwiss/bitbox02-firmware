@@ -37,7 +37,6 @@ pub async fn check(
             .confirm(&ConfirmParams {
                 title: "Name?",
                 body: &name,
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -47,7 +46,6 @@ pub async fn check(
             .confirm(&ConfirmParams {
                 title: "ID?",
                 body: &id,
-                scrollable: true,
                 ..Default::default()
             })
             .await?;

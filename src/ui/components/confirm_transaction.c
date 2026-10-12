@@ -119,7 +119,7 @@ static component_t* _confirm_transaction_create(
 
     if (data->has_address) {
         ui_util_add_sub_component(
-            confirm, label_create_scrollable_offset(address, NULL, CENTER_TOP, 0, 44, confirm));
+            confirm, label_create_offset(address, NULL, CENTER_TOP, 0, 44, confirm));
     }
     if (strlens(fee)) {
         ui_util_add_sub_component(

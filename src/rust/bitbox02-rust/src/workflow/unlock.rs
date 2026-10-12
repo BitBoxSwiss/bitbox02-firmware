@@ -45,7 +45,6 @@ pub(crate) async fn confirm_mnemonic_passphrase(
         title: "Confirm",
         body: passphrase,
         font: crate::hal::ui::Font::Password12,
-        scrollable: true,
         longtouch: true,
         ..Default::default()
     };

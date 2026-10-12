@@ -109,7 +109,6 @@ pub async fn process(
     let confirm_params = ConfirmParams {
         title: "Address",
         body: &address_formatted,
-        scrollable: true,
         accept_is_nextarrow: true,
         ..Default::default()
     };

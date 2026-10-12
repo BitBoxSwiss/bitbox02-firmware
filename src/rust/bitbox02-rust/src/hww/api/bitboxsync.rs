@@ -382,7 +382,6 @@ async fn confirm_join_request(
         .confirm(&ConfirmParams {
             title: "BitBoxSync",
             body: &format!("Server: {}", server_origin),
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         })

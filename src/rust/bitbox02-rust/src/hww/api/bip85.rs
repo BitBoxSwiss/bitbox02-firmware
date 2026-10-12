@@ -46,7 +46,6 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .confirm(&ConfirmParams {
             title: "BIP-85",
             body: "This is an advanced feature. Proceed only if you know what you are doing.",
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -102,7 +101,6 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .confirm(&ConfirmParams {
             title: "Keypath",
             body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
-            scrollable: true,
             longtouch: true,
             ..Default::default()
         })

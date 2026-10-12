@@ -79,7 +79,7 @@ component_t* confirm_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    UG_S16 footer_height = params->scrollable ? 1 : 0;
+    UG_S16 footer_height = 0;
     if (params->display_size) {
         char size_label[20];
         // Ignore warning, %u works for 32bit but not 64 bit (unit tests). %zu does not work with
@@ -102,12 +102,10 @@ component_t* confirm_create(
     const char* title = params->title;
     // Arbitrary size big enough to fit all wrapped titles. Increase if needed.
     char wrapped_title[128] = {0};
-    if (params->title_autowrap) {
-        UG_FontSelect(font);
-        if (strlen(title) + 1 < sizeof(wrapped_title)) {
-            UG_WrapTitleString(title, wrapped_title, 55);
-            title = wrapped_title;
-        }
+    UG_FontSelect(font);
+    if (strlen(title) + 1 < sizeof(wrapped_title)) {
+        UG_WrapTitleString(title, wrapped_title, params->title_autowrap ? 55 : 88);
+        title = wrapped_title;
     }
     component_t* title_component = label_create(title, font, CENTER_TOP, confirm);
     ui_util_add_sub_component(confirm, title_component);
@@ -120,14 +118,8 @@ component_t* confirm_create(
     body_container->dimension.height = SCREEN_HEIGHT - body_container->position.top - footer_height;
     ui_util_add_sub_component(confirm, body_container);
 
-    if (params->scrollable) {
-        ui_util_add_sub_component(
-            body_container,
-            label_create_scrollable(params->body, params->font, CENTER, body_container));
-    } else {
-        ui_util_add_sub_component(
-            body_container, label_create(params->body, params->font, CENTER, body_container));
-    }
+    ui_util_add_sub_component(
+        body_container, label_create(params->body, params->font, CENTER, body_container));
 
     // Create buttons
     // Center the icons alongside the title's visible letters, below the font's accent space.

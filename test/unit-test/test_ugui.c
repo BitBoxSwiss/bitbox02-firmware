@@ -96,6 +96,24 @@ static void _test_ugui_word_wrap(void** state)
     }
 }
 
+static void _test_ugui_word_wrap_spacing(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+    char output[64] = {0};
+    UG_WrapTitleString("Message (21/23)", output, 88);
+    assert_string_equal(output, "Message\n(21/23)");
+
+    UG_S16 width;
+    UG_MeasureStringNoBreak(&width, NULL, "A A");
+    UG_WrapTitleString("A A A", output, width);
+    assert_string_equal(output, "A A\nA");
+
+    UG_MeasureStringNoBreak(&width, NULL, "ÄÖÜ");
+    UG_WrapTitleString("ÄÖÜ gj", output, width);
+    assert_string_equal(output, "ÄÖÜ\ngj");
+}
+
 static void _draw_pixel(void* ctx)
 {
     (void)ctx;
@@ -400,6 +418,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_ugui_word_wrap),
+        cmocka_unit_test(_test_ugui_word_wrap_spacing),
         cmocka_unit_test(_test_ugui_render_rotated_180),
         cmocka_unit_test(_test_ugui_measure_string_centered),
         cmocka_unit_test(_test_ugui_utf8_validation),

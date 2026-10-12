@@ -256,7 +256,8 @@ component_t* menu_create(
     menu->data = data;
 
     for (int i = 0; i < length; i++) {
-        component_t* label = label_create(words[i], NULL, CENTER, menu);
+        // The menu positions and scrolls its labels.
+        component_t* label = label_create(words[i], NULL, CENTER, NULL);
         ui_util_add_sub_component(menu, label);
         labels[i] = label;
     }

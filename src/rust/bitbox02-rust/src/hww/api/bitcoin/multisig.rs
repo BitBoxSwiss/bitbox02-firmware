@@ -144,7 +144,6 @@ pub async fn confirm(
         .confirm(&ConfirmParams {
             title,
             body: name,
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -228,7 +227,6 @@ pub async fn confirm_extended(
                     format!("Cosigner {}/{}: {}", i + 1, num_cosigners, xpub_str)
                 })
                 .as_str(),
-                scrollable: true,
                 longtouch: i == num_cosigners - 1,
                 accept_is_nextarrow: true,
                 ..Default::default()

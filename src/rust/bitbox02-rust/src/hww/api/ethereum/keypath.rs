@@ -37,7 +37,6 @@ pub async fn warn_unusual_keypath(
                 title,
                 body: &body,
                 title_autowrap: true,
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })

@@ -12,7 +12,7 @@
 use alloc::string::String;
 use core::fmt::Write as _;
 
-use bitbox_hal::ui::UserAbort;
+use bitbox_hal::ui::{MAX_MNEMONIC_BYTES, UserAbort};
 use bitbox_lvgl::{self as lvgl, LabelExt, LvFont, LvLabel, LvObj, LvOpacityLevel, ObjExt, fonts};
 use util::futures::completion::Responder;
 
@@ -78,7 +78,7 @@ fn build_column(parent: &LvObj, words: &[&str], first_number: usize) {
     column.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
 
     let mut numbers_text = String::new();
-    let mut words_text = String::new();
+    let mut words_text = zeroize::Zeroizing::new(String::with_capacity(MAX_MNEMONIC_BYTES));
     for (i, word) in words.iter().enumerate() {
         if i > 0 {
             numbers_text.push('\n');
@@ -87,6 +87,13 @@ fn build_column(parent: &LvObj, words: &[&str], first_number: usize) {
         write!(numbers_text, "{}", first_number + i).unwrap();
         words_text.push_str(word);
     }
+
+    #[cfg(test)]
+    assert_eq!(
+        words_text.capacity(),
+        MAX_MNEMONIC_BYTES,
+        "recovery-word buffer must not reallocate"
+    );
 
     let numbers = build_column_label(&column, &numbers_text, NUMBER_FONT);
     numbers.set_width(NUMBER_WIDTH);

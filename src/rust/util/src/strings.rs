@@ -58,8 +58,9 @@ pub fn str_to_cstr_vec(input: &str) -> Result<Vec<core::ffi::c_char>, ()> {
     Ok(cstr.into_iter().map(|c| c as _).collect())
 }
 
-/// Converts a Rust string to a null terminated C string by appending a null
-/// terminator.  Returns `Err(())` if the input already contains a null byte.
+/// Converts a Rust string to a null terminated C string buffer that is wiped when dropped.
+/// Allocates the full buffer before copying the text. Returns `Err(())` if the input contains
+/// a null byte.
 pub fn str_to_cstr_vec_zeroizing(
     input: &str,
 ) -> Result<zeroize::Zeroizing<Vec<core::ffi::c_char>>, ()> {

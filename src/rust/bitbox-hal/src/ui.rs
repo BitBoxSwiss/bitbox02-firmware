@@ -8,6 +8,10 @@ use core::time::Duration;
 /// Keep this in sync with `src/ui/components/label.h:MAX_LABEL_SIZE`.
 pub const MAX_CONFIRM_BODY_SIZE: usize = 640;
 
+/// English BIP39 words contain at most 8 ASCII bytes. Reserve space for 24 words and 23 separators
+/// before writing any recovery words, avoiding reallocations that could leave unwiped copies.
+pub const MAX_MNEMONIC_BYTES: usize = 24 * 8 + 23;
+
 pub struct UserAbort;
 
 /// How the user left a recovery-word entry screen without entering a word.

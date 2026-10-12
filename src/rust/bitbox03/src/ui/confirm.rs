@@ -6,20 +6,25 @@ use bitbox_lvgl::{
     self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvObjFlag, LvOpacityLevel, ObjExt,
 };
 use util::futures::completion::Responder;
+use zeroize::Zeroizing;
 
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
-fn truncate_body(body: &str) -> String {
+// Confirmation bodies can contain secrets. Preallocate to avoid unwiped copies from growth.
+fn truncate_body(body: &str) -> Zeroizing<String> {
     if body.len() <= MAX_CONFIRM_BODY_SIZE {
-        return String::from(body);
+        let mut text = Zeroizing::new(String::with_capacity(body.len()));
+        text.push_str(body);
+        return text;
     }
 
     let mut end = MAX_CONFIRM_BODY_SIZE;
     while !body.is_char_boundary(end) {
         end -= 1;
     }
-    let mut truncated = String::from(&body[..end]);
+    let mut truncated = Zeroizing::new(String::with_capacity(end + 3));
+    truncated.push_str(&body[..end]);
     truncated.push_str("...");
     truncated
 }
@@ -123,18 +128,28 @@ mod tests {
 
     #[test]
     fn test_truncate_body() {
+        let short = "abandon";
+        let truncated = truncate_body(short);
+        assert_eq!(truncated.as_str(), short);
+        assert_eq!(truncated.capacity(), short.len());
+
         let exact = "a".repeat(MAX_CONFIRM_BODY_SIZE);
-        assert_eq!(truncate_body(&exact), exact);
+        let truncated = truncate_body(&exact);
+        assert_eq!(truncated.as_str(), exact);
+        assert_eq!(truncated.capacity(), exact.len());
 
         let overlong = "a".repeat(MAX_CONFIRM_BODY_SIZE + 1);
         let mut expected = String::from(&overlong[..MAX_CONFIRM_BODY_SIZE]);
         expected.push_str("...");
-        assert_eq!(truncate_body(&overlong), expected);
+        let truncated = truncate_body(&overlong);
+        assert_eq!(truncated.as_str(), expected);
+        assert_eq!(truncated.capacity(), expected.len());
 
         let mut utf8 = "a".repeat(MAX_CONFIRM_BODY_SIZE - 1);
         utf8.push('€');
         let truncated = truncate_body(&utf8);
         assert_eq!(truncated.len(), MAX_CONFIRM_BODY_SIZE + 2);
         assert!(truncated.ends_with("..."));
+        assert_eq!(truncated.capacity(), truncated.len());
     }
 }

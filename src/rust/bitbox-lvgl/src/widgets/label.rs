@@ -6,14 +6,14 @@ use core::ffi::CStr;
 use core::ptr::NonNull;
 
 use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, ObjExt, class, ffi};
-use util::strings::optional_cstr_from_ptr;
+use util::strings::{optional_cstr_from_ptr, str_to_cstr_vec_zeroizing};
 
 pub type LvLabelTextError = super::LvTextError;
 pub type LvLabel = LvHandle<class::LabelTag>;
 
 pub trait LabelExt: ObjExt {
     fn set_text(&self, txt: &str) -> Result<(), LvLabelTextError> {
-        let txt = CString::new(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
+        let txt = str_to_cstr_vec_zeroizing(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
         unsafe { ffi::lv_label_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
     }

@@ -280,7 +280,7 @@ static void test_ui_components_confirm_layout(void** state)
         component_t* title = confirm->sub_components.sub_components[cases[i].display_size ? 1 : 0];
         memset(pixels, 0, sizeof(pixels));
         title->f->render(title);
-        for (size_t y = 0; y < font_regular_11.line_height; y++) {
+        for (int32_t y = 0; y < font_regular_11.line_height; y++) {
             for (size_t x = 0; x < 128; x++) {
                 if (x < 20 || x >= 108) {
                     assert_int_equal(pixels[y][x], 0);

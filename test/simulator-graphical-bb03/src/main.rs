@@ -211,6 +211,8 @@ fn init_hww(
     bitbox: &mut BitBox03,
     args: &Args,
 ) -> Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>> {
+    block_on(bitbox02_rust::secp256k1::init(bitbox)).unwrap();
+
     //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     //bitbox02::screen::splash();
 

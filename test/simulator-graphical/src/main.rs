@@ -163,6 +163,7 @@ fn init_hww(
     info!("Memory setup: success");
 
     let mut hal = SimulatorHal::new();
+    block_on(bitbox02_rust::secp256k1::init(&mut hal)).unwrap();
 
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";

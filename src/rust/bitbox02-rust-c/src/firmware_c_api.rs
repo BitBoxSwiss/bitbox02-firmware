@@ -19,7 +19,10 @@ pub enum rust_memory_securechip_type_t {
 #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_main_loop() -> ! {
-    bitbox02_rust::main_loop::main_loop(&mut crate::HalImpl::new())
+    let mut hal = crate::HalImpl::new();
+    util::bb02_async::block_on(bitbox02_rust::secp256k1::init(&mut hal))
+        .expect("secp256k1 context initialization failed");
+    bitbox02_rust::main_loop::main_loop(&mut hal)
 }
 
 #[unsafe(no_mangle)]

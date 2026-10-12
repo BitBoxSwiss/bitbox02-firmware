@@ -208,6 +208,18 @@ static void test_ui_components_confirm_layout(void** state)
         {.title = "Warning", .body = "The next value is\ntoo large to display\nin full"},
         {.title = "WARNING", .body = "Your password has\nunder 4 characters.\nContinue?"},
         {.title = "WARNING", .body = "LAST attempt!\nWrong password\nresets the device."},
+        {.title = "Unknown\ncontract",
+         .body = "You will see the raw\ntransaction data.",
+         .accept_is_nextarrow = true},
+        {.title = "Unknown\ncontract",
+         .body = "Only proceed if you\nunderstand the data.",
+         .accept_is_nextarrow = true},
+        {.title = "Unknown\ncontract",
+         .body = "Signing a contract\nwith large data.",
+         .accept_is_nextarrow = true},
+        {.title = "Unknown\ncontract",
+         .body = "Only proceed if you\nunderstand the risks.",
+         .accept_is_nextarrow = true},
         {.title = "Two\nlines", .body = "ÄÖÜ\ngj"},
         {.title = "Bitcoin\nat\nm/45'", .body = "address", .scrollable = true},
         {.title = "Sign message\ndata (hex)",
@@ -216,6 +228,9 @@ static void test_ui_components_confirm_layout(void** state)
          .display_size = 3},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
+        if (!cases[i].scrollable) {
+            assert_true(label_fits_width(cases[i].body, cases[i].font, 128));
+        }
         component_t* confirm = confirm_create(&cases[i], confirm_callback, NULL);
         _assert_vertical_bounds(confirm);
         vertically_clipped_pixels = 0;

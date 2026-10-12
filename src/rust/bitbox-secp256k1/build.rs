@@ -23,7 +23,10 @@ fn main() {
         // Suppress all warnings in this dependency, we don't have control over them.
         .flag_if_supported("-w")
         .define("ECMULT_WINDOW_SIZE", Some("2"))
-        .define("ECMULT_GEN_PREC_BITS", Some("2"))
+        // Upstream's 2 KiB signing-table preset:
+        // https://github.com/BlockstreamResearch/secp256k1-zkp/blob/10366dbbbfeb11457f2aae3b23e154ab7d6a1fe4/CMakeLists.txt#L76-L88
+        .define("COMB_BLOCKS", Some("2"))
+        .define("COMB_TEETH", Some("5"))
         .define("USE_EXTERNAL_DEFAULT_CALLBACKS", Some("1"))
         .define("ENABLE_MODULE_RECOVERY", Some("1")) // needed only in Rust unit tests.
         .define("ENABLE_MODULE_EXTRAKEYS", Some("1"))

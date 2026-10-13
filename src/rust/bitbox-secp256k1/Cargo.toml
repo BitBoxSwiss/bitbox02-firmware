@@ -22,3 +22,4 @@ cc = { version = "1.2", features = ["parallel"] }
 
 [features]
 testing = []
+c-unit-testing = []

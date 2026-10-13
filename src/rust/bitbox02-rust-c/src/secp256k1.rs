@@ -51,7 +51,7 @@ pub extern "C" fn rust_secp256k1_verify(
     };
     // Signature verification does not need a dynamically allocated signing context. Using the
     // static context also avoids linking the signing precomputation table into factory setup,
-    // saving roughly 35 kB in the image.
+    // saving roughly 6.5 kB in the image with the 2 KiB signing table.
     unsafe {
         ffi::secp256k1_ecdsa_verify(
             ffi::secp256k1_context_no_precomp,

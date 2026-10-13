@@ -131,12 +131,12 @@ avoid a file-by-file inventory or a list of edits without motivation.
 
 Write for a reader who has not seen the conversation. Use the relevant task context and available
 prior sessions to recover the motivation, then check the description against the final diff. Do not
-invent rationale or describe abandoned plans as implemented. Keep validation concise and secondary
-to the motivation and behavior, and distinguish completed checks from unverified behavior.
+invent rationale or describe abandoned plans as implemented.
 
-Keep patches atomic—avoid mixing formatting and logic. Pull requests should outline the change,
-list verification commands or screenshots, and flag hardware requirements. Wait to squash until
-reviews conclude.
+In commit messages and PR bodies, do not include verification information, such as which tests were run.
+
+Keep patches atomic—avoid mixing formatting and logic. Pull requests should outline the change
+and flag hardware requirements. Wait to squash until reviews conclude.
 
 
 ## Various

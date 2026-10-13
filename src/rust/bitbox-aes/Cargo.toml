@@ -10,5 +10,9 @@ license = "Apache-2.0"
 [dependencies]
 bitcoin = { workspace = true }
 ctaes = { version = "0.1.0" }
+cipher = { version = "0.4.4", default-features = false }
 zeroize = { workspace = true }
 util = {path = "../util" }
+
+[dev-dependencies]
+hex_lit = { workspace = true }

@@ -10,6 +10,9 @@ use alloc::vec::Vec;
 use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
 use zeroize::Zeroizing;
 
+mod aes128;
+pub use aes128::Aes128;
+
 // AES block size.
 const BLOCK_SIZE: usize = 16;
 

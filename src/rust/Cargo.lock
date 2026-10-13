@@ -113,7 +113,9 @@ name = "bitbox-aes"
 version = "0.1.0"
 dependencies = [
  "bitcoin",
+ "cipher",
  "ctaes",
+ "hex_lit",
  "util",
  "zeroize",
 ]
@@ -294,10 +296,12 @@ name = "bitbox-securechip"
 version = "0.1.0"
 dependencies = [
  "async_test",
+ "bitbox-aes",
  "bitbox-core-utils",
  "bitbox-hal",
  "bitbox-platform-host",
  "bitbox-securechip-sys",
+ "ccm",
  "critical-section",
  "der",
  "grounded",
@@ -604,6 +608,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccm"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ae3c82e4355234767756212c570e29833699ab63e6ffd161887314cc5b43847"
+dependencies = [
+ "aead",
+ "cipher",
+ "ctr",
+ "subtle",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -751,6 +767,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4cbca3712c15d1e2dcc77f4eea8c838fb98f54ffe272d13a72516d488b098ce"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "ctr"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
+dependencies = [
+ "cipher",
 ]
 
 [[package]]

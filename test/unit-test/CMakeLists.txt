@@ -59,6 +59,8 @@ else()
      ""
      memory
      "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
+     optiga_crypt
+     ""
      stage0_sigcheck
      "-Wl,--wrap=pukcc_ecdsa_verify,--wrap=sha_sync_sha256_start,--wrap=sha_sync_sha256_update,--wrap=sha_sync_sha256_finish"
      stage0_flash
@@ -135,6 +137,10 @@ else()
     if(TEST_NAME STREQUAL "sbrk")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/sbrk.c)
       target_compile_definitions(${EXE} PRIVATE _DEFAULT_SOURCE)
+    endif()
+    if(TEST_NAME STREQUAL "optiga_crypt")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_crypt.c)
+      target_link_libraries(${EXE} PRIVATE optiga)
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

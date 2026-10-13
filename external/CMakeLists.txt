@@ -259,7 +259,7 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
 endif() # CMAKE_CROSSCOMPILING
 
 # optiga-trust-m
-# The below build instructions are loosely based on optiga-trust-m/tests/linux_i2c.cmake
+# The below build instructions are loosely based on optiga-trust-m/tests/core.cmake
 aux_source_directory(optiga-trust-m/src/cmd SRC_CMD_FILES)
 aux_source_directory(optiga-trust-m/src/common SRC_COMMON_FILES)
 aux_source_directory(optiga-trust-m/src/comms/ifx_i2c SRC_COMMS_IFX_I2C_FILES)

@@ -61,6 +61,8 @@ else()
      "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
      optiga_crypt
      ""
+     optiga_event
+     ""
      stage0_sigcheck
      "-Wl,--wrap=pukcc_ecdsa_verify,--wrap=sha_sync_sha256_start,--wrap=sha_sync_sha256_update,--wrap=sha_sync_sha256_finish"
      stage0_flash
@@ -141,6 +143,24 @@ else()
     if(TEST_NAME STREQUAL "optiga_crypt")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_crypt.c)
       target_link_libraries(${EXE} PRIVATE optiga)
+    endif()
+    if(TEST_NAME STREQUAL "optiga_event")
+      target_sources(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_os_event.c
+          ${CMAKE_SOURCE_DIR}/test/hardware-fakes/src/fake_timer.c
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_list.c
+      )
+      target_compile_definitions(${EXE} PRIVATE _UNIT_TEST_)
+      set_source_files_properties(
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_list.c
+          PROPERTIES COMPILE_OPTIONS -Wno-cast-qual
+      )
+      target_include_directories(${EXE} SYSTEM PRIVATE
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/include
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+          ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/pal
+          ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/common
+      )
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

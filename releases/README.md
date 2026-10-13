@@ -88,7 +88,32 @@ quality of the binary itself.
 
 ### How to reproduce
 
-Run `./build.sh <version tag> <make command>`, e.g.:
+Run `./build.sh <version tag> <make command>` from the `releases/` directory. The script clones
+the requested tag into `temp/` and builds the firmware in Docker.
+
+This script is very simple and you can review it or run all the steps inside manually.
+
+Choose the commands and binary paths below for your release and edition. Each run replaces
+`temp/`, so compare the binary's SHA-256 hash with the corresponding assertion file before
+starting another build. On macOS, use `shasum -a 256` instead of `sha256sum`.
+
+#### Releases from v9.28.0 onwards
+
+Replace `vX.Y.Z` below with the release version:
+
+```sh
+# Multi
+./build.sh firmware/vX.Y.Z "make firmware EDITION=multi"
+sha256sum temp/build-bitbox02-cmake-relwithdebinfo/bin/firmware.bin
+
+# Bitcoin-only
+./build.sh firmware/vX.Y.Z "make firmware EDITION=btc-only"
+sha256sum temp/build-bitbox02-cmake-relwithdebinfo/bin/firmware-btc.bin
+```
+
+#### Releases through v9.27.1
+
+For example:
 
 ```sh
 # Multi
@@ -113,9 +138,7 @@ Run `./build.sh <version tag> <make command>`, e.g.:
 # temp/build/bin/firmware-blupgrade-bitbox02nova-multi.bin
 ```
 
-This script is very simple and you can review it or run all the steps inside manually.
-
-When it successfully finishes, print the sha256 hash of the binary:
+After building, print the sha256 hash of the binary:
 
 ```sh
 # linux

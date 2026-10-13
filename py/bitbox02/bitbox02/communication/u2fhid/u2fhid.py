@@ -7,6 +7,7 @@ import random
 from bitbox02.communication import PhysicalLayer, TransportLayer
 
 USB_REPORT_SIZE = 64
+MAX_PAYLOAD_LEN = USB_REPORT_SIZE - 7 + 128 * (USB_REPORT_SIZE - 5)
 
 ERR_NONE = 0x00
 ERR_INVALID_CMD = 0x01
@@ -72,10 +73,10 @@ class U2FHid(TransportLayer):
             raise ValueError("Channel command (endpoint) is out of range '0 < endpoint <= 0xFF'")
         if cid < 0 or cid > 0xFFFFFFFF:
             raise ValueError("Channel id is out of range '0 < cid <= 0xFFFFFFFF'")
-        data = bytearray(data)
         data_len = len(data)
-        if data_len > 0xFFFF:
-            raise ValueError("Data is too large 'size <= 0xFFFF'")
+        if data_len > MAX_PAYLOAD_LEN:
+            raise ValueError(f"Data is too large 'size <= {MAX_PAYLOAD_LEN}'")
+        data = bytearray(data)
         seq = 0
         idx = 0
         buf = b""

@@ -324,6 +324,7 @@ name = "bitbox-aes"
 version = "0.1.0"
 dependencies = [
  "bitcoin",
+ "cipher",
  "ctaes",
  "util",
  "zeroize",
@@ -446,9 +447,11 @@ dependencies = [
 name = "bitbox-securechip"
 version = "0.1.0"
 dependencies = [
+ "bitbox-aes",
  "bitbox-core-utils",
  "bitbox-hal",
  "bitbox-securechip-sys",
+ "ccm",
  "critical-section",
  "der",
  "grounded",
@@ -753,6 +756,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccm"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0be9b34d99d395af800e996c5784f810f8400ccd64202f91859dc677825b5378"
+dependencies = [
+ "aead",
+ "cipher",
+ "ctr",
+ "ctutils",
+]
+
+[[package]]
 name = "cesu8"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1050,6 +1065,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4cbca3712c15d1e2dcc77f4eea8c838fb98f54ffe272d13a72516d488b098ce"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "ctr"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baaca1c4b237092596f64d571e9db6ce4109c4ef9742e27590f1709594461f21"
+dependencies = [
+ "cipher",
 ]
 
 [[package]]

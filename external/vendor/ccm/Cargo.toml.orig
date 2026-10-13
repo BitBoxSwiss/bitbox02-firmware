@@ -1,0 +1,39 @@
+[package]
+name = "ccm"
+version = "0.6.1"
+description = "Generic implementation of the Counter with CBC-MAC (CCM) mode"
+authors = ["RustCrypto Developers"]
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+readme = "README.md"
+documentation = "https://docs.rs/ccm"
+homepage = "https://github.com/RustCrypto/AEADs/tree/master/ccm"
+repository = "https://github.com/RustCrypto/AEADs"
+categories = ["cryptography", "no-std"]
+keywords = ["encryption", "aead"]
+rust-version = "1.85"
+
+[dependencies]
+aead = { version = "0.6", default-features = false }
+cipher = { version = "0.5", default-features = false }
+ctr = { version = "0.10", default-features = false }
+ctutils = "0.4"
+
+[dev-dependencies]
+aead = { version = "0.6", features = ["dev"], default-features = false }
+aes = "0.9"
+hex-literal = "1"
+
+[features]
+default = ["alloc", "getrandom"]
+alloc = ["aead/alloc"]
+arrayvec = ["aead/arrayvec"]
+bytes = ["aead/bytes"]
+getrandom = ["aead/getrandom"]
+rand_core = ["aead/rand_core"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

@@ -262,11 +262,9 @@ endif() # CMAKE_CROSSCOMPILING
 # The below build instructions are loosely based on optiga-trust-m/tests/linux_i2c.cmake
 aux_source_directory(optiga-trust-m/src/cmd SRC_CMD_FILES)
 aux_source_directory(optiga-trust-m/src/common SRC_COMMON_FILES)
-aux_source_directory(optiga-trust-m/external/mbedtls/library MBEDTLS_FILES)
 aux_source_directory(optiga-trust-m/src/comms/ifx_i2c SRC_COMMS_IFX_I2C_FILES)
 aux_source_directory(optiga-trust-m/src/crypt SRC_CRYPT_FILES)
 aux_source_directory(optiga-trust-m/src/util SRC_UTIL_FILES)
-set(PAL_FILES optiga-trust-m/extras/pal/pal_crypt_mbedtls.c)
 add_library(optiga EXCLUDE_FROM_ALL
   ${SRC_CMD_FILES}
   ${SRC_COMMON_FILES}
@@ -274,10 +272,7 @@ add_library(optiga EXCLUDE_FROM_ALL
   optiga-trust-m/src/comms/optiga_comms_ifx_i2c.c
   ${SRC_CRYPT_FILES}
   ${SRC_UTIL_FILES}
-  ${PAL_FILES}
-  ${MBEDTLS_FILES}
 )
-target_compile_definitions(optiga PRIVATE MBEDTLS_USER_CONFIG_FILE="mbedtls_config.h")
 # Ignore warnings in external lib.
 target_compile_options(optiga PRIVATE "-w" -flto -ffat-lto-objects)
 target_compile_definitions(optiga PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
@@ -289,6 +284,5 @@ target_include_directories(optiga SYSTEM PUBLIC
   optiga-trust-m/include/ifx_i2c
   optiga-trust-m/include/pal
   optiga-trust-m/include/comms
-  optiga-trust-m/external/mbedtls/include
   ${CMAKE_CURRENT_SOURCE_DIR} # for the BitBox-custom "optiga_config.h"
 )

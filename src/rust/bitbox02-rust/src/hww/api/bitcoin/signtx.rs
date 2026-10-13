@@ -267,7 +267,7 @@ fn validate_input(
     params: &super::params::Params,
     script_config_account: &ValidatedScriptConfigWithKeypath,
 ) -> Result<(), Error> {
-    if input.prev_out_value == 0 {
+    if input.prev_out_value == 0 || input.prev_out_hash.len() != 32 {
         return Err(Error::InvalidInput);
     }
     validate_keypath(
@@ -2989,6 +2989,41 @@ mod tests {
             let init_request = transaction.borrow().init_request();
             let result = process(&mut TestingHal::new(), &init_request).await;
             assert_eq!(result, Err(Error::InvalidInput));
+        }
+    }
+
+    #[async_test::test]
+    async fn test_process_invalid_prev_out_hash_length() {
+        for invalid_pass in [1, 2] {
+            for hash_len in [0, 31, 33] {
+                mock_unlocked();
+                let transaction = new_transaction(pb::BtcCoin::Btc).await;
+                let tx = transaction.clone();
+                let first_input_requests = alloc::rc::Rc::new(core::cell::Cell::new(0));
+                let first_input_requests_callback = first_input_requests.clone();
+                *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+                    Some(Box::new(move |response: Response| {
+                        let input_index = extract_next(&response).index;
+                        let mut request = tx.borrow().make_host_request(response);
+                        if let Request::BtcSignInput(input) = &mut request
+                            && input_index == 0
+                        {
+                            let pass = first_input_requests_callback.get() + 1;
+                            first_input_requests_callback.set(pass);
+                            if pass == invalid_pass {
+                                input.prev_out_hash.resize(hash_len, 0);
+                            }
+                        }
+                        Ok(request)
+                    }));
+
+                let init_request = transaction.borrow().init_request();
+                assert_eq!(
+                    process(&mut TestingHal::new(), &init_request).await,
+                    Err(Error::InvalidInput)
+                );
+                assert_eq!(first_input_requests.get(), invalid_pass);
+            }
         }
     }
 

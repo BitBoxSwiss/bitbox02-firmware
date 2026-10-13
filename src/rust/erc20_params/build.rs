@@ -2,6 +2,7 @@
 
 #![allow(clippy::format_collect)]
 
+use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
@@ -66,6 +67,9 @@ fn main() {
             .push(token);
     }
 
+    let mut grouped_tokens: Vec<_> = grouped_tokens.into_iter().collect();
+    grouped_tokens.sort_by_key(|(_, tokens)| Reverse(tokens.len()));
+
     let out_filename = Path::new(&std::env::var("OUT_DIR").unwrap()).join("tokens.rs");
     let mut output_file = OpenOptions::new()
         .create(true)
@@ -75,7 +79,7 @@ fn main() {
         .unwrap();
 
     writeln!(output_file, "const CONTRACT_ADDRESSES: &[[u8; 20]] = &[").unwrap();
-    for tokens in grouped_tokens.values_mut() {
+    for (_, tokens) in &mut grouped_tokens {
         // Sort by contract address so we can look up by contract
         // address more efficiently.
         tokens.sort_by_key(|token| token.contract_address);
@@ -94,8 +98,8 @@ fn main() {
     }
     writeln!(output_file, "];").unwrap();
     let units: String = grouped_tokens
-        .values()
-        .flatten()
+        .iter()
+        .flat_map(|(_, tokens)| tokens)
         .map(|token| token.unit.as_str())
         .collect();
     writeln!(

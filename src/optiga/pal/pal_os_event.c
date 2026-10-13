@@ -36,6 +36,7 @@
  */
 
 #include "pal_os_event.h"
+#include "hal_atomic.h"
 #include "hal_timer.h"
 
 extern struct timer_descriptor TIMER_0;
@@ -90,6 +91,11 @@ void pal_os_event_register_callback_oneshot(
     void* callback_args,
     uint32_t time_us)
 {
+    CRITICAL_SECTION_ENTER()
+    // The command scheduler can replace an event before its timer fires.
+    if (is_list_element(&TIMER_0.tasks, &scheduler)) {
+        timer_remove_task(&TIMER_0, &scheduler);
+    }
     p_pal_os_event->callback_registered = callback;
     p_pal_os_event->callback_ctx = callback_args;
 
@@ -97,14 +103,19 @@ void pal_os_event_register_callback_oneshot(
     scheduler.cb = _timer_cb;
     scheduler.mode = TIMER_TASK_ONE_SHOT;
     timer_add_task(&TIMER_0, &scheduler);
+    CRITICAL_SECTION_LEAVE()
 }
 
 void pal_os_event_destroy(pal_os_event_t* pal_os_event)
 {
+    CRITICAL_SECTION_ENTER()
     if (pal_os_event != NULL) {
         pal_os_event_stop(pal_os_event);
     }
-    timer_remove_task(&TIMER_0, &scheduler);
+    if (is_list_element(&TIMER_0.tasks, &scheduler)) {
+        timer_remove_task(&TIMER_0, &scheduler);
+    }
+    CRITICAL_SECTION_LEAVE()
 }
 
 /**

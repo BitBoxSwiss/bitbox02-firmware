@@ -741,8 +741,6 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
 
 static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
-    (void)max_out_len;
-
     usb_processing_lock(usb_processing_u2f());
 
     // 0 and broadcast are reserved
@@ -752,9 +750,9 @@ static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t 
     }
 
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
-    size_t max = MIN(in_packet->len, USB_DATA_MAX_LEN);
-    memcpy(out_packet->data_addr, in_packet->data_addr, max);
-    out_packet->len = in_packet->len;
+    size_t len = MIN(in_packet->len, max_out_len);
+    memcpy(out_packet->data_addr, in_packet->data_addr, len);
+    out_packet->len = len;
     out_packet->cmd = U2FHID_PING;
     out_packet->cid = in_packet->cid;
 }

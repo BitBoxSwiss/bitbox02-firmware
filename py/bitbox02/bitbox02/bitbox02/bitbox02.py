@@ -169,6 +169,7 @@ class BitBox02(BitBoxCommonAPI):
         response = self._msg_query(request, expected_response="device_info")
         result: Dict[str, Any] = {
             "name": response.device_info.name,
+            "language": response.device_info.language,
             "version": response.device_info.version,
             "bootloader_version": (
                 response.device_info.bootloader_version
@@ -198,6 +199,12 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member
         request = hww.Request()
         request.device_name.name = device_name
+        self._msg_query(request, expected_response="success")
+
+    def set_device_language(self, language: str) -> None:
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.device_language.language = language
         self._msg_query(request, expected_response="success")
 
     def set_password(self, entropy_size: int = 32) -> bool:

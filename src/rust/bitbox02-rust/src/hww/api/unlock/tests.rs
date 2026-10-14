@@ -21,7 +21,7 @@ const SEED: [u8; 32] = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cec
 
 async fn task(packet: Vec<u8>) -> Vec<u8> {
     let mut hal = HAL.0.borrow_mut().take().unwrap();
-    let response = crate::hww::process_packet(&mut hal, packet).await;
+    let response = Box::pin(crate::hww::process_packet(&mut hal, packet)).await;
     HAL.0.borrow_mut().replace(hal);
     response
 }

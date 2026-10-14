@@ -34,6 +34,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     };
     Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
         name: hal.memory().get_device_name(),
+        language: crate::i18n::language_code(hal.memory().get_device_language()).into(),
         initialized: hal.memory().is_initialized(),
         version: crate::version::FIRMWARE_VERSION_SHORT.into(),
         mnemonic_passphrase_enabled: hal.memory().is_mnemonic_passphrase_enabled(),
@@ -63,6 +64,22 @@ mod tests {
             Response::DeviceInfo(response) => response,
             _ => panic!("unexpected response"),
         }
+    }
+
+    #[async_test::test]
+    async fn test_process_language() {
+        let mut hal = TestingHal::new();
+        assert_eq!(_device_info(&mut hal).await.language, "en");
+
+        hal.memory
+            .set_device_language(hal_memory::Language::German)
+            .unwrap();
+        assert_eq!(_device_info(&mut hal).await.language, "de");
+
+        hal.memory
+            .set_device_language(hal_memory::Language::English)
+            .unwrap();
+        assert_eq!(_device_info(&mut hal).await.language, "en");
     }
 
     #[async_test::test]

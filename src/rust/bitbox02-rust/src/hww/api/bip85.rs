@@ -3,13 +3,16 @@
 use super::Error;
 use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 
 use pb::response::Response;
 
+use crate::hal::Memory;
 use crate::hal::Ui;
 
 use crate::keystore;
 
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 /// Processes a BIP-85 API call.
@@ -33,28 +36,36 @@ pub async fn process(
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     use crate::hal::ui::{CanCancel, TrinaryChoice};
 
+    let title = crate::tr!(hal, "BIP-85");
+    let body = crate::tr!(hal, "Derive BIP-39\nmnemonic?");
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "BIP-85",
-            body: "Derive BIP-39\nmnemonic?",
+            title: &title,
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;
 
+    let title = crate::tr!(hal, "BIP-85");
+    let body = crate::tr!(
+        hal,
+        "This is an advanced feature. Proceed only if you know what you are doing."
+    );
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "BIP-85",
-            body: "This is an advanced feature. Proceed only if you know what you are doing.",
+            title: &title,
+            body: &body,
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;
 
+    let how_many_words = crate::tr!(hal, "How many words?");
     let num_words: u32 = match hal
         .ui()
-        .trinary_choice("How many words?", Some("12"), None, Some("24"))
+        .trinary_choice(&how_many_words, Some("12"), None, Some("24"))
         .await
     {
         TrinaryChoice::Left => 12,
@@ -62,21 +73,22 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         TrinaryChoice::Right => 24,
     };
 
-    hal.ui().status(&format!("{} words", num_words), true).await;
+    let status = crate::tr_format!(hal, "{} words", &[&num_words.to_string()]);
+    hal.ui().status(&status, true).await;
 
     // Pick index. The first few are quick-access. "More" leads to a full number input keyboard.
-    let index: u32 = match hal
-        .ui()
-        .menu(&["0", "1", "2", "3", "4", "More"], Some("Select index"))
-        .await?
-    {
+    let more = crate::tr!(hal, "More");
+    let select_index = crate::tr!(hal, "Select index");
+    let words = ["0", "1", "2", "3", "4", more.as_ref()];
+    let index: u32 = match hal.ui().menu(&words, Some(&select_index)).await? {
         i @ 0..=4 => i.into(),
         5 => {
+            let title = crate::tr!(hal, "Enter index");
             let number_string = hal
                 .ui()
                 .enter_string(
                     &crate::hal::ui::EnterStringParams {
-                        title: "Enter index",
+                        title: &title,
                         number_input: true,
                         longtouch: true,
                         ..Default::default()
@@ -88,7 +100,8 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
             match number_string.as_str().parse::<u32>() {
                 Ok(i) if i < util::bip32::HARDENED => i,
                 _ => {
-                    hal.ui().status("Invalid index", false).await;
+                    let status = crate::tr!(hal, "Invalid index");
+                    hal.ui().status(&status, false).await;
                     return Err(Error::InvalidInput);
                 }
             }
@@ -96,11 +109,13 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         6.. => panic!("bip85 error"),
     };
 
-    hal.ui().status(&format!("Index: {}", index), true).await;
+    let status = crate::tr_format!(hal, "Index: {}", &[&index.to_string()]);
+    hal.ui().status(&status, true).await;
 
+    let title = crate::tr!(hal, "Keypath");
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "Keypath",
+            title: &title,
             body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
             scrollable: true,
             longtouch: true,
@@ -111,11 +126,13 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     let mnemonic = keystore::bip85_bip39(hal, num_words, index).await?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
     {
+        let language = hal.memory().get_device_language();
         let crate::hal::HalSubsystems { ui, random, .. } = hal.as_mut();
-        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words).await?;
+        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words, language).await?;
     }
 
-    hal.ui().status("Finished", true).await;
+    let status = crate::tr!(hal, "Finished");
+    hal.ui().status(&status, true).await;
 
     Ok(())
 }
@@ -132,10 +149,11 @@ async fn process_ln(
     if account_number != 0 {
         return Err(Error::InvalidInput);
     }
+    let body = crate::tr!(hal, "Create\nLightning wallet\non host device?");
     hal.ui()
         .confirm(&ConfirmParams {
             title: "",
-            body: "Create\nLightning wallet\non host device?",
+            body: &body,
             longtouch: true,
             ..Default::default()
         })

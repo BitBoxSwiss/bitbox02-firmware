@@ -6,6 +6,7 @@
 #include "ui_images.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -19,7 +20,6 @@
 #endif
 
 #define SCALE 2 // Divide `count` by scale to slow down motion
-#define TEXT "Tap this side"
 #define COUNT_CHANGE_DIRECTION (SCREEN_WIDTH / 2 + IMAGE_DEFAULT_ARROW_HEIGHT - 2)
 #define COUNT_SHOW_TEXT (COUNT_CHANGE_DIRECTION + SCREEN_HEIGHT / 2 + 24)
 
@@ -172,8 +172,10 @@ component_t* orientation_arrows_create(void (*done_callback)(bool, void*), void*
     orientation->position.top = 0;
     orientation->position.left = 0;
 
-    component_t* button_bottom = button_create_wide(TEXT, bottom_slider, _stay, orientation);
-    component_t* button_top = button_create_wide(TEXT, top_slider, _flip, orientation);
+    char text[32] = {0};
+    rust_i18n_translate_copy("Tap this side", text, sizeof(text));
+    component_t* button_bottom = button_create_wide(text, bottom_slider, _stay, orientation);
+    component_t* button_top = button_create_wide(text, top_slider, _flip, orientation);
     component_t* rotate = image_create(
         IMAGE_ROTATE, sizeof(IMAGE_ROTATE), IMAGE_ROTATE_W, IMAGE_ROTATE_H, CENTER, orientation);
 

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Bitcoin: fix signing Taproot wallet policies and avoid requiring previous transactions
+  when all inputs are Taproot
 - Validate ECDSA signatures and recovery IDs in Anti-Klepto and direct signing flows
 - Require firmware v9.4.0 or newer for BTC transaction signing and v9.5.0 or newer for
   BTC/ETH message and ETH transaction signing

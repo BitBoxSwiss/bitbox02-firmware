@@ -65,7 +65,7 @@ class DuplicateEntryException(Exception):
     pass
 
 
-def is_taproot(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
+def _is_taproot_simple(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
     # pylint: disable=no-member
     return (
         script_config.script_config.WhichOneof("config") == "simple_type"
@@ -73,12 +73,22 @@ def is_taproot(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
     )
 
 
+def _is_taproot_policy(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
+    return script_config.script_config.WhichOneof(
+        "config"
+    ) == "policy" and script_config.script_config.policy.policy.startswith("tr(")
+
+
+def _is_schnorr(script_config: btc.BTCScriptConfigWithKeypath) -> bool:
+    return _is_taproot_simple(script_config) or _is_taproot_policy(script_config)
+
+
 def btc_sign_needs_prevtxs(script_configs: Sequence[btc.BTCScriptConfigWithKeypath]) -> bool:
     """Returns True if the prev_tx field in BTCInputType needs to be
     populated before calling btc_sign(). This is the case if there are
     any non-taproot inputs in the transaction to be signed.
     """
-    return not all(map(is_taproot, script_configs))
+    return not all(map(_is_schnorr, script_configs))
 
 
 class BTCPrevTxInputType(TypedDict):
@@ -486,7 +496,7 @@ class BitBox02(BitBoxCommonAPI):
             # Timestamp-based nLockTime supported since v9.27.0.
             self._require_atleast(semver.VersionInfo(9, 27, 0))
 
-        if any(map(is_taproot, script_configs)):
+        if any(map(_is_taproot_simple, script_configs)):
             self._require_atleast(semver.VersionInfo(9, 10, 0))
 
         if output_script_configs:
@@ -540,7 +550,7 @@ class BitBox02(BitBoxCommonAPI):
                 )
 
                 # Anti-Klepto protocol not supported yet for Schnorr signatures.
-                input_is_schnorr = is_taproot(script_configs[tx_input["script_config_index"]])
+                input_is_schnorr = _is_schnorr(script_configs[tx_input["script_config_index"]])
                 perform_antiklepto = is_inputs_pass2 and not input_is_schnorr
 
                 if perform_antiklepto:

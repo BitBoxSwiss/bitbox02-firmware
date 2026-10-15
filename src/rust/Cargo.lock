@@ -886,6 +886,7 @@ name = "erc20_params"
 version = "0.1.0"
 dependencies = [
  "hex",
+ "hex_lit",
 ]
 
 [[package]]

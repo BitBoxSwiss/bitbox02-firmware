@@ -8,5 +8,5 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies.prost-build]
-# keep version in sync with src/rust/bitbox02-rust/Cargo.toml
-version = "0.13.1"
+# keep version in sync with src/rust/bitbox02-rust/Cargo.toml and src/rust/bitbox-proto/Cargo.toml.
+version = "0.14.4"

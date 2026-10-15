@@ -1,180 +1,32 @@
 //! Utility functions and types for encoding and decoding Protobuf types.
 //!
-//! Meant to be used only from `Message` implementations.
-
-#![allow(clippy::implicit_hasher, clippy::ptr_arg)]
+//! This module contains the encoding and decoding primitives for Protobuf as described in
+//! <https://protobuf.dev/programming-guides/encoding/>.
+//!
+//! This module is `pub`, but is only for prost internal use. The `prost-derive` crate needs access for its `Message` implementations.
 
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::cmp::min;
 use core::mem;
 use core::str;
-use core::u32;
-use core::usize;
 
 use ::bytes::{Buf, BufMut, Bytes};
 
+use crate::error::DecodeErrorKind;
 use crate::DecodeError;
 use crate::Message;
 
-/// Encodes an integer value into LEB128 variable length format, and writes it to the buffer.
-/// The buffer must have enough remaining space (maximum 10 bytes).
-#[inline]
-pub fn encode_varint(mut value: u64, buf: &mut impl BufMut) {
-    // Varints are never more than 10 bytes
-    for _ in 0..10 {
-        if value < 0x80 {
-            buf.put_u8(value as u8);
-            break;
-        } else {
-            buf.put_u8(((value & 0x7F) | 0x80) as u8);
-            value >>= 7;
-        }
-    }
-}
+pub mod varint;
+pub use varint::{decode_varint, encode_varint, encoded_len_varint};
 
-/// Decodes a LEB128-encoded variable length integer from the buffer.
-#[inline]
-pub fn decode_varint(buf: &mut impl Buf) -> Result<u64, DecodeError> {
-    let bytes = buf.chunk();
-    let len = bytes.len();
-    if len == 0 {
-        return Err(DecodeError::new("invalid varint"));
-    }
+pub mod length_delimiter;
+pub use length_delimiter::{
+    decode_length_delimiter, encode_length_delimiter, length_delimiter_len,
+};
 
-    let byte = bytes[0];
-    if byte < 0x80 {
-        buf.advance(1);
-        Ok(u64::from(byte))
-    } else if len > 10 || bytes[len - 1] < 0x80 {
-        let (value, advance) = decode_varint_slice(bytes)?;
-        buf.advance(advance);
-        Ok(value)
-    } else {
-        decode_varint_slow(buf)
-    }
-}
-
-/// Decodes a LEB128-encoded variable length integer from the slice, returning the value and the
-/// number of bytes read.
-///
-/// Based loosely on [`ReadVarint64FromArray`][1] with a varint overflow check from
-/// [`ConsumeVarint`][2].
-///
-/// ## Safety
-///
-/// The caller must ensure that `bytes` is non-empty and either `bytes.len() >= 10` or the last
-/// element in bytes is < `0x80`.
-///
-/// [1]: https://github.com/google/protobuf/blob/3.3.x/src/google/protobuf/io/coded_stream.cc#L365-L406
-/// [2]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358
-#[inline]
-fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
-    // Fully unrolled varint decoding loop. Splitting into 32-bit pieces gives better performance.
-
-    // Use assertions to ensure memory safety, but it should always be optimized after inline.
-    assert!(!bytes.is_empty());
-    assert!(bytes.len() > 10 || bytes[bytes.len() - 1] < 0x80);
-
-    let mut b: u8 = unsafe { *bytes.get_unchecked(0) };
-    let mut part0: u32 = u32::from(b);
-    if b < 0x80 {
-        return Ok((u64::from(part0), 1));
-    };
-    part0 -= 0x80;
-    b = unsafe { *bytes.get_unchecked(1) };
-    part0 += u32::from(b) << 7;
-    if b < 0x80 {
-        return Ok((u64::from(part0), 2));
-    };
-    part0 -= 0x80 << 7;
-    b = unsafe { *bytes.get_unchecked(2) };
-    part0 += u32::from(b) << 14;
-    if b < 0x80 {
-        return Ok((u64::from(part0), 3));
-    };
-    part0 -= 0x80 << 14;
-    b = unsafe { *bytes.get_unchecked(3) };
-    part0 += u32::from(b) << 21;
-    if b < 0x80 {
-        return Ok((u64::from(part0), 4));
-    };
-    part0 -= 0x80 << 21;
-    let value = u64::from(part0);
-
-    b = unsafe { *bytes.get_unchecked(4) };
-    let mut part1: u32 = u32::from(b);
-    if b < 0x80 {
-        return Ok((value + (u64::from(part1) << 28), 5));
-    };
-    part1 -= 0x80;
-    b = unsafe { *bytes.get_unchecked(5) };
-    part1 += u32::from(b) << 7;
-    if b < 0x80 {
-        return Ok((value + (u64::from(part1) << 28), 6));
-    };
-    part1 -= 0x80 << 7;
-    b = unsafe { *bytes.get_unchecked(6) };
-    part1 += u32::from(b) << 14;
-    if b < 0x80 {
-        return Ok((value + (u64::from(part1) << 28), 7));
-    };
-    part1 -= 0x80 << 14;
-    b = unsafe { *bytes.get_unchecked(7) };
-    part1 += u32::from(b) << 21;
-    if b < 0x80 {
-        return Ok((value + (u64::from(part1) << 28), 8));
-    };
-    part1 -= 0x80 << 21;
-    let value = value + ((u64::from(part1)) << 28);
-
-    b = unsafe { *bytes.get_unchecked(8) };
-    let mut part2: u32 = u32::from(b);
-    if b < 0x80 {
-        return Ok((value + (u64::from(part2) << 56), 9));
-    };
-    part2 -= 0x80;
-    b = unsafe { *bytes.get_unchecked(9) };
-    part2 += u32::from(b) << 7;
-    // Check for u64::MAX overflow. See [`ConsumeVarint`][1] for details.
-    // [1]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358
-    if b < 0x02 {
-        return Ok((value + (u64::from(part2) << 56), 10));
-    };
-
-    // We have overrun the maximum size of a varint (10 bytes) or the final byte caused an overflow.
-    // Assume the data is corrupt.
-    Err(DecodeError::new("invalid varint"))
-}
-
-/// Decodes a LEB128-encoded variable length integer from the buffer, advancing the buffer as
-/// necessary.
-///
-/// Contains a varint overflow check from [`ConsumeVarint`][1].
-///
-/// [1]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358
-#[inline(never)]
-#[cold]
-fn decode_varint_slow(buf: &mut impl Buf) -> Result<u64, DecodeError> {
-    let mut value = 0;
-    for count in 0..min(10, buf.remaining()) {
-        let byte = buf.get_u8();
-        value |= u64::from(byte & 0x7F) << (count * 7);
-        if byte <= 0x7F {
-            // Check for u64::MAX overflow. See [`ConsumeVarint`][1] for details.
-            // [1]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358
-            if count == 9 && byte >= 0x02 {
-                return Err(DecodeError::new("invalid varint"));
-            } else {
-                return Ok(value);
-            }
-        }
-    }
-
-    Err(DecodeError::new("invalid varint"))
-}
+pub mod wire_type;
+pub use wire_type::{check_wire_type, WireType};
 
 /// Additional information passed to every decode/merge function.
 ///
@@ -232,7 +84,7 @@ impl DecodeContext {
     #[inline]
     pub(crate) fn limit_reached(&self) -> Result<(), DecodeError> {
         if self.recurse_count == 0 {
-            Err(DecodeError::new("recursion limit reached"))
+            Err(DecodeErrorKind::RecursionLimitReached.into())
         } else {
             Ok(())
         }
@@ -240,54 +92,13 @@ impl DecodeContext {
 
     #[cfg(feature = "no-recursion-limit")]
     #[inline]
-    #[allow(clippy::unnecessary_wraps)] // needed in other features
     pub(crate) fn limit_reached(&self) -> Result<(), DecodeError> {
         Ok(())
     }
 }
 
-/// Returns the encoded length of the value in LEB128 variable length format.
-/// The returned value will be between 1 and 10, inclusive.
-#[inline]
-pub fn encoded_len_varint(value: u64) -> usize {
-    // Based on [VarintSize64][1].
-    // [1]: https://github.com/google/protobuf/blob/3.3.x/src/google/protobuf/io/coded_stream.h#L1301-L1309
-    ((((value | 1).leading_zeros() ^ 63) * 9 + 73) / 64) as usize
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
-pub enum WireType {
-    Varint = 0,
-    SixtyFourBit = 1,
-    LengthDelimited = 2,
-    StartGroup = 3,
-    EndGroup = 4,
-    ThirtyTwoBit = 5,
-}
-
 pub const MIN_TAG: u32 = 1;
 pub const MAX_TAG: u32 = (1 << 29) - 1;
-
-impl TryFrom<u64> for WireType {
-    type Error = DecodeError;
-
-    #[inline]
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(WireType::Varint),
-            1 => Ok(WireType::SixtyFourBit),
-            2 => Ok(WireType::LengthDelimited),
-            3 => Ok(WireType::StartGroup),
-            4 => Ok(WireType::EndGroup),
-            5 => Ok(WireType::ThirtyTwoBit),
-            _ => Err(DecodeError::new(format!(
-                "invalid wire type value: {}",
-                value
-            ))),
-        }
-    }
-}
 
 /// Encodes a Protobuf field key, which consists of a wire type designator and
 /// the field tag.
@@ -304,13 +115,13 @@ pub fn encode_key(tag: u32, wire_type: WireType, buf: &mut impl BufMut) {
 pub fn decode_key(buf: &mut impl Buf) -> Result<(u32, WireType), DecodeError> {
     let key = decode_varint(buf)?;
     if key > u64::from(u32::MAX) {
-        return Err(DecodeError::new(format!("invalid key value: {}", key)));
+        return Err(DecodeErrorKind::InvalidKey { key }.into());
     }
     let wire_type = WireType::try_from(key & 0x07)?;
     let tag = key as u32 >> 3;
 
     if tag < MIN_TAG {
-        return Err(DecodeError::new("invalid tag value: 0"));
+        return Err(DecodeErrorKind::InvalidTag.into());
     }
 
     Ok((tag, wire_type))
@@ -319,21 +130,8 @@ pub fn decode_key(buf: &mut impl Buf) -> Result<(u32, WireType), DecodeError> {
 /// Returns the width of an encoded Protobuf field key with the given tag.
 /// The returned width will be between 1 and 5 bytes (inclusive).
 #[inline]
-pub fn key_len(tag: u32) -> usize {
-    encoded_len_varint(u64::from(tag << 3))
-}
-
-/// Checks that the expected wire type matches the actual wire type,
-/// or returns an error result.
-#[inline]
-pub fn check_wire_type(expected: WireType, actual: WireType) -> Result<(), DecodeError> {
-    if expected != actual {
-        return Err(DecodeError::new(format!(
-            "invalid wire type: {:?} (expected {:?})",
-            actual, expected
-        )));
-    }
-    Ok(())
+pub const fn key_len(tag: u32) -> usize {
+    encoded_len_varint((tag << 3) as u64)
 }
 
 /// Helper function which abstracts reading a length delimiter prefix followed
@@ -351,7 +149,7 @@ where
     let len = decode_varint(buf)?;
     let remaining = buf.remaining();
     if len > remaining as u64 {
-        return Err(DecodeError::new("buffer underflow"));
+        return Err(DecodeErrorKind::BufferUnderflow.into());
     }
 
     let limit = remaining - len as usize;
@@ -360,7 +158,7 @@ where
     }
 
     if buf.remaining() != limit {
-        return Err(DecodeError::new("delimited length exceeded"));
+        return Err(DecodeErrorKind::DelimitedLengthExceeded.into());
     }
     Ok(())
 }
@@ -382,18 +180,18 @@ pub fn skip_field(
             match inner_wire_type {
                 WireType::EndGroup => {
                     if inner_tag != tag {
-                        return Err(DecodeError::new("unexpected end group tag"));
+                        return Err(DecodeErrorKind::UnexpectedEndGroupTag.into());
                     }
                     break 0;
                 }
                 _ => skip_field(inner_wire_type, inner_tag, buf, ctx.enter_recursion())?,
             }
         },
-        WireType::EndGroup => return Err(DecodeError::new("unexpected end group tag")),
+        WireType::EndGroup => return Err(DecodeErrorKind::UnexpectedEndGroupTag.into()),
     };
 
     if len > buf.remaining() as u64 {
-        return Err(DecodeError::new("buffer underflow"));
+        return Err(DecodeErrorKind::BufferUnderflow.into());
     }
 
     buf.advance(len as usize);
@@ -598,7 +396,7 @@ macro_rules! fixed_width {
             ) -> Result<(), DecodeError> {
                 check_wire_type($wire_type, wire_type)?;
                 if buf.remaining() < $width {
-                    return Err(DecodeError::new("buffer underflow"));
+                    return Err(DecodeErrorKind::BufferUnderflow.into());
                 }
                 *value = buf.$get();
                 Ok(())
@@ -740,6 +538,7 @@ macro_rules! length_delimited {
         }
 
         #[inline]
+        #[allow(clippy::ptr_arg)]
         pub fn encoded_len(tag: u32, value: &$ty) -> usize {
             key_len(tag) + encoded_len_varint(value.len() as u64) + value.len()
         }
@@ -785,7 +584,7 @@ pub mod string {
         // in the buf implementation, a drop guard is used.
         unsafe {
             struct DropGuard<'a>(&'a mut Vec<u8>);
-            impl<'a> Drop for DropGuard<'a> {
+            impl Drop for DropGuard<'_> {
                 #[inline]
                 fn drop(&mut self) {
                     self.0.clear();
@@ -800,9 +599,7 @@ pub mod string {
                     mem::forget(drop_guard);
                     Ok(())
                 }
-                Err(_) => Err(DecodeError::new(
-                    "invalid string value: data is not UTF-8 encoded",
-                )),
+                Err(_) => Err(DecodeErrorKind::InvalidString.into()),
             }
         }
     }
@@ -887,6 +684,8 @@ impl sealed::BytesAdapter for Vec<u8> {
 }
 
 pub mod bytes {
+    use crate::error::DecodeErrorKind;
+
     use super::*;
 
     pub fn encode(tag: u32, value: &impl BytesAdapter, buf: &mut impl BufMut) {
@@ -904,7 +703,7 @@ pub mod bytes {
         check_wire_type(WireType::LengthDelimited, wire_type)?;
         let len = decode_varint(buf)?;
         if len > buf.remaining() as u64 {
-            return Err(DecodeError::new("buffer underflow"));
+            return Err(DecodeErrorKind::BufferUnderflow.into());
         }
         let len = len as usize;
 
@@ -915,7 +714,7 @@ pub mod bytes {
         // > types and strings, if the same field appears multiple times, the parser accepts the
         // > last value it sees.
         //
-        // [1]: https://developers.google.com/protocol-buffers/docs/encoding#optional
+        // [1]: https://protobuf.dev/programming-guides/encoding/#last-one-wins
         //
         // This is intended for A and B both being Bytes so it is zero-copy.
         // Some combinations of A and B types may cause a double-copy,
@@ -933,7 +732,7 @@ pub mod bytes {
         check_wire_type(WireType::LengthDelimited, wire_type)?;
         let len = decode_varint(buf)?;
         if len > buf.remaining() as u64 {
-            return Err(DecodeError::new("buffer underflow"));
+            return Err(DecodeErrorKind::BufferUnderflow.into());
         }
         let len = len as usize;
 
@@ -1067,6 +866,8 @@ pub mod message {
 }
 
 pub mod group {
+    use crate::error::DecodeErrorKind;
+
     use super::*;
 
     pub fn encode<M>(tag: u32, msg: &M, buf: &mut impl BufMut)
@@ -1095,7 +896,7 @@ pub mod group {
             let (field_tag, field_wire_type) = decode_key(buf)?;
             if field_wire_type == WireType::EndGroup {
                 if field_tag != tag {
-                    return Err(DecodeError::new("unexpected end group tag"));
+                    return Err(DecodeErrorKind::UnexpectedEndGroupTag.into());
                 }
                 return Ok(());
             }
@@ -1350,7 +1151,6 @@ mod test {
     use alloc::string::ToString;
     use core::borrow::Borrow;
     use core::fmt::Debug;
-    use core::u64;
 
     use ::bytes::BytesMut;
     use proptest::{prelude::*, test_runner::TestCaseResult};
@@ -1525,101 +1325,6 @@ mod test {
         assert!(s.is_empty());
     }
 
-    #[test]
-    fn varint() {
-        fn check(value: u64, encoded: &[u8]) {
-            // Small buffer.
-            let mut buf = Vec::with_capacity(1);
-            encode_varint(value, &mut buf);
-            assert_eq!(buf, encoded);
-
-            // Large buffer.
-            let mut buf = Vec::with_capacity(100);
-            encode_varint(value, &mut buf);
-            assert_eq!(buf, encoded);
-
-            assert_eq!(encoded_len_varint(value), encoded.len());
-
-            // See: https://github.com/tokio-rs/prost/pull/1008 for copying reasoning.
-            let mut encoded_copy = encoded;
-            let roundtrip_value = decode_varint(&mut encoded_copy).expect("decoding failed");
-            assert_eq!(value, roundtrip_value);
-
-            let mut encoded_copy = encoded;
-            let roundtrip_value =
-                decode_varint_slow(&mut encoded_copy).expect("slow decoding failed");
-            assert_eq!(value, roundtrip_value);
-        }
-
-        check(2u64.pow(0) - 1, &[0x00]);
-        check(2u64.pow(0), &[0x01]);
-
-        check(2u64.pow(7) - 1, &[0x7F]);
-        check(2u64.pow(7), &[0x80, 0x01]);
-        check(300, &[0xAC, 0x02]);
-
-        check(2u64.pow(14) - 1, &[0xFF, 0x7F]);
-        check(2u64.pow(14), &[0x80, 0x80, 0x01]);
-
-        check(2u64.pow(21) - 1, &[0xFF, 0xFF, 0x7F]);
-        check(2u64.pow(21), &[0x80, 0x80, 0x80, 0x01]);
-
-        check(2u64.pow(28) - 1, &[0xFF, 0xFF, 0xFF, 0x7F]);
-        check(2u64.pow(28), &[0x80, 0x80, 0x80, 0x80, 0x01]);
-
-        check(2u64.pow(35) - 1, &[0xFF, 0xFF, 0xFF, 0xFF, 0x7F]);
-        check(2u64.pow(35), &[0x80, 0x80, 0x80, 0x80, 0x80, 0x01]);
-
-        check(2u64.pow(42) - 1, &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F]);
-        check(2u64.pow(42), &[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01]);
-
-        check(
-            2u64.pow(49) - 1,
-            &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F],
-        );
-        check(
-            2u64.pow(49),
-            &[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01],
-        );
-
-        check(
-            2u64.pow(56) - 1,
-            &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F],
-        );
-        check(
-            2u64.pow(56),
-            &[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01],
-        );
-
-        check(
-            2u64.pow(63) - 1,
-            &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F],
-        );
-        check(
-            2u64.pow(63),
-            &[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01],
-        );
-
-        check(
-            u64::MAX,
-            &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01],
-        );
-    }
-
-    const U64_MAX_PLUS_ONE: &[u8] = &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x02];
-
-    #[test]
-    fn varint_overflow() {
-        let mut copy = U64_MAX_PLUS_ONE;
-        decode_varint(&mut copy).expect_err("decoding u64::MAX + 1 succeeded");
-    }
-
-    #[test]
-    fn variant_slow_overflow() {
-        let mut copy = U64_MAX_PLUS_ONE;
-        decode_varint_slow(&mut copy).expect_err("slow decoding u64::MAX + 1 succeeded");
-    }
-
     /// This big bowl o' macro soup generates an encoding property test for each combination of map
     /// type, scalar map key, and value type.
     /// TODO: these tests take a long time to compile, can this be improved?
@@ -1723,4 +1428,35 @@ mod test {
         (String, string),
         (Vec<u8>, bytes)
     ]);
+
+    #[test]
+    /// `decode_varint` accepts a `Buf`, which can be multiple concatenated buffers.
+    /// This test ensures that future optimizations don't break the
+    /// `decode_varint` for non-continuous memory.
+    fn split_varint_decoding() {
+        let mut test_values = Vec::<u64>::with_capacity(10 * 2);
+        test_values.push(128);
+        for i in 2..9 {
+            test_values.push((1 << (7 * i)) - 1);
+            test_values.push(1 << (7 * i));
+        }
+
+        for v in test_values {
+            let mut buf = BytesMut::with_capacity(10);
+            encode_varint(v, &mut buf);
+            let half_len = buf.len() / 2;
+            let len = buf.len();
+            // this weird sequence here splits the buffer into two instances of Bytes
+            // which we then stitch together with `bytes::buf::Buf::chain`
+            // which ensures the varint bytes are not in a single chunk
+            let b2 = buf.split_off(half_len);
+            let mut c = buf.chain(b2);
+
+            // make sure all the bytes are inside
+            assert_eq!(c.remaining(), len);
+            // make sure the first chunk is split as we expected
+            assert_eq!(c.chunk().len(), half_len);
+            assert_eq!(v, decode_varint(&mut c).unwrap());
+        }
+    }
 }

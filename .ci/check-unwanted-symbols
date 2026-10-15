@@ -43,6 +43,13 @@ check_firmware() {
 
     check_symbols \
         "$elf" \
+        "floating-point remainder" \
+        "(^|::|[[:space:]])fmodf?($|::|[.[:space:]])" \
+        "Floating-point remainder adds significant binary bloat." \
+        "Avoid floating-point % and round via integer conversion, as in format_percentage()."
+
+    check_symbols \
+        "$elf" \
         "strftime" \
         "(^|[[:space:]])strftime($|[[:space:]])" \
         "strftime adds significant binary bloat." \

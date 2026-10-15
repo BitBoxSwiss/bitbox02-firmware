@@ -73,7 +73,7 @@ pub fn get_hash(
             .map(|xpub| bip32::Xpub::from(xpub).serialize(None))
             .collect::<Result<Vec<Vec<u8>>, ()>>()?;
         if let SortXpubs::Yes = sort_xpubs {
-            xpubs_serialized.sort();
+            xpubs_serialized.sort_unstable();
         }
         for xpub in xpubs_serialized.iter() {
             hasher.update(xpub);
@@ -303,7 +303,7 @@ pub fn pkscript(
                 .to_vec())
         })
         .collect::<Result<_, _>>()?;
-    pubkeys.sort();
+    pubkeys.sort_unstable();
 
     let mut script_builder = bitcoin::script::Builder::new().push_int(multisig.threshold as _);
     for pk in pubkeys.iter() {

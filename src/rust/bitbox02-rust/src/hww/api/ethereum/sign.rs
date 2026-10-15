@@ -736,6 +736,49 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_fee_matches_biguint_multiplication() {
+        let params = Params {
+            coin: Some(pb::EthCoin::Eth),
+            chain_id: 1,
+            bip44_coin: 60 + HARDENED,
+            name: "Ethereum",
+            unit: "ETH",
+        };
+        // Pair zero, one, mixed-byte values, and the largest allowed 128-bit value
+        // to exercise byte order, zero bytes, and carries in both operands.
+        let operands: &[&[u8]] = &[
+            &[],
+            &hex!("01"),
+            &hex!("010002"),
+            &hex!("0123456789abcdef0123456789abcdef"),
+            &[0xff; 16],
+        ];
+        for price in operands {
+            for limit in operands {
+                let expected = BigUint::from_bytes_be(price) * BigUint::from_bytes_be(limit);
+                let legacy = pb::EthSignRequest {
+                    gas_price: price.to_vec(),
+                    gas_limit: limit.to_vec(),
+                    ..Default::default()
+                };
+                let eip1559 = pb::EthSignEip1559Request {
+                    max_fee_per_gas: price.to_vec(),
+                    max_priority_fee_per_gas: vec![1],
+                    gas_limit: limit.to_vec(),
+                    ..Default::default()
+                };
+                for request in [Transaction::Legacy(&legacy), Transaction::Eip1559(&eip1559)] {
+                    assert_eq!(
+                        parse_fee(&request, &params).value,
+                        expected,
+                        "price={price:02x?}, limit={limit:02x?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     pub fn test_parse_recipient() {
         assert_eq!(
             parse_recipient(b"01234567890123456789"),

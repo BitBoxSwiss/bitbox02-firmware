@@ -54,6 +54,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_biguint_to_string() {
+        let two_to_256 = BigUint::from(1u32) << 256usize;
+        for value in [
+            BigUint::ZERO,
+            BigUint::from(1u32),
+            BigUint::from(9u32),
+            BigUint::from(10u32),
+            BigUint::from(1_020_030u32),
+            BigUint::from(u64::MAX),
+            &two_to_256 - 1u32,
+            two_to_256,
+        ] {
+            assert_eq!(biguint_to_string(&value), value.to_string());
+        }
+    }
+
+    #[test]
+    fn test_bigint_to_string() {
+        for value in [
+            BigInt::from(0),
+            BigInt::from(1),
+            BigInt::from(-1),
+            BigInt::from(i64::MIN),
+            -(BigInt::from(1u32) << 255usize),
+        ] {
+            assert_eq!(bigint_to_string(&value), value.to_string());
+        }
+    }
+
+    #[test]
     fn test_format_int() {
         assert_eq!(format(0u64, 0), "0");
         assert_eq!(format(0u64, 2), "0");

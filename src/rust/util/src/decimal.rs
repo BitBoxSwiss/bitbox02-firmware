@@ -3,20 +3,36 @@
 extern crate alloc;
 use alloc::string::{String, ToString};
 
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint};
 
-pub trait Format: ToString {}
+pub trait Format: ToString {
+    fn decimal_string(&self) -> String {
+        self.to_string()
+    }
+}
 
 impl Format for u64 {}
 
-impl Format for &BigUint {}
+impl Format for &BigUint {
+    fn decimal_string(&self) -> String {
+        biguint_to_string(self)
+    }
+}
+
+pub fn biguint_to_string(value: &BigUint) -> String {
+    value.to_string()
+}
+
+pub fn bigint_to_string(value: &BigInt) -> String {
+    value.to_string()
+}
 
 /// Formats integer `value` as `value / 10^decimals`, with up to `decimals` decimal places,
 /// trimming traling zeroes.
 /// E.g. "123450" with decimals=3: "123.45".
 /// Value must consists only of '0'-'9' digits.
 pub fn format<F: Format>(value: F, decimals: usize) -> String {
-    let mut v: String = format!("{:0>width$}", value.to_string(), width = decimals + 1);
+    let mut v: String = format!("{:0>width$}", value.decimal_string(), width = decimals + 1);
     v.insert(v.len() - decimals, '.');
     v.trim_end_matches('0').trim_end_matches('.').into()
 }
@@ -26,7 +42,7 @@ pub fn format<F: Format>(value: F, decimals: usize) -> String {
 /// E.g. "123450" with decimals=3: "123.450".
 /// Value must consists only of '0'-'9' digits.
 pub fn format_no_trim<F: Format>(value: F, decimals: usize) -> String {
-    let mut v: String = format!("{:0>width$}", value.to_string(), width = decimals + 1);
+    let mut v: String = format!("{:0>width$}", value.decimal_string(), width = decimals + 1);
     if decimals > 0 {
         v.insert(v.len() - decimals, '.');
     }

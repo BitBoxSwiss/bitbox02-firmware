@@ -5,6 +5,7 @@ use crate::hal::ui::ConfirmParams;
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
 mod bip143;
+mod bip322;
 mod bip341;
 pub mod common;
 pub mod keypath;

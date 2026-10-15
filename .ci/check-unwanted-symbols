@@ -61,6 +61,20 @@ check_firmware() {
         "(__aeabi_f(add|sub|mul|div)|__(add|sub|mul|div|neg)sf3|compiler_builtins::float::(add|sub|mul|div)::.*f32)" \
         "Software f32 arithmetic helpers add significant binary bloat." \
         "Use integer arithmetic in firmware code instead."
+
+    check_symbols \
+        "$elf" \
+        "num-bigint decimal formatting" \
+        "num_bigint::(biguint::BigUint|bigint::BigInt).*(to_str_radix|as core::fmt::Display)" \
+        "Generic BigUint/BigInt decimal formatting pulls in large-number arithmetic." \
+        "Use the util::decimal helpers instead."
+
+    check_symbols \
+        "$elf" \
+        "num-bigint general multiplication and division" \
+        "num_bigint::biguint::(multiplication::(mac3|mul3)|division::div_rem_core)" \
+        "General BigUint multiplication and division add significant binary bloat." \
+        "Use scalar arithmetic where possible, as in Ethereum's parse_fee()."
 }
 
 check_bootloader() {

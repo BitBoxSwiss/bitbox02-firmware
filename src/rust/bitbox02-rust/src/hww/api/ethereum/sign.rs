@@ -20,7 +20,7 @@ use alloc::vec::Vec;
 use hex_lit::hex;
 use pb::eth_response::Response;
 
-use core::ops::{Add, Mul};
+use core::ops::Add;
 use num_bigint::BigUint;
 
 // 1 ETH = 1e18 wei.
@@ -202,14 +202,23 @@ async fn verify_payment_request_recipient(
 // 1) actual gas used will often be lower than gas limit (in the case of contract interactions, not simple ETH transfers)
 // 2) in the case of 1559 base fee at execution time might also be lower so that `base fee + priority fee < max fee per gas`
 fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
-    let gas_limit = BigUint::from_bytes_be(request.gas_limit());
+    let gas_limit = request.gas_limit();
+    fn multiply_by_be_bytes(value: &BigUint, bytes: &[u8]) -> BigUint {
+        // Scalar products avoid pulling in num-bigint's large-number multiplication routines.
+        let mut result = BigUint::ZERO;
+        for &byte in bytes {
+            result <<= 8;
+            result += value * u32::from(byte);
+        }
+        result
+    }
     match request {
         Transaction::Legacy(legacy) => {
             let gas_price = BigUint::from_bytes_be(&legacy.gas_price);
             Amount {
                 unit: params.unit,
                 decimals: WEI_DECIMALS,
-                value: gas_price.mul(gas_limit),
+                value: multiply_by_be_bytes(&gas_price, gas_limit),
             }
         }
         Transaction::Eip1559(eip1559) => {
@@ -217,7 +226,7 @@ fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
             Amount {
                 unit: params.unit,
                 decimals: WEI_DECIMALS,
-                value: max_fee_per_gas.mul(gas_limit),
+                value: multiply_by_be_bytes(&max_fee_per_gas, gas_limit),
             }
         }
     }
@@ -732,6 +741,49 @@ mod tests {
             nonce: vec![],
             total_amount: 0,
             signature: vec![],
+        }
+    }
+
+    #[test]
+    fn test_parse_fee_matches_biguint_multiplication() {
+        let params = Params {
+            coin: Some(pb::EthCoin::Eth),
+            chain_id: 1,
+            bip44_coin: 60 + HARDENED,
+            name: "Ethereum",
+            unit: "ETH",
+        };
+        // Pair zero, one, mixed-byte values, and the largest allowed 128-bit value
+        // to exercise byte order, zero bytes, and carries in both operands.
+        let operands: &[&[u8]] = &[
+            &[],
+            &hex!("01"),
+            &hex!("010002"),
+            &hex!("0123456789abcdef0123456789abcdef"),
+            &[0xff; 16],
+        ];
+        for price in operands {
+            for limit in operands {
+                let expected = BigUint::from_bytes_be(price) * BigUint::from_bytes_be(limit);
+                let legacy = pb::EthSignRequest {
+                    gas_price: price.to_vec(),
+                    gas_limit: limit.to_vec(),
+                    ..Default::default()
+                };
+                let eip1559 = pb::EthSignEip1559Request {
+                    max_fee_per_gas: price.to_vec(),
+                    max_priority_fee_per_gas: vec![1],
+                    gas_limit: limit.to_vec(),
+                    ..Default::default()
+                };
+                for request in [Transaction::Legacy(&legacy), Transaction::Eip1559(&eip1559)] {
+                    assert_eq!(
+                        parse_fee(&request, &params).value,
+                        expected,
+                        "price={price:02x?}, limit={limit:02x?}"
+                    );
+                }
+            }
         }
     }
 

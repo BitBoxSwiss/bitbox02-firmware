@@ -321,7 +321,7 @@ fn encode_value(
             }
             (
                 leftpad32(&value, false)?,
-                BigUint::from_bytes_be(&value).to_string(),
+                util::decimal::biguint_to_string(&BigUint::from_bytes_be(&value)),
             )
         }
         DataType::Int => {
@@ -330,7 +330,7 @@ fn encode_value(
             }
             (
                 leftpad32(&value, true)?,
-                BigInt::from_signed_bytes_be(&value).to_string(),
+                util::decimal::bigint_to_string(&BigInt::from_signed_bytes_be(&value)),
             )
         }
         DataType::Bool => {

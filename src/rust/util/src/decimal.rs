@@ -20,11 +20,26 @@ impl Format for &BigUint {
 }
 
 pub fn biguint_to_string(value: &BigUint) -> String {
-    value.to_string()
+    // Scalar division avoids pulling in num-bigint's large-number radix conversion routines.
+    if value == &BigUint::ZERO {
+        return "0".into();
+    }
+    let mut value = value.clone();
+    let mut digits = alloc::vec::Vec::new();
+    while value != BigUint::ZERO {
+        digits.push(b'0' + u8::try_from(&value % 10u32).unwrap());
+        value /= 10u32;
+    }
+    digits.reverse();
+    String::from_utf8(digits).unwrap()
 }
 
 pub fn bigint_to_string(value: &BigInt) -> String {
-    value.to_string()
+    let mut text = biguint_to_string(value.magnitude());
+    if value.sign() == num_bigint::Sign::Minus {
+        text.insert(0, '-');
+    }
+    text
 }
 
 /// Formats integer `value` as `value / 10^decimals`, with up to `decimals` decimal places,

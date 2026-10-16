@@ -308,6 +308,10 @@ static void _hww_handler(const struct da14531_protocol_frame* frame, struct Rust
         util_log("da14531: invalid hww payload length %u, dropped frame", frame->payload_length);
         return;
     }
+    // The coprocessor enforces BLE security; reject data inconsistent with its reported state.
+    if (da14531_connected_state != DA14531_CONNECTED_CONNECTED_SECURED) {
+        return;
+    }
     USB_FRAME usb_frame;
     memcpy(&usb_frame, &frame->payload[0], sizeof(usb_frame));
     usb_packet_process(&usb_frame);

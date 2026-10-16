@@ -39,7 +39,6 @@ pub async fn from_file(
     hal.ui()
         .confirm(&ConfirmParams {
             body: &format!("Name: {}. ID: {}", &device_name, &request.id),
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         })

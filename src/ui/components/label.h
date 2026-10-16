@@ -23,7 +23,7 @@
 bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width);
 
 /**
- * Creates a label with the given font and positions it in the center.
+ * Updates the text, fitting and position of a label.
  * @param[in] component The component to update.
  * @param[in] text The new text of the label.
  */
@@ -31,7 +31,8 @@ void label_update(component_t* component, const char* text);
 
 /**
  * Creates a label with the given font. If the text is longer than MAX_LABEL_SIZE, it is truncated
- * and suffixed with '...'.
+ * and suffixed with '...'. Text exceeding the parent's dimensions is flattened to one line and
+ * scrolls horizontally if needed. A NULL parent leaves fitting and positioning to the caller.
  * @param[in] text The text of the label.
  * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
  * must have static lifetime.
@@ -45,7 +46,7 @@ component_t* label_create(
     component_t* parent);
 
 /**
- * Creates a label with the given font.
+ * Like label_create(), with an additional position offset.
  * @param[in] text The text of the label.
  * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
  * must have static lifetime.
@@ -55,38 +56,6 @@ component_t* label_create(
  * @param[in] parent The parent component.
  */
 component_t* label_create_offset(
-    const char* text,
-    const UG_FONT* font,
-    enum screen_position_t position,
-    uint8_t xoffset,
-    uint8_t yoffset,
-    component_t* parent);
-
-/**
- * Creates a label with the given font that can be scrolled.
- * @param[in] text The text of the label.
- * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
- * must have static lifetime.
- * @param[in] position The position of the label.
- * @param[in] parent The parent component.
- */
-component_t* label_create_scrollable(
-    const char* text,
-    const UG_FONT* font,
-    enum screen_position_t position,
-    component_t* parent);
-
-/**
- * Creates a label with the given font that can be scrolled.
- * @param[in] text The text of the label.
- * @param[in] font The font retained by the label, or NULL for the default font. A non-NULL font
- * must have static lifetime.
- * @param[in] position The position of the label.
- * @param[in] xoffset The horizontal offset.
- * @param[in] yoffset The vertical offset.
- * @param[in] parent The parent component.
- */
-component_t* label_create_scrollable_offset(
     const char* text,
     const UG_FONT* font,
     enum screen_position_t position,

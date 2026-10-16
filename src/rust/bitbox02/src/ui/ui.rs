@@ -288,7 +288,6 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
         title_autowrap: params.title_autowrap,
         body: body.as_ptr().cast(),
         font: params.font.as_ptr(),
-        scrollable: params.scrollable,
         longtouch: params.longtouch,
         accept_only: params.accept_only,
         accept_is_nextarrow: params.accept_is_nextarrow,

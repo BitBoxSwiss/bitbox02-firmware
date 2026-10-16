@@ -445,7 +445,6 @@ impl ParsedPolicy<'_> {
             &ConfirmParams {
                 title: "Name",
                 body: name,
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             },
@@ -471,7 +470,6 @@ impl ParsedPolicy<'_> {
             &ConfirmParams {
                 title: "Policy",
                 body: &policy.policy,
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             },
@@ -523,7 +521,6 @@ impl ParsedPolicy<'_> {
                 .confirm(&ConfirmParams {
                     title: &format!("Key {}/{}", i + 1, num_keys),
                     body: key_str.as_str(),
-                    scrollable: true,
                     longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
                     accept_is_nextarrow: true,
                     ..Default::default()

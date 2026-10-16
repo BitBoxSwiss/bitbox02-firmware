@@ -504,7 +504,6 @@ async fn encode_member<U: sha3::digest::Update>(
                         context.title_suffix.as_deref().unwrap_or("")
                     ),
                     body: &body,
-                    scrollable: true,
                     display_size,
                     accept_is_nextarrow: true,
                     ..Default::default()
@@ -553,7 +552,6 @@ async fn hash_array(
                     format!("list with {} elements", array_size)
                 }
             ),
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         },
@@ -722,7 +720,6 @@ pub async fn process(
             .confirm(&ConfirmParams {
                 title: "Warning",
                 body: "Typed data has no chain ID. Message is valid for every chain.",
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -754,7 +751,6 @@ pub async fn process(
         &ConfirmParams {
             title: "Message type",
             body: &request.primary_type,
-            scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
         },

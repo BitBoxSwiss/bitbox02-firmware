@@ -162,7 +162,6 @@ pub async fn user_verify(
                     .confirm(&ConfirmParams {
                         title: "",
                         body: &format!("Memo from: {}", payment_request.recipient_name),
-                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -1606,7 +1605,6 @@ mod tests {
                 },
             ]
         );
-        assert_eq!(mock_hal.ui.confirm_scrollable, vec![true, true]);
     }
 
     #[async_test::test]
@@ -1642,7 +1640,7 @@ mod tests {
     }
 
     #[async_test::test]
-    async fn test_user_verify_long_recipient_name_scrollable() {
+    async fn test_user_verify_long_recipient_name() {
         let recipient_name = format!("SWAPKIT ({})", "a".repeat(200));
         let mut mock_hal = TestingHal::new();
         user_verify(
@@ -1667,7 +1665,6 @@ mod tests {
                 longtouch: false,
             }
         );
-        assert!(mock_hal.ui.confirm_scrollable[0]);
     }
 
     #[cfg(feature = "app-ethereum")]

@@ -106,7 +106,6 @@ async fn xpub(
                     "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
                     util::bip32::to_string(keypath)
                 ),
-                scrollable: true,
                 longtouch: true,
                 ..Default::default()
             })
@@ -128,7 +127,6 @@ async fn xpub(
         let confirm_params = ConfirmParams {
             title: &title,
             body: &xpub,
-            scrollable: true,
             ..Default::default()
         };
         hal.ui().confirm(&confirm_params).await?;
@@ -197,7 +195,6 @@ async fn address_simple(
         let confirm_params = ConfirmParams {
             title: params::get(coin).name,
             body: &address_formatted,
-            scrollable: true,
             ..Default::default()
         };
         hal.ui().confirm(&confirm_params).await?;
@@ -239,7 +236,6 @@ pub async fn address_multisig(
             .confirm(&ConfirmParams {
                 title,
                 body: &address_formatted,
-                scrollable: true,
                 ..Default::default()
             })
             .await?;
@@ -280,7 +276,6 @@ async fn address_policy(
             .confirm(&ConfirmParams {
                 title,
                 body: &address_formatted,
-                scrollable: true,
                 ..Default::default()
             })
             .await?;

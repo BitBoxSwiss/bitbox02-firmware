@@ -11,16 +11,13 @@
 typedef struct {
     // The confirmation title of the screen.
     const char* title;
-    // If true, will automatically break the title into two lines at a whitespace position if the
-    // title is too long to fit on one line.
+    // Prefer a narrow first title line. Titles always wrap to leave room for navigation icons.
     bool title_autowrap;
-    // The confirmation body of the screen.
+    // The confirmation body. Scrolls automatically when it does not fit.
     const char* body;
     // Font retained by the created labels, or NULL for the default font. Must have static lifetime
     // if non-NULL.
     const UG_FONT* font;
-    // If true, the body is horizontally scrollable.
-    bool scrollable;
     // If true, require the hold gesture to confirm instead of tap.
     bool longtouch;
     // If true, the user can only confirm, not reject.

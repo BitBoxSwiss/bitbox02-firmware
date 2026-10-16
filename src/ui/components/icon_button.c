@@ -33,7 +33,7 @@ typedef struct {
 static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
-    uint16_t y = 0;
+    int16_t y = 0;
     uint16_t x = 0;
     const uint16_t arrow_height = 5;
     const uint16_t check_width =
@@ -72,6 +72,8 @@ static void _render(component_t* component)
     // but brittle as it depends on the signedness of SCALE).
     data->active_count = data->active ? MIN(4 * SCALE, (int32_t)data->active_count + 1)
                                       : MAX(SCALE - 1, (int32_t)data->active_count - SCALE);
+
+    y += component->position.top;
 
     switch (data->type) {
     case ICON_BUTTON_CHECK:

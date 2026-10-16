@@ -12,6 +12,9 @@
 #include <ui/ui_util.h>
 #include <util.h>
 
+// Three regular-font lines fit below a one-line confirmation title on the 64-pixel display.
+#define LINE_SPACING 1
+
 typedef struct {
     // +3 for '...' if truncated, +1 for null terminator.
     char text[MAX_LABEL_SIZE + 3 + 1];
@@ -51,11 +54,42 @@ void label_update(component_t* component, const char* text)
         // text has been truncated, add '...'
         memcpy(&data->text[copied_len], "...", 4);
     }
+    data->scrollable = false;
+    data->slider_is_touched = false;
+    data->slider_was_touched = false;
+    data->slider_position_diff = 0;
+    data->text_position = 0;
+    data->text_position_last = 0;
     _measure_label_dimensions(component);
     if (component->parent == NULL) {
         return;
     }
     component_t* parent = component->parent;
+    const bool centered_x =
+        data->position == CENTER || data->position == CENTER_TOP || data->position == CENTER_BOTTOM;
+    const bool centered_y =
+        data->position == CENTER || data->position == LEFT_CENTER || data->position == RIGHT_CENTER;
+    const int16_t available_width = parent->dimension.width - data->xoffset * (centered_x ? 2 : 1);
+    const int16_t available_height =
+        parent->dimension.height - data->yoffset * (centered_y ? 2 : 1);
+    if (component->dimension.width > available_width ||
+        component->dimension.height > available_height) {
+        for (char* p = data->text; *p != '\0'; p++) {
+            if (*p == '\n') {
+                *p = ' ';
+            }
+        }
+        UG_FontSelect(data->font);
+        UG_MeasureStringNoBreak(
+            &component->dimension.width, &component->dimension.height, data->text);
+        data->scrollable = component->dimension.width > available_width;
+    }
+    if (data->scrollable && component->sub_components.amount == 0) {
+        ui_util_add_sub_component(component, knight_rider_create(component, SCREEN_HEIGHT - 1));
+    }
+    if (component->sub_components.amount != 0) {
+        component->sub_components.sub_components[0]->disabled = !data->scrollable;
+    }
     switch (data->position) {
     case CENTER:
         ui_util_position_center(parent, component);
@@ -89,6 +123,11 @@ void label_update(component_t* component, const char* text)
     }
     component->position.top += data->yoffset;
     component->position.left += data->xoffset;
+    if (data->scrollable) {
+        // Keep the bottom row clear for the scroll hint.
+        component->position.top =
+            MIN(component->position.top, SCREEN_HEIGHT - 1 - component->dimension.height);
+    }
 }
 
 static void _render(component_t* component)
@@ -107,7 +146,7 @@ static void _render(component_t* component)
         }
     }
     // Label
-    UG_FontSetVSpace(2);
+    UG_FontSetVSpace(LINE_SPACING);
     UG_FontSelect(data->font);
     if (data->scrollable) {
         UG_PutStringNoBreak(
@@ -180,18 +219,12 @@ void _measure_label_dimensions(component_t* label)
 {
     data_t* data = (data_t*)label->data;
 
-    UG_FontSetVSpace(2);
+    UG_FontSetVSpace(LINE_SPACING);
     UG_FontSelect(data->font);
-    if (data->scrollable) {
-        UG_MeasureStringNoBreak(&(label->dimension.width), &(label->dimension.height), data->text);
-        if (label->dimension.width < SCREEN_WIDTH) {
-            // Do not scroll if text already fits in the screen
-            data->scrollable = false;
-        }
-    } else if (
-        data->position == CENTER || data->position == CENTER_TOP ||
+    if (data->position == CENTER || data->position == CENTER_TOP ||
         data->position == CENTER_BOTTOM) {
-        UG_MeasureStringCentered(&(label->dimension.width), &(label->dimension.height), data->text);
+        UG_MeasureStringNoBreak(&(label->dimension.width), &(label->dimension.height), data->text);
+        label->dimension.height += LINE_SPACING;
     } else {
         UG_MeasureString(&(label->dimension.width), &(label->dimension.height), data->text);
     }
@@ -215,7 +248,6 @@ static component_t* _label_create(
     enum screen_position_t position,
     uint8_t xoffset,
     uint8_t yoffset,
-    bool scrollable,
     component_t* parent)
 {
     component_t* label = malloc(sizeof(component_t));
@@ -230,17 +262,12 @@ static component_t* _label_create(
     memset(label, 0, sizeof(component_t));
 
     data->font = font != NULL ? font : &font_regular_11;
-    data->scrollable = scrollable;
     data->position = position;
     data->xoffset = xoffset;
     data->yoffset = yoffset;
     label->data = data;
     label->parent = parent;
     label->f = &_component_functions;
-
-    if (data->scrollable) {
-        ui_util_add_sub_component(label, knight_rider_create(label, SCREEN_HEIGHT - 1));
-    }
 
     label_update(label, text);
     return label;
@@ -252,7 +279,7 @@ component_t* label_create(
     enum screen_position_t position,
     component_t* parent)
 {
-    return _label_create(text, font, position, 0, 0, false, parent);
+    return _label_create(text, font, position, 0, 0, parent);
 }
 
 component_t* label_create_offset(
@@ -263,25 +290,5 @@ component_t* label_create_offset(
     uint8_t yoffset,
     component_t* parent)
 {
-    return _label_create(text, font, position, xoffset, yoffset, false, parent);
-}
-
-component_t* label_create_scrollable(
-    const char* text,
-    const UG_FONT* font,
-    enum screen_position_t position,
-    component_t* parent)
-{
-    return _label_create(text, font, position, 0, 0, true, parent);
-}
-
-component_t* label_create_scrollable_offset(
-    const char* text,
-    const UG_FONT* font,
-    enum screen_position_t position,
-    uint8_t xoffset,
-    uint8_t yoffset,
-    component_t* parent)
-{
-    return _label_create(text, font, position, xoffset, yoffset, true, parent);
+    return _label_create(text, font, position, xoffset, yoffset, parent);
 }

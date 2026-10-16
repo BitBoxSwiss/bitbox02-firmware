@@ -96,6 +96,24 @@ static void _test_ugui_word_wrap(void** state)
     }
 }
 
+static void _test_ugui_word_wrap_spacing(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+    char output[64] = {0};
+    UG_WrapTitleString("Message (21/23)", output, 88);
+    assert_string_equal(output, "Message\n(21/23)");
+
+    UG_S16 width;
+    UG_MeasureStringNoBreak(&width, NULL, "A A");
+    UG_WrapTitleString("A A A", output, width);
+    assert_string_equal(output, "A A\nA");
+
+    UG_MeasureStringNoBreak(&width, NULL, "ÄÖÜ");
+    UG_WrapTitleString("ÄÖÜ gj", output, width);
+    assert_string_equal(output, "ÄÖÜ\ngj");
+}
+
 static void _draw_pixel(void* ctx)
 {
     (void)ctx;
@@ -337,11 +355,11 @@ static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
         const UG_FONT* font;
         uint32_t hash;
     } cases[] = {
-        {&font_regular_9, 0xea2a3af8},
-        {&font_regular_11, 0x7a72fbc2},
-        {&font_regular_12, 0x3f5b6308},
-        {&font_password_9, 0x3e5071ab},
-        {&font_password_12, 0xf1db9eeb},
+        {&font_regular_9, 0xb00194bc},
+        {&font_regular_11, 0x32b6fb93},
+        {&font_regular_12, 0xa2c5725d},
+        {&font_password_9, 0xd62406f7},
+        {&font_password_12, 0x7792a29a},
         {&font_monogram_16, 0xd2698414},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
@@ -364,10 +382,43 @@ static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
     }
 }
 
+static void _test_ugui_glyphs_fit_line(void** state)
+{
+    (void)state;
+    const UG_FONT* fonts[] = {
+        &font_regular_9,
+        &font_regular_11,
+        &font_regular_12,
+        &font_password_9,
+        &font_password_12,
+        &font_monogram_16,
+    };
+    for (size_t i = 0; i < sizeof(fonts) / sizeof(*fonts); i++) {
+        const UG_FONT* font = fonts[i];
+        if (font->fallback != NULL) {
+            assert_int_equal(font->line_height, font->fallback->line_height);
+            assert_int_equal(font->base_line, font->fallback->base_line);
+        }
+        for (uint32_t codepoint = 32; codepoint <= 0x20AC; codepoint++) {
+            for (const UG_FONT* resolved = font; resolved != NULL; resolved = resolved->fallback) {
+                lv_font_glyph_dsc_t glyph = {0};
+                if (!resolved->get_glyph_dsc(resolved, &glyph, codepoint, 0)) {
+                    continue;
+                }
+                const int top = font->line_height - resolved->base_line - glyph.box_h - glyph.ofs_y;
+                assert_true(top >= 0);
+                assert_true(top + glyph.box_h <= font->line_height);
+                break;
+            }
+        }
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_ugui_word_wrap),
+        cmocka_unit_test(_test_ugui_word_wrap_spacing),
         cmocka_unit_test(_test_ugui_render_rotated_180),
         cmocka_unit_test(_test_ugui_measure_string_centered),
         cmocka_unit_test(_test_ugui_utf8_validation),
@@ -375,6 +426,7 @@ int main(void)
         cmocka_unit_test(_test_ugui_lvgl_font),
         cmocka_unit_test(_test_ugui_lvgl_font_fallback),
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
+        cmocka_unit_test(_test_ugui_glyphs_fit_line),
         cmocka_unit_test(_test_ugui_fonts_exclude_ambiguous_characters),
         cmocka_unit_test(_test_ugui_ascii_font_pixels_and_metrics),
     };

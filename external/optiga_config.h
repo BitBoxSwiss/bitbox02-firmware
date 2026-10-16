@@ -1,6 +1,14 @@
 #ifndef _OPTIGA_LIB_CONFIG_BITBOX02_H_
 #define _OPTIGA_LIB_CONFIG_BITBOX02_H_
 
+// Include upstream defaults before overriding them for volatile-only context storage.
+#include "pal/pal_os_datastore.h"
+
+#undef OPTIGA_COMMS_MANAGE_CONTEXT_ID
+#define OPTIGA_COMMS_MANAGE_CONTEXT_ID OPTIGA_LIB_PAL_DATA_STORE_NOT_CONFIGURED
+#undef OPTIGA_HIBERNATE_CONTEXT_ID
+#define OPTIGA_HIBERNATE_CONTEXT_ID OPTIGA_LIB_PAL_DATA_STORE_NOT_CONFIGURED
+
 #ifdef __cplusplus
 extern "C" {
 #endif

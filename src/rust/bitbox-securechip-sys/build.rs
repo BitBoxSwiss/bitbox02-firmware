@@ -196,12 +196,6 @@ pub fn main() -> BuildResult<()> {
         .arg(format!(
             "-I{}",
             external_dir.join("optiga-trust-m/include/comms").display()
-        ))
-        .arg(format!(
-            "-I{}",
-            external_dir
-                .join("optiga-trust-m/external/mbedtls/include")
-                .display()
         ));
 
     run_command(&mut bindgen, "run bindgen")?;

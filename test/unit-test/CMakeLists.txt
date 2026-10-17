@@ -42,7 +42,7 @@ else()
      hww
      "-Wl,--wrap=rust_workflow_u2f_is_active,--wrap=rust_hww_reset_session,--wrap=rust_async_usb_cancel,--wrap=rust_async_usb_copy_response"
      u2f_state
-     ""
+     "-Wl,--wrap=rust_async_usb_is_idle,--wrap=rust_workflow_u2f_is_active,--wrap=rust_workflow_unlock_poll,--wrap=memory_is_initialized"
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      screen_process

@@ -36,7 +36,7 @@ else()
      cleanup
      "-Wl,--wrap=util_cleanup_32"
      da14531_handler
-     "-Wl,--wrap=confirm_create"
+     "-Wl,--wrap=confirm_create,--wrap=rust_async_usb_is_idle,--wrap=rust_workflow_u2f_is_active"
      gestures
      ""
      hww

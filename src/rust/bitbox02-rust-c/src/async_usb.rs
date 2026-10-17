@@ -18,6 +18,11 @@ pub extern "C" fn rust_async_usb_spin() {
     bitbox02_rust::async_usb::spin();
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_async_usb_is_idle() -> bool {
+    bitbox02_rust::async_usb::is_idle()
+}
+
 #[repr(C)]
 pub enum UsbResponse {
     UsbResponseAck,

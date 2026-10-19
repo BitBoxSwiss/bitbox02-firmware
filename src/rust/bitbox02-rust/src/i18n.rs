@@ -67,6 +67,8 @@ impl<T: Hal> I18n for T {
         let locale = match self.memory().get_device_language() {
             Language::English => util::datetime::DateLocale::English,
             Language::German => util::datetime::DateLocale::German,
+            Language::Italian => util::datetime::DateLocale::Italian,
+            Language::Spanish => util::datetime::DateLocale::Spanish,
         };
         util::datetime::format_datetime_locale(timestamp, timezone_offset, date_only, locale)
     }

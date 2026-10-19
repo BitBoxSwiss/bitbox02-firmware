@@ -173,6 +173,8 @@ static void test_device_language_storage(void** state)
 
     const bitbox02_smarteeprom_language_t languages[] = {
         BITBOX02_SMARTEEPROM_LANGUAGE_DE,
+        BITBOX02_SMARTEEPROM_LANGUAGE_IT,
+        BITBOX02_SMARTEEPROM_LANGUAGE_ES,
         BITBOX02_SMARTEEPROM_LANGUAGE_EN,
     };
     for (size_t i = 0; i < sizeof(languages) / sizeof(languages[0]); i++) {
@@ -193,7 +195,7 @@ static void test_device_language_invalid_stored_value(void** state)
 {
     (void)state;
     bitbox02_smarteeprom_init();
-    const uint8_t invalid_values[] = {2, 0xff};
+    const uint8_t invalid_values[] = {4, 0xff};
     for (size_t i = 0; i < sizeof(invalid_values); i++) {
         __real_smarteeprom_write(64, 1, &invalid_values[i]);
         assert_int_equal(

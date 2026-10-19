@@ -1,0 +1,346 @@
+{
+  "cancel": {
+    "confirmCancel": "¿Seguro que quieres\ncancelar?"
+  },
+  "confirm": {
+    "size": "Tamaño"
+  },
+  "hww": {
+    "backup": {
+      "check": {
+        "id": "¿ID?",
+        "invalid": "Copia ausente\no no válida",
+        "name": "¿Nombre?",
+        "valid": "Copia válida"
+      },
+      "create": {
+        "confirm": "¿Crear copia\nde seguridad?",
+        "fail": "Copia no creada\nContacta con\nsoporte ({})",
+        "isToday": "¿Es hoy?",
+        "success": "Copia creada",
+        "unlock": "Desbloquear"
+      }
+    },
+    "bip85": {
+      "confirmAdvanced": {
+        "body": "Esta es una función avanzada. Continúa solo si sabes lo que haces.",
+        "title": "BIP-85"
+      },
+      "confirmDerivation": {
+        "body": "¿Derivar frase\nmnemónica BIP-39?",
+        "title": "BIP-85"
+      },
+      "createLightning": "¿Crear billetera de\nLightning en el\ndispositivo anfitrión?",
+      "finished": "Terminado",
+      "howManyWords": "¿Cuántas palabras?",
+      "index": {
+        "enter": "Introduce índice",
+        "invalid": "Índice no válido",
+        "more": "Más",
+        "select": "Elige índice",
+        "status": "Índice:\n{}"
+      },
+      "keypath": "Ruta",
+      "wordCount": "{} palabras"
+    },
+    "bitcoin": {
+      "atAccount": "{}\ncuenta #{}",
+      "atPath": "{}\nen\n{}",
+      "multisig": {
+        "cosigner": {
+          "other": "Cofirmante {}/{}: {}",
+          "self": "Cofirmante {}/{} (este dispositivo): {}"
+        },
+        "scriptAtPath": "{}\nen\n{}",
+        "threshold": "multifirma {} de {}\nde {}"
+      },
+      "paymentRequest": {
+        "memo": "Nota",
+        "memoFrom": "Nota de: {}"
+      },
+      "policies": {
+        "info": "{}\npolítica con\n{} claves",
+        "key": "Clave {}/{}",
+        "name": "Nombre",
+        "provablyUnspendable": "No gastable de forma demostrable: {}",
+        "showDetails": "¿Ver detalles\nde la política?",
+        "thisDevice": "Este dispositivo: {}",
+        "title": "Política"
+      },
+      "receiveTo": "Recibir en",
+      "registration": {
+        "enterAccountName": "Nombre de cuenta",
+        "multisigRegistered": "Cuenta multifirma\nregistrada",
+        "policyRegistered": "Política\nregistrada",
+        "registerAccount": {
+          "body": "Asigna un nombre\na esta cuenta",
+          "title": "Registrar"
+        },
+        "title": "Registrar"
+      },
+      "scriptConfigs": {
+        "thisBitBox": "Esta BitBox - {}",
+        "thisBitBoxAccount": "Esta BitBox (cuenta #{})"
+      },
+      "signMessage": {
+        "address": "Dirección",
+        "coin": "Moneda: {}",
+        "externalServiceKey": "Moneda: {}\nClave de un\nservicio externo",
+        "sign": "Firmar",
+        "signMessage": "Firmar\nmensaje"
+      },
+      "signTx": {
+        "invalidPaymentRequest": "Solicitud de pago\nno válida",
+        "loadingTx": "Cargando\ntransacción...",
+        "locktime": "Bloqueo en bloque:\n{}",
+        "locktimeUtc": "Bloqueo (UTC):\n{}\n{}:{}:{}",
+        "multipleChangeWarning": {
+          "body": "Hay {} salidas\nde cambio.\n¿Continuar?",
+          "title": "Aviso"
+        },
+        "signingTx": "Firmando\ntransacción...",
+        "spendFrom": "Gastar desde",
+        "thisBitBoxSame": "Esta BitBox (misma cuenta)",
+        "txCanceled": "Transacción\ncancelada",
+        "txConfirmed": "Transacción\nconfirmada"
+      },
+      "unusualKeypathWarning": {
+        "body": "Aviso: ruta de derivación inusual {}. Continúa solo si sabes lo que haces.",
+        "title": "Exportar xpub"
+      }
+    },
+    "bluetooth": {
+      "confirmUpgrade": {
+        "body": "¿Actualizar\nfirmware?",
+        "title": "Bluetooth"
+      },
+      "disabled": "Bluetooth\ndesactivado",
+      "enabled": "Bluetooth\nactivado",
+      "setDisable": "¿Desactivar\nBluetooth?",
+      "setEnable": "¿Activar Bluetooth?",
+      "upgrade": {
+        "fail": "Actualización\nfallida",
+        "progress": "Actualizando...",
+        "success": "Actualización\ncompletada"
+      }
+    },
+    "changePassword": {
+      "confirm": "¿Cambiar\ncontraseña?",
+      "error": "Error\n{}"
+    },
+    "cardano": {
+      "signTransaction": {
+        "alwaysAbstain": "Abstención permanente",
+        "alwaysNoConfidence": "Voto de censura permanente",
+        "amountAsset": "Importe: {}. Activo: {}",
+        "canBeMinedFrom": "Minable desde",
+        "canBeMinedUntil": "Minable hasta",
+        "cannotBeMined": "Transacción\nno minable",
+        "delegateStaking": "¿Delegar el staking de la cuenta #{} al pool {}?",
+        "delegateVoting": "¿Delegar el voto de la cuenta #{} al tipo {}?",
+        "delegateVotingDrep": "¿Delegar el voto de la cuenta #{} al tipo {} y al DRep {}?",
+        "fee": "Comisión\n{}",
+        "keyHash": "Hash de clave",
+        "networkWarning": "Esta transacción no especifica una red Cardano y podría ser válida en otra red Cardano.",
+        "registerStakingKey": "¿Registrar la clave de staking de la cuenta #{}?",
+        "scriptHash": "Hash de script",
+        "sendToken": "Enviar token",
+        "slotInEpoch": "{}\nslot {} en\népoca {}",
+        "stopStakeDelegation": "¿Dejar de delegar el staking de la cuenta #{}?",
+        "txCanceled": "Transacción\ncancelada",
+        "txConfirmed": "Transacción\nconfirmada",
+        "withdrawInStakingRewards": "¿Retirar {} en recompensas de staking de la cuenta #{}?"
+      }
+    },
+    "ethereum": {
+      "loadingData": "Cargando datos...",
+      "keypath": {
+        "unusualKeypath": "Aviso: ruta de derivación inusual {}. Continúa solo si sabes lo que haces."
+      },
+      "network": {
+        "recognizeChainId": "Continúa solo si\nreconoces este\nID de cadena.",
+        "unknownChainId": "Red desconocida\ncon ID de cadena:\n{}"
+      },
+      "sign": {
+        "signOn": "Firmar transacción en\n\n{}",
+        "tokenContract": "Contrato\ndel token",
+        "txCanceled": "Transacción\ncancelada",
+        "txConfirmed": "Transacción\nconfirmada",
+        "unknownAmount": "Importe desconocido",
+        "unknownContract": {
+          "confirm": {
+            "body": "Se mostrarán los\ndatos sin procesar\nde la transacción.",
+            "title": "Contrato\ndesconocido"
+          },
+          "confirmAdvancedStreaming": "Sigue solo si\ncomprendes a fondo\nlos riesgos.",
+          "confirmAdvanced": "Sigue solo si sabes\nexactamente qué\nsignifican los datos.",
+          "confirmStreaming": "Firmas una llamada\nal contrato con\nmuchos datos.",
+          "tooLarge": "El próximo valor\nes demasiado grande\npara verse completo",
+          "transactionData": "Datos de la\ntransacción"
+        },
+        "unknownToken": "Token desconocido"
+      },
+      "signMsg": {
+        "sign": "Firmar",
+        "signMessage": "Firmar\nmensaje"
+      },
+      "signTypedMsg": {
+        "Message": "Mensaje",
+        "domain": "Dominio",
+        "empyList": "(lista vacía)",
+        "line": ", línea {}/{}",
+        "listWithElements": "lista de {} elementos",
+        "messageType": "Tipo de mensaje",
+        "noChainIdWarning": "Los datos tipados no tienen ID de cadena. El mensaje es válido en cualquier cadena.",
+        "signData": "¿Firmar datos?",
+        "unknown": "Desconocido"
+      }
+    },
+    "reset": {
+      "body": "¿Restablecer\nvalores de fábrica?",
+      "status": "Dispositivo\nrestablecido",
+      "title": "RESTABLECER"
+    },
+    "restore": {
+      "backupName": "Nombre: {}. ID: {}",
+      "confirmRestore": "¿Restaurar copia\nde seguridad?",
+      "error": "No se pudo\nrestaurar\nla copia",
+      "invalidWords": "Palabras de\nrecuperación\nno válidas",
+      "isNow": "¿Es ahora?",
+      "passwordMismatch": "Las contraseñas\nno coinciden.\n¿Reintentar?",
+      "validWords": "Palabras de\nrecuperación\nválidas"
+    },
+    "setMnemonicPassphrase": {
+      "disable": "Desactivar",
+      "enable": "Activar",
+      "optionalPassphrase": "Passphrase\nopcional"
+    },
+    "setDeviceName": {
+      "title": "Nombre"
+    },
+    "setDeviceLanguage": {
+      "confirm": "¿Cambiar idioma\na {}?",
+      "english": "inglés",
+      "german": "alemán",
+      "italian": "italiano",
+      "spanish": "español"
+    },
+    "setPassword": {
+      "repeat": "Repite contraseña",
+      "set": "Crea contraseña"
+    },
+    "showMnemonic": {
+      "backupCreated": "Copia creada",
+      "doNotShareWarning": {
+        "body": "¡NO compartas tus\npalabras de\nrecuperación\ncon NADIE!",
+        "title": "Aviso"
+      },
+      "unlockDevice": "Desbloquear",
+      "writeDown": {
+        "body": "Anota las\nsiguientes palabras",
+        "title": "Palabras de\nrecuperación"
+      }
+    },
+    "system": {
+      "reboot": "¿Reiniciar?",
+      "rebootToBootloader": "¿Ir a la configuración\nde arranque?",
+      "upgrade": "¿Actualizar?"
+    }
+  },
+  "infoCentered": {
+    "skip": "Omitir"
+  },
+  "lockscreen": "Mira la BitBoxApp",
+  "menu": {
+    "continue": "Seguir",
+    "select": "Elegir"
+  },
+  "mnemonic": {
+    "backToWords": "Volver a las palabras\nde recuperación",
+    "cancelRestore": "Cancelar\nrestauración",
+    "choose": "Elegir",
+    "confirmCancel": {
+      "body": "¿Cancelar la\nrestauración?",
+      "title": "Restaurar"
+    },
+    "confirmEachWord": "Confirma\ncada palabra",
+    "editPrevious": "Editar palabra\nanterior",
+    "enterWords": "Introduce\n{} palabras",
+    "howManyWords": "¿Cuántas palabras?",
+    "incorrectWord": "Palabra errónea\nReintenta",
+    "invalidWord": "Palabra no válida\nReintenta",
+    "invalidCheckRestart": "No válido. Revisa\nlas palabras de\nrecuperación.\n¿Empezar de nuevo?",
+    "noneOfThem": "Ninguna",
+    "wordIndex": "{} de {}",
+    "wordsFollow": "Siguen {} palabras"
+  },
+  "orientation": "Toca este lado",
+  "pairing": {
+    "pairingCode": "Código de\nvinculación"
+  },
+  "password": {
+    "characterWarning": {
+      "body": "Tu contraseña\ntiene menos de\n4 caracteres.\n¿Continuar?",
+      "title": "AVISO"
+    },
+    "confirmCancel": "¿Seguro que quieres\ncancelar?",
+    "mismatch": "Las contraseñas\nno coinciden",
+    "repeat": "Repite contraseña",
+    "set": "Crea contraseña",
+    "success": "Éxito"
+  },
+  "sdcard": {
+    "insertToContinue": "Inserta la SD\npara continuar"
+  },
+  "transaction": {
+    "confirmSwap": {
+      "from": "{} desde",
+      "to": "{} a"
+    },
+    "confirmTransaction": {
+      "amount": "Importe",
+      "fee": "Comisión",
+      "recipient": "Destinatario",
+      "total": "Total"
+    },
+    "highFeeWarning": {
+      "body": "{}%\ndel importe enviado.\n¿Continuar?",
+      "bodyTotalInputs": "Comisión: {}%\ndel total de entradas.\n¿Continuar?",
+      "title": "Comisión\nalta"
+    }
+  },
+  "u2f": {
+    "auth": "Autenticar\nU2F",
+    "initializeWithBitBoxApp": "Configura con\nBitBoxApp\npara usar U2F",
+    "refreshWebpage": "Recarga\nla página",
+    "register": "Registrar\nU2F",
+    "unknownSite": "Sitio desconocido:",
+    "use": "¿Usar U2F?"
+  },
+  "paymentRequest": {
+    "swap": "Cambio"
+  },
+  "verifyMessage": {
+    "dataHex": "{}\ndatos (hex)",
+    "pageTitle": "{} {}/{}"
+  },
+  "unlock": {
+    "enterPassword": "Introduce contraseña",
+    "keystoreUnlockFailed": "Error al abrir\nel almacén\nde claves\n{}",
+    "passphrase": {
+      "confirm": "Confirmar",
+      "confirmEmpty": "¿Usar passphrase\nvacía?",
+      "doubleCheck": "Ahora confirmarás\nvisualmente tu\npassphrase.",
+      "title": "Passphrase\nopcional",
+      "tryAgain": "Reintenta"
+    },
+    "remainingAttempts": {
+      "last": "ÚLTIMO intento de\ncontraseña. Si fallas,\nse restablecerá\nel dispositivo.",
+      "other": "Te quedan {} intentos\nde contraseña.",
+      "title": "AVISO"
+    },
+    "wrongPassword": {
+      "base": "Contraseña\nerrónea"
+    }
+  }
+}

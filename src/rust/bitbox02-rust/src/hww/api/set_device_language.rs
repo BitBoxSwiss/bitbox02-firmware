@@ -42,6 +42,8 @@ fn language_name(
     match language {
         Language::English => crate::i18n::translate(current_language, "English"),
         Language::German => crate::i18n::translate(current_language, "German"),
+        Language::Italian => crate::i18n::translate(current_language, "Italian"),
+        Language::Spanish => crate::i18n::translate(current_language, "Spanish"),
     }
 }
 
@@ -109,12 +111,38 @@ mod tests {
             bitbox_hal::memory::Language::English
         );
 
-        mock_hal.ui.abort_nth(2);
+        for (code, language, body) in [
+            ("it-IT", Language::Italian, "Change language\nto Italian?"),
+            ("es", Language::Spanish, "Cambiare lingua\nin spagnolo?"),
+            ("en", Language::English, "¿Cambiar idioma\na inglés?"),
+        ] {
+            assert_eq!(
+                process(
+                    &mut mock_hal,
+                    &pb::SetDeviceLanguageRequest {
+                        language: code.into()
+                    }
+                )
+                .await,
+                Ok(Response::Success(pb::Success {}))
+            );
+            assert_eq!(
+                mock_hal.ui.screens.last(),
+                Some(&Screen::Confirm {
+                    title: "".into(),
+                    body: body.into(),
+                    longtouch: false,
+                })
+            );
+            assert_eq!(mock_hal.memory.get_device_language(), language);
+        }
+
+        mock_hal.ui.abort_nth(5);
         assert_eq!(
             process(
                 &mut mock_hal,
                 &pb::SetDeviceLanguageRequest {
-                    language: "de".into()
+                    language: "es".into()
                 }
             )
             .await,

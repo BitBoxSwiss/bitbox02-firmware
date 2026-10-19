@@ -317,7 +317,7 @@ async fn _process(
         out
     };
 
-    signing_keypaths.sort();
+    signing_keypaths.sort_unstable();
     signing_keypaths.dedup();
 
     let mut shelley_witnesses: Vec<ShelleyWitness> = Vec::with_capacity(signing_keypaths.len());

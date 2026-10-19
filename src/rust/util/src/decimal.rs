@@ -3,20 +3,51 @@
 extern crate alloc;
 use alloc::string::{String, ToString};
 
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint};
 
-pub trait Format: ToString {}
+pub trait Format: ToString {
+    fn decimal_string(&self) -> String {
+        self.to_string()
+    }
+}
 
 impl Format for u64 {}
 
-impl Format for &BigUint {}
+impl Format for &BigUint {
+    fn decimal_string(&self) -> String {
+        biguint_to_string(self)
+    }
+}
+
+pub fn biguint_to_string(value: &BigUint) -> String {
+    // Scalar division avoids pulling in num-bigint's large-number radix conversion routines.
+    if value == &BigUint::ZERO {
+        return "0".into();
+    }
+    let mut value = value.clone();
+    let mut digits = alloc::vec::Vec::new();
+    while value != BigUint::ZERO {
+        digits.push(b'0' + u8::try_from(&value % 10u32).unwrap());
+        value /= 10u32;
+    }
+    digits.reverse();
+    String::from_utf8(digits).unwrap()
+}
+
+pub fn bigint_to_string(value: &BigInt) -> String {
+    let mut text = biguint_to_string(value.magnitude());
+    if value.sign() == num_bigint::Sign::Minus {
+        text.insert(0, '-');
+    }
+    text
+}
 
 /// Formats integer `value` as `value / 10^decimals`, with up to `decimals` decimal places,
 /// trimming traling zeroes.
 /// E.g. "123450" with decimals=3: "123.45".
 /// Value must consists only of '0'-'9' digits.
 pub fn format<F: Format>(value: F, decimals: usize) -> String {
-    let mut v: String = format!("{:0>width$}", value.to_string(), width = decimals + 1);
+    let mut v: String = format!("{:0>width$}", value.decimal_string(), width = decimals + 1);
     v.insert(v.len() - decimals, '.');
     v.trim_end_matches('0').trim_end_matches('.').into()
 }
@@ -26,7 +57,7 @@ pub fn format<F: Format>(value: F, decimals: usize) -> String {
 /// E.g. "123450" with decimals=3: "123.450".
 /// Value must consists only of '0'-'9' digits.
 pub fn format_no_trim<F: Format>(value: F, decimals: usize) -> String {
-    let mut v: String = format!("{:0>width$}", value.to_string(), width = decimals + 1);
+    let mut v: String = format!("{:0>width$}", value.decimal_string(), width = decimals + 1);
     if decimals > 0 {
         v.insert(v.len() - decimals, '.');
     }
@@ -36,6 +67,36 @@ pub fn format_no_trim<F: Format>(value: F, decimals: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_biguint_to_string() {
+        let two_to_256 = BigUint::from(1u32) << 256usize;
+        for value in [
+            BigUint::ZERO,
+            BigUint::from(1u32),
+            BigUint::from(9u32),
+            BigUint::from(10u32),
+            BigUint::from(1_020_030u32),
+            BigUint::from(u64::MAX),
+            &two_to_256 - 1u32,
+            two_to_256,
+        ] {
+            assert_eq!(biguint_to_string(&value), value.to_string());
+        }
+    }
+
+    #[test]
+    fn test_bigint_to_string() {
+        for value in [
+            BigInt::from(0),
+            BigInt::from(1),
+            BigInt::from(-1),
+            BigInt::from(i64::MIN),
+            -(BigInt::from(1u32) << 255usize),
+        ] {
+            assert_eq!(bigint_to_string(&value), value.to_string());
+        }
+    }
 
     #[test]
     fn test_format_int() {

@@ -174,10 +174,10 @@ struct WalletPolicyPkTranslator<'a> {
 }
 
 impl miniscript::Translator<String> for WalletPolicyPkTranslator<'_> {
-    type TargetPk = bitcoin::PublicKey;
+    type TargetPk = bitcoin::secp256k1::PublicKey;
     type Error = Error;
 
-    fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
+    fn pk(&mut self, pk: &String) -> Result<bitcoin::secp256k1::PublicKey, Error> {
         let (key_index, multipath_index_left, multipath_index_right) =
             parse_wallet_policy_pk(pk).or(Err(Error::InvalidInput))?;
 
@@ -192,8 +192,10 @@ impl miniscript::Translator<String> for WalletPolicyPkTranslator<'_> {
                 };
                 let derived_xpub =
                     bip32::Xpub::from(xpub).derive(&[multipath_index, self.address_index])?;
-                Ok(bitcoin::PublicKey::from_slice(derived_xpub.public_key())
-                    .or(Err(Error::Generic))?)
+                Ok(
+                    bitcoin::secp256k1::PublicKey::from_slice(derived_xpub.public_key())
+                        .or(Err(Error::Generic))?,
+                )
             }
             _ => Err(Error::InvalidInput),
         }
@@ -223,7 +225,7 @@ pub struct Wsh<T: miniscript::MiniscriptKey> {
     miniscript_expr: miniscript::Miniscript<T, miniscript::Segwitv0>,
 }
 
-impl Wsh<bitcoin::PublicKey> {
+impl Wsh<bitcoin::secp256k1::PublicKey> {
     /// Return the witness script of this concrete wsh() descriptor.
     pub fn witness_script(&self) -> Vec<u8> {
         self.miniscript_expr.encode().as_bytes().to_vec()
@@ -245,7 +247,7 @@ pub struct Tr<T: miniscript::MiniscriptKey> {
     inner: miniscript::descriptor::Tr<T>,
 }
 
-impl Tr<bitcoin::PublicKey> {
+impl Tr<bitcoin::secp256k1::PublicKey> {
     /// Returns the serialized Taproot output key.
     pub fn output_key(&self) -> [u8; 32] {
         self.inner.spend_info().output_key().serialize()
@@ -262,7 +264,7 @@ impl Tr<bitcoin::PublicKey> {
             if leaf
                 .miniscript()
                 .iter_pk()
-                .any(|pk2| *pk == pk2.inner.serialize())
+                .any(|pk2| *pk == pk2.serialize())
             {
                 return Some(TapLeafHash::from_script(
                     &leaf.miniscript().encode(),
@@ -544,7 +546,7 @@ impl ParsedPolicy<'_> {
         &self,
         is_change: bool,
         address_index: u32,
-    ) -> Result<Descriptor<bitcoin::PublicKey>, Error> {
+    ) -> Result<Descriptor<bitcoin::secp256k1::PublicKey>, Error> {
         let mut translator = WalletPolicyPkTranslator {
             keys: self.policy.keys.as_ref(),
             is_change,
@@ -578,7 +580,7 @@ impl ParsedPolicy<'_> {
     pub fn derive_at_keypath(
         &self,
         keypath: &[u32],
-    ) -> Result<Descriptor<bitcoin::PublicKey>, Error> {
+    ) -> Result<Descriptor<bitcoin::secp256k1::PublicKey>, Error> {
         let (is_change, address_index) = get_change_and_address_index(
             self.iter_pk(),
             &self.policy.keys,
@@ -620,8 +622,7 @@ impl ParsedPolicy<'_> {
         match self.derive_at_keypath(keypath)? {
             Descriptor::Tr(tr) => {
                 let xpub = xpub_cache.get_xpub(hal, keypath).await?;
-                let is_keypath_spend =
-                    xpub.public_key() == tr.inner.internal_key().inner.serialize();
+                let is_keypath_spend = xpub.public_key() == tr.inner.internal_key().serialize();
 
                 if is_keypath_spend {
                     let spend_info = tr.inner.spend_info();
@@ -2076,7 +2077,7 @@ mod tests {
         };
 
         // Internal key not present in any leaf script.
-        let internal_key_bytes: [u8; 33] = tr.inner.internal_key().inner.serialize();
+        let internal_key_bytes: [u8; 33] = tr.inner.internal_key().serialize();
         assert_eq!(tr.get_leaf_hash_by_pubkey(&internal_key_bytes), None);
 
         // There are exactly two leaf pubkeys (@1 and @2).
@@ -2084,7 +2085,7 @@ mod tests {
             .inner
             .leaves()
             .flat_map(|leaf| leaf.miniscript().iter_pk())
-            .map(|pk| pk.inner.serialize())
+            .map(|pk| pk.serialize())
             .collect();
         assert_eq!(leaf_pks.len(), 2);
 

@@ -3400,6 +3400,7 @@ dependencies = [
  "bitcoin",
  "cortex-m",
  "critical-section",
+ "digest",
  "hex",
  "hmac",
  "num-bigint",

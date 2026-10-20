@@ -238,8 +238,10 @@ name = "bitbox-noise"
 version = "0.1.0"
 dependencies = [
  "bitbox-hal",
+ "digest",
  "noise-protocol",
  "noise-rust-crypto",
+ "util",
  "x25519-dalek",
 ]
 

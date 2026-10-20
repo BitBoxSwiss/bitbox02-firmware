@@ -12,6 +12,7 @@
 extern crate std;
 
 mod noise_xx;
+mod sha256;
 pub mod testing;
 mod x25519;
 

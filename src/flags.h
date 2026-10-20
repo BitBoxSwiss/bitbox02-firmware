@@ -21,9 +21,8 @@
 // |  (0x04000)  |
 // |             |
 // +-------------+ 0xFC000
-// |   Factory   |
-// |  randomness |
-// |    backup   |
+// |   Scratch   |
+// |    space    |
 // |  (0x02000)  |
 // +-------------+ 0xFA000
 // |  Boot data  |
@@ -60,7 +59,7 @@
 #define FLASH_END (2048 * FLASH_PAGE_SIZE)
 
 // The firmware and its data areas end at page 2000. The remaining flash is reserved
-// for the factory randomness backup and SmartEEPROM.
+// for scratch space and SmartEEPROM.
 #define FLASH_USER_END (2000 * FLASH_PAGE_SIZE)
 
 // Erase granularity is 1 block (8kB; 16 pages)
@@ -102,6 +101,11 @@
 #define FLASH_APP_VERSION_START (FLASH_APP_START + FLASH_APP_LEN - FLASH_APP_VERSION_LEN)
 
 #define CHUNK_SIZE (FLASH_ERASE_MIN_LEN) // 8kB; minimum erase granularity
+
+// Shared temporary storage for stage1 and firmware. Contents may not survive a reboot:
+// stage0 currently overwrites this space with a factory randomness backup when updating stage1.
+#define FLASH_SCRATCH_START (0x000FA000U)
+#define FLASH_SCRATCH_LEN (0x00002000U)
 
 // SmartEEPROM reserved memory start
 #define FLASH_SMARTEEPROM_START (FLASH_END - SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE)

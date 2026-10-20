@@ -350,7 +350,7 @@ static secbool_u32 _factory_random_backup_valid(
     uint8_t factory_random_out[BB02_STAGE1_FACTORY_RANDOM_LEN])
 {
     return stage0_factory_random_backup_valid(
-        (const stage0_factory_random_backup_t*)BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR,
+        (const stage0_factory_random_backup_t*)STAGE0_FACTORY_RANDOM_BACKUP_ADDR,
         factory_random_out);
 }
 
@@ -358,16 +358,16 @@ static void _factory_random_backup_create(
     const uint8_t factory_random[BB02_STAGE1_FACTORY_RANDOM_LEN],
     const volatile secbool_u32* install_auth)
 {
-    if (_flash_block_erased(BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR) != sectrue_u32) {
-        _flash_erase_block(BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR, install_auth);
+    if (_flash_block_erased(FLASH_SCRATCH_START) != sectrue_u32) {
+        _flash_erase_block(FLASH_SCRATCH_START, install_auth);
     }
 
     uint32_t page[STAGE0_FLASH_PAGE_WORDS];
     stage0_factory_random_backup_make_data_page(page, factory_random);
-    _flash_write_page(BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR, page, install_auth);
+    _flash_write_page(STAGE0_FACTORY_RANDOM_BACKUP_ADDR, page, install_auth);
 
     stage0_factory_random_backup_make_commit_page(page);
-    _flash_write_page(BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR, page, install_auth);
+    _flash_write_page(STAGE0_FACTORY_RANDOM_BACKUP_ADDR, page, install_auth);
 
     uint8_t verify[BB02_STAGE1_FACTORY_RANDOM_LEN];
     if (_factory_random_backup_valid(verify) != sectrue_u32 ||
@@ -491,7 +491,7 @@ static void _install_stage1(
     uint32_t page[STAGE0_FLASH_PAGE_WORDS];
 
     _nvm_disable_bootprot(install_auth);
-    _flash_unlock_region(BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR, install_auth);
+    _flash_unlock_region(FLASH_SCRATCH_START, install_auth);
     _factory_random_load_or_create_backup(factory_random, installed_header_ok, install_auth);
     _flash_unlock_region(0x00000000U, install_auth);
     _flash_unlock_region(0x00008000U, install_auth);

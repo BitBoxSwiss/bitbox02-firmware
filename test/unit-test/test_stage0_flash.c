@@ -19,8 +19,7 @@ static void test_stage0_flash_page_addr_ok(void** state)
         sectrue_u32);
     assert_int_equal(
         stage0_flash_page_addr_ok(STAGE0_STAGE1_FACTORY_RANDOM_PAGE_ADDR), sectrue_u32);
-    assert_int_equal(
-        stage0_flash_page_addr_ok(BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR), sectrue_u32);
+    assert_int_equal(stage0_flash_page_addr_ok(STAGE0_FACTORY_RANDOM_BACKUP_ADDR), sectrue_u32);
 
     assert_int_equal(stage0_flash_page_addr_ok(STAGE0_STAGE1_PAGE_ADDR - 1u), secfalse_u32);
     assert_int_equal(
@@ -32,8 +31,7 @@ static void test_stage0_flash_page_addr_ok(void** state)
             STAGE0_STAGE1_FACTORY_RANDOM_PAGE_ADDR + STAGE0_FLASH_PAGE_SIZE_BYTES),
         secfalse_u32);
     assert_int_equal(
-        stage0_flash_page_addr_ok(
-            BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR + STAGE0_FLASH_PAGE_SIZE_BYTES),
+        stage0_flash_page_addr_ok(STAGE0_FACTORY_RANDOM_BACKUP_ADDR + STAGE0_FLASH_PAGE_SIZE_BYTES),
         secfalse_u32);
     for (uint32_t addr = FLASH_APP_START; addr < FLASH_APP_START + FLASH_APP_LEN;
          addr += STAGE0_FLASH_PAGE_SIZE_BYTES) {
@@ -57,8 +55,7 @@ static void test_stage0_flash_block_addr_ok(void** state)
         sectrue_u32);
     assert_int_equal(
         stage0_flash_block_addr_ok(STAGE0_STAGE1_FACTORY_RANDOM_BLOCK_ADDR), sectrue_u32);
-    assert_int_equal(
-        stage0_flash_block_addr_ok(BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR), sectrue_u32);
+    assert_int_equal(stage0_flash_block_addr_ok(FLASH_SCRATCH_START), sectrue_u32);
 
     assert_int_equal(stage0_flash_block_addr_ok(STAGE0_STAGE1_BLOCK_ADDR - 1u), secfalse_u32);
     assert_int_equal(
@@ -70,8 +67,7 @@ static void test_stage0_flash_block_addr_ok(void** state)
             STAGE0_STAGE1_FACTORY_RANDOM_BLOCK_ADDR + STAGE0_FLASH_BLOCK_SIZE_BYTES),
         secfalse_u32);
     assert_int_equal(
-        stage0_flash_block_addr_ok(
-            BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR + STAGE0_FLASH_BLOCK_SIZE_BYTES),
+        stage0_flash_block_addr_ok(FLASH_SCRATCH_START + STAGE0_FLASH_BLOCK_SIZE_BYTES),
         secfalse_u32);
     for (uint32_t addr = FLASH_APP_START; addr < FLASH_APP_START + FLASH_APP_LEN;
          addr += STAGE0_FLASH_BLOCK_SIZE_BYTES) {

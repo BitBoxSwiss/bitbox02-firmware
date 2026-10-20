@@ -264,4 +264,6 @@ recorded separately.
 ## Stage0 bootloader
 
 ### Unreleased
+
+### v2
 - Hold the screen reset pin low until bootloader is ready to initalize it.

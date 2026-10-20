@@ -15,6 +15,7 @@ hex = {workspace = true}
 digest = { workspace = true }
 hmac = { workspace = true }
 p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
+ecdsa = { version = "0.16.9", default-features = false, features = ["signing"], optional = true }
 bitcoin = { workspace = true }
 critical-section = { workspace = true }
 zeroize = { workspace = true }
@@ -25,6 +26,7 @@ hex_lit = { workspace = true }
 sha2 = { workspace = true }
 
 [features]
+p256 = ["dep:p256", "dep:ecdsa"]
 sha2 = []
 rtt = ["dep:rtt-target"]
 testing = ["critical-section/std"]

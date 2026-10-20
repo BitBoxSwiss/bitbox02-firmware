@@ -1601,6 +1601,7 @@ dependencies = [
  "cortex-m",
  "critical-section",
  "digest",
+ "ecdsa",
  "hex",
  "hex_lit",
  "hmac",

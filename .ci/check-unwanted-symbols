@@ -57,6 +57,13 @@ check_firmware() {
 
     check_symbols \
         "$elf" \
+        "RustCrypto SHA-256" \
+        "sha26sha256|sha2::(sha256::|core_api::Sha256VarCore|OidSha256)" \
+        "RustCrypto SHA-256 duplicates the bitcoin_hashes backend already linked in firmware." \
+        "Use util::sha256::Sha256 or bitcoin::hashes::sha256 instead."
+
+    check_symbols \
+        "$elf" \
         "sha2::Sha512" \
         "sha26sha512|sha2::sha512" \
         "sha2::Sha512 adds significant binary bloat." \

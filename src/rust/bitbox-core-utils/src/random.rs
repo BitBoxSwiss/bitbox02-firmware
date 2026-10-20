@@ -3,8 +3,7 @@
 use alloc::boxed::Box;
 
 use bitbox_hal::{Hal, Random, SecureChip, securechip};
-use digest::FixedOutput;
-use sha2::Digest;
+use digest::{Digest, FixedOutput};
 
 pub fn random_32_bytes_with_mixin(
     hal_random: &mut impl Random,
@@ -25,7 +24,7 @@ pub fn random_32_bytes_with_mixin(
     }
 
     let mut result = Box::new(zeroize::Zeroizing::new([0u8; 32]));
-    let mut hasher = sha2::Sha256::new();
+    let mut hasher = util::sha256::Sha256::new();
     hasher.update(mixed.as_slice());
     FixedOutput::finalize_into(hasher, result.as_mut_slice().into());
     result

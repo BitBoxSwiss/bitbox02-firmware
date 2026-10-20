@@ -163,7 +163,6 @@ dependencies = [
  "bitbox-platform-host",
  "digest",
  "hex_lit",
- "sha2",
  "util",
  "zeroize",
 ]

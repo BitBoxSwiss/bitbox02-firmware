@@ -16,7 +16,8 @@ use crate::hal::{Memory, Ui};
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 pub const MAX_SIGNERS: usize = 15;
 

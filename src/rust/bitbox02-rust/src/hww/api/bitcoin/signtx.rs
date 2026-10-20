@@ -22,10 +22,11 @@ use alloc::vec::Vec;
 use pb::request::Request;
 use pb::response::Response;
 
+use digest::Digest;
 use pb::btc_script_config::SimpleType;
 use pb::btc_sign_init_request::FormatUnit;
 use pb::btc_sign_next_response::Type as NextType;
-use sha2::{Digest, Sha256};
+use util::sha256::Sha256;
 
 use bitcoin::consensus::encode::{VarInt, serialize};
 use bitcoin::hashes::Hash;

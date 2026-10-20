@@ -6,7 +6,8 @@ use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort, WordlistEntryAbort
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 const NUM_RANDOM_WORDS: u8 = 5;
 

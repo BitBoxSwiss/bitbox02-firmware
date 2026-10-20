@@ -13,7 +13,6 @@ rtt-target = { version = "0.6.2", optional = true }
 cortex-m = { workspace = true }
 hex = {workspace = true}
 digest = { workspace = true }
-sha2 = { workspace = true, optional = true }
 hmac = { workspace = true }
 p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
 bitcoin = { workspace = true }
@@ -26,6 +25,7 @@ hex_lit = { workspace = true }
 sha2 = { workspace = true }
 
 [features]
+sha2 = []
 rtt = ["dep:rtt-target"]
 testing = ["critical-section/std"]
 c-unit-testing = ["critical-section/std"]

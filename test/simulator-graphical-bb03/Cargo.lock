@@ -3404,7 +3404,6 @@ dependencies = [
  "hex",
  "hmac",
  "num-bigint",
- "sha2",
  "time",
  "zeroize",
 ]

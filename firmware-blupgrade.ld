@@ -4,15 +4,14 @@ SEARCH_DIR(.)
 
 MEMORY
 {
-  rom               (rx)  : ORIGIN = 0x00010000, LENGTH = 0x000C7000
+  rom               (rx)  : ORIGIN = 0x00010000, LENGTH = 0x000CB000
   bootloader_update (rx)  : ORIGIN = 0x000DB000, LENGTH = 0x0000C000
   ram               (rwx) : ORIGIN = 0x20000200, LENGTH = 0x0003FE00
   bkupram           (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000
   qspi              (rwx) : ORIGIN = 0x04000000, LENGTH = 0x01000000
 }
 
-ASSERT(ORIGIN(rom) + LENGTH(rom) <= 0x000D8000, "blupgrade rom overlaps factory randomness backup slot")
-ASSERT(ORIGIN(bootloader_update) >= 0x000DA000, "bootloader update slot overlaps factory randomness backup slot")
+ASSERT(ORIGIN(rom) + LENGTH(rom) <= ORIGIN(bootloader_update), "blupgrade code/data overlaps embedded stage1 payload")
 
 STACK_SIZE = DEFINED(STACK_SIZE) ? STACK_SIZE : DEFINED(__stack_size__) ? __stack_size__ : 0x10000;
 HEAP_SIZE = DEFINED(HEAP_SIZE) ? HEAP_SIZE : DEFINED(__heap_size__) ? __heap_size__ : 0x10000;

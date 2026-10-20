@@ -16,6 +16,15 @@
 //
 // Memory layout flash
 //
+// +-------------+ 0x100000
+// | SmartEEPROM |
+// |  (0x04000)  |
+// |             |
+// +-------------+ 0xFC000
+// |   Factory   |
+// |  randomness |
+// |    backup   |
+// |  (0x02000)  |
 // +-------------+ 0xFA000
 // |  Boot data  |
 // |  (0x02000)  |
@@ -37,8 +46,12 @@
 // |  Randomness |
 // |  (0x00020)  |
 // +-------------+ 0x0DFE0
-// |    Boot     |
-// |  (0x0DFE0)  |
+// |   Stage1    |
+// |  (0x0BFE0)  |
+// |             |
+// +-------------+ 0x02000
+// |   Stage0    |
+// |  (0x02000)  |
 // |             |
 // +-------------+ 0x00000
 //
@@ -46,8 +59,8 @@
 // The total size of the flash is 1MB (2048 pages).
 #define FLASH_END (2048 * FLASH_PAGE_SIZE)
 
-// Even though FLASH_SIZE is 1MB (1024*1024 bytes),
-// the portion of flash that we use ends at page 2000.
+// The firmware and its data areas end at page 2000. The remaining flash is reserved
+// for the factory randomness backup and SmartEEPROM.
 #define FLASH_USER_END (2000 * FLASH_PAGE_SIZE)
 
 // Erase granularity is 1 block (8kB; 16 pages)

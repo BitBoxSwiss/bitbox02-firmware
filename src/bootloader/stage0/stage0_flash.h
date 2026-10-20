@@ -4,6 +4,7 @@
 #define _STAGE0_FLASH_H_
 
 #include "bootloader_upgrade/bootloader_upgrade.h"
+#include "flags.h"
 #include "util.h"
 
 #include <stddef.h>
@@ -56,6 +57,13 @@ _Static_assert(
 _Static_assert(
     BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_LEN == STAGE0_FLASH_BLOCK_SIZE_BYTES,
     "factory randomness backup must occupy one erase block");
+_Static_assert(
+    BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR >= FLASH_BOOTDATA_START + FLASH_BOOTDATA_LEN,
+    "factory randomness backup overlaps bootdata");
+_Static_assert(
+    BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR + BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_LEN <=
+        FLASH_SMARTEEPROM_START,
+    "factory randomness backup overlaps SmartEEPROM");
 _Static_assert(
     sizeof(stage0_factory_random_backup_t) <= STAGE0_FLASH_PAGE_SIZE_BYTES,
     "factory randomness backup record does not fit in one page");

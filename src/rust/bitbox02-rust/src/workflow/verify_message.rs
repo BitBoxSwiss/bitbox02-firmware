@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::ui::{ConfirmParams, Font};
+use crate::i18n::I18n as _;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use crate::hal::Ui;
@@ -62,7 +64,11 @@ pub async fn verify(
             let title = if pages.len() == 1 {
                 title_long.into()
             } else {
-                format!("{} {}/{}", title_short, i + 1, pages.len())
+                crate::tr_format!(
+                    hal,
+                    "{} {}/{}",
+                    &[title_short, &(i + 1).to_string(), &pages.len().to_string()],
+                )
             };
             let params = ConfirmParams {
                 title: &title,
@@ -77,8 +83,14 @@ pub async fn verify(
         Ok(())
     } else {
         let body = hex::encode(msg);
+        let title_base = if title_long.contains('\n') {
+            title_short
+        } else {
+            title_long
+        };
+        let title = crate::tr_format!(hal, "{}\ndata (hex)", &[title_base]);
         let params = ConfirmParams {
-            title: &format!("{}\ndata (hex)", title_long),
+            title: &title,
             body: &body,
             scrollable: true,
             display_size: msg.len(),
@@ -97,6 +109,7 @@ mod tests {
 
     use alloc::boxed::Box;
 
+    use crate::hal::Memory as _;
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::workflow::confirm::{MAX_CONFIRM_BODY_SIZE, TRUNCATION_WARNING_BODY};
@@ -124,6 +137,43 @@ mod tests {
                     longtouch: true,
                 },
             ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_verify_multiline_text_german() {
+        let mut hal = TestingHal::new();
+        hal.memory
+            .set_device_language(bitbox_hal::memory::Language::German)
+            .unwrap();
+        let msg = ["A"; 100].join("\n");
+        assert!(
+            verify(
+                &mut hal,
+                "Nachricht\nsignieren",
+                "Signieren",
+                msg.as_bytes(),
+                true,
+            )
+            .await
+            .is_ok()
+        );
+        assert_eq!(hal.ui.screens.len(), 100);
+        assert_eq!(
+            hal.ui.screens.first().unwrap(),
+            &Screen::Confirm {
+                title: "Signieren\n1/100".into(),
+                body: "A".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            hal.ui.screens.last().unwrap(),
+            &Screen::Confirm {
+                title: "Signieren\n100/100".into(),
+                body: "A".into(),
+                longtouch: true,
+            }
         );
     }
 
@@ -441,5 +491,33 @@ mod tests {
             }]
         );
         assert_eq!(mock_hal.ui.confirm_display_sizes, vec![3]);
+    }
+    #[async_test::test]
+    async fn test_verify_hex_german_uses_short_title() {
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .set_device_language(bitbox_hal::memory::Language::German)
+            .unwrap();
+
+        assert!(
+            verify(
+                &mut mock_hal,
+                "Nachricht\nsignieren",
+                "Signieren",
+                &[0],
+                true
+            )
+            .await
+            .is_ok()
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "Signieren\nDaten (Hex)".into(),
+                body: "00".into(),
+                longtouch: true,
+            }]
+        );
     }
 }

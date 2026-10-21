@@ -4,6 +4,7 @@
 #define _STAGE0_FLASH_H_
 
 #include "bootloader_upgrade/bootloader_upgrade.h"
+#include "flags.h"
 #include "util.h"
 
 #include <stddef.h>
@@ -21,6 +22,7 @@
 #define STAGE0_STAGE1_FACTORY_RANDOM_BLOCK_ADDR \
     (BB02_STAGE1_FACTORY_RANDOM_ADDR & ~(STAGE0_FLASH_BLOCK_SIZE_BYTES - 1U))
 
+#define STAGE0_FACTORY_RANDOM_BACKUP_ADDR FLASH_SCRATCH_START
 #define STAGE0_FACTORY_RANDOM_BACKUP_MAGIC (0x30524642U) // "BFR0" in little-endian flash order.
 #define STAGE0_FACTORY_RANDOM_BACKUP_FORMAT_VERSION (1U)
 #define STAGE0_FACTORY_RANDOM_BACKUP_COMMIT_ERASED UINT32_MAX
@@ -48,14 +50,23 @@ _Static_assert(
     STAGE0_STAGE1_BLOCK_ADDR % STAGE0_FLASH_BLOCK_SIZE_BYTES == 0,
     "stage1 block is unaligned");
 _Static_assert(
-    BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR % STAGE0_FLASH_PAGE_SIZE_BYTES == 0,
+    STAGE0_FACTORY_RANDOM_BACKUP_ADDR % STAGE0_FLASH_PAGE_SIZE_BYTES == 0,
     "factory randomness backup page is unaligned");
 _Static_assert(
-    BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR % STAGE0_FLASH_BLOCK_SIZE_BYTES == 0,
-    "factory randomness backup block is unaligned");
+    FLASH_SCRATCH_START % STAGE0_FLASH_BLOCK_SIZE_BYTES == 0,
+    "scratch space is unaligned");
 _Static_assert(
-    BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_LEN == STAGE0_FLASH_BLOCK_SIZE_BYTES,
-    "factory randomness backup must occupy one erase block");
+    FLASH_SCRATCH_LEN == STAGE0_FLASH_BLOCK_SIZE_BYTES,
+    "scratch space must occupy one erase block");
+_Static_assert(
+    FLASH_SCRATCH_START >= FLASH_BOOTDATA_START + FLASH_BOOTDATA_LEN,
+    "scratch space overlaps bootdata");
+_Static_assert(
+    FLASH_SCRATCH_START + FLASH_SCRATCH_LEN <= FLASH_SMARTEEPROM_START,
+    "scratch space overlaps SmartEEPROM");
+_Static_assert(
+    BB02_BOOTLOADER_UPGRADE_STAGE1_UPDATE_ADDR + BB02_STAGE1_MAX_LEN <= FLASH_APPDATA_START,
+    "stage1 update slot overlaps appdata");
 _Static_assert(
     sizeof(stage0_factory_random_backup_t) <= STAGE0_FLASH_PAGE_SIZE_BYTES,
     "factory randomness backup record does not fit in one page");
@@ -79,7 +90,7 @@ static secbool_u32 __attribute__((noinline, noclone)) stage0_flash_page_addr_ok(
     if (addr >= STAGE0_STAGE1_PAGE_ADDR && addr <= STAGE0_STAGE1_FACTORY_RANDOM_PAGE_ADDR) {
         return sectrue_u32;
     }
-    if (addr == BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR) {
+    if (addr == STAGE0_FACTORY_RANDOM_BACKUP_ADDR) {
         return sectrue_u32;
     }
     return secfalse_u32;
@@ -96,7 +107,7 @@ static secbool_u32 __attribute__((noinline, noclone)) stage0_flash_block_addr_ok
     if (addr >= STAGE0_STAGE1_BLOCK_ADDR && addr <= STAGE0_STAGE1_FACTORY_RANDOM_BLOCK_ADDR) {
         return sectrue_u32;
     }
-    if (addr == BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR) {
+    if (addr == FLASH_SCRATCH_START) {
         return sectrue_u32;
     }
     return secfalse_u32;

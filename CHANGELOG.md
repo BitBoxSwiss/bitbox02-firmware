@@ -264,4 +264,10 @@ recorded separately.
 ## Stage0 bootloader
 
 ### Unreleased
+
+### v3
+- Move the factory randomness backup out of the firmware area to preserve firmware integrity
+  during stage1 updates.
+
+### v2
 - Hold the screen reset pin low until bootloader is ready to initalize it.

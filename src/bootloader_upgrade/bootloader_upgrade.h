@@ -19,10 +19,6 @@
 #define BB02_STAGE1_FACTORY_RANDOM_ADDR (0x0000DFE0U)
 #define BB02_STAGE1_FACTORY_RANDOM_LEN (32U)
 
-#define BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR (0x000D8000U)
-#define BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_LEN (0x00002000U)
-#define BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_ADDR
-
 #define BB02_BOOTLOADER_UPGRADE_STAGE1_UPDATE_ADDR (0x000DB000U)
 
 #define BB02_STAGE1_HEADER_MAGIC (0x31534242U) // "BBS1" in little-endian flash order.
@@ -64,10 +60,6 @@ typedef struct __attribute__((__packed__)) {
 #define BB02_STAGE1_HEADER_SIGNED_LEN ((uint32_t)offsetof(bb02_stage1_header_t, signatures))
 
 _Static_assert(sizeof(bb02_stage1_header_t) == 1024, "header ABI changed");
-_Static_assert(
-    BB02_STAGE1_FACTORY_RANDOM_BACKUP_ADDR + BB02_STAGE1_FACTORY_RANDOM_BACKUP_BLOCK_LEN <=
-        BB02_BOOTLOADER_UPGRADE_STAGE1_UPDATE_ADDR,
-    "factory randomness backup overlaps stage1 update slot");
 _Static_assert(
     BB02_STAGE1_HEADER_SIGNED_LEN + BB02_STAGE1_HEADER_SIGNATURES_LEN == BB02_STAGE1_HEADER_LEN,
     "header ABI changed");

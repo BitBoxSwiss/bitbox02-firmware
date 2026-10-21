@@ -115,7 +115,7 @@ async fn maybe_confirm_remaining_unlock_attempts(
     // case, so we purposefully don't deal with this here.
 
     let body: alloc::string::String = if remaining == 1 {
-        "LAST attempt!\nWrong password\nresets the device.".into()
+        "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong.".into()
     } else {
         format!("You have {}\npassword attempts\nleft.", remaining)
     };
@@ -524,7 +524,9 @@ mod tests {
             mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "WARNING".into(),
-                body: "LAST attempt!\nWrong password\nresets the device.".into(),
+                body:
+                    "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong."
+                        .into(),
                 longtouch: true,
             }],
         );

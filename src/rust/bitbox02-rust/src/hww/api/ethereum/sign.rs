@@ -454,9 +454,9 @@ async fn verify_standard_transaction(
             .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: if data_length > 0 {
-                    "Signing a contract\nwith large data."
+                    "You are signing a\ncontract interaction\nwith large data."
                 } else {
-                    "You will see the raw\ntransaction data."
+                    "You will be shown\nthe raw\ntransaction data."
                 },
                 accept_is_nextarrow: true,
                 ..Default::default()
@@ -466,9 +466,9 @@ async fn verify_standard_transaction(
             .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: if data_length > 0 {
-                    "Only proceed if you\nunderstand the risks."
+                    "Only proceed if you\nfully understand\nthe risks involved."
                 } else {
-                    "Only proceed if you\nunderstand the data."
+                    "Only proceed if you\nunderstand exactly\nwhat the data means."
                 },
                 accept_is_nextarrow: true,
                 ..Default::default()
@@ -1103,12 +1103,12 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "You will see the raw\ntransaction data.".into(),
+                    body: "You will be shown\nthe raw\ntransaction data.".into(),
                     longtouch: false
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nunderstand the data.".into(),
+                    body: "Only proceed if you\nunderstand exactly\nwhat the data means.".into(),
                     longtouch: false
                 },
                 Screen::Confirm {
@@ -1171,12 +1171,12 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "You will see the raw\ntransaction data.".into(),
+                    body: "You will be shown\nthe raw\ntransaction data.".into(),
                     longtouch: false
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nunderstand the data.".into(),
+                    body: "Only proceed if you\nunderstand exactly\nwhat the data means.".into(),
                     longtouch: false
                 },
                 Screen::Confirm {
@@ -2188,7 +2188,7 @@ mod tests {
             mock_hal.ui.screens[1],
             Screen::Confirm {
                 title: "Unknown\ncontract".into(),
-                body: "Signing a contract\nwith large data.".into(),
+                body: "You are signing a\ncontract interaction\nwith large data.".into(),
                 longtouch: false,
             }
         );
@@ -2196,7 +2196,7 @@ mod tests {
             mock_hal.ui.screens[2],
             Screen::Confirm {
                 title: "Unknown\ncontract".into(),
-                body: "Only proceed if you\nunderstand the risks.".into(),
+                body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
                 longtouch: false,
             }
         );
@@ -2320,12 +2320,12 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "Signing a contract\nwith large data.".into(),
+                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
                     title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nunderstand the risks.".into(),
+                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {

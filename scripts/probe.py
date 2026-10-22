@@ -99,7 +99,12 @@ def jlink_flash_commands(info: Image) -> str:
     path = str(info.elf)
     if any(char in path for char in ('"', "\n", "\r")):
         raise ValueError("Unsupported character in J-Link image path")
-    return f'r\nh\nloadfile "{path}" 0 noreset\nr\ng\nq\n'
+    # Stage1 shares its last erase block with factory randomness.
+    # SetFlashDLNoRMWThreshold makes loadfile preserve the other bytes in erased blocks.
+    return (
+        "r\nh\nexec SetFlashDLNoRMWThreshold = 0xFFFFFFFF\n"
+        f'loadfile "{path}" 0 noreset\nr\ng\nq\n'
+    )
 
 
 def execute(config: Config, action: str, image: str = "firmware") -> None:

@@ -107,6 +107,18 @@ pub fn validate_address_policy(keypath: &[u32], mode: ReceiveSpend) -> Result<()
     }
 }
 
+/// Validates a multisig address keypath with any nonempty account prefix.
+///
+/// Receiving requires branch 0 or 1 and an address index below 10000.
+/// Spending leaves both indices unrestricted so funds at nonstandard paths can be recovered.
+pub fn validate_address_multisig(keypath: &[u32], mode: ReceiveSpend) -> Result<(), ()> {
+    validate_address_policy(keypath, mode)?;
+    if mode == ReceiveSpend::Receive && keypath[keypath.len() - 2] > 1 {
+        return Err(());
+    }
+    Ok(())
+}
+
 /// Validates a singlesig keypath.
 /// Supported:
 /// - P2WPKH-P2SH: m/49'/coin'/account'
@@ -461,6 +473,31 @@ mod tests {
                 )
                 .is_err()
             );
+        }
+    }
+
+    #[test]
+    fn test_validate_address_multisig() {
+        let invalid_keypaths: [&[u32]; 3] = [&[], &[45 + HARDENED], &[45 + HARDENED, 0]];
+        for mode in [ReceiveSpend::Receive, ReceiveSpend::Spend] {
+            for keypath in invalid_keypaths {
+                assert!(validate_address_multisig(keypath, mode).is_err());
+            }
+            for branch in [0, 1] {
+                assert!(validate_address_multisig(&[45 + HARDENED, branch, 0], mode).is_ok());
+                assert!(validate_address_multisig(&[123, 456, branch, 9999], mode).is_ok());
+            }
+        }
+        for (branch, address) in [
+            (0, 10000),
+            (1, 10000),
+            (2, 0),
+            (5000, 9999),
+            (HARDENED - 1, HARDENED - 1),
+        ] {
+            let keypath = [45 + HARDENED, branch, address];
+            assert!(validate_address_multisig(&keypath, ReceiveSpend::Receive).is_err());
+            assert!(validate_address_multisig(&keypath, ReceiveSpend::Spend).is_ok());
         }
     }
 

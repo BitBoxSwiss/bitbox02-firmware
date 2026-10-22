@@ -249,7 +249,10 @@ fn validate_keypath(
             )
             .or(Err(Error::InvalidInput))?;
         }
-        ValidatedScriptConfig::Multisig { .. } | ValidatedScriptConfig::Policy { .. } => {
+        ValidatedScriptConfig::Multisig { .. } => {
+            keypath::validate_address_multisig(keypath, mode).or(Err(Error::InvalidInput))?;
+        }
+        ValidatedScriptConfig::Policy { .. } => {
             keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
         }
     }
@@ -2620,6 +2623,32 @@ mod tests {
                     vector.id
                 ),
             }
+        }
+    }
+
+    #[test]
+    fn test_validate_keypath_multisig() {
+        use keypath::ReceiveSpend::{Receive, Spend};
+
+        let params = super::super::params::get(pb::BtcCoin::Btc);
+        let multisig = pb::btc_script_config::Multisig::default();
+        let config = ValidatedScriptConfigWithKeypath {
+            keypath: &[45 + HARDENED],
+            config: ValidatedScriptConfig::Multisig {
+                name: "test multisig".into(),
+                multisig: &multisig,
+            },
+        };
+        for (branch, mode, expected) in [
+            (0, Receive, Ok(())),
+            (1, Receive, Ok(())),
+            (5000, Receive, Err(Error::InvalidInput)),
+            (5000, Spend, Ok(())),
+        ] {
+            assert_eq!(
+                validate_keypath(params, &config, &[45 + HARDENED, branch, 0], mode),
+                expected,
+            );
         }
     }
 

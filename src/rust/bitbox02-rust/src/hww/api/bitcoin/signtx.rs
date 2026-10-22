@@ -384,6 +384,9 @@ async fn handle_prevtx(
         );
 
         let prevtx_input = get_prevtx_input(input_index, prevtx_input_index, next_response).await?;
+        if prevtx_input.prev_out_hash.len() != 32 {
+            return Err(Error::InvalidInput);
+        }
         hasher.update(prevtx_input.prev_out_hash.as_slice());
         hasher.update(prevtx_input.prev_out_index.to_le_bytes());
         hasher.update(serialize(&VarInt(
@@ -3023,6 +3026,31 @@ mod tests {
                     Err(Error::InvalidInput)
                 );
                 assert_eq!(first_input_requests.get(), invalid_pass);
+            }
+        }
+    }
+
+    #[async_test::test]
+    async fn test_process_invalid_prevtx_input_hash_length() {
+        for prevtx_input_index in [0, 1] {
+            for hash_len in [0, 31, 33] {
+                mock_unlocked();
+                let transaction = new_transaction(pb::BtcCoin::Btc).await;
+                {
+                    let mut transaction = transaction.borrow_mut();
+                    let input = &mut transaction.inputs[0];
+                    input.prevtx_inputs[prevtx_input_index]
+                        .prev_out_hash
+                        .resize(hash_len, 0);
+                    input.input.prev_out_hash = prevtx_hash(input);
+                }
+                mock_host_responder(transaction.clone());
+                let init_request = transaction.borrow().init_request();
+                assert_eq!(
+                    process(&mut TestingHal::new(), &init_request).await,
+                    Err(Error::InvalidInput),
+                    "prevtx input {prevtx_input_index}, hash length {hash_len}"
+                );
             }
         }
     }

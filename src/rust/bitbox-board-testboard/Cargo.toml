@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-board-testboard"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Board-specific STM32U5G9 testboard support for bitbox02-firmware"
+license = "Apache-2.0"
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+bitbox-board-testboard-sys = { path = "../bitbox-board-testboard-sys" }
+bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys", features = ["stm32u5g9"] }
+bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5", features = ["stm32u5g9"] }

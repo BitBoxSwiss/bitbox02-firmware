@@ -675,7 +675,7 @@ static UG_S16 _word_width(const char* p) {
         }
         UG_U16 char_width = 0;
         if (UG_GetCharWidth(font, codepoint, &char_width)) {
-            x += char_width;
+            x += char_width + gui->char_h_space;
         }
     }
     return x;
@@ -697,7 +697,7 @@ static void _copy_codepoint(const char** str, char** str_out, UG_S16* x)
         *str += 1;
     }
     if (UG_GetCharWidth(font, codepoint, &char_width)) {
-        *x += char_width;
+        *x += char_width + gui->char_h_space;
     }
 }
 
@@ -705,7 +705,7 @@ static void _copy_codepoint(const char** str, char** str_out, UG_S16* x)
 // Since the purpose of this function is to wrap title text, only wrap a single time. The rest of
 // the title may span/overflow the whole screen.
 //
-// str_out capacity must be at least strlen(str) + 1.
+// str_out capacity must be at least strlen(str) + 2.
 void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
     ASSERT(gui != NULL);
     ASSERT(str != NULL);
@@ -729,13 +729,14 @@ void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
             UG_S16 wwidth = _word_width(str+1);
             UG_U16 space_width = 0;
             UG_GetCharWidth(font, ' ', &space_width);
-            if (x + space_width + wwidth > width) {
+            if (x + space_width + gui->char_h_space + wwidth > width) {
                 *str_out = '\n';
                 str_out += 1;
                 str += 1;
                 break;
             }
             *str_out = *str;
+            x += space_width + gui->char_h_space;
             str_out += 1;
             str += 1;
             while (!_is_whitespace(*str)) {
@@ -759,6 +760,7 @@ void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
     while(*str != '\0') {
         *str_out++ = *str++;
     }
+    *str_out = '\0';
 }
 
 void UG_RenderRotated180(

@@ -31,7 +31,6 @@ pub async fn process(
     let params = ConfirmParams {
         title: "Name",
         body: name,
-        scrollable: true,
         ..Default::default()
     };
 

@@ -191,7 +191,7 @@ static void _create_nudge_label(void)
         return;
     }
 
-    _nudge_label = info_centered_create("Initialize with BitBoxApp\nto use U2F", _nudge_label_cb);
+    _nudge_label = info_centered_create("Initialize with\nBitBoxApp to use U2F", _nudge_label_cb);
     _nudge_label->f = &_nudge_label_component_functions;
     ui_screen_stack_push(_nudge_label);
 }

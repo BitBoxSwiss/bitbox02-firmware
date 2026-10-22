@@ -400,7 +400,6 @@ pub async fn process(
             .confirm(&ConfirmParams {
                 title: params.name,
                 body: &displayed_address,
-                scrollable: true,
                 ..Default::default()
             })
             .await?;

@@ -37,7 +37,6 @@ pub async fn verify<'a>(
                             "Register staking key for account #{}?",
                             keypath[2] + 1 - HARDENED
                         ),
-                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -54,7 +53,6 @@ pub async fn verify<'a>(
                             "Stop stake delegation for account #{}?",
                             keypath[2] + 1 - HARDENED
                         ),
-                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -74,7 +72,6 @@ pub async fn verify<'a>(
                             keypath[2] + 1 - HARDENED,
                             hex::encode(pool_keyhash),
                         ),
-                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -109,7 +106,6 @@ pub async fn verify<'a>(
                                     drep_type_name,
                                     hex::encode(hash),
                                 ),
-                                scrollable: true,
                                 accept_is_nextarrow: true,
                                 ..Default::default()
                             })
@@ -124,7 +120,6 @@ pub async fn verify<'a>(
                                     keypath[2] + 1 - HARDENED,
                                     drep_type_name,
                                 ),
-                                scrollable: true,
                                 accept_is_nextarrow: true,
                                 ..Default::default()
                             })

@@ -193,7 +193,6 @@ async fn _process(
                 title: "Warning",
                 body: "This transaction does not encode a Cardano network and may be valid on another Cardano network.",
                 accept_is_nextarrow: true,
-                scrollable: true,
                 ..Default::default()
             })
             .await?;
@@ -221,7 +220,6 @@ async fn _process(
                     format_value(params, withdrawal.value),
                     withdrawal.keypath[2] + 1 - HARDENED,
                 ),
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -275,7 +273,6 @@ async fn _process(
                                     format_asset(&asset_group.policy_id, &token.asset_name),
                                 ),
                                 accept_is_nextarrow: true,
-                                scrollable: true,
                                 ..Default::default()
                             })
                             .await?;

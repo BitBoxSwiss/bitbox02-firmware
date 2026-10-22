@@ -39,11 +39,9 @@ pub struct ConfirmParams<'a> {
     pub title: &'a str,
     pub title_autowrap: bool,
     /// The confirmation body of the screen. UIs truncate bodies longer than
-    /// [`MAX_CONFIRM_BODY_SIZE`].
+    /// [`MAX_CONFIRM_BODY_SIZE`] and enable scrolling when the body does not fit.
     pub body: &'a str,
     pub font: Font,
-    /// If true, the body is horizontally scrollable.
-    pub scrollable: bool,
     /// If true, require the hold gesture to confirm instead of tap.
     pub longtouch: bool,
     /// If true, the user can only confirm, not reject.

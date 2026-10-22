@@ -291,6 +291,9 @@ static void _put_string(
         if (!update_position) {
             element->x = element->target_x;
             element->y = element->target_y;
+        } else {
+            // Keep retained characters on screen when switching to a taller font.
+            element->y = MIN(element->y, SCREEN_HEIGHT - font->line_height);
         }
     }
 }

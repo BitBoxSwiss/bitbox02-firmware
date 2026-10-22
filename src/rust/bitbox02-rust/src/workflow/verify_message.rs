@@ -67,7 +67,6 @@ pub async fn verify(
             let params = ConfirmParams {
                 title: &title,
                 body: page,
-                scrollable: true,
                 accept_is_nextarrow: true, // longtouch takes priority over this if enabled
                 longtouch: is_last && is_final,
                 ..Default::default()
@@ -80,7 +79,6 @@ pub async fn verify(
         let params = ConfirmParams {
             title: &format!("{}\ndata (hex)", title_long),
             body: &body,
-            scrollable: true,
             display_size: msg.len(),
             accept_is_nextarrow: true, // longtouch takes priority over this if enabled
             longtouch: is_final,

@@ -45,7 +45,6 @@ fn to_bitbox02_confirm_params<'a>(params: &'a ConfirmParams<'a>) -> crate::ui::C
         title_autowrap: params.title_autowrap,
         body: params.body,
         font: to_bitbox02_font(params.font),
-        scrollable: params.scrollable,
         longtouch: params.longtouch,
         accept_only: params.accept_only,
         accept_is_nextarrow: params.accept_is_nextarrow,
@@ -93,7 +92,6 @@ impl<Timer: bitbox_hal::timer::Timer> BitBox02Ui<Timer> {
         self.confirm(&ConfirmParams {
             title,
             body: value,
-            scrollable: true,
             longtouch,
             accept_is_nextarrow: !longtouch,
             ..Default::default()
@@ -349,7 +347,6 @@ mod tests {
                 title_autowrap: true,
                 body: "body",
                 font,
-                scrollable: true,
                 longtouch: true,
                 accept_only: true,
                 accept_is_nextarrow: true,
@@ -360,7 +357,6 @@ mod tests {
             assert!(output.title_autowrap);
             assert_eq!(output.body, "body");
             assert_eq!(output.font as i32, expected_font as i32);
-            assert!(output.scrollable);
             assert!(output.longtouch);
             assert!(output.accept_only);
             assert!(output.accept_is_nextarrow);

@@ -60,16 +60,20 @@ static void _render(component_t* component)
         data->bottom_arrow_slidein--;
     }
 
-    // Draw the top arrow
     const uint16_t padding = 1;
     x = SCREEN_WIDTH * 15 / 16 - (arrow_height + arrow_height / 2);
     y0 = padding + data->active_count / SCALE;
-    image_arrow(x, y0, arrow_height, ARROW_DOWN);
+    y1 = SCREEN_HEIGHT - padding - data->bottom_arrow_slidein / SCALE - data->active_count / SCALE;
+    // Inset both arrows to align with the header and keep the bottom arrow visible. Reduce the
+    // inset as they approach, using the original positions below to preserve the hold duration.
+    const int16_t inset = MIN(component->position.top, MAX(0, (y1 - y0 - arrow_height) / 2));
+
+    // Draw the top arrow
+    image_arrow(x, y0 + inset, arrow_height, ARROW_DOWN);
 
     // Draw the bottom arrow
-    y1 = SCREEN_HEIGHT - padding - data->bottom_arrow_slidein / SCALE - data->active_count / SCALE;
     if (data->bottom_arrow_slidein) {
-        image_arrow(x, y1, arrow_height, ARROW_UP);
+        image_arrow(x, y1 - inset, arrow_height, ARROW_UP);
     }
 
     // The user confirms when the top and bottom arrows touch

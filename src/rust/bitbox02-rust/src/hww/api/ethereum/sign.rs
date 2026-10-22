@@ -359,7 +359,6 @@ async fn verify_erc20_transaction(
             .confirm(&ConfirmParams {
                 title: "Token\ncontract",
                 body: &contract_address_display,
-                scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -499,7 +498,6 @@ async fn verify_standard_transaction(
             &ConfirmParams {
                 title: "Transaction\ndata",
                 body: &body,
-                scrollable: true,
                 display_size,
                 accept_is_nextarrow: true,
                 ..Default::default()

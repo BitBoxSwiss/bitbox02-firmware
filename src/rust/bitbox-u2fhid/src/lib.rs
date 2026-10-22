@@ -73,6 +73,9 @@ pub trait VendorCommandHandler {
     ) -> Result<Vec<u8>, ErrorCode>;
 
     fn tick(&mut self, _now_ms: u64) {}
+
+    /// Discard application state when the host session ends.
+    fn reset(&mut self) {}
 }
 
 struct ReceiveState {
@@ -163,6 +166,14 @@ impl<V: VendorCommandHandler> U2fHid<V> {
         let cid = self.receive_state.cid;
         self.receive_state.reset();
         self.enqueue_error(cid, ErrorCode::MsgTimeout);
+    }
+
+    /// Discard partial requests, queued responses, and application session state.
+    pub fn reset(&mut self) {
+        self.receive_state.reset();
+        self.out_queue.clear();
+        self.sending_cid = None;
+        self.vendor_handler.reset();
     }
 
     pub fn pull_report(&mut self) -> Option<[u8; REPORT_SIZE]> {

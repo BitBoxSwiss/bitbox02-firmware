@@ -414,7 +414,13 @@ impl ParsedPolicy<'_> {
                 _ => Err(Error::InvalidInput),
             })
             .collect::<Result<Vec<&pb::XPub>, Error>>()?;
-        if (1..xpubs.len()).any(|i| xpubs[i..].contains(&xpubs[i - 1])) {
+        // Xpub origin metadata does not affect child key derivation.
+        if (1..xpubs.len()).any(|i| {
+            xpubs[i..].iter().any(|xpub| {
+                xpub.public_key == xpubs[i - 1].public_key
+                    && xpub.chain_code == xpubs[i - 1].chain_code
+            })
+        }) {
             return Err(Error::InvalidInput);
         }
 
@@ -1314,6 +1320,21 @@ mod tests {
                         our_key.clone(),
                         make_key(SOME_XPUB_1)
                     ]
+                ),
+                coin
+            )
+            .await,
+            Err(Error::InvalidInput)
+        ));
+
+        let mut alias = make_key(SOME_XPUB_1);
+        alias.xpub.as_mut().unwrap().parent_fingerprint[0] ^= 1;
+        assert!(matches!(
+            parse(
+                &mut crate::hal::testing::TestingHal::new(),
+                &make_policy(
+                    "wsh(multi(2,@0/**,@1/**,@2/**))",
+                    &[make_key(SOME_XPUB_1), our_key.clone(), alias]
                 ),
                 coin
             )

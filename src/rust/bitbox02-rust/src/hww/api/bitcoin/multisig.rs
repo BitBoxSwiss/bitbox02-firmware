@@ -271,8 +271,13 @@ pub async fn validate(
         return Err(Error::InvalidInput);
     }
 
-    // Check for duplicates.
-    if (1..multisig.xpubs.len()).any(|i| multisig.xpubs[i..].contains(&multisig.xpubs[i - 1])) {
+    // Xpub origin metadata does not affect child key derivation.
+    if (1..multisig.xpubs.len()).any(|i| {
+        multisig.xpubs[i..].iter().any(|xpub| {
+            xpub.public_key == multisig.xpubs[i - 1].public_key
+                && xpub.chain_code == multisig.xpubs[i - 1].chain_code
+        })
+    }) {
         return Err(Error::InvalidInput);
     }
     Ok(())
@@ -669,6 +674,12 @@ mod tests {
 
             let mut invalid = multisig.clone();
             invalid.xpubs[0] = invalid.xpubs[1].clone();
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
+
+            let mut invalid = multisig.clone();
+            let mut alias = invalid.xpubs[0].clone();
+            alias.parent_fingerprint[0] ^= 1;
+            invalid.xpubs.push(alias);
             assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
     }

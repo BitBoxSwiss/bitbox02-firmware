@@ -8,6 +8,12 @@ edition = "2024"
 description = "BitBox02 noise protocol primitives"
 license = "Apache-2.0"
 
+[dependencies.util]
+path = "../util"
+
+[dependencies.digest]
+workspace = true
+
 [dependencies.bitbox-hal]
 path = "../bitbox-hal"
 
@@ -19,9 +25,14 @@ features = ["use_alloc"]
 [dependencies.noise-rust-crypto]
 version = "0.6.2"
 default-features = false
-features = ["use-sha2", "use-chacha20poly1305"]
+features = ["use-chacha20poly1305"]
 
 [dependencies.x25519-dalek]
 version = "2.0.0"
 default-features = false
 features = ["static_secrets", "zeroize"]
+
+[dev-dependencies.noise-rust-crypto]
+version = "0.6.2"
+default-features = false
+features = ["use-sha2"]

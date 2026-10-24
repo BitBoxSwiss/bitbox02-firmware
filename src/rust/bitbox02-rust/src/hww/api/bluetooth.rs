@@ -9,7 +9,8 @@ use hex_lit::hex;
 use pb::bluetooth_request::Request;
 use pb::bluetooth_response::Response;
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 use crate::hal::{Memory, System, Ui, memory as hal_memory};
 

@@ -11,6 +11,7 @@ pub mod decimal;
 pub mod futures;
 pub mod log;
 pub mod name;
+pub mod sha256;
 pub mod strings;
 
 #[cfg(feature = "p256")]

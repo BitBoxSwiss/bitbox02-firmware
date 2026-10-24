@@ -22,7 +22,8 @@ use crate::xpubcache::Bip32XpubCache;
 
 use bitcoin::taproot::{LeafVersion, TapLeafHash, TapTweakHash};
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 // Arbitrary limit of keys that can be present in a policy.
 const MAX_KEYS: usize = 20;

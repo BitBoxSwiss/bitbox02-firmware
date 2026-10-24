@@ -2,10 +2,10 @@
 
 extern crate alloc;
 
+use crate::sha256::Sha256;
 use alloc::boxed::Box;
 use core::ffi::{c_uchar, c_void};
-use sha2::Digest;
-use sha2::Sha256;
+use digest::Digest;
 
 fn sha256_result(data: &[u8]) -> [u8; 32] {
     Sha256::digest(data).into()
@@ -13,9 +13,9 @@ fn sha256_result(data: &[u8]) -> [u8; 32] {
 
 fn hmac_sha256_result(key: &[u8], data: &[u8]) -> [u8; 32] {
     // Reuse the SHA-256 backend above to avoid linking a second implementation into factory setup.
-    use hmac::{Hmac, Mac};
+    use hmac::{Mac, SimpleHmac};
 
-    let mut engine = Hmac::<Sha256>::new_from_slice(key).unwrap();
+    let mut engine = SimpleHmac::<Sha256>::new_from_slice(key).unwrap();
     engine.update(data);
     engine.finalize().into_bytes().into()
 }
@@ -141,6 +141,7 @@ pub unsafe extern "C" fn rust_hmac_sha512(
 mod tests {
     use super::*;
     use hex_lit::hex;
+    use sha2::Sha256;
     use std::prelude::v1::*;
 
     #[test]

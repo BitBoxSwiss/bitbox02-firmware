@@ -14,8 +14,9 @@ use crate::hal::Ui;
 use crate::secp256k1::SECP256K1;
 use crate::workflow::verify_message;
 
+use digest::Digest;
 use hex_lit::hex;
-use sha2::{Digest, Sha256};
+use util::sha256::Sha256;
 
 use bitcoin::consensus::encode::{VarInt, serialize};
 use bitcoin::secp256k1;

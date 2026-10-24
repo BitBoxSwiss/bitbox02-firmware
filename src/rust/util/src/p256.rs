@@ -25,9 +25,17 @@ pub extern "C" fn rust_p256_sign(
     msg: crate::bytes::Bytes,
     mut sig_out: crate::bytes::BytesMut,
 ) {
-    use p256::ecdsa::{Signature, SigningKey, signature::hazmat::PrehashSigner};
+    use ecdsa::hazmat::{SignPrimitive, bits2field};
+    use p256::ecdsa::SigningKey;
     let signing_key = SigningKey::from_slice(private_key.as_ref()).unwrap();
-    let (signature, _): (Signature, _) = signing_key.sign_prehash(msg.as_ref()).unwrap();
+    // Follows SigningKey::sign_prehash, using our SHA-256 implementation for RFC6979 nonce generation:
+    // https://docs.rs/ecdsa/0.16.9/ecdsa/struct.SigningKey.html#method.sign_prehash
+    let prehash = bits2field::<p256::NistP256>(msg.as_ref()).unwrap();
+    let (signature, recovery_id) = signing_key
+        .as_nonzero_scalar()
+        .try_sign_prehashed_rfc6979::<crate::sha256::Sha256>(&prehash, &[])
+        .unwrap();
+    recovery_id.unwrap();
     sig_out.as_mut().copy_from_slice(&signature.to_bytes());
 }
 
@@ -71,5 +79,28 @@ mod tests {
             hex::encode(sig),
             "5a1f4c00a5104edd39fc8f55863b04a82c662c56448a10c3a35fd4d0decb9d8a8240cbcdd251c6d76d78981b14092c01466c90ad7e1c699f2c5e11523ec6df8c",
         );
+    }
+
+    #[test]
+    fn test_rust_p256_sign_matches_original() {
+        use p256::ecdsa::{Signature, SigningKey, signature::hazmat::PrehashSigner};
+        for scalar in [1, 2, 127, 255] {
+            let mut private_key = [0u8; 32];
+            private_key[31] = scalar;
+            let signing_key = SigningKey::from_slice(&private_key).unwrap();
+            for fill in [0, 1, 127, 255] {
+                let msg = [fill; 32];
+                let (expected, _): (Signature, _) = signing_key.sign_prehash(&msg).unwrap();
+                let mut actual = [0u8; 64];
+                rust_p256_sign(
+                    unsafe {
+                        crate::bytes::rust_util_bytes(private_key.as_ptr(), private_key.len())
+                    },
+                    unsafe { crate::bytes::rust_util_bytes(msg.as_ptr(), msg.len()) },
+                    unsafe { crate::bytes::rust_util_bytes_mut(actual.as_mut_ptr(), actual.len()) },
+                );
+                assert_eq!(actual.as_slice(), expected.to_bytes().as_slice());
+            }
+        }
     }
 }

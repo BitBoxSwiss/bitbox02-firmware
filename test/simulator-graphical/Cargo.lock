@@ -304,7 +304,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-hal",
  "digest",
- "sha2",
+ "util",
  "zeroize",
 ]
 
@@ -345,8 +345,10 @@ name = "bitbox-noise"
 version = "0.1.0"
 dependencies = [
  "bitbox-hal",
+ "digest",
  "noise-protocol",
  "noise-rust-crypto",
+ "util",
  "x25519-dalek",
 ]
 
@@ -1929,7 +1931,6 @@ checksum = "b4c6159f60beb3bbbcdc266bc789bfc6c37fdad7d7ca7152d3e049ef5af633f0"
 dependencies = [
  "chacha20poly1305",
  "noise-protocol",
- "sha2",
  "zeroize",
 ]
 
@@ -3354,10 +3355,10 @@ dependencies = [
  "bitcoin",
  "cortex-m",
  "critical-section",
+ "digest",
  "hex",
  "hmac",
  "num-bigint",
- "sha2",
  "time",
  "zeroize",
 ]

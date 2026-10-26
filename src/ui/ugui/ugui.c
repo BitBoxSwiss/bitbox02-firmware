@@ -169,45 +169,82 @@ static bool _UG_GlyphPixelSet(
     return ((bitmap[bit_index / 8] >> (7 - (bit_index % 8))) & 0x01) != 0;
 }
 
-static void _UG_PutCodepoint( uint32_t codepoint, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
-                              const UG_FONT *font)
+// line_height must come from the selected font, even when the glyph uses a fallback font.
+static void _UG_DrawGlyph(
+    lv_font_glyph_dsc_t* glyph_dsc, UG_S32 line_height,
+    UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
 {
-    lv_font_glyph_dsc_t glyph_dsc;
-    if (!_UG_GetGlyph(font, codepoint, &glyph_dsc)) {
-        return;
-    }
-    const lv_font_t* resolved_font = glyph_dsc.resolved_font;
-    if (resolved_font == NULL || glyph_dsc.format != LV_FONT_GLYPH_FORMAT_A1 ||
-        glyph_dsc.stride != 0) {
+    const lv_font_t* resolved_font = glyph_dsc->resolved_font;
+    if (resolved_font == NULL || glyph_dsc->format != LV_FONT_GLYPH_FORMAT_A1 ||
+        glyph_dsc->stride != 0) {
         return;
     }
 
-    if (x + glyph_dsc.adv_w < 0 || x > gui->x_dim) {
+    if (x + glyph_dsc->adv_w < 0 || x > gui->x_dim) {
         return;
     }
 
-    for (UG_S16 row = 0; row < font->line_height; row++) {
-        for (UG_U16 col = 0; col < glyph_dsc.adv_w; col++) {
+    const uint8_t* bitmap = NULL;
+    if (glyph_dsc->box_w != 0 && glyph_dsc->box_h != 0 &&
+        resolved_font->get_glyph_bitmap != NULL) {
+        bitmap = (const uint8_t*)resolved_font->get_glyph_bitmap(glyph_dsc, NULL);
+    }
+    UG_S16 glyph_y =
+        line_height - resolved_font->base_line - glyph_dsc->box_h - glyph_dsc->ofs_y;
+    if (bitmap != NULL && glyph_dsc->ofs_x >= 0 && glyph_y >= 0 &&
+        glyph_dsc->ofs_x + glyph_dsc->box_w <= glyph_dsc->adv_w &&
+        glyph_y + glyph_dsc->box_h <= line_height) {
+        const int advance = glyph_dsc->adv_w;
+        const int left = glyph_dsc->ofs_x;
+        const int right = left + glyph_dsc->box_w;
+        const int bottom = glyph_y + glyph_dsc->box_h;
+        int row = 0;
+        for (; row < glyph_y; row++) {
+            for (int col = 0; col < advance; col++) {
+                _UG_PSet(x + col, y + row, bc);
+            }
+        }
+        unsigned bits = 0;
+        unsigned mask = 0;
+        for (; row < bottom; row++) {
+            int col = 0;
+            for (; col < left; col++) {
+                _UG_PSet(x + col, y + row, bc);
+            }
+            for (; col < right; col++) {
+                if (mask == 0) {
+                    bits = *bitmap++;
+                    mask = 0x80;
+                }
+                _UG_PSet(x + col, y + row, bits & mask ? fc : bc);
+                mask >>= 1;
+            }
+            for (; col < advance; col++) {
+                _UG_PSet(x + col, y + row, bc);
+            }
+        }
+        for (; row < line_height; row++) {
+            for (int col = 0; col < advance; col++) {
+                _UG_PSet(x + col, y + row, bc);
+            }
+        }
+        return;
+    }
+
+    for (UG_S16 row = 0; row < line_height; row++) {
+        for (UG_U16 col = 0; col < glyph_dsc->adv_w; col++) {
             _UG_PSet(x + col, y + row, bc);
         }
     }
-    if (codepoint == '\t' || glyph_dsc.box_w == 0 || glyph_dsc.box_h == 0 ||
-        resolved_font->get_glyph_bitmap == NULL) {
-        return;
-    }
-
-    const uint8_t* bitmap = (const uint8_t*)resolved_font->get_glyph_bitmap(&glyph_dsc, NULL);
     if (bitmap == NULL) {
         return;
     }
 
-    UG_S16 glyph_y =
-        font->line_height - resolved_font->base_line - glyph_dsc.box_h - glyph_dsc.ofs_y;
-    for (UG_U16 row = 0; row < glyph_dsc.box_h; row++) {
-        for (UG_U16 col = 0; col < glyph_dsc.box_w; col++) {
-            UG_S16 xo = x + glyph_dsc.ofs_x + col;
+    for (UG_U16 row = 0; row < glyph_dsc->box_h; row++) {
+        for (UG_U16 col = 0; col < glyph_dsc->box_w; col++) {
+            UG_S16 xo = x + glyph_dsc->ofs_x + col;
             UG_S16 yo = y + glyph_y + row;
-            if (_UG_GlyphPixelSet(bitmap, &glyph_dsc, col, row)) {
+            if (_UG_GlyphPixelSet(bitmap, glyph_dsc, col, row)) {
                 _UG_PSet(xo, yo, fc);
             }
         }
@@ -221,6 +258,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
 
     UG_S16 xp, yp;
     UG_U16 cw;
+    lv_font_glyph_dsc_t glyph;
     uint32_t codepoint;
     UG_S16 max_x = x;
 
@@ -234,7 +272,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
         if (cursor == NULL) {
             Abort("Invalid UTF-8 string");
         }
-        if (codepoint != '\n' && !UG_GetCharWidth(gui->font, codepoint, &cw)) {
+        if (codepoint != '\n' && !_UG_GetGlyph(gui->font, codepoint, &glyph)) {
             continue;
         }
         if ( codepoint == '\n' ) {
@@ -247,14 +285,15 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
             continue;
         }
 
+        cw = glyph.adv_w;
         if ( autobreak == 1 && xp + cw > gui->x_dim - 1 ) {
             xp = x;
             yp += gui->font->line_height + gui->char_v_space;
         }
 
         if (!calconly) {
-            _UG_PutCodepoint(
-                codepoint, xp, yp, gui->fore_color, gui->back_color, gui->font);
+            _UG_DrawGlyph(
+                &glyph, gui->font->line_height, xp, yp, gui->fore_color, gui->back_color);
         }
 
         xp += cw + gui->char_h_space;
@@ -866,7 +905,10 @@ void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
 {
     ASSERT(gui != NULL);
 
-    _UG_PutCodepoint((UG_U8)chr, x, y, fc, bc, gui->font);
+    lv_font_glyph_dsc_t glyph;
+    if (_UG_GetGlyph(gui->font, (UG_U8)chr, &glyph)) {
+        _UG_DrawGlyph(&glyph, gui->font->line_height, x, y, fc, bc);
+    }
 }
 
 void UG_SetForecolor( UG_COLOR c )

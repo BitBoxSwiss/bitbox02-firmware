@@ -321,6 +321,41 @@ static void _set_glyph_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
     _glyph_pixels[y][x] = color == C_WHITE;
 }
 
+static void _test_ugui_tab_as_space(void** state)
+{
+    (void)state;
+    const UG_FONT* fonts[] = {
+        &font_regular_9,
+        &font_regular_11,
+        &font_regular_12,
+        &font_monogram_16,
+        &font_password_9,
+        &font_password_12,
+    };
+    for (size_t i = 0; i < sizeof(fonts) / sizeof(*fonts); i++) {
+        UG_Init(&gui, _set_glyph_pixel, fonts[i], 32, 32);
+        UG_FontSetHSpace(0);
+        UG_U16 space_width = 0;
+        assert_true(UG_GetCharWidth(fonts[i], ' ', &space_width));
+        UG_S16 width = 0;
+        UG_MeasureStringNoBreak(&width, NULL, "\t");
+        assert_int_equal(width, space_width);
+
+        uint8_t expected[32][32];
+        memset(_glyph_pixels, 0x55, sizeof(_glyph_pixels));
+        UG_PutChar(' ', 8, 8, C_WHITE, C_BLACK);
+        memcpy(expected, _glyph_pixels, sizeof(expected));
+
+        memset(_glyph_pixels, 0x55, sizeof(_glyph_pixels));
+        UG_PutStringNoBreak(8, 8, "\t");
+        assert_memory_equal(_glyph_pixels, expected, sizeof(expected));
+
+        memset(_glyph_pixels, 0x55, sizeof(_glyph_pixels));
+        UG_PutChar('\t', 8, 8, C_WHITE, C_BLACK);
+        assert_memory_equal(_glyph_pixels, expected, sizeof(expected));
+    }
+}
+
 static uint32_t _hash_bytes(uint32_t hash, const uint8_t* bytes, size_t len)
 {
     for (size_t i = 0; i < len; i++) {
@@ -364,6 +399,177 @@ static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
     }
 }
 
+static void _draw_test_glyph(void* ctx)
+{
+    (void)ctx;
+    UG_PutStringNoBreak(2, 3, "A");
+}
+
+static void _test_ugui_packed_glyph_rows(void** state)
+{
+    (void)state;
+    static const uint8_t bitmap_1[] = {0xa0};
+    static const uint8_t bitmap_7[] = {0x82, 0x88, 0xa0};
+    static const uint8_t bitmap_8[] = {0x81, 0x42, 0x24};
+    static const uint8_t bitmap_9[] = {0x80, 0xa0, 0x88, 0x80};
+    static const uint8_t bitmap_15[] = {0x80, 0x02, 0x80, 0x08, 0x80, 0x20};
+    static const uint8_t bitmap_16[] = {0x80, 0x01, 0x40, 0x02, 0x20, 0x04};
+    static const uint8_t bitmap_17[] = {0x80, 0x00, 0xa0, 0x00, 0x88, 0x00, 0x80};
+    static const struct {
+        const uint8_t* bitmap;
+        const char* rows[3];
+    } cases[] = {
+        {bitmap_1, {"#", ".", "#"}},
+        {bitmap_7, {"#.....#", ".#...#.", "..#.#.."}},
+        {bitmap_8, {"#......#", ".#....#.", "..#..#.."}},
+        {bitmap_9, {"#.......#", ".#.....#.", "..#...#.."}},
+        {bitmap_15, {"#.............#", ".#...........#.", "..#.........#.."}},
+        {bitmap_16, {"#..............#", ".#............#.", "..#..........#.."}},
+        {bitmap_17, {"#...............#", ".#.............#.", "..#...........#.."}},
+    };
+    static const lv_font_fmt_txt_cmap_t cmap = {
+        .range_start = 'A',
+        .range_length = 1,
+        .glyph_id_start = 1,
+        .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY,
+    };
+    static lv_font_fmt_txt_glyph_dsc_t glyphs[2];
+    static lv_font_fmt_txt_dsc_t font_dsc = {
+        .glyph_dsc = glyphs,
+        .cmaps = &cmap,
+        .cmap_num = 1,
+        .bpp = 1,
+    };
+    static const UG_FONT font = {
+        .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,
+        .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,
+        .line_height = 5,
+        .dsc = &font_dsc,
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
+        const int width = strlen(cases[i].rows[0]);
+        font_dsc.glyph_bitmap = cases[i].bitmap;
+        glyphs[1] = (lv_font_fmt_txt_glyph_dsc_t){
+            .adv_w = (width + 2) * 16,
+            .box_w = width,
+            .box_h = 3,
+            .ofs_x = 1,
+            .ofs_y = 1,
+        };
+        for (int inverted = 0; inverted < 2; inverted++) {
+            for (int rotated = 0; rotated < 2; rotated++) {
+                UG_Init(&gui, _set_glyph_pixel, &font, 32, 32);
+                UG_SetForecolor(inverted ? C_BLACK : C_WHITE);
+                UG_SetBackcolor(inverted ? C_WHITE : C_BLACK);
+                memset(_glyph_pixels, 0x55, sizeof(_glyph_pixels));
+                if (rotated) {
+                    UG_RenderRotated180(0, 0, 32, 32, _draw_test_glyph, NULL);
+                } else {
+                    _draw_test_glyph(NULL);
+                }
+                for (int y = 0; y < 32; y++) {
+                    for (int x = 0; x < 32; x++) {
+                        uint8_t expected = 0x55;
+                        if (x >= 2 && x < width + 4 && y >= 3 && y < 8) {
+                            expected = inverted;
+                            if (x >= 3 && x < width + 3 && y >= 4 && y < 7 &&
+                                cases[i].rows[y - 4][x - 3] == '#') {
+                                expected = !inverted;
+                            }
+                        }
+                        assert_int_equal(
+                            _glyph_pixels[rotated ? 31 - y : y][rotated ? 31 - x : x], expected);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void _test_ugui_overhanging_glyph(void** state)
+{
+    (void)state;
+    static const uint8_t bitmap[] = {0xaa, 0x80};
+    static const lv_font_fmt_txt_glyph_dsc_t glyphs[] = {
+        {0},
+        {.adv_w = 32, .box_w = 3, .box_h = 3, .ofs_x = -1},
+    };
+    static const lv_font_fmt_txt_cmap_t cmap = {
+        .range_start = 'A',
+        .range_length = 1,
+        .glyph_id_start = 1,
+        .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY,
+    };
+    static const lv_font_fmt_txt_dsc_t font_dsc = {
+        .glyph_bitmap = bitmap,
+        .glyph_dsc = glyphs,
+        .cmaps = &cmap,
+        .cmap_num = 1,
+        .bpp = 1,
+    };
+    static const UG_FONT font = {
+        .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,
+        .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,
+        .line_height = 2,
+        .dsc = &font_dsc,
+    };
+    UG_Init(&gui, _set_glyph_pixel, &font, 32, 32);
+    for (int background = 0; background < 2; background++) {
+        uint8_t expected[32][32];
+        memset(expected, background, sizeof(expected));
+        expected[3][2] = expected[3][3] = expected[4][2] = expected[4][3] = 0;
+        expected[2][1] = expected[2][3] = expected[3][2] = expected[4][1] = expected[4][3] = 1;
+        memset(_glyph_pixels, background, sizeof(_glyph_pixels));
+        _draw_test_glyph(NULL);
+        assert_memory_equal(_glyph_pixels, expected, sizeof(expected));
+    }
+}
+
+static void _test_ugui_put_string_resolves_glyph_once(void** state)
+{
+    (void)state;
+    static const UG_FONT font = {
+        .get_glyph_dsc = _capture_glyph_dsc,
+        .line_height = 1,
+    };
+    UG_Init(&gui, _set_pixel, &font, 128, 64);
+    expect_value(_capture_glyph_dsc, codepoint, 'A');
+    UG_PutStringNoBreak(0, 0, "A");
+}
+
+static void _test_ugui_lvgl_cmap_validation(void** state)
+{
+    (void)state;
+    static const uint8_t bitmap[] = {0x80};
+    static const lv_font_fmt_txt_glyph_dsc_t glyphs[] = {{0}, {.adv_w = 16}};
+    static const lv_font_fmt_txt_cmap_t cmaps[] = {
+        {.range_start = 'A',
+         .range_length = 1,
+         .glyph_id_start = 1,
+         .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL},
+        {.range_start = 'B',
+         .range_length = 1,
+         .glyph_id_start = 1,
+         .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY},
+    };
+    static const lv_font_fmt_txt_dsc_t font_dsc = {
+        .glyph_bitmap = bitmap,
+        .glyph_dsc = glyphs,
+        .cmaps = cmaps,
+        .cmap_num = 2,
+        .bpp = 1,
+    };
+    static const UG_FONT font = {
+        .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,
+        .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,
+        .dsc = &font_dsc,
+    };
+    UG_U16 width = 0;
+    assert_false(UG_GetCharWidth(&font, 'A', &width));
+    assert_true(UG_GetCharWidth(&font, 'B', &width));
+    assert_int_equal(width, 1);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -374,9 +580,14 @@ int main(void)
         cmocka_unit_test(_test_ugui_word_wrap_invalid_utf8),
         cmocka_unit_test(_test_ugui_lvgl_font),
         cmocka_unit_test(_test_ugui_lvgl_font_fallback),
+        cmocka_unit_test(_test_ugui_tab_as_space),
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
         cmocka_unit_test(_test_ugui_fonts_exclude_ambiguous_characters),
         cmocka_unit_test(_test_ugui_ascii_font_pixels_and_metrics),
+        cmocka_unit_test(_test_ugui_packed_glyph_rows),
+        cmocka_unit_test(_test_ugui_overhanging_glyph),
+        cmocka_unit_test(_test_ugui_put_string_resolves_glyph_once),
+        cmocka_unit_test(_test_ugui_lvgl_cmap_validation),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

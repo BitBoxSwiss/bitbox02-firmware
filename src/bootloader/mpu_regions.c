@@ -49,18 +49,18 @@ static void _set_mpu_regions(void)
     mpu_set_region(rbar, rasr);
 
     // Appdata region 0 after firmware app
-    // Due to MPU alignment rules, the 64kB area must be split into 2 32kB regions.
+    // Due to MPU alignment rules, appdata cannot be covered by a single 64kB region.
     // read-write non-excutable (overlaps flash region but higher priority)
-    // End of FLASH_APP to FLASH_USER_END - 8kB
+    // End of FLASH_APP to the midpoint of appdata
     rbar = FLASH_APPDATA_START | MPU_REGION_VALID | MPU_REGION_NUMBER_APPDATA_0;
     rasr = MPU_REGION_ENABLE | MPU_REGION_TYPE_NORMAL | MPU_REGION_EXECUTE_NEVER |
            mpu_region_size(FLASH_APPDATA_LEN / 2) | MPU_REGION_READ_WRITE;
     mpu_set_region(rbar, rasr);
-    // Appdata region 1 after firmware app
+    // Appdata region 1 extends to the end of flash to include scratch space and SmartEEPROM.
     rbar = (FLASH_APPDATA_START + (FLASH_APPDATA_LEN / 2)) | MPU_REGION_VALID |
            MPU_REGION_NUMBER_APPDATA_1;
     rasr = MPU_REGION_ENABLE | MPU_REGION_TYPE_NORMAL | MPU_REGION_EXECUTE_NEVER |
-           mpu_region_size(FLASH_APPDATA_LEN / 2) | MPU_REGION_READ_WRITE;
+           mpu_region_size(FLASH_APPDATA_LEN) | MPU_REGION_READ_WRITE;
     mpu_set_region(rbar, rasr);
 
     // Bootdata region

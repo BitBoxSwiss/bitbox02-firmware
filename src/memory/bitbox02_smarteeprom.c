@@ -7,6 +7,7 @@
 
 #include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +15,7 @@
 /**
  * Current version of the data stored in SmartEEPROM.
  */
-#define BITBOX02_SMARTEEPROM_DATA_VERSION (1)
+#define BITBOX02_SMARTEEPROM_DATA_VERSION (2)
 
 #define BITBOX02_SMARTEEPROM_UNINITIALIZED_VERSION (0xFF)
 
@@ -40,7 +41,20 @@ typedef struct __attribute__((__packed__)) {
     uint8_t unlock_attempts;
     uint8_t padding_2[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];
 } bitbox02_smarteeprom_image_v1_t;
+
+typedef struct __attribute__((__packed__)) {
+    uint8_t version;
+    uint8_t padding[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];
+    uint8_t unlock_attempts;
+    uint8_t padding_2[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];
+    uint8_t device_language; // see bitbox02_smarteeprom_language_t. 0xFF defaults to English.
+} bitbox02_smarteeprom_image_v2_t;
 #pragma GCC diagnostic pop
+
+static_assert(
+    offsetof(bitbox02_smarteeprom_image_v2_t, unlock_attempts) ==
+        offsetof(bitbox02_smarteeprom_image_v1_t, unlock_attempts),
+    "Unlock counter offset must remain unchanged");
 
 /**
  * Reads the version field at address zero.
@@ -79,6 +93,15 @@ static void _init_v1(void)
     _set_data_version(0x01);
 }
 
+static void _init_v2(void)
+{
+    uint8_t value = BITBOX02_SMARTEEPROM_LANGUAGE_EN;
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v2_t, device_language), sizeof(value), &value);
+    // Keep v1 until the language is persisted so an interrupted migration can be retried.
+    _set_data_version(BITBOX02_SMARTEEPROM_DATA_VERSION);
+}
+
 void bitbox02_smarteeprom_init(void)
 {
     uint8_t current_version = _get_data_version();
@@ -92,6 +115,10 @@ void bitbox02_smarteeprom_init(void)
      */
     if (current_version == BITBOX02_SMARTEEPROM_UNINITIALIZED_VERSION) {
         _init_v1();
+        current_version = 1;
+    }
+    if (current_version == 1) {
+        _init_v2();
     } else {
         /*
          * Incorrect version!
@@ -101,6 +128,36 @@ void bitbox02_smarteeprom_init(void)
         char msg[200] = {0};
         snprintf(msg, sizeof(msg), "Unrecognized SmartEEPROM version.\nGot %d", current_version);
         AbortAutoenter(msg);
+    }
+}
+
+bool bitbox02_smarteeprom_set_device_language(bitbox02_smarteeprom_language_t language)
+{
+    if (!smarteeprom_is_enabled() || (language != BITBOX02_SMARTEEPROM_LANGUAGE_EN &&
+                                      language != BITBOX02_SMARTEEPROM_LANGUAGE_DE)) {
+        return false;
+    }
+    uint8_t value = (uint8_t)language;
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v2_t, device_language), sizeof(value), &value);
+    return true;
+}
+
+bitbox02_smarteeprom_language_t bitbox02_smarteeprom_get_device_language(void)
+{
+    // UI translations can be requested before setup or after SmartEEPROM is disabled for reset.
+    if (!smarteeprom_is_enabled()) {
+        return BITBOX02_SMARTEEPROM_LANGUAGE_EN;
+    }
+    uint8_t language;
+    smarteeprom_read(
+        offsetof(bitbox02_smarteeprom_image_v2_t, device_language), sizeof(language), &language);
+    switch (language) {
+    case BITBOX02_SMARTEEPROM_LANGUAGE_DE:
+        return BITBOX02_SMARTEEPROM_LANGUAGE_DE;
+    case BITBOX02_SMARTEEPROM_LANGUAGE_EN:
+    default:
+        return BITBOX02_SMARTEEPROM_LANGUAGE_EN;
     }
 }
 

@@ -3,7 +3,18 @@
 #ifndef _BITBOX02_SMARTEEPROM_H
 #define _BITBOX02_SMARTEEPROM_H
 
+#include "compiler_util.h"
+
+#include <stdbool.h>
 #include <stdint.h>
+
+typedef enum {
+    BITBOX02_SMARTEEPROM_LANGUAGE_EN = 0,
+    BITBOX02_SMARTEEPROM_LANGUAGE_DE = 1,
+} bitbox02_smarteeprom_language_t;
+
+USE_RESULT bool bitbox02_smarteeprom_set_device_language(bitbox02_smarteeprom_language_t language);
+bitbox02_smarteeprom_language_t bitbox02_smarteeprom_get_device_language(void);
 
 /**
  * Reads and validates the last recorded number of unlock attempts.

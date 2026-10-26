@@ -14,7 +14,6 @@
 #include <system.h>
 
 #define SMARTEEPROM_WRITE_MODE_UNBUFFERED (0)
-#define SMARTEEPROM_WRITE_MODE_BUFFERED (1)
 
 bool smarteeprom_is_enabled(void)
 {
@@ -94,13 +93,8 @@ void smarteeprom_bb02_config(void)
         reboot();
 #endif
     }
-    NVMCTRL->SEECFG.bit.WMODE = SMARTEEPROM_WRITE_MODE_BUFFERED;
-    if (NVMCTRL->SEESTAT.bit.LOAD != 0) {
-        for (int i = 0; i < 3; ++i) {
-            screen_print_debug("SmartEEPROM just initialized, but data found in cache!", 3000);
-            screen_print_debug("We suggest you reset the device and contact support.", 3000);
-        }
-    }
+    // SAM D5x/E5x errata 2.14.2 recommends against buffered mode.
+    NVMCTRL->SEECFG.bit.WMODE = SMARTEEPROM_WRITE_MODE_UNBUFFERED;
 }
 
 void smarteeprom_read(size_t address, size_t bytes, uint8_t* out_buffer)
@@ -124,19 +118,11 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     }
     volatile uint8_t* eeprom = (uint8_t*)SEEPROM_ADDR + address;
     while (NVMCTRL->SEESTAT.bit.BUSY);
-    /*
-     * Buffered write of multiple bytes.
-     * Note that crossing a 32B page will still result in a partial flush
-     * being issued.
-     */
     for (size_t i = 0; i < bytes; ++i) {
         *eeprom = buffer[i];
+        while (NVMCTRL->SEESTAT.bit.BUSY);
         eeprom++;
     }
-    /* Now, flush the write we have issued. */
-    nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_SEEFLUSH);
-    while (NVMCTRL->SEESTAT.bit.LOAD != 0);
-    while (NVMCTRL->SEESTAT.bit.BUSY != 0);
     /*
      * Read back the buffer.
      * Check that it matches what we've just written.

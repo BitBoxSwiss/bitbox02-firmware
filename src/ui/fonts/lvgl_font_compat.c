@@ -14,13 +14,6 @@ static bool _font_dsc_supported(const lv_font_fmt_txt_dsc_t* font_dsc)
         return false;
     }
 
-    for (uint16_t i = 0; i < font_dsc->cmap_num; i++) {
-        const lv_font_fmt_txt_cmap_t* cmap = &font_dsc->cmaps[i];
-        if (cmap->type != LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY || cmap->unicode_list != NULL ||
-            cmap->glyph_id_ofs_list != NULL || cmap->list_length != 0) {
-            return false;
-        }
-    }
     return true;
 }
 
@@ -34,6 +27,10 @@ static uint32_t _get_glyph_id(const lv_font_fmt_txt_dsc_t* font_dsc, uint32_t co
         const lv_font_fmt_txt_cmap_t* cmap = &font_dsc->cmaps[i];
         uint32_t relative_codepoint = codepoint - cmap->range_start;
         if (relative_codepoint < cmap->range_length) {
+            if (cmap->type != LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY || cmap->unicode_list != NULL ||
+                cmap->glyph_id_ofs_list != NULL || cmap->list_length != 0) {
+                return 0;
+            }
             return cmap->glyph_id_start + relative_codepoint;
         }
     }
@@ -51,8 +48,7 @@ __attribute__((weak)) bool lv_font_get_glyph_dsc_fmt_txt(
         return false;
     }
 
-    bool is_tab = unicode_letter == '\t';
-    if (is_tab) {
+    if (unicode_letter == '\t') {
         unicode_letter = ' ';
     }
 
@@ -79,10 +75,6 @@ __attribute__((weak)) bool lv_font_get_glyph_dsc_fmt_txt(
     dsc_out->format = LV_FONT_GLYPH_FORMAT_A1;
     dsc_out->is_placeholder = false;
     dsc_out->gid.index = glyph_id;
-
-    if (is_tab) {
-        dsc_out->adv_w *= 2;
-    }
 
     return true;
 }

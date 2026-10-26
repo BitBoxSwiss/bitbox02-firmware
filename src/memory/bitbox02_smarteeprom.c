@@ -44,6 +44,8 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
     uint8_t version;
+    // Keep the security-critical unlock counter on its own page to avoid relocating it
+    // when other fields change. Sector-wide reallocation can still move all pages.
     uint8_t padding[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];
     uint8_t unlock_attempts;
     uint8_t padding_2[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];

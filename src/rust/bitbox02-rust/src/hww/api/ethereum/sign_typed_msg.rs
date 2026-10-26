@@ -14,6 +14,7 @@ use super::truncating_hex_preview_byte_cap;
 
 use crate::hal::Ui;
 use crate::hal::ui::{ConfirmParams, Font};
+use crate::i18n::I18n as _;
 use crate::keystore;
 use crate::workflow::confirm;
 
@@ -389,9 +390,17 @@ fn confirm_title(root_object: RootObject) -> &'static str {
     }
 }
 
-fn format_display_line_prefix(display_path: &str, line_num: usize, num_lines: usize) -> String {
+fn format_display_line_prefix(
+    display_path: &str,
+    line_num: usize,
+    num_lines: usize,
+    line_suffix: Option<&str>,
+) -> String {
     if num_lines > 1 {
-        format!("{display_path}, line {}/{}", line_num + 1, num_lines)
+        match line_suffix {
+            Some(line_suffix) => format!("{display_path}{line_suffix}"),
+            None => format!("{display_path}, line {}/{}", line_num + 1, num_lines),
+        }
     } else {
         display_path.to_string()
     }
@@ -402,10 +411,11 @@ fn format_display_line_body(
     line_num: usize,
     num_lines: usize,
     line: &str,
+    line_suffix: Option<&str>,
 ) -> String {
     format!(
         "{}: {}",
-        format_display_line_prefix(display_path, line_num, num_lines),
+        format_display_line_prefix(display_path, line_num, num_lines, line_suffix),
         line
     )
 }
@@ -464,14 +474,19 @@ async fn encode_member<U: sha3::digest::Update>(
 
             display_size = req.data_length as usize;
             let display_cap = truncating_hex_preview_byte_cap(
-                format!("{}: 0x", format_display_line_prefix(&display_path, 0, 1)).len(),
+                format!(
+                    "{}: 0x",
+                    format_display_line_prefix(&display_path, 0, 1, None)
+                )
+                .len(),
                 display_size,
             );
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length)
                 .with_preview(display_cap);
             let mut keccak = sha3::Keccak256::new();
             {
-                let mut progress = hal.ui().progress_create("Loading data...");
+                let title = crate::tr!(hal, "Loading data...");
+                let mut progress = hal.ui().progress_create(&title);
                 let mut producer =
                     super::sighash::ProgressProducer::new(&mut producer, &mut progress);
                 while let Some(chunk) = producer.next().await? {
@@ -494,15 +509,29 @@ async fn encode_member<U: sha3::digest::Update>(
         // Display value, splitting multi-line strings into separate screens.
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
-            let body = format_display_line_body(&display_path, i, lines.len(), line);
+            let line_suffix = (lines.len() > 1).then(|| {
+                crate::tr_format!(
+                    hal,
+                    ", line {}/{}",
+                    &[&(i + 1).to_string(), &lines.len().to_string()],
+                )
+            });
+            let body = format_display_line_body(
+                &display_path,
+                i,
+                lines.len(),
+                line,
+                line_suffix.as_deref(),
+            );
+            let title = format!(
+                "{}{}",
+                hal.tr(confirm_title(context.root_object)),
+                context.title_suffix.as_deref().unwrap_or("")
+            );
             confirm::confirm_value(
                 hal,
                 &ConfirmParams {
-                    title: &format!(
-                        "{}{}",
-                        confirm_title(context.root_object),
-                        context.title_suffix.as_deref().unwrap_or("")
-                    ),
+                    title: &title,
                     body: &body,
                     scrollable: true,
                     display_size,
@@ -536,29 +565,31 @@ async fn hash_array(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
-    confirm::confirm_value(
-        hal,
-        &ConfirmParams {
-            title: &format!(
-                "{}{}",
-                confirm_title(context.root_object),
-                context.title_suffix.as_deref().unwrap_or("")
-            ),
-            body: &format!(
-                "{}: {}",
-                context.formatted_path.join("."),
-                if array_size == 0 {
-                    "(empty list)".into()
-                } else {
-                    format!("list with {} elements", array_size)
-                }
-            ),
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        },
-    )
-    .await?;
+    // Free the labels before recursion to avoid accumulating them for nested arrays.
+    {
+        let title = format!(
+            "{}{}",
+            hal.tr(confirm_title(context.root_object)),
+            context.title_suffix.as_deref().unwrap_or("")
+        );
+        let list_description = if array_size == 0 {
+            crate::tr!(hal, "(empty list)").into_owned()
+        } else {
+            crate::tr_format!(hal, "list with {} elements", &[&array_size.to_string()])
+        };
+        let body = format!("{}: {}", context.formatted_path.join("."), list_description);
+        confirm::confirm_value(
+            hal,
+            &ConfirmParams {
+                title: &title,
+                body: &body,
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            },
+        )
+        .await?;
+    }
 
     let mut hasher = sha3::Keccak256::new();
     let mut child_path = context.path.to_vec();
@@ -614,7 +645,7 @@ async fn hash_struct(
             title_suffix: if context.title_suffix.is_some() {
                 context.title_suffix.clone()
             } else {
-                Some(format!(" ({}/{})", index + 1, typ.members.len()))
+                Some(format!("\n({}/{})", index + 1, typ.members.len()))
             },
             cached_chain_id: context.cached_chain_id,
         };
@@ -718,10 +749,15 @@ pub async fn process(
 
     let cached_chain_id = validate_chain_id(request).await?;
     if cached_chain_id.is_none() {
+        let title = crate::tr!(hal, "Warning");
+        let body = crate::tr!(
+            hal,
+            "Typed data has no chain ID. Message is valid for every chain."
+        );
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Warning",
-                body: "Typed data has no chain ID. Message is valid for every chain.",
+                title: &title,
+                body: &body,
                 scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
@@ -749,10 +785,11 @@ pub async fn process(
     )
     .await?;
 
+    let title = crate::tr!(hal, "Message type");
     confirm::confirm_value(
         hal,
         &ConfirmParams {
-            title: "Message type",
+            title: &title,
             body: &request.primary_type,
             scrollable: true,
             accept_is_nextarrow: true,
@@ -769,9 +806,10 @@ pub async fn process(
     )
     .await?;
 
+    let body = crate::tr!(hal, "Sign data?");
     hal.ui()
         .confirm(&ConfirmParams {
-            body: "Sign data?",
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
@@ -1493,6 +1531,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; exact_fit])),
+            None,
         );
         assert_eq!(exact_fit_body.len(), MAX_CONFIRM_BODY_SIZE);
 
@@ -1503,6 +1542,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; truncated])),
+            None,
         );
         assert!(truncated_body.len() > MAX_CONFIRM_BODY_SIZE);
     }
@@ -1517,17 +1557,17 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
-                    title: "Domain (1/1)".into(),
+                    title: "Domain\n(1/1)".into(),
                     body: "name: test".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Message (1/1)".into(),
+                    title: "Message\n(1/1)".into(),
                     body: format!("data, line 1/2: {line1}"),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Message (1/1)".into(),
+                    title: "Message\n(1/1)".into(),
                     body: format!("data, line 2/2: {line2}"),
                     longtouch: false,
                 },
@@ -1545,12 +1585,12 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
-                    title: "Domain (1/1)".into(),
+                    title: "Domain\n(1/1)".into(),
                     body: "name: test".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Message (1/1)".into(),
+                    title: "Message\n(1/1)".into(),
                     body: "data, line 1/2: ok".into(),
                     longtouch: false,
                 },
@@ -1560,7 +1600,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Message (1/1)".into(),
+                    title: "Message\n(1/1)".into(),
                     body: format!("data, line 2/2: {line2}"),
                     longtouch: false,
                 },
@@ -1590,7 +1630,7 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens[2],
             Screen::Confirm {
-                title: "Message (1/1)".into(),
+                title: "Message\n(1/1)".into(),
                 body: format!("{member_name}: (empty list)"),
                 longtouch: false,
             }
@@ -1617,7 +1657,7 @@ mod tests {
         );
         match &mock_hal.ui.screens[2] {
             Screen::Confirm { title, body, .. } => {
-                assert_eq!(title, "Message (1/1)");
+                assert_eq!(title, "Message\n(1/1)");
                 assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
@@ -1934,22 +1974,22 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
-                    title: "Domain (1/4)".into(),
+                    title: "Domain\n(1/4)".into(),
                     body: "name: Ether Mail".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Domain (2/4)".into(),
+                    title: "Domain\n(2/4)".into(),
                     body: "version: 1".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Domain (3/4)".into(),
+                    title: "Domain\n(3/4)".into(),
                     body: "chainId: 1".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
-                    title: "Domain (4/4)".into(),
+                    title: "Domain\n(4/4)".into(),
                     body: "verifyingContract: 0x CcCC cccc CCCC cCCC CCCc CcCc cCcC CCcC cccc cccC"
                         .into(),
                     longtouch: false,
@@ -2151,169 +2191,172 @@ mod tests {
     #[async_test::test]
     async fn test_exhaustive_data() {
         const EXPECTED_DIALOGS: &[(&str, &str)] = &[
-            ("Domain (1/4)", "name: Ether Mail"),
-            ("Domain (2/4)", "version: 1"),
-            ("Domain (3/4)", "chainId: 1"),
+            ("Domain\n(1/4)", "name: Ether Mail"),
+            ("Domain\n(2/4)", "version: 1"),
+            ("Domain\n(3/4)", "chainId: 1"),
             (
-                "Domain (4/4)",
+                "Domain\n(4/4)",
                 "verifyingContract: 0x CcCC cccc CCCC cCCC CCCc CcCc cCcC CCcC cccc cccC",
             ),
-            ("Message (1/23)", "str: str"),
-            ("Message (2/23)", "emptyArray: (empty list)"),
+            ("Message\n(1/23)", "str: str"),
+            ("Message\n(2/23)", "emptyArray: (empty list)"),
             (
-                "Message (3/23)",
+                "Message\n(3/23)",
                 "name_address: 0x a21A 16EC 22a9 4099 0922 220E 4ab5 bF4C 2310 F556",
             ),
-            ("Message (4/23)", "name_string: list with 6 elements"),
-            ("Message (4/23)", "name_string[1/6]: "),
-            ("Message (4/23)", "name_string[2/6]: a"),
-            ("Message (4/23)", "name_string[3/6]: aa"),
-            ("Message (4/23)", "name_string[4/6]: |@#!$"),
+            ("Message\n(4/23)", "name_string: list with 6 elements"),
+            ("Message\n(4/23)", "name_string[1/6]: "),
+            ("Message\n(4/23)", "name_string[2/6]: a"),
+            ("Message\n(4/23)", "name_string[3/6]: aa"),
+            ("Message\n(4/23)", "name_string[4/6]: |@#!$"),
             (
-                "Message (4/23)",
+                "Message\n(4/23)",
                 "name_string[5/6]: long long long long long long long long",
             ),
-            ("Message (4/23)", "name_string[6/6], line 1/3: multi"),
-            ("Message (4/23)", "name_string[6/6], line 2/3: "),
-            ("Message (4/23)", "name_string[6/6], line 3/3: line"),
-            ("Message (5/23)", "name_bytes: list with 2 elements"),
-            ("Message (5/23)", "name_bytes[1/2]: 0x"),
-            ("Message (5/23)", "name_bytes[2/2]: 0xaabbcc"),
-            ("Message (6/23)", "name_bytes1: 0xaa"),
-            ("Message (7/23)", "name_bytes10: 0x112233445566778899aa"),
+            ("Message\n(4/23)", "name_string[6/6], line 1/3: multi"),
+            ("Message\n(4/23)", "name_string[6/6], line 2/3: "),
+            ("Message\n(4/23)", "name_string[6/6], line 3/3: line"),
+            ("Message\n(5/23)", "name_bytes: list with 2 elements"),
+            ("Message\n(5/23)", "name_bytes[1/2]: 0x"),
+            ("Message\n(5/23)", "name_bytes[2/2]: 0xaabbcc"),
+            ("Message\n(6/23)", "name_bytes1: 0xaa"),
+            ("Message\n(7/23)", "name_bytes10: 0x112233445566778899aa"),
             (
-                "Message (8/23)",
+                "Message\n(8/23)",
                 "name_bytes32: 0xd0f02988fd881565e927c7473c287322db166901bac03bef55d7a52a5c750ab4",
             ),
-            ("Message (9/23)", "name_uint8: list with 4 elements"),
-            ("Message (9/23)", "name_uint8[1/4]: 0"),
-            ("Message (9/23)", "name_uint8[2/4]: 1"),
-            ("Message (9/23)", "name_uint8[3/4]: 10"),
-            ("Message (9/23)", "name_uint8[4/4]: 255"),
-            ("Message (10/23)", "name_uint32: list with 4 elements"),
-            ("Message (10/23)", "name_uint32[1/4]: 0"),
-            ("Message (10/23)", "name_uint32[2/4]: 256"),
-            ("Message (10/23)", "name_uint32[3/4]: 65536"),
-            ("Message (10/23)", "name_uint32[4/4]: 4294967295"),
-            ("Message (11/23)", "name_uint64: 18446744073709551615"),
+            ("Message\n(9/23)", "name_uint8: list with 4 elements"),
+            ("Message\n(9/23)", "name_uint8[1/4]: 0"),
+            ("Message\n(9/23)", "name_uint8[2/4]: 1"),
+            ("Message\n(9/23)", "name_uint8[3/4]: 10"),
+            ("Message\n(9/23)", "name_uint8[4/4]: 255"),
+            ("Message\n(10/23)", "name_uint32: list with 4 elements"),
+            ("Message\n(10/23)", "name_uint32[1/4]: 0"),
+            ("Message\n(10/23)", "name_uint32[2/4]: 256"),
+            ("Message\n(10/23)", "name_uint32[3/4]: 65536"),
+            ("Message\n(10/23)", "name_uint32[4/4]: 4294967295"),
+            ("Message\n(11/23)", "name_uint64: 18446744073709551615"),
             (
-                "Message (12/23)",
+                "Message\n(12/23)",
                 "name_uint128: 340282366920938463463374607431768211455",
             ),
             (
-                "Message (13/23)",
+                "Message\n(13/23)",
                 "name_uint256: 115792089237316195423570985008687907853269984665640564039457584007913129639935",
             ),
-            ("Message (14/23)", "name_int8: list with 5 elements"),
-            ("Message (14/23)", "name_int8[1/5]: 0"),
-            ("Message (14/23)", "name_int8[2/5]: 10"),
-            ("Message (14/23)", "name_int8[3/5]: -10"),
-            ("Message (14/23)", "name_int8[4/5]: 127"),
-            ("Message (14/23)", "name_int8[5/5]: -128"),
-            ("Message (15/23)", "name_int32: list with 2 elements"),
-            ("Message (15/23)", "name_int32[1/2]: 2147483647"),
-            ("Message (15/23)", "name_int32[2/2]: -2147483648"),
-            ("Message (16/23)", "name_int64: list with 4 elements"),
-            ("Message (16/23)", "name_int64[1/4]: 500"),
-            ("Message (16/23)", "name_int64[2/4]: -500"),
-            ("Message (16/23)", "name_int64[3/4]: 9223372036854775807"),
-            ("Message (16/23)", "name_int64[4/4]: -9223372036854775808"),
-            ("Message (17/23)", "name_int128: list with 2 elements"),
+            ("Message\n(14/23)", "name_int8: list with 5 elements"),
+            ("Message\n(14/23)", "name_int8[1/5]: 0"),
+            ("Message\n(14/23)", "name_int8[2/5]: 10"),
+            ("Message\n(14/23)", "name_int8[3/5]: -10"),
+            ("Message\n(14/23)", "name_int8[4/5]: 127"),
+            ("Message\n(14/23)", "name_int8[5/5]: -128"),
+            ("Message\n(15/23)", "name_int32: list with 2 elements"),
+            ("Message\n(15/23)", "name_int32[1/2]: 2147483647"),
+            ("Message\n(15/23)", "name_int32[2/2]: -2147483648"),
+            ("Message\n(16/23)", "name_int64: list with 4 elements"),
+            ("Message\n(16/23)", "name_int64[1/4]: 500"),
+            ("Message\n(16/23)", "name_int64[2/4]: -500"),
+            ("Message\n(16/23)", "name_int64[3/4]: 9223372036854775807"),
+            ("Message\n(16/23)", "name_int64[4/4]: -9223372036854775808"),
+            ("Message\n(17/23)", "name_int128: list with 2 elements"),
             (
-                "Message (17/23)",
+                "Message\n(17/23)",
                 "name_int128[1/2]: 170141183460469231731687303715884105727",
             ),
             (
-                "Message (17/23)",
+                "Message\n(17/23)",
                 "name_int128[2/2]: -170141183460469231731687303715884105728",
             ),
-            ("Message (18/23)", "name_int256: list with 2 elements"),
+            ("Message\n(18/23)", "name_int256: list with 2 elements"),
             (
-                "Message (18/23)",
+                "Message\n(18/23)",
                 "name_int256[1/2]: 57896044618658097711785492504343953926634992332820282019728792003956564819967",
             ),
             (
-                "Message (18/23)",
+                "Message\n(18/23)",
                 "name_int256[2/2]: -57896044618658097711785492504343953926634992332820282019728792003956564819968",
             ),
-            ("Message (19/23)", "name_bool: list with 2 elements"),
-            ("Message (19/23)", "name_bool[1/2]: false"),
-            ("Message (19/23)", "name_bool[2/2]: true"),
-            ("Message (20/23)", "name_struct.name: struct name"),
-            ("Message (20/23)", "name_struct.arr: (empty list)"),
-            ("Message (21/23)", "arrayOfStructs: list with 3 elements"),
-            ("Message (21/23)", "arrayOfStructs[1/3].name: name 1"),
-            ("Message (21/23)", "arrayOfStructs[1/3].arr: (empty list)"),
-            ("Message (21/23)", "arrayOfStructs[2/3].name: name 2"),
+            ("Message\n(19/23)", "name_bool: list with 2 elements"),
+            ("Message\n(19/23)", "name_bool[1/2]: false"),
+            ("Message\n(19/23)", "name_bool[2/2]: true"),
+            ("Message\n(20/23)", "name_struct.name: struct name"),
+            ("Message\n(20/23)", "name_struct.arr: (empty list)"),
+            ("Message\n(21/23)", "arrayOfStructs: list with 3 elements"),
+            ("Message\n(21/23)", "arrayOfStructs[1/3].name: name 1"),
+            ("Message\n(21/23)", "arrayOfStructs[1/3].arr: (empty list)"),
+            ("Message\n(21/23)", "arrayOfStructs[2/3].name: name 2"),
             (
-                "Message (21/23)",
+                "Message\n(21/23)",
                 "arrayOfStructs[2/3].arr: list with 1 elements",
             ),
-            ("Message (21/23)", "arrayOfStructs[2/3].arr[1/1]: false"),
-            ("Message (21/23)", "arrayOfStructs[3/3].name: name 3"),
+            ("Message\n(21/23)", "arrayOfStructs[2/3].arr[1/1]: false"),
+            ("Message\n(21/23)", "arrayOfStructs[3/3].name: name 3"),
             (
-                "Message (21/23)",
+                "Message\n(21/23)",
                 "arrayOfStructs[3/3].arr: list with 2 elements",
             ),
-            ("Message (21/23)", "arrayOfStructs[3/3].arr[1/2]: false"),
-            ("Message (21/23)", "arrayOfStructs[3/3].arr[2/2]: true"),
+            ("Message\n(21/23)", "arrayOfStructs[3/3].arr[1/2]: false"),
+            ("Message\n(21/23)", "arrayOfStructs[3/3].arr[2/2]: true"),
             (
-                "Message (22/23)",
+                "Message\n(22/23)",
                 "fixedArrayOfStructs: list with 2 elements",
             ),
-            ("Message (22/23)", "fixedArrayOfStructs[1/2].name: name 1"),
+            ("Message\n(22/23)", "fixedArrayOfStructs[1/2].name: name 1"),
             (
-                "Message (22/23)",
+                "Message\n(22/23)",
                 "fixedArrayOfStructs[1/2].arr: (empty list)",
             ),
-            ("Message (22/23)", "fixedArrayOfStructs[2/2].name: name 2"),
+            ("Message\n(22/23)", "fixedArrayOfStructs[2/2].name: name 2"),
             (
-                "Message (22/23)",
+                "Message\n(22/23)",
                 "fixedArrayOfStructs[2/2].arr: list with 3 elements",
             ),
             (
-                "Message (22/23)",
+                "Message\n(22/23)",
                 "fixedArrayOfStructs[2/2].arr[1/3]: false",
             ),
             (
-                "Message (22/23)",
+                "Message\n(22/23)",
                 "fixedArrayOfStructs[2/2].arr[2/3]: false",
             ),
-            ("Message (22/23)", "fixedArrayOfStructs[2/2].arr[3/3]: true"),
-            ("Message (23/23)", "nestedArray: list with 3 elements"),
-            ("Message (23/23)", "nestedArray[1/3]: list with 2 elements"),
             (
-                "Message (23/23)",
+                "Message\n(22/23)",
+                "fixedArrayOfStructs[2/2].arr[3/3]: true",
+            ),
+            ("Message\n(23/23)", "nestedArray: list with 3 elements"),
+            ("Message\n(23/23)", "nestedArray[1/3]: list with 2 elements"),
+            (
+                "Message\n(23/23)",
                 "nestedArray[1/3][1/2]: list with 2 elements",
             ),
-            ("Message (23/23)", "nestedArray[1/3][1/2][1/2]: 1"),
-            ("Message (23/23)", "nestedArray[1/3][1/2][2/2]: 2"),
+            ("Message\n(23/23)", "nestedArray[1/3][1/2][1/2]: 1"),
+            ("Message\n(23/23)", "nestedArray[1/3][1/2][2/2]: 2"),
             (
-                "Message (23/23)",
+                "Message\n(23/23)",
                 "nestedArray[1/3][2/2]: list with 3 elements",
             ),
-            ("Message (23/23)", "nestedArray[1/3][2/2][1/3]: 3"),
-            ("Message (23/23)", "nestedArray[1/3][2/2][2/3]: 4"),
-            ("Message (23/23)", "nestedArray[1/3][2/2][3/3]: 5"),
-            ("Message (23/23)", "nestedArray[2/3]: list with 2 elements"),
+            ("Message\n(23/23)", "nestedArray[1/3][2/2][1/3]: 3"),
+            ("Message\n(23/23)", "nestedArray[1/3][2/2][2/3]: 4"),
+            ("Message\n(23/23)", "nestedArray[1/3][2/2][3/3]: 5"),
+            ("Message\n(23/23)", "nestedArray[2/3]: list with 2 elements"),
             (
-                "Message (23/23)",
+                "Message\n(23/23)",
                 "nestedArray[2/3][1/2]: list with 2 elements",
             ),
-            ("Message (23/23)", "nestedArray[2/3][1/2][1/2]: 6"),
-            ("Message (23/23)", "nestedArray[2/3][1/2][2/2]: 7"),
+            ("Message\n(23/23)", "nestedArray[2/3][1/2][1/2]: 6"),
+            ("Message\n(23/23)", "nestedArray[2/3][1/2][2/2]: 7"),
             (
-                "Message (23/23)",
+                "Message\n(23/23)",
                 "nestedArray[2/3][2/2]: list with 1 elements",
             ),
-            ("Message (23/23)", "nestedArray[2/3][2/2][1/1]: 8"),
-            ("Message (23/23)", "nestedArray[3/3]: list with 2 elements"),
-            ("Message (23/23)", "nestedArray[3/3][1/2]: (empty list)"),
+            ("Message\n(23/23)", "nestedArray[2/3][2/2][1/1]: 8"),
+            ("Message\n(23/23)", "nestedArray[3/3]: list with 2 elements"),
+            ("Message\n(23/23)", "nestedArray[3/3][1/2]: (empty list)"),
             (
-                "Message (23/23)",
+                "Message\n(23/23)",
                 "nestedArray[3/3][2/2]: list with 1 elements",
             ),
-            ("Message (23/23)", "nestedArray[3/3][2/2][1/1]: 9"),
+            ("Message\n(23/23)", "nestedArray[3/3][2/2][1/1]: 9"),
         ];
 
         let bytes32 = b"\xd0\xf0\x29\x88\xfd\x88\x15\x65\xe9\x27\xc7\x47\x3c\x28\x73\x22\xdb\x16\x69\x01\xba\xc0\x3b\xef\x55\xd7\xa5\x2a\x5c\x75\x0a\xb4";

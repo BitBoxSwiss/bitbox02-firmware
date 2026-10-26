@@ -3,6 +3,12 @@
 use alloc::string::String;
 use time::{OffsetDateTime, UtcOffset, Weekday};
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateLocale {
+    English,
+    German,
+}
+
 pub struct Tm {
     datetime: OffsetDateTime,
 }
@@ -10,27 +16,64 @@ pub struct Tm {
 impl Tm {
     /// Returns the weekday, one of "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
     pub fn weekday(&self) -> String {
+        self.weekday_locale(DateLocale::English)
+    }
+
+    fn weekday_locale(&self, locale: DateLocale) -> String {
         match self.datetime.weekday() {
-            Weekday::Sunday => "Sun",
-            Weekday::Monday => "Mon",
-            Weekday::Tuesday => "Tue",
-            Weekday::Wednesday => "Wed",
-            Weekday::Thursday => "Thu",
-            Weekday::Friday => "Fri",
-            Weekday::Saturday => "Sat",
+            Weekday::Sunday => match locale {
+                DateLocale::English => "Sun",
+                DateLocale::German => "So",
+            },
+            Weekday::Monday => match locale {
+                DateLocale::English => "Mon",
+                DateLocale::German => "Mo",
+            },
+            Weekday::Tuesday => match locale {
+                DateLocale::English => "Tue",
+                DateLocale::German => "Di",
+            },
+            Weekday::Wednesday => match locale {
+                DateLocale::English => "Wed",
+                DateLocale::German => "Mi",
+            },
+            Weekday::Thursday => match locale {
+                DateLocale::English => "Thu",
+                DateLocale::German => "Do",
+            },
+            Weekday::Friday => match locale {
+                DateLocale::English => "Fri",
+                DateLocale::German => "Fr",
+            },
+            Weekday::Saturday => match locale {
+                DateLocale::English => "Sat",
+                DateLocale::German => "Sa",
+            },
         }
         .into()
     }
 
     /// Returns 'year-month-day', e.g. 2024-07-16, equivalent of '%Y-%m-%d' in strftime.
     pub fn date(&self) -> String {
+        self.date_locale(DateLocale::English)
+    }
+
+    fn date_locale(&self, locale: DateLocale) -> String {
         let date = self.datetime.date();
-        format!(
-            "{}-{:02}-{:02}",
-            date.year(),
-            date.month() as u8,
-            date.day(),
-        )
+        match locale {
+            DateLocale::English => format!(
+                "{}-{:02}-{:02}",
+                date.year(),
+                date.month() as u8,
+                date.day(),
+            ),
+            DateLocale::German => format!(
+                "{:02}.{:02}.{}",
+                date.day(),
+                date.month() as u8,
+                date.year(),
+            ),
+        }
     }
 
     /// Returns the zero-padded hour from 00-23, e.g. "07".
@@ -63,6 +106,15 @@ pub fn format_datetime(
     timezone_offset: i32,
     date_only: bool,
 ) -> Result<String, ()> {
+    format_datetime_locale(timestamp, timezone_offset, date_only, DateLocale::English)
+}
+
+pub fn format_datetime_locale(
+    timestamp: u32,
+    timezone_offset: i32,
+    date_only: bool,
+    locale: DateLocale,
+) -> Result<String, ()> {
     const MAX_EAST_UTC_OFFSET: i32 = 50400; // 14 hours in seconds
     const MAX_WEST_UTC_OFFSET: i32 = -43200; // 12 hours in seconds
 
@@ -77,12 +129,12 @@ pub fn format_datetime(
         .ok_or(())?;
     let tm = Tm { datetime };
     Ok(if date_only {
-        format!("{} {}", tm.weekday(), tm.date())
+        format!("{} {}", tm.weekday_locale(locale), tm.date_locale(locale))
     } else {
         format!(
             "{} {}\n{}:{}",
-            tm.weekday(),
-            tm.date(),
+            tm.weekday_locale(locale),
+            tm.date_locale(locale),
             tm.hour(),
             tm.minute()
         )
@@ -114,5 +166,21 @@ mod tests {
 
         assert!(format_datetime(1601281809, 50401, false).is_err());
         assert!(format_datetime(1601281809, -43201, false).is_err());
+    }
+
+    #[test]
+    fn test_format_datetime_locale() {
+        assert_eq!(
+            format_datetime_locale(1779964200, 0, true, DateLocale::German),
+            Ok("Do 28.05.2026".into())
+        );
+        assert_eq!(
+            format_datetime_locale(1779964200, 0, false, DateLocale::German),
+            Ok("Do 28.05.2026\n10:30".into())
+        );
+        assert_eq!(
+            format_datetime_locale(1601281809, -32400, false, DateLocale::German),
+            Ok("So 27.09.2020\n23:30".into())
+        );
     }
 }

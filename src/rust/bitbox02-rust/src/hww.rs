@@ -256,7 +256,7 @@ mod tests {
     #[async_test::test]
     async fn test_cant_unlock() {
         assert_eq!(
-            process_packet(&mut TestingHal::new(), vec![OP_UNLOCK]).await,
+            Box::pin(process_packet(&mut TestingHal::new(), vec![OP_UNLOCK])).await,
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
         );
     }
@@ -476,7 +476,7 @@ mod tests {
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            process_packet(&mut mock_hal, vec![OP_UNLOCK]).await,
+            Box::pin(process_packet(&mut mock_hal, vec![OP_UNLOCK])).await,
             [OP_STATUS_SUCCESS].to_vec()
         );
         assert!(!crate::keystore::is_locked());

@@ -74,7 +74,7 @@ typedef struct {
 #define UG_MAX_LINE_COLS 128
 #define UG_MAX_LINE_ROWS 16
 
-/* Max allocaiton will be sizeof(char) * UG_MAX_LINE_COLS * UG_MAX_LINE_ROWS */
+/* Maximum line buffer allocation is sizeof(char) * UG_MAX_LINE_COLS. */
 
 /* -------------------------------------------------------------------------------- */
 /* -- PROTOTYPES                                                                 -- */

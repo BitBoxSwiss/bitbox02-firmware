@@ -2,6 +2,7 @@
 
 use crate::general::abort;
 use crate::hal::{Eeprom, Memory, SecureChip, System, Ui, memory};
+use crate::i18n::I18n as _;
 
 /// Resets the device:
 /// - Updates secure chip KDF keys.
@@ -12,6 +13,7 @@ use crate::hal::{Eeprom, Memory, SecureChip, System, Ui, memory};
 ///
 /// `status` selects whether the status message indicates success or failure (user invoked vs forced).
 pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
+    let status_title = crate::tr!(hal, "Device reset");
     crate::keystore::lock();
     // Resetting takes longer than the default 500 ms watchdog. Bump the watchdog timeout to roughly
     // 7 seconds (longer than needed) so we don't assume communication was lost and this task gets
@@ -60,8 +62,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     // Disable SmartEEPROM so it will be erased on next reboot.
     hal.eeprom().disable();
 
-    // Show "Device reset" status using the UI workflow.
-    hal.ui().status("Device reset", status).await;
+    hal.ui().status(&status_title, status).await;
 
     // The ble chip needs to be restarted to load the new secrets.
     if matches!(

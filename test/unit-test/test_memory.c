@@ -74,6 +74,17 @@ bool __wrap_memory_write_chunk_fake(uint32_t chunk_num, uint8_t* chunk)
     return mock();
 }
 
+void __wrap_bitbox02_smarteeprom_get_device_name(uint8_t* name_out)
+{
+    memcpy(name_out, (uint8_t*)mock(), MEMORY_DEVICE_MAX_LEN_WITH_NULL);
+}
+
+bool __wrap_bitbox02_smarteeprom_set_device_name(const uint8_t* name)
+{
+    check_expected(name);
+    return mock();
+}
+
 bool __wrap_memory_write_to_address_fake(uint32_t base, uint32_t addr, uint8_t* chunk)
 {
     check_expected(base);
@@ -334,37 +345,14 @@ static void _test_memory_reset_failed_unlock_attempts(void** state)
     } while (attempts--);
 }
 
-static void _test_memory_is_mnemonic_passphrase_enabled(void** state)
+static void _test_memory_is_legacy_mnemonic_passphrase_enabled(void** state)
 {
     for (uint8_t i = 0; i < 255; i++) {
         EMPTYCHUNK(chunk);
         _expect_bitmask(chunk, i);
         assert_int_equal(
-            memory_is_mnemonic_passphrase_enabled(),
+            memory_is_legacy_mnemonic_passphrase_enabled(),
             (~i & _bitmask_mnemonic_passphrase_enabled) != 0);
-    }
-}
-
-static void _test_memory_set_mnemonic_passphrase_enabled(void** state)
-{
-    for (uint8_t enable = 0; enable <= 1; enable++) {
-        for (uint8_t i = 0; i < 255; i++) {
-            EMPTYCHUNK(chunk);
-            _expect_bitmask(chunk, i);
-
-            EMPTYCHUNK(expected_chunk);
-            if (enable) {
-                // expect enabled
-                expected_chunk[_addr_bitmask] = ~(~i | _bitmask_mnemonic_passphrase_enabled);
-            } else {
-                // expect disabled
-                expected_chunk[_addr_bitmask] = ~(~i & ~_bitmask_mnemonic_passphrase_enabled);
-            }
-            expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
-            expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
-            will_return(__wrap_memory_write_chunk_fake, true);
-            assert_true(memory_set_mnemonic_passphrase_enabled(enable));
-        }
     }
 }
 
@@ -474,8 +462,7 @@ static void _test_memory_get_device_name_default(void** state)
 {
     char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(empty_chunk);
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, empty_chunk);
+    will_return(__wrap_bitbox02_smarteeprom_get_device_name, empty_chunk + _addr_device_name);
 
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
@@ -494,8 +481,7 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
 
     char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(empty_chunk);
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, empty_chunk);
+    will_return(__wrap_bitbox02_smarteeprom_get_device_name, empty_chunk + _addr_device_name);
 
     EMPTYCHUNK(empty_shared_chunk);
     chunk_shared_t shared_chunk = {0};
@@ -509,8 +495,7 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
     assert_string_equal("BitBox AZUV", name_out);
 
     // Calling it again does not re-generate a new random name but reuses the already generated one.
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, empty_chunk);
+    will_return(__wrap_bitbox02_smarteeprom_get_device_name, empty_chunk + _addr_device_name);
     will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
     memory_get_device_name(name_out);
     assert_string_equal("BitBox AZUV", name_out);
@@ -527,8 +512,7 @@ static void _test_memory_get_device_name_invalid(void** state)
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
 
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, chunk);
+    will_return(__wrap_bitbox02_smarteeprom_get_device_name, chunk + _addr_device_name);
     memory_get_device_name(name_out);
     assert_string_equal(MEMORY_DEFAULT_DEVICE_NAME, name_out);
 }
@@ -541,28 +525,17 @@ static void _test_memory_get_device_name(void** state)
     const char* device_name = "BïtBöx";
     snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", device_name);
 
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, chunk);
+    will_return(__wrap_bitbox02_smarteeprom_get_device_name, chunk + _addr_device_name);
     memory_get_device_name(name_out);
     assert_string_equal(device_name, name_out);
 }
 
 static void _set_device_name(const char* device_name)
 {
-    EMPTYCHUNK(empty_chunk);
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, empty_chunk);
-
-    EMPTYCHUNK(expected_chunk);
-    memset(expected_chunk + _addr_device_name, 0, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
-    snprintf(
-        (char*)expected_chunk + _addr_device_name,
-        MEMORY_DEVICE_MAX_LEN_WITH_NULL,
-        "%s",
-        device_name);
-    expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
-    expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
-    will_return(__wrap_memory_write_chunk_fake, true);
+    char expected[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
+    snprintf(expected, sizeof(expected), "%s", device_name);
+    expect_memory(__wrap_bitbox02_smarteeprom_set_device_name, name, expected, sizeof(expected));
+    will_return(__wrap_bitbox02_smarteeprom_set_device_name, true);
     assert_true(memory_set_device_name(device_name, strlen(device_name)));
 }
 
@@ -767,8 +740,7 @@ int main(void)
         cmocka_unit_test(_test_memory_increment_failed_unlock_attempts),
         cmocka_unit_test(_test_memory_increment_failed_unlock_attempts_overflow),
         cmocka_unit_test(_test_memory_reset_failed_unlock_attempts),
-        cmocka_unit_test(_test_memory_is_mnemonic_passphrase_enabled),
-        cmocka_unit_test(_test_memory_set_mnemonic_passphrase_enabled),
+        cmocka_unit_test(_test_memory_is_legacy_mnemonic_passphrase_enabled),
         cmocka_unit_test(_test_memory_reset_hww),
         cmocka_unit_test(_test_memory_reset_hww_ble),
         cmocka_unit_test(_test_memory_get_ble_bond_db),

@@ -3,6 +3,7 @@
 #include "bitbox02_smarteeprom.h"
 
 #include "hardfault.h"
+#include "memory/memory.h"
 #include "memory/smarteeprom.h"
 
 #include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
@@ -15,7 +16,7 @@
 /**
  * Current version of the data stored in SmartEEPROM.
  */
-#define BITBOX02_SMARTEEPROM_DATA_VERSION (2)
+#define BITBOX02_SMARTEEPROM_DATA_VERSION (3)
 
 #define BITBOX02_SMARTEEPROM_UNINITIALIZED_VERSION (0xFF)
 
@@ -51,12 +52,21 @@ typedef struct __attribute__((__packed__)) {
     uint8_t padding_2[SMARTEEPROM_PAGE_SIZE - sizeof(uint8_t)];
     uint8_t device_language; // see bitbox02_smarteeprom_language_t. 0xFF defaults to English.
 } bitbox02_smarteeprom_image_v2_t;
+
+typedef struct __attribute__((__packed__)) {
+    bitbox02_smarteeprom_image_v2_t v2;
+    uint8_t mnemonic_passphrase_enabled;
+    // Keep the name page-aligned after the language and passphrase flag.
+    uint8_t padding_4[SMARTEEPROM_PAGE_SIZE - 2 * sizeof(uint8_t)];
+    uint8_t device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL];
+} bitbox02_smarteeprom_image_v3_t;
 #pragma GCC diagnostic pop
 
 static_assert(
     offsetof(bitbox02_smarteeprom_image_v2_t, unlock_attempts) ==
         offsetof(bitbox02_smarteeprom_image_v1_t, unlock_attempts),
     "Unlock counter offset must remain unchanged");
+static_assert(MEMORY_DEVICE_MAX_LEN_WITH_NULL == 64, "Device name storage must remain 64 bytes");
 
 /**
  * Reads the version field at address zero.
@@ -101,7 +111,21 @@ static void _init_v2(void)
     smarteeprom_write(
         offsetof(bitbox02_smarteeprom_image_v2_t, device_language), sizeof(value), &value);
     // Keep v1 until the language is persisted so an interrupted migration can be retried.
-    _set_data_version(BITBOX02_SMARTEEPROM_DATA_VERSION);
+    _set_data_version(2);
+}
+
+static void _init_v3(void)
+{
+    uint8_t value = memory_is_legacy_mnemonic_passphrase_enabled();
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v3_t, mnemonic_passphrase_enabled),
+        sizeof(value),
+        &value);
+    uint8_t name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
+    memory_get_legacy_device_name(name);
+    smarteeprom_write(offsetof(bitbox02_smarteeprom_image_v3_t, device_name), sizeof(name), name);
+    // Keep v2 until both settings are persisted so an interrupted migration can be retried.
+    _set_data_version(3);
 }
 
 void bitbox02_smarteeprom_init(void)
@@ -121,6 +145,10 @@ void bitbox02_smarteeprom_init(void)
     }
     if (current_version == 1) {
         _init_v2();
+        current_version = 2;
+    }
+    if (current_version == 2) {
+        _init_v3();
     } else {
         /*
          * Incorrect version!
@@ -161,6 +189,71 @@ bitbox02_smarteeprom_language_t bitbox02_smarteeprom_get_device_language(void)
     default:
         return BITBOX02_SMARTEEPROM_LANGUAGE_EN;
     }
+}
+
+bool bitbox02_smarteeprom_set_mnemonic_passphrase_enabled(bool enabled)
+{
+    if (!smarteeprom_is_enabled()) {
+        return false;
+    }
+    uint8_t value = enabled;
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v3_t, mnemonic_passphrase_enabled),
+        sizeof(value),
+        &value);
+    return true;
+}
+
+bool bitbox02_smarteeprom_is_mnemonic_passphrase_enabled(void)
+{
+    if (!smarteeprom_is_enabled()) {
+        return false;
+    }
+    uint8_t value;
+    smarteeprom_read(
+        offsetof(bitbox02_smarteeprom_image_v3_t, mnemonic_passphrase_enabled),
+        sizeof(value),
+        &value);
+    return value == 1;
+}
+
+bool bitbox02_smarteeprom_set_device_name(const uint8_t* name)
+{
+    if (!smarteeprom_is_enabled()) {
+        return false;
+    }
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v3_t, device_name),
+        MEMORY_DEVICE_MAX_LEN_WITH_NULL,
+        name);
+    return true;
+}
+
+void bitbox02_smarteeprom_get_device_name(uint8_t* name_out)
+{
+    if (!smarteeprom_is_enabled()) {
+        memset(name_out, 0xff, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
+        return;
+    }
+    smarteeprom_read(
+        offsetof(bitbox02_smarteeprom_image_v3_t, device_name),
+        MEMORY_DEVICE_MAX_LEN_WITH_NULL,
+        name_out);
+}
+
+void bitbox02_smarteeprom_reset_device_settings(void)
+{
+    if (!smarteeprom_is_enabled() || _get_data_version() != BITBOX02_SMARTEEPROM_DATA_VERSION) {
+        return;
+    }
+    uint8_t enabled = 0;
+    smarteeprom_write(
+        offsetof(bitbox02_smarteeprom_image_v3_t, mnemonic_passphrase_enabled),
+        sizeof(enabled),
+        &enabled);
+    uint8_t name[MEMORY_DEVICE_MAX_LEN_WITH_NULL];
+    memset(name, 0xff, sizeof(name));
+    smarteeprom_write(offsetof(bitbox02_smarteeprom_image_v3_t, device_name), sizeof(name), name);
 }
 
 uint8_t bitbox02_smarteeprom_get_unlock_attempts(void)

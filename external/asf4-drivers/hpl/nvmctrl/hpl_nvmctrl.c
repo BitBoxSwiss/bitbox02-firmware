@@ -377,12 +377,16 @@ static void _flash_program(void *const hw, const uint32_t dst_addr, const uint8_
 {
 	uint32_t *ptr_read    = (uint32_t *)buffer;
 	uint32_t  nvm_address = dst_addr / 4;
+	uint32_t  ctrla;
 	uint16_t  i;
 
 	while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
 		/* Wait until this module isn't busy */
 	}
 
+	/* SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer. */
+	ctrla = hri_nvmctrl_read_CTRLA_reg(hw);
+	hri_nvmctrl_set_CTRLA_reg(hw, NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1);
 	hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_PBC | NVMCTRL_CTRLB_CMDEX_KEY);
 
 	while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
@@ -402,6 +406,10 @@ static void _flash_program(void *const hw, const uint32_t dst_addr, const uint8_
 
 	hri_nvmctrl_write_ADDR_reg(hw, dst_addr);
 	hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_WP | NVMCTRL_CTRLB_CMDEX_KEY);
+	while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
+		/* Wait until this module isn't busy */
+	}
+	hri_nvmctrl_write_CTRLA_reg(hw, ctrla);
 }
 
 /**
@@ -588,6 +596,8 @@ static int32_t _user_row_write_exec(const uint32_t *_row)
 		/* Wait until this module isn't busy */
 	}
 	hri_nvmctrl_clear_CTRLA_WMODE_bf(NVMCTRL, NVMCTRL_CTRLA_WMODE_Msk);
+	/* SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer. */
+	hri_nvmctrl_set_CTRLA_reg(hw, NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1);
 
 	/* - Erase AUX row. */
 	hri_nvmctrl_write_ADDR_reg(hw, (hri_nvmctrl_addr_reg_t)_NVM_USER_ROW_BASE);

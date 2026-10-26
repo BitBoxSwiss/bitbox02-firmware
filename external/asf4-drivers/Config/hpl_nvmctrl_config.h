@@ -15,6 +15,7 @@
 #define CONF_NVM_SLEEPPRM 0
 #endif
 
+// ICM flash reads require the AHB1 cache; disable caches only during programming.
 // <q> AHB0 Cache Disable
 // <i> Indicate whether AHB0 cache is disable or not
 // <id> nvm_arch_cache0

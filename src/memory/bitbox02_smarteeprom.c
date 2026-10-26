@@ -23,8 +23,8 @@
  * Contents of the SmartEEPROM, as stored in the BitBox02.
  * Version 1.
  *
- * Each field is stored in a separate SmartEEPROM page (32B) to help
- * maximizing the lifetime of the device.
+ * Keep the security-critical unlock counter on its own page to avoid relocating it
+ * when other fields change. Sector-wide reallocation can still move all pages.
  * The version is fixed at virtual address zero for every possible
  * future structure (see _get_data_version).
  *

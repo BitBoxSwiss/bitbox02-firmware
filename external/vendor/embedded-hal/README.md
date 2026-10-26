@@ -1,72 +1,101 @@
+[![crates.io](https://img.shields.io/crates/d/embedded-hal.svg)](https://crates.io/crates/embedded-hal)
+[![crates.io](https://img.shields.io/crates/v/embedded-hal.svg)](https://crates.io/crates/embedded-hal)
+[![Documentation](https://docs.rs/embedded-hal/badge.svg)](https://docs.rs/embedded-hal)
+![Minimum Supported Rust Version](https://img.shields.io/badge/rustc-1.60+-blue.svg)
+
 # `embedded-hal`
 
 >  A Hardware Abstraction Layer (HAL) for embedded systems
 
-This project is developed and maintained by the [HAL team][team].
+This project is developed and maintained by the [HAL team](https://github.com/rust-embedded/wg#the-hal-team).
 
-## [API reference]
+## Companion crates
 
-[API reference]: https://docs.rs/embedded-hal
+The main `embedded-hal` crate contains only blocking traits, where the operation is done
+synchronously before returning. Check out the following crates, which contain versions
+of the traits for other execution models:
 
-## How-to: add a new trait
+- [`embedded-hal-async`](https://docs.rs/embedded-hal-async): async/await-based.
+- [`embedded-hal-nb`](https://docs.rs/embedded-hal-nb): polling-based, using the `nb` crate.
 
-This is the suggested approach to adding a new trait to `embedded-hal`
+The [`embedded-hal-bus`](https://docs.rs/embedded-hal-bus) crate provides utilities for sharing
+SPI and I2C buses.
 
-### Discussion
+Additionally, more domain-specific traits are available in separate crates:
+- [`embedded-can`](https://docs.rs/embedded-can): Controller Area Network (CAN)
+- [`embedded-io`](https://docs.rs/embedded-io): I/O byte streams (like `std::io`, but `no-std`-compatible).
 
-Ideally, before proposing a new trait, or set of traits, you should create an issue where the use
-cases and requirements of the trait(s) are discussed.
+## Serial/UART traits
 
-These issues will be labeled as `discussion`s in the issue tracker.
+There is no serial traits in `embedded-hal`. Instead, use [`embedded-io`](https://crates.io/crates/embedded-io).
+A serial port is essentially a byte-oriented stream, and that's what `embedded-io` models. Sharing the traits
+with all byte streams has some advantages. For example, it allows generic code providing a command-line interface
+or a console to operate either on hardware serial ports or on virtual ones like Telnet or USB CDC-ACM.
 
-### Proposing a trait
+## Design goals
 
-Once there's consensus on the requirements of the trait(s) a new issue, or a PR, with a proposal
-should be opened. The proposal should include the actual trait definitions as well as a link to the
-issue with previous discussion, if there was one.
+The HAL
 
-If the proposal includes more than one alternative then there should be further discussion to try to
-single out the best alternative.
+- Must *erase* device specific details. Neither register, register blocks, nor magic values should
+appear in the API.
 
-These issues / PRs will be labeled as `proposal`s in the issue tracker.
+- Must be generic *within* a device and *across* devices. The API to use a serial interface must
+be the same regardless of whether the implementation uses the USART1 or UART4 peripheral of a
+device or the UART0 peripheral of another device.
 
-### Testing period
+- Where possible must *not* be tied to a specific asynchronous model. The API should be usable
+in blocking mode, with the `futures` model, with an async/await model or with a callback model.
+(cf. the [`nb`](https://docs.rs/nb) crate)
 
-If there are no objections to the proposal the new trait(s) will land behind the "unproven" Cargo
-feature and an issue about the new trait(s) will be created. If the proposal includes several
-alternatives and a single one couldn't be chosen as the best then each alternative will land behind
-a different Cargo feature, e.g. "alt1" or "alt2".
+- Must be minimal, and thus easy to implement and zero cost, yet highly composable. People that
+want higher level abstraction should *prefer to use this HAL* rather than *re-implement*
+register manipulation code.
 
-The traits will undergo a testing period before they move into the set of proven traits. During
-this period users are encouraged to try to implement the unproven traits for their platforms and to
-build drivers on top of them. Problems implementing the trait(s) as well as successful
-implementations should be reported on the corresponding issue.
+- Serve as a foundation for building an ecosystem of platform-agnostic drivers. Here driver
+means a library crate that lets a target platform interface an external device like a digital
+sensor or a wireless transceiver. The advantage of this system is that by writing the driver as
+a generic library on top of `embedded-hal` driver authors can support any number of target
+platforms (e.g. Cortex-M microcontrollers, AVR microcontrollers, embedded Linux, etc.). The
+advantage for application developers is that by adopting `embedded-hal` they can unlock all
+these drivers for their platform.
 
-To leave the unproven state at least *two* implementations of the trait(s) for different platforms
-(ideally, the two platforms should be from different vendors) and *one* generic driver built on top
-of the trait(s), or alternatively one demo program that exercises the trait (via generic function /
-trait object), *should* be demonstrated. If, instead, reports indicate that the proposed trait(s)
-can't be implemented for a certain platform then the trait(s) will be removed and we'll go back to
-the drawing board.
+- Trait methods must be fallible so that they can be used in any possible situation.
+Nevertheless, HAL implementations can additionally provide infallible versions of the same methods
+if they can never fail in their platform. This way, generic code can use the fallible abstractions
+provided here but platform-specific code can avoid fallibility-related boilerplate if possible.
 
-Issues used to track unproven APIs will be labeled as `unproven-api`s in the issue tracker and they
-may also include the labels `needs-impl` and `needs-driver` to signal what's required for them to
-move to the set of proven traits.
+## Out of scope
 
-## Implementations and drivers
+- Initialization and configuration stuff like "ensure this serial interface and that SPI
+interface are not using the same pins". The HAL will focus on *doing I/O*.
 
-For a list of `embedded-hal` implementations and driver crates check the [awesome-embedded-rust]
-list.
+## Platform agnostic drivers
 
-[awesome-embedded-rust]: https://github.com/rust-embedded/awesome-embedded-rust#driver-crates
+You can find platform-agnostic drivers built on top of `embedded-hal` on crates.io by [searching
+for the *embedded-hal* keyword](https://crates.io/keywords/embedded-hal).
+
+If you are writing a platform-agnostic driver yourself you are highly encouraged to [add the
+embedded-hal keyword](https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata)
+to your crate before publishing it!
+
+## Optional Cargo features
+
+- **`defmt-03`**: Derive `defmt::Format` from `defmt` 0.3 for enums and structs.
+
+## Minimum Supported Rust Version (MSRV)
+
+This crate is guaranteed to compile on stable Rust 1.60 and up. It *might*
+compile with older versions but that may change in any new patch release.
+
+See [here](../docs/msrv.md) for details on how the MSRV may be upgraded.
 
 ## License
 
 Licensed under either of
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-  http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+  <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
@@ -75,12 +104,3 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
-
-## Code of Conduct
-
-Contribution to this crate is organized under the terms of the [Rust Code of
-Conduct][CoC], the maintainer of this crate, the [HAL team][team], promises
-to intervene to uphold that code of conduct.
-
-[CoC]: CODE_OF_CONDUCT.md
-[team]: https://github.com/rust-embedded/wg#the-hal-team

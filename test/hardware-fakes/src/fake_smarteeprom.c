@@ -6,11 +6,46 @@
 #include <memory/smarteeprom.h>
 
 #include <assert.h>
+#include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 static char* _mem_image = NULL;
 static size_t _allocated_space = 0;
 static size_t _enabled = 0;
+
+static FILE* _open_image(const char* mode)
+{
+    const char* base_path = getenv("FAKE_MEMORY_FILEPATH");
+    if (base_path == NULL) {
+        return NULL;
+    }
+    // Virtual pages are separate from the raw flash backing in fake_memory.c.
+    char path[512];
+    int written = snprintf(path, sizeof(path), "%s_smarteeprom", base_path);
+    if (written < 0 || (size_t)written >= sizeof(path)) {
+        fprintf(stderr, "SmartEEPROM image path too long\n");
+        abort();
+    }
+    FILE* file = fopen(path, mode);
+    if (file == NULL && !(mode[0] == 'r' && errno == ENOENT)) {
+        perror(path);
+        abort();
+    }
+    return file;
+}
+
+static void _persist(void)
+{
+    FILE* file = _open_image("wb");
+    if (file != NULL) {
+        bool success = fwrite(_mem_image, 1, _allocated_space, file) == _allocated_space;
+        if (fclose(file) != 0 || !success) {
+            fprintf(stderr, "Could not write SmartEEPROM image\n");
+            abort();
+        }
+    }
+}
 
 void smarteeprom_setup(void)
 {
@@ -29,6 +64,14 @@ void smarteeprom_setup(void)
         abort();
     }
     memset(_mem_image, 0xFF, _allocated_space);
+    FILE* file = _open_image("rb");
+    if (file != NULL) {
+        bool success = fread(_mem_image, 1, _allocated_space, file) == _allocated_space;
+        if (fclose(file) != 0 || !success) {
+            fprintf(stderr, "Could not read SmartEEPROM image\n");
+            abort();
+        }
+    }
     _enabled = 1;
 }
 
@@ -67,6 +110,7 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     assert(_allocated_space > bytes && address < _allocated_space - bytes);
     assert(_enabled);
     memcpy(_mem_image + address, buffer, bytes);
+    _persist();
 }
 
 bool smarteeprom_is_enabled(void)
@@ -76,9 +120,15 @@ bool smarteeprom_is_enabled(void)
 
 void smarteeprom_disable(void)
 {
+    if (!_enabled) {
+        return;
+    }
+    memset(_mem_image, 0xFF, _allocated_space);
+    _persist();
     _enabled = 0;
     _allocated_space = 0;
     free(_mem_image);
+    _mem_image = NULL;
 }
 
 void smarteeprom_bb02_config(void)

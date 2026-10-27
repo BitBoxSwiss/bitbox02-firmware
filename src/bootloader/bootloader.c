@@ -904,6 +904,8 @@ static void _check_init(boot_data_t* data)
                    (FLASH_BOOTPROTECTION << NVMCTRL_FUSES_BOOTPROT_Pos);
         // Write fuses
         NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
+        // SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer.
+        NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
         nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
         nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
         *((uint32_t*)NVMCTRL_FUSES_BOOTPROT_ADDR) = fuses[0];

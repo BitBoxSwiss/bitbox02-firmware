@@ -34,12 +34,16 @@ void smarteeprom_disable(void)
     /* Now set the SBLK value as well. */
     config_word = (config_word & ~NVMCTRL_FUSES_SEESBLK_Msk) | (NVMCTRL_FUSES_SEESBLK(0));
     NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
+    // SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
     while (!NVMCTRL->STATUS.bit.READY);
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    NVMCTRL->CTRLA.reg = ctrla;
 }
 
 void smarteeprom_setup(void)
@@ -72,12 +76,16 @@ void smarteeprom_setup(void)
     config_word = (config_word & ~NVMCTRL_FUSES_SEESBLK_Msk) |
                   (NVMCTRL_FUSES_SEESBLK(SMARTEEPROM_SBLK_VALUE));
     NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
+    // SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
     while (!NVMCTRL->STATUS.bit.READY);
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    NVMCTRL->CTRLA.reg = ctrla;
 }
 
 void smarteeprom_bb02_config(void)

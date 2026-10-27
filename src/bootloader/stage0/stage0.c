@@ -10,6 +10,7 @@
 #include "memory/memory_shared.h"
 #include "pac_ext.h"
 #include "stage0_flash.h"
+#include "stage0_install.h"
 #include "ui/oled/oled.h"
 #include "util.h"
 #ifndef BB02_STAGE0_DEVELOPMENT
@@ -466,7 +467,11 @@ static secbool_u32 _header_signatures_ok(const bb02_stage1_header_t* header)
 }
 #endif
 
-static secbool_u32 _stage1_image_ok(const bb02_stage1_header_t* header, uint8_t hash_out[32])
+// Keep the installation recheck independent of the initial boot decision under LTO.
+// NOLINTNEXTLINE(clang-diagnostic-unknown-attributes)
+static secbool_u32 __attribute__((noinline, noclone)) _stage1_image_ok(
+    const bb02_stage1_header_t* header,
+    uint8_t hash_out[32])
 {
     if (_header_basic_ok(header) != sectrue_u32) {
         return secfalse_u32;
@@ -622,8 +627,11 @@ static void __attribute__((noreturn, noinline)) _stage0_main(void)
     const secbool_u32 installed_ok = installed_header_ok == sectrue_u32
                                          ? _stage1_image_ok(installed, installed_hash)
                                          : secfalse_u32;
-    const secbool_u32 update_ok = _stage1_image_ok(update, update_hash);
-    volatile secbool_u32 install_auth = update_ok;
+    // A fault can bypass the branch below even when update verification failed.
+    // Keep the result volatile so the compiler cannot replace the later
+    // stage0_install_auth() check with an assumed success.
+    volatile secbool_u32 update_ok = _stage1_image_ok(update, update_hash);
+    volatile secbool_u32 install_auth = secfalse_u32;
     volatile secbool_u32 boot_auth = installed_ok;
 
     if (update_ok == sectrue_u32) {
@@ -639,6 +647,14 @@ static void __attribute__((noreturn, noinline)) _stage0_main(void)
         _oled_init();
 #endif
         _oled_progress(0, 6);
+        // Recheck even a failed result: a fault must not turn a valid image into recovery.
+        const secbool_u32 rechecked_installed_ok = _stage1_image_ok(installed, installed_hash);
+        install_auth = stage0_install_auth(
+            update_ok,
+            installed_ok,
+            rechecked_installed_ok,
+            installed->monotonic_version,
+            update->monotonic_version);
         _install_stage1(update, installed_header_ok, &install_auth);
         installed = bb02_stage1_installed_header();
         if (_stage1_image_ok(installed, installed_hash) == sectrue_u32) {

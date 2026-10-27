@@ -65,6 +65,8 @@ else()
      "-Wl,--wrap=pukcc_ecdsa_verify,--wrap=sha_sync_sha256_start,--wrap=sha_sync_sha256_update,--wrap=sha_sync_sha256_finish"
      stage0_flash
      ""
+     stage0_install
+     ""
      stage0_descriptor
      ""
      bootloader_upgrade_check

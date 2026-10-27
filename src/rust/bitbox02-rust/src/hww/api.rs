@@ -241,3 +241,22 @@ pub async fn process(hal: &mut impl crate::hal::Hal, input: Vec<u8>) -> Vec<u8> 
         Err(error) => encode(make_error(error)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hal::{Memory, testing::TestingHal};
+
+    #[test]
+    fn test_can_call_device_language_initialized_and_locked() {
+        let mut hal = TestingHal::new();
+        hal.memory.set_initialized().unwrap();
+        crate::keystore::lock();
+        assert!(!can_call(
+            &mut hal,
+            &Request::DeviceLanguage(pb::SetDeviceLanguageRequest {
+                language: "de".into(),
+            })
+        ));
+    }
+}

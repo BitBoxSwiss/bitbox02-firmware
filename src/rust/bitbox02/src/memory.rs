@@ -544,6 +544,25 @@ mod tests {
     }
 
     #[test]
+    fn test_reset_hww_device_settings() {
+        mock_memory();
+        set_device_name("My custom name").unwrap();
+        set_mnemonic_passphrase_enabled(true).unwrap();
+        set_device_language(bitbox_hal::memory::Language::German).unwrap();
+        unsafe { bitbox02_sys::bitbox02_smarteeprom_increment_unlock_attempts() };
+
+        reset_hww().unwrap();
+
+        assert_eq!(get_device_name(), "My BitBox");
+        assert!(!is_mnemonic_passphrase_enabled());
+        assert_eq!(get_device_language(), bitbox_hal::memory::Language::German);
+        assert_eq!(
+            unsafe { bitbox02_sys::bitbox02_smarteeprom_get_unlock_attempts() },
+            1
+        );
+    }
+
+    #[test]
     fn test_seed_birthdate_roundtrip() {
         mock_memory();
 

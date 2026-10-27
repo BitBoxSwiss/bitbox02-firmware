@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bitbox02_smarteeprom.h"
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
@@ -103,8 +104,8 @@ typedef union {
         uint8_t noise_static_private_key[32]; // CURVE25519
         uint8_t noise_remote_static_pubkeys[5][NOISE_PUBKEY_SIZE]; // 5 pubkey slots
         uint8_t salt_root[32];
-        uint8_t device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL]; // utf8 encoded device name. 0xFF if
-                                                              // not set.
+        // Migration source for SmartEEPROM. UTF-8 encoded device name; 0xFF if not set.
+        uint8_t legacy_device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL];
         uint8_t encrypted_seed_and_hmac_len;
         uint8_t encrypted_seed_and_hmac[96];
         uint32_t seed_birthdate; // unix timestamp.
@@ -158,7 +159,7 @@ static_assert(sizeof(((chunk_7_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too 
 
 #define BITMASK_SEEDED ((uint8_t)(1u << 0u))
 #define BITMASK_INITIALIZED ((uint8_t)(1u << 1u))
-#define BITMASK_ENABLE_MNEMONIC_PASSPHRASE ((uint8_t)(1u << 2u))
+#define BITMASK_LEGACY_ENABLE_MNEMONIC_PASSPHRASE ((uint8_t)(1u << 2u))
 
 static void _clean_chunk(uint8_t** chunk_bytes)
 {
@@ -317,27 +318,22 @@ bool memory_set_device_name(const char* name, size_t name_len)
         // utf8 string can't start with 0xFF or be an empty string.
         return false;
     }
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
-    if (util_utf8_copy(
-            (char*)&chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, name, name_len) <
-        0) {
+    uint8_t device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
+    if (util_utf8_copy((char*)device_name, sizeof(device_name), name, name_len) < 0) {
         return false;
     }
 
-    if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
+    if (!rust_util_is_name_valid(device_name, sizeof(device_name))) {
         return false;
     }
-    return _write_chunk(CHUNK_1, chunk.bytes);
+    return bitbox02_smarteeprom_set_device_name(device_name);
 }
 
 void memory_get_device_name(char* name_out)
 {
-    const chunk_1_t* chunk = _chunk_1();
-    if (chunk->fields.device_name[0] == 0xFF ||
-        !rust_util_is_name_valid(chunk->fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
+    uint8_t device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
+    bitbox02_smarteeprom_get_device_name(device_name);
+    if (device_name[0] == 0xFF || !rust_util_is_name_valid(device_name, sizeof(device_name))) {
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
@@ -351,8 +347,14 @@ void memory_get_device_name(char* name_out)
             MEMORY_DEVICE_MAX_LEN_WITH_NULL,
             "%.*s",
             MEMORY_DEVICE_MAX_LEN_WITH_NULL - 1,
-            chunk->fields.device_name);
+            device_name);
     }
+}
+
+void memory_get_legacy_device_name(uint8_t* name_out)
+{
+    const chunk_1_t* chunk = _chunk_1();
+    memcpy(name_out, chunk->fields.legacy_device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
 }
 
 bool memory_set_seed_birthdate(uint32_t timestamp)
@@ -447,6 +449,8 @@ bool memory_reset_hww(void)
         }
     }
 
+    bitbox02_smarteeprom_reset_device_settings();
+
     // Initialize hww memory
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
@@ -519,22 +523,17 @@ bool memory_set_initialized(void)
 
 bool memory_is_mnemonic_passphrase_enabled(void)
 {
-    return _is_bitmask_flag_set(BITMASK_ENABLE_MNEMONIC_PASSPHRASE);
+    return bitbox02_smarteeprom_is_mnemonic_passphrase_enabled();
 }
 
 bool memory_set_mnemonic_passphrase_enabled(bool enabled)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    uint8_t bitmask = ~chunk.fields.bitmask;
-    if (enabled) {
-        bitmask |= BITMASK_ENABLE_MNEMONIC_PASSPHRASE;
-    } else {
-        bitmask &= ~BITMASK_ENABLE_MNEMONIC_PASSPHRASE;
-    }
-    chunk.fields.bitmask = ~bitmask;
-    return _write_chunk(CHUNK_1, chunk.bytes);
+    return bitbox02_smarteeprom_set_mnemonic_passphrase_enabled(enabled);
+}
+
+bool memory_is_legacy_mnemonic_passphrase_enabled(void)
+{
+    return _is_bitmask_flag_set(BITMASK_LEGACY_ENABLE_MNEMONIC_PASSPHRASE);
 }
 
 uint8_t memory_get_failed_unlock_attempts(void)

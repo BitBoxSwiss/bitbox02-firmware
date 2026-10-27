@@ -58,7 +58,7 @@ else()
      ui_component_gestures
      ""
      memory
-     "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
+     "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu,--wrap=bitbox02_smarteeprom_get_device_name,--wrap=bitbox02_smarteeprom_set_device_name"
      bitbox02_smarteeprom
      "-Wl,--wrap=smarteeprom_write,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=AbortAutoenter"
      stage0_sigcheck

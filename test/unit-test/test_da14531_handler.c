@@ -10,9 +10,16 @@
 #include <da14531/da14531_protocol.h>
 #include <rust/rust.h>
 #include <ui/components/confirm.h>
+#include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 
 #include <string.h>
+
+bool __wrap_usb_packet_process(const USB_FRAME* frame)
+{
+    check_expected_ptr(frame);
+    return true;
+}
 
 component_t* __wrap_confirm_create(
     const confirm_params_t* params,
@@ -63,10 +70,54 @@ static void test_pairing_code_rejected_during_hww_workflow(void** state)
     assert_true(rust_bytequeue_free(queue));
 }
 
+static void test_hww_requires_secured_connection(void** state)
+{
+    (void)state;
+
+    uint8_t status_buf[sizeof(struct da14531_protocol_frame) + 2] = {0};
+    struct da14531_protocol_frame* status = (struct da14531_protocol_frame*)status_buf;
+    status->type = DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA;
+    status->payload_length = 2;
+    status->payload[0] = CTRL_CMD_BLE_STATUS;
+
+    uint8_t data_buf[sizeof(struct da14531_protocol_frame) + USB_REPORT_SIZE] = {0};
+    struct da14531_protocol_frame* data = (struct da14531_protocol_frame*)data_buf;
+    data->type = DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA;
+    data->payload_length = USB_REPORT_SIZE;
+    memset(data->payload, 0x5a, USB_REPORT_SIZE);
+
+    // Initial connection, disconnect and reconnect must all wait for the secured status.
+    const enum da14531_connected_state states[] = {
+        DA14531_CONNECTED_ADVERTISING,
+        DA14531_CONNECTED_CONNECTED,
+        DA14531_CONNECTED_CONNECTED_SECURED,
+        DA14531_CONNECTED_ADVERTISING,
+        DA14531_CONNECTED_CONNECTED,
+        DA14531_CONNECTED_CONNECTED_SECURED,
+    };
+    for (size_t i = 0; i < sizeof(states) / sizeof(states[0]); i++) {
+        status->payload[1] = states[i];
+        da14531_handler(status, NULL);
+        assert_int_equal(da14531_connected_state, states[i]);
+        if (states[i] == DA14531_CONNECTED_CONNECTED_SECURED) {
+            expect_memory(__wrap_usb_packet_process, frame, data->payload, USB_REPORT_SIZE);
+        }
+        da14531_handler(data, NULL);
+    }
+
+    // Securing the connection does not relax the existing frame-size requirement.
+    data->payload_length = USB_REPORT_SIZE - 1;
+    da14531_handler(data, NULL);
+    data->payload_length = USB_REPORT_SIZE + 1;
+    da14531_handler(data, NULL);
+    da14531_connected_state = DA14531_CONNECTED_ADVERTISING;
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_pairing_code_rejected_during_hww_workflow),
+        cmocka_unit_test(test_hww_requires_secured_connection),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -99,7 +99,7 @@
         USB_DESC_HWW_EP_OUT, /* ep_out.bEndpointAddress */                  \
         0x03, /* ep_out.bmAttributes */                                     \
         USB_DESC_LE16(USB_DESC_HID_EP_SIZE), /* ep_out.wMaxPacketSize */    \
-        4 /* ep_out.bInterval */
+        1 /* ep_out.bInterval */
 
 #define USB_DESC_CONFIG                                       \
     USB_DESC_CONFIG_LEN, /* bLength */                        \

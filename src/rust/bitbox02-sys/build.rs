@@ -609,22 +609,36 @@ fn run_command(command: &mut Command, context: &str) -> BuildResult<Output> {
 
 fn generate_native_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-    let script_path = repo_root.join("scripts/generate_rust_header.sh");
     let rust_header_dir = out_dir.join("rust");
 
     println!("cargo::rerun-if-env-changed=BASH_BIN");
     let mut command = Command::new(env::var_os("BASH_BIN").unwrap_or_else(|| "bash".into()));
-    command.arg(&script_path).arg(&rust_header_dir);
+    command
+        .arg("../../scripts/generate_rust_header.sh")
+        .arg(bash_path(&rust_header_dir));
     if let Ok(cargo_bin) = env::var("CARGO") {
-        command.env("CARGO_BIN", cargo_bin);
+        command.env("CARGO_BIN", bash_path(Path::new(&cargo_bin)));
     }
     if let Ok(cbindgen_bin) = env::var("CBINDGEN_BIN") {
-        command.env("CBINDGEN_BIN", cbindgen_bin);
+        command.env("CBINDGEN_BIN", bash_path(Path::new(&cbindgen_bin)));
     }
     command.current_dir(manifest_dir.join(".."));
     run_command(&mut command, "generate rust.h")?;
 
     generate_version_headers(repo_root, out_dir)
+}
+
+fn bash_path(path: &Path) -> PathBuf {
+    #[cfg(windows)]
+    {
+        PathBuf::from(
+            path.to_str()
+                .expect("Bash path must be Unicode")
+                .replace('\\', "/"),
+        )
+    }
+    #[cfg(not(windows))]
+    path.to_owned()
 }
 
 fn generate_version_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {

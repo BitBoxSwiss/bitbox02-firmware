@@ -22,7 +22,8 @@ fn main() {
 
     println!("cargo:rerun-if-env-changed=BASH_BIN");
     let status = Command::new(env::var_os("BASH_BIN").unwrap_or_else(|| "bash".into()))
-        .arg(repo_root.join("scripts/generate-protobuf-rust.sh"))
+        .current_dir(&repo_root)
+        .arg("scripts/generate-protobuf-rust.sh")
         .status()
         .expect("failed to invoke protobuf generator script");
     assert!(status.success(), "protobuf generation failed");

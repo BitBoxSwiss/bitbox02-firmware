@@ -46,14 +46,15 @@
 
 // Bootloader API command op codes
 //
-// OP_ERASE - Erases the whole firmware flash area. Receives the total number
-// of firmware chunks to write. If non-zero, starts a firmware loading session.
+// OP_ERASE - Erases unused firmware flash starting at an erase-block boundary.
+// Receives the total number of firmware chunks to write. If non-zero, starts
+// a new firmware loading session.
 #define OP_ERASE ((uint8_t)'e') /* 0x65 */
 // OP_REBOOT - Reboot the MCU and clear the auto_enter flag.
 #define OP_REBOOT ((uint8_t)'r') /* 0x72 */
 // OP_WRITE - Write a firmware chunk; the binary must be streamed in chunks.
 // The command must include the chunk number in order to be written to the
-// correct FLASH location.
+// correct FLASH location. New chunks must arrive in ascending order.
 #define OP_WRITE_FIRMWARE_CHUNK ((uint8_t)'w') /* 0x77 */
 // OP_WRITE_SIG_DATA - Write the firmware's signature data, which is used
 // for firmware verification.
@@ -117,6 +118,7 @@ static_assert(sizeof(((boot_data_t*)0)->fields) <= FLASH_BOOTDATA_LEN, "boot_dat
 
 static bool _loading_ready = false;
 static uint8_t _firmware_num_chunks = 0;
+static uint8_t _firmware_next_chunk = 0;
 // Indicates whether the whole app flash contains only 0xFF.
 // This controls bootloader text messages on the screen.
 // The value is computed at bootloader enter.
@@ -435,6 +437,23 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
     }
 
     const uint32_t addr = FLASH_APP_START + chunknum * FIRMWARE_CHUNK_LEN;
+    if (chunknum < _firmware_next_chunk) {
+        if (!MEMEQ((const void*)addr, buf, FIRMWARE_CHUNK_LEN)) {
+            return _report_status(OP_STATUS_ERR_CHECK, output);
+        }
+        _loading_ready = true;
+        return _report_status(OP_STATUS_OK, output);
+    }
+    if (chunknum != _firmware_next_chunk) {
+        return _report_status(OP_STATUS_ERR_LEN, output);
+    }
+
+    if (addr % FIRMWARE_BLOCK_LEN == 0) {
+        uint8_t status = _firmware_erase_block(addr);
+        if (status != OP_STATUS_OK) {
+            return _report_status(status, output);
+        }
+    }
     if (!_is_erased((const void*)addr, FIRMWARE_CHUNK_LEN)) {
         return _report_status(OP_STATUS_ERR_CHECK, output);
     }
@@ -451,14 +470,18 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
     }
 
     size_t len = _report_status(OP_STATUS_OK, output);
+    _firmware_next_chunk++;
     _loading_ready = true;
     return len;
 }
 
 /**
- * This function erases the whole firmware app area. The number of chunks is put
- * into RAM in order to show the correct progress in the next step flashing the
- * firmware.
+ * This function erases the padding bytes, if not already erased. Erasing starts
+ * at an erase-block boundary, so if the firmware ends halfway through a block,
+ * the last firmware chunk is erased here and written again later.
+ *
+ * The number of chunks is put into RAM in order to show the correct
+ * progress in the next step flashing the firmware.
  */
 static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
 {
@@ -475,7 +498,9 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
             return _report_status(OP_STATUS_ERR_UNLOCK, output);
         }
     }
-    for (uint32_t addr = FLASH_APP_START; addr < FLASH_APP_START + FLASH_APP_LEN;
+    const uint32_t firmware_len = firmware_num_chunks * FIRMWARE_CHUNK_LEN;
+    const uint32_t erase_start = FLASH_APP_START + firmware_len - firmware_len % FIRMWARE_BLOCK_LEN;
+    for (uint32_t addr = erase_start; addr < FLASH_APP_START + FLASH_APP_LEN;
          addr += FIRMWARE_BLOCK_LEN) {
         uint8_t status = _firmware_erase_block(addr);
         if (status != OP_STATUS_OK) {
@@ -485,6 +510,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
 
     if (firmware_num_chunks > 0) {
         _firmware_num_chunks = firmware_num_chunks;
+        _firmware_next_chunk = 0;
         _loading_ready = true;
     }
     return _report_status(OP_STATUS_OK, output);

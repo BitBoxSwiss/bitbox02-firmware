@@ -458,12 +458,12 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
         return _report_status(OP_STATUS_ERR_CHECK, output);
     }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    if (flash_append(&FLASH_0, addr, buf, FIRMWARE_CHUNK_LEN) != ERR_NONE) {
+    // flash_append reads its source as uint32_t words.
+    uint32_t aligned_buf[FIRMWARE_CHUNK_LEN / sizeof(uint32_t)];
+    memcpy(aligned_buf, buf, sizeof(aligned_buf));
+    if (flash_append(&FLASH_0, addr, (uint8_t*)aligned_buf, sizeof(aligned_buf)) != ERR_NONE) {
         return _report_status(OP_STATUS_ERR_WRITE, output);
     }
-#pragma GCC diagnostic pop
 
     if (!MEMEQ((const void*)addr, buf, FIRMWARE_CHUNK_LEN)) {
         return _report_status(OP_STATUS_ERR_CHECK, output);

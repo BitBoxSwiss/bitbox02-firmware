@@ -378,6 +378,13 @@ jobs:
           components: rustfmt
           target: x86_64-pc-windows-gnullvm
 
+      - name: Select project Rust toolchain
+        shell: bash
+        working-directory: src/rust
+        run: |
+          project_rust_toolchain=$(rustup show active-toolchain | cut -d ' ' -f 1)
+          echo "RUSTUP_TOOLCHAIN=$project_rust_toolchain" >> "$GITHUB_ENV"
+
       - name: Install system dependencies
         uses: msys2/setup-msys2@v2
         with:

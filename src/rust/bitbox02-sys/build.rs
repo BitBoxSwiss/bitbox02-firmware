@@ -477,8 +477,7 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let graphical_simulator = env::var_os("CARGO_FEATURE_SIMULATOR_GRAPHICAL").is_some();
-    let app_u2f = !graphical_simulator || env::var_os("CARGO_FEATURE_APP_U2F").is_some();
+    let app_u2f = env::var_os("CARGO_FEATURE_APP_U2F").is_some();
     let mut definitions = vec![format!("-DAPP_U2F={}", u8::from(app_u2f))];
     definitions.extend(target_definitions);
     if warnings_as_errors {

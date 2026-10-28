@@ -59,11 +59,15 @@ extern crate bitbox_usb_report_queue;
 extern crate util;
 
 #[allow(unused)]
+#[cfg(not(feature = "simulator-graphical"))]
 #[cfg(any(
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
 type HalImpl = bitbox02::hal::BitBox02Hal;
+
+#[cfg(feature = "simulator-graphical")]
+type HalImpl = bitbox02::hal::BitBox02Hal<bitbox_platform_host::timer::HostTimer>;
 
 // Keep this as a numeric literal so cbindgen reliably exports it to C.
 // The static assert below enforces consistency with the Rust HAL constant.

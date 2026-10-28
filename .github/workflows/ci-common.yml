@@ -257,7 +257,7 @@ jobs:
           } | xargs -0 -r sha256sum
 
       - name: Upload artifact
-        if: github.event_name == 'push' && !cancelled()
+        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-${{github.sha}}.bin
@@ -268,6 +268,20 @@ jobs:
             build*/bin/simulator*
             build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-*
             build-bitbox03-cargo/thumbv8m.main-none-eabihf/release/bitbox03-*
+
+      - name: Package graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        run: |
+          build-build-noasan/bin/simulator-graphical --help
+          tar -czf simulator-graphical-linux-x86_64.tar.gz -C build-build-noasan/bin simulator-graphical
+
+      - name: Upload graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-graphical-linux-x86_64-${{ github.sha }}
+          path: simulator-graphical-linux-x86_64.tar.gz
+          if-no-files-found: error
 
   # Build simulators for macos aarch64
   build-macos:
@@ -313,12 +327,124 @@ jobs:
         run: sha256sum build*/bin/*
 
       - name: Upload artifact
-        if: github.event_name == 'push' && !cancelled()
+        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.target}}-apple-aarch64-darwin-${{github.sha}}.bin
           path: |
             build*/bin/simulator*
+
+      - name: Package graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        run: |
+          build-build-noasan/bin/simulator-graphical --help
+          tar -czf simulator-graphical-macos-aarch64.tar.gz -C build-build-noasan/bin simulator-graphical
+
+      - name: Upload graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-graphical-macos-aarch64-${{ github.sha }}
+          path: simulator-graphical-macos-aarch64.tar.gz
+          if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER: clang
+      CC_x86_64_pc_windows_gnullvm: clang
+      AR_x86_64_pc_windows_gnullvm: llvm-ar
+      CFLAGS_x86_64_pc_windows_gnullvm: -Werror -DSECP256K1_STATIC
+    steps:
+      - name: Configure Git
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rust-src-dir: src/rust
+          components: rustfmt
+          target: x86_64-pc-windows-gnullvm
+
+      - name: Install system dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANG64
+          path-type: inherit
+          update: true
+          install: >-
+            mingw-w64-clang-x86_64-clang
+            mingw-w64-clang-x86_64-llvm
+            mingw-w64-clang-x86_64-libunwind
+            mingw-w64-clang-x86_64-python
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "21.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure bindgen
+        run: |
+          echo "LIBCLANG_PATH=$(cygpath -m /clang64/bin)" >> "$GITHUB_ENV"
+          echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64-pc-windows-gnullvm=--target=x86_64-w64-mingw32 --sysroot=$(cygpath -m /clang64)" >> "$GITHUB_ENV"
+
+      - name: Bootstrap Cargo config
+        run: ./scripts/bootstrap-cargo-config
+
+      - name: Install Rust build tools
+        run: |
+          cargo install cbindgen --version 0.29.2 --locked
+          cargo install bindgen-cli --version 0.72.1 --locked
+          cargo install --path tools/prost-build-proto --locked
+
+      - name: Build graphical simulator
+        env:
+          # Remove unused firmware Rust APIs before Windows symbol resolution.
+          CARGO_PROFILE_RELEASE_LTO: "true"
+        run: >-
+          cargo build --locked --release
+          --manifest-path test/simulator-graphical/Cargo.toml
+          --target x86_64-pc-windows-gnullvm
+          --target-dir build-simulator-windows
+
+      - name: Package graphical simulator
+        run: |
+          mkdir -p build-simulator-windows/bin
+          cp build-simulator-windows/x86_64-pc-windows-gnullvm/release/simulator-graphical.exe build-simulator-windows/bin/
+          cp /clang64/bin/libunwind.dll build-simulator-windows/bin/
+          cp /clang64/share/licenses/libunwind/LICENSE build-simulator-windows/bin/libunwind-LICENSE.txt
+
+      - name: Upload graphical simulator
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-graphical-windows-x86_64-${{ github.sha }}
+          path: build-simulator-windows/bin/
+          if-no-files-found: error
+
+  check-simulator-windows:
+    needs: [build-windows]
+    runs-on: windows-2022
+    steps:
+      - name: Download graphical simulator
+        uses: actions/download-artifact@v4
+        with:
+          name: simulator-graphical-windows-x86_64-${{ github.sha }}
+
+      - name: Check graphical simulator starts
+        run: .\simulator-graphical.exe --help
 
   doc:
     runs-on: ubuntu-22.04

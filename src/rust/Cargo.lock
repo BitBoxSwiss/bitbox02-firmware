@@ -437,6 +437,7 @@ dependencies = [
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox-noise",
+ "bitbox-platform-host",
  "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-rust",

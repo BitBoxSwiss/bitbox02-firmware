@@ -15,6 +15,7 @@ bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox-aes = { path = "../bitbox-aes", optional = true }
 bitbox02 = { path = "../bitbox02" }
+bitbox-platform-host = { path = "../bitbox-platform-host", optional = true }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-noise = { path = "../bitbox-noise", optional = true }
 cortex-m = { workspace = true }
@@ -84,6 +85,7 @@ testing = ["bitbox02-rust/testing", "bitbox02/testing"]
 c-unit-testing = ["bitbox02-rust/c-unit-testing", "bitbox02/c-unit-testing", "util/c-unit-testing"]
 
 simulator-graphical = [
+  "bitbox-platform-host",
   "app-bitcoin",
   "app-litecoin",
   "app-ethereum",

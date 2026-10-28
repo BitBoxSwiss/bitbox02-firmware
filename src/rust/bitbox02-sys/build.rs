@@ -477,7 +477,9 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
+    let graphical_simulator = env::var_os("CARGO_FEATURE_SIMULATOR_GRAPHICAL").is_some();
+    let app_u2f = !graphical_simulator || env::var_os("CARGO_FEATURE_APP_U2F").is_some();
+    let mut definitions = vec![format!("-DAPP_U2F={}", u8::from(app_u2f))];
     definitions.extend(target_definitions);
     if warnings_as_errors {
         definitions.push("-Werror".to_owned());
@@ -504,7 +506,7 @@ pub fn main() -> BuildResult<()> {
 
     run_command(&mut bindgen, "run bindgen")?;
 
-    let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
+    let mut excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
         match libtype.as_str() {
             "c-unit-tests" => vec!["src/screen.c"],
             _ => vec![],
@@ -512,6 +514,9 @@ pub fn main() -> BuildResult<()> {
     } else {
         vec![]
     };
+    if !app_u2f {
+        excludes.extend(["src/u2f.c", "src/u2f/u2f_app.c", "src/u2f/u2f_packet.c"]);
+    }
 
     // Build native C deps for host builds. Keep bitbox C and hardware fakes in one archive so
     // static archive ordering cannot drop fake providers before bitbox02 consumers.

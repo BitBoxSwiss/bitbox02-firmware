@@ -50,7 +50,7 @@ Linux)
     ar="llvm-ar-22"
     ranlib="llvm-ranlib-22"
     ;;
-Darwin)
+Darwin | MINGW* | MSYS*)
     cc="clang"
     ar="llvm-ar"
     ranlib="llvm-ranlib"

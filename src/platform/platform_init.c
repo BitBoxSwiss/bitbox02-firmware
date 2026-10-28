@@ -24,24 +24,26 @@
     #define PREFIX "fw"
 #endif
 
+#ifndef TESTING
 void platform_init(void)
 {
     oled_init();
-#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
+    #if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         uart_init();
     }
-#endif
+    #endif
     // these two functions are noops if "rtt" feature isn't enabled in rust
     util_log_init();
     util_log(PREFIX ": platform_init");
-#if !defined(BOOTLOADER)
+    #if !defined(BOOTLOADER)
     sd_mmc_start();
-#endif
+    #endif
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         spi_mem_protected_area_lock();
     }
 }
+#endif
 
 #if !(defined(BOOTLOADER) && PLATFORM_BITBOX02PLUS == 0)
     #if defined(BOOTLOADER)

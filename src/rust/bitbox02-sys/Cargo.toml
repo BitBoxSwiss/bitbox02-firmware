@@ -14,3 +14,7 @@ fatfs-sys = { path = "../fatfs-sys" }
 
 [build-dependencies]
 cc = {version="1.2", features=["parallel"]}
+
+[features]
+app-u2f = []
+simulator-graphical = []

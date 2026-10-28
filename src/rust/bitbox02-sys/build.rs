@@ -612,7 +612,8 @@ fn generate_native_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> 
     let script_path = repo_root.join("scripts/generate_rust_header.sh");
     let rust_header_dir = out_dir.join("rust");
 
-    let mut command = Command::new("bash");
+    println!("cargo::rerun-if-env-changed=BASH_BIN");
+    let mut command = Command::new(env::var_os("BASH_BIN").unwrap_or_else(|| "bash".into()));
     command.arg(&script_path).arg(&rust_header_dir);
     if let Ok(cargo_bin) = env::var("CARGO") {
         command.env("CARGO_BIN", cargo_bin);

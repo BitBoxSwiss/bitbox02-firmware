@@ -403,8 +403,9 @@ jobs:
           version: "21.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure bindgen
+      - name: Configure build tools
         run: |
+          echo "BASH_BIN=$(cygpath -m /usr/bin/bash.exe)" >> "$GITHUB_ENV"
           echo "LIBCLANG_PATH=$(cygpath -m /clang64/bin)" >> "$GITHUB_ENV"
           echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64-pc-windows-gnullvm=--target=x86_64-w64-mingw32 --sysroot=$(cygpath -m /clang64)" >> "$GITHUB_ENV"
 

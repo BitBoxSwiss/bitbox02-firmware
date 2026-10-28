@@ -323,6 +323,8 @@ class SendMessage:
             (
                 ("English", lambda: self._device.set_device_language("en")),
                 ("German", lambda: self._device.set_device_language("de")),
+                ("Italian", lambda: self._device.set_device_language("it")),
+                ("Spanish", lambda: self._device.set_device_language("es")),
             )
         )
         if callable(choice):

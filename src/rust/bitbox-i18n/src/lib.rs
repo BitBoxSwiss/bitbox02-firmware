@@ -25,6 +25,8 @@ pub fn language_from_code(code: &str) -> Option<Language> {
     match (code[0].to_ascii_lowercase(), code[1].to_ascii_lowercase()) {
         (b'e', b'n') => Some(Language::English),
         (b'd', b'e') => Some(Language::German),
+        (b'i', b't') => Some(Language::Italian),
+        (b'e', b's') => Some(Language::Spanish),
         _ => None,
     }
 }
@@ -33,6 +35,8 @@ pub fn language_code(language: Language) -> &'static str {
     match language {
         Language::English => "en",
         Language::German => "de",
+        Language::Italian => "it",
+        Language::Spanish => "es",
     }
 }
 
@@ -40,6 +44,12 @@ pub fn translate<'a>(language: Language, english: &'a str) -> Cow<'a, str> {
     match language {
         Language::English => Cow::Borrowed(english),
         Language::German => translate_from_table(english, DE_TRANSLATIONS)
+            .map(Cow::Borrowed)
+            .unwrap_or(Cow::Borrowed(english)),
+        Language::Italian => translate_from_table(english, IT_TRANSLATIONS)
+            .map(Cow::Borrowed)
+            .unwrap_or(Cow::Borrowed(english)),
+        Language::Spanish => translate_from_table(english, ES_TRANSLATIONS)
             .map(Cow::Borrowed)
             .unwrap_or(Cow::Borrowed(english)),
     }
@@ -132,8 +142,12 @@ mod tests {
         assert_eq!(language_from_code("EN-us"), Some(Language::English));
         assert_eq!(language_from_code("de"), Some(Language::German));
         assert_eq!(language_from_code("de_CH"), Some(Language::German));
+        assert_eq!(language_from_code("it"), Some(Language::Italian));
+        assert_eq!(language_from_code("IT-ch"), Some(Language::Italian));
+        assert_eq!(language_from_code("es"), Some(Language::Spanish));
+        assert_eq!(language_from_code("ES_MX"), Some(Language::Spanish));
         assert_eq!(language_from_code("dex"), None);
-        assert_eq!(language_from_code("it"), None);
+        assert_eq!(language_from_code("fr"), None);
     }
 
     #[test]
@@ -147,6 +161,14 @@ mod tests {
             "Upgrade fortsetzen?"
         );
         assert_eq!(
+            translate(Language::Italian, "Proceed to upgrade?").as_ref(),
+            "Aggiornare?"
+        );
+        assert_eq!(
+            translate(Language::Spanish, "Proceed to upgrade?").as_ref(),
+            "¿Actualizar?"
+        );
+        assert_eq!(
             translate(Language::German, "Not translated").as_ref(),
             "Not translated"
         );
@@ -154,7 +176,9 @@ mod tests {
 
     #[test]
     fn test_generated_table_sorted() {
-        assert!(DE_TRANSLATIONS.windows(2).all(|pair| pair[0].0 < pair[1].0));
+        for table in [DE_TRANSLATIONS, IT_TRANSLATIONS, ES_TRANSLATIONS] {
+            assert!(table.windows(2).all(|pair| pair[0].0 < pair[1].0));
+        }
     }
 
     #[test]
@@ -173,6 +197,22 @@ mod tests {
                 &["17.0"],
             ),
             "Gebühr: 17.0%\ndes Sendebetrags.\nFortfahren?"
+        );
+        assert_eq!(
+            format(
+                Language::Italian,
+                "Fee is {}%\nof the send amount.\nProceed?",
+                &["17.0"],
+            ),
+            "17.0%\ndell'importo inviato.\nProcedere?"
+        );
+        assert_eq!(
+            format(
+                Language::Spanish,
+                "Fee is {}%\nof the send amount.\nProceed?",
+                &["17.0"],
+            ),
+            "17.0%\ndel importe enviado.\n¿Continuar?"
         );
     }
 

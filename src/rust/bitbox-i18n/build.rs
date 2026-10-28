@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 const FNV1A64_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV1A64_PRIME: u64 = 0x100000001b3;
 const SOURCE_LOCALE: &str = "en";
-const TRANSLATION_LOCALES: &[&str] = &["de"];
+const TRANSLATION_LOCALES: &[&str] = &["de", "it", "es"];
 
 fn main() {
     let locales_dir = locales_dir();

@@ -75,14 +75,24 @@ mod tests {
         let mut hal = TestingHal::new();
         let info = _device_info(&mut hal).await;
         assert_eq!(info.language, "en");
-        assert_eq!(info.supported_languages, ["en", "de"]);
+        assert_eq!(info.supported_languages, ["en", "de", "it", "es"]);
 
         hal.memory
             .set_device_language(hal_memory::Language::German)
             .unwrap();
         let info = _device_info(&mut hal).await;
         assert_eq!(info.language, "de");
-        assert_eq!(info.supported_languages, ["en", "de"]);
+        assert_eq!(info.supported_languages, ["en", "de", "it", "es"]);
+
+        hal.memory
+            .set_device_language(hal_memory::Language::Italian)
+            .unwrap();
+        assert_eq!(_device_info(&mut hal).await.language, "it");
+
+        hal.memory
+            .set_device_language(hal_memory::Language::Spanish)
+            .unwrap();
+        assert_eq!(_device_info(&mut hal).await.language, "es");
 
         hal.memory
             .set_device_language(hal_memory::Language::English)

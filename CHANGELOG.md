@@ -230,6 +230,7 @@ recorded separately.
 ## Bootloader
 
 ### Unreleased
+- Speed up firmware upgrades over USB.
 - Hold the screen reset pin low until bootloader is ready to initalize it.
 
 ### v1.2.2

@@ -29,8 +29,8 @@
 #include <utils_assert.h>
 
 #include "platform_config.h"
+#include <sha256.h>
 
-#define SHA256_DIGEST_LENGTH 32
 // 64 is our typical packet size and it gets a little bit longer over UART due to framing. Set the
 // buffer size so we can handle at least one whole frame. Must be a power of 2.
 #define USART_0_BUFFER_SIZE 512

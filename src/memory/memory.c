@@ -141,7 +141,7 @@ static_assert(sizeof(((chunk_2_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too 
 #endif
 
 // CHUNK_7: A chunk that survives device resets (is not erased during `memory_reset_hww()`).
-#define CHUNK_7_PERMANENT (7)
+#define CHUNK_7_PERMANENT MEMORY_BOOTDATA_MIGRATION_CONSUMED_CHUNK
 typedef union {
     struct __attribute__((__packed__)) {
         // Hash of bootloader used in the attestation sighash.
@@ -149,11 +149,18 @@ typedef union {
         secbool_u8 attestation_bootloader_hash_set;
         uint8_t reserved[3];
         uint8_t attestation_bootloader_hash[32];
+        // Written by stage1 before sealing bootdata. Never reset this field, including during
+        // factory attestation updates. See MEMORY_BOOTDATA_MIGRATION_CONSUMED_* in memory.h.
+        uint8_t bootdata_migration_consumed[MEMORY_BOOTDATA_MIGRATION_CONSUMED_LEN];
     } fields;
     uint8_t bytes[CHUNK_SIZE];
 } chunk_7_t;
 
 static_assert(sizeof(((chunk_7_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
+static_assert(
+    offsetof(chunk_7_t, fields.bootdata_migration_consumed) ==
+        MEMORY_BOOTDATA_MIGRATION_CONSUMED_OFFSET,
+    "bootdata migration consumed marker offset must remain fixed");
 
 #pragma GCC diagnostic pop
 

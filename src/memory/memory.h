@@ -18,6 +18,14 @@
 // Maximum length of the stage1 bootloader marketing version, excluding a null terminator.
 #define MEMORY_BOOTLOADER_VERSION_MAX_LEN 37
 
+// Fixed layout for stage1's consumed migration marker; preserve the chunk across writes and resets.
+// Only the exact magic prevents migration. If the chunk is erased, keep bootdata valid and
+// untouched until stage1 restores and verifies the marker.
+#define MEMORY_BOOTDATA_MIGRATION_CONSUMED_CHUNK 7U
+#define MEMORY_BOOTDATA_MIGRATION_CONSUMED_OFFSET 36U
+#define MEMORY_BOOTDATA_MIGRATION_CONSUMED_LEN 4U
+#define MEMORY_BOOTDATA_MIGRATION_CONSUMED_MAGIC {0x2F, 0x19, 0x4F, 0x78}
+
 typedef enum {
     // Legacy/initial value, corresponds to the original Optiga factorysetup config.
     MEMORY_OPTIGA_CONFIG_V0,

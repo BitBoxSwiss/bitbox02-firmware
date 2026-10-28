@@ -48,6 +48,7 @@ typedef uint8_t secbool_u8;
 #define secfalse_u8 0x00u
 
 void util_zero(volatile void* dst, size_t len);
+void util_write_le32(uint8_t out[4], uint32_t value);
 void util_strlcpy(char* dst, const char* src, size_t dst_len);
 
 /**

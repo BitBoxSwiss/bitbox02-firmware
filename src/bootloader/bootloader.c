@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "bootloader.h"
+#include "bootdata.h"
 #include "bootloader_format.h"
 #include "bootloader_version.h"
 #include "mpu_regions.h"
@@ -10,6 +11,7 @@
 #include <bootloader/bootloader_product.h>
 #include <driver_init.h>
 #include <flags.h>
+#include <hardfault.h>
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
@@ -123,6 +125,10 @@ static uint8_t _firmware_next_chunk = 0;
 // This controls bootloader text messages on the screen.
 // The value is computed at bootloader enter.
 static bool _is_app_flash_empty = false;
+
+#ifdef BOOTLOADER_DEVELOPMENT
+static bool _bootdata_warning_pending = false;
+#endif
 
 #if PLATFORM_BITBOX02PLUS == 1
 extern struct RustByteQueue* uart_write_queue;
@@ -243,6 +249,17 @@ static void _render_message(const char* message, int duration)
     UG_SendBuffer();
     delay_ms(duration);
 }
+
+#ifdef BOOTLOADER_DEVELOPMENT
+/** USB handlers pass zero to avoid blocking their response. */
+static void _show_bootdata_warning(int duration)
+{
+    if (_bootdata_warning_pending) {
+        _render_message("Bootdata invalid\nDEV DEVICE", duration);
+        _bootdata_warning_pending = false;
+    }
+}
+#endif
 
 void bootloader_render_default_screen(void)
 {
@@ -564,9 +581,8 @@ static void _firmware_hash(const boot_data_t* data, uint8_t* hash_out)
     sha_sync_sha256_finish(&HASH_ALGORITHM_0, hash_out);
 }
 
-static void _maybe_show_hash(void)
+static void _maybe_show_hash(const boot_data_t* data)
 {
-    const boot_data_t* data = (const boot_data_t*)FLASH_BOOTDATA_START;
     if (!data->fields.show_firmware_hash) {
         return;
     }
@@ -582,7 +598,7 @@ static void _maybe_show_hash(void)
 static secbool_u32 _firmware_verified_jump(const boot_data_t* data, secbool_u32 jump)
 {
     if (jump) {
-        _maybe_show_hash();
+        _maybe_show_hash(data);
     }
 
     for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
@@ -646,6 +662,36 @@ static uint8_t _write_chunk(uint32_t address, const uint8_t* data)
     return OP_STATUS_OK;
 }
 
+USE_RESULT static bool _handle_invalid_bootdata(boot_data_t* bootdata_out)
+{
+#ifdef BOOTLOADER_DEVELOPMENT
+    _bootdata_warning_pending = true;
+    return bootdata_dev_recover(bootdata_out);
+#else
+    (void)bootdata_out;
+    Abort("Invalid bootloader data");
+#endif
+}
+
+USE_RESULT static bool _read_valid_bootdata(boot_data_t* bootdata_out)
+{
+    return bootdata_read(bootdata_out) || _handle_invalid_bootdata(bootdata_out);
+}
+
+USE_RESULT static uint8_t _write_bootdata(boot_data_t* bootdata)
+{
+    if (!bootdata_write(bootdata)) {
+#ifdef BOOTLOADER_DEVELOPMENT
+        // A failed request stays failed; the next read/boot may explicitly recover its damage.
+        _bootdata_warning_pending = true;
+        return OP_STATUS_ERR_WRITE;
+#else
+        Abort("Failed to write bootloader data");
+#endif
+    }
+    return OP_STATUS_OK;
+}
+
 /*
  * input: firmware version | i signatures of the double hash of
  * [0x01 | product id | version | firmware app]
@@ -705,7 +751,9 @@ static uint8_t _set_signing_pubkey_data(boot_data_t* data, const uint8_t* input)
 static size_t _api_write_sig_data(const uint8_t* input, uint8_t* output)
 {
     boot_data_t data;
-    memcpy(data.bytes, (uint8_t*)(FLASH_BOOTDATA_START), FLASH_BOOTDATA_LEN);
+    if (!_read_valid_bootdata(&data)) {
+        return _report_status(OP_STATUS_ERR_CHECK, output);
+    }
     uint8_t status = _set_signing_pubkey_data(&data, input);
     if (status != OP_STATUS_OK) {
         return _report_status(status, output);
@@ -717,7 +765,7 @@ static size_t _api_write_sig_data(const uint8_t* input, uint8_t* output)
     if (status != OP_STATUS_OK) {
         return _report_status(status, output);
     }
-    return _report_status(_write_chunk(FLASH_BOOTDATA_START, data.bytes), output);
+    return _report_status(_write_bootdata(&data), output);
 }
 
 /*
@@ -725,16 +773,19 @@ static size_t _api_write_sig_data(const uint8_t* input, uint8_t* output)
  */
 static size_t _api_get_hashes(const uint8_t* input, uint8_t* output)
 {
-    const boot_data_t* data = (const boot_data_t*)FLASH_BOOTDATA_START;
+    boot_data_t data;
+    if (!_read_valid_bootdata(&data)) {
+        return _report_status(OP_STATUS_ERR_CHECK, output);
+    }
     uint8_t hash[SHA256_DIGEST_LENGTH];
-    _firmware_hash(data, hash);
+    _firmware_hash(&data, hash);
     memcpy(output + BOOT_OP_LEN, hash, SHA256_DIGEST_LENGTH);
 
     if (input[0]) {
         _render_hash("Firmware hash", hash);
     }
 
-    _hash_signing_keys(data, hash);
+    _hash_signing_keys(&data, hash);
     memcpy(output + BOOT_OP_LEN + SHA256_DIGEST_LENGTH, hash, SHA256_DIGEST_LENGTH);
 
     if (input[1]) {
@@ -752,13 +803,15 @@ static size_t _api_get_hashes(const uint8_t* input, uint8_t* output)
 static size_t _api_set_show_firmware_hash(const uint8_t* input, uint8_t* output)
 {
     boot_data_t data;
-    memcpy(data.bytes, (uint8_t*)(FLASH_BOOTDATA_START), FLASH_BOOTDATA_LEN);
+    if (!_read_valid_bootdata(&data)) {
+        return _report_status(OP_STATUS_ERR_CHECK, output);
+    }
     uint8_t result = OP_STATUS_OK;
     uint8_t value = input[0];
     if (value == 0 || value == 1) {
         if (data.fields.show_firmware_hash != value) {
             data.fields.show_firmware_hash = value;
-            result = _write_chunk(FLASH_BOOTDATA_START, data.bytes);
+            result = _write_bootdata(&data);
         }
     }
     output[BOOT_OP_LEN] = data.fields.show_firmware_hash;
@@ -770,11 +823,14 @@ static size_t _api_set_show_firmware_hash(const uint8_t* input, uint8_t* output)
  */
 static size_t _api_versions(uint8_t* output)
 {
-    const boot_data_t* data = (const boot_data_t*)FLASH_BOOTDATA_START;
-    memcpy(output + BOOT_OP_LEN, (const uint8_t*)&data->fields.firmware_version, sizeof(version_t));
+    boot_data_t data;
+    if (!_read_valid_bootdata(&data)) {
+        return _report_status(OP_STATUS_ERR_CHECK, output);
+    }
+    memcpy(output + BOOT_OP_LEN, (const uint8_t*)&data.fields.firmware_version, sizeof(version_t));
     memcpy(
         output + BOOT_OP_LEN + sizeof(version_t),
-        (const uint8_t*)&data->fields.signing_pubkeys_version,
+        (const uint8_t*)&data.fields.signing_pubkeys_version,
         sizeof(version_t));
     _report_status(OP_STATUS_OK, output);
     return BOOT_OP_LEN + sizeof(version_t) * 2;
@@ -877,6 +933,9 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         break;
     }
 
+#ifdef BOOTLOADER_DEVELOPMENT
+    _show_bootdata_warning(0);
+#endif
     return len;
 }
 
@@ -893,7 +952,7 @@ static void _api_setup(void)
     usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
 }
 
-static void _check_init(boot_data_t* data)
+static void _configure_security(void)
 {
 #ifdef BOOTLOADER_LOCKED
     // Enable boot protection if not already enabled. The
@@ -943,14 +1002,6 @@ static void _check_init(boot_data_t* data)
         }
     }
 #endif
-
-    // Check bootdata initialized
-    const uint8_t expected_initialized[2] = {sectrue_u8, sectrue_u8};
-    if (!MEMEQ(data->fields.is_initialized, expected_initialized, 2)) {
-        memset(data->bytes, 0, sizeof(data->bytes));
-        memcpy(data->fields.is_initialized, expected_initialized, 2);
-        _write_chunk(FLASH_BOOTDATA_START, data->bytes);
-    }
 }
 
 #ifdef BOOTLOADER_DEVELOPMENT
@@ -1008,10 +1059,12 @@ void bootloader_jump(void)
     boot_data_t bootdata;
     chunk_shared_t shared_data;
 
-    memcpy(bootdata.bytes, (uint8_t*)(FLASH_BOOTDATA_START), FLASH_BOOTDATA_LEN);
+    _configure_security();
+    bool bootdata_valid = bootdata_init(&bootdata);
+    if (!bootdata_valid) {
+        bootdata_valid = _handle_invalid_bootdata(&bootdata);
+    }
     memory_read_shared_bootdata(&shared_data);
-
-    _check_init(&bootdata);
 
     const bool boot_args_valid = boot_args_is_valid();
     bool upside_down = shared_data.fields.upside_down != 0;
@@ -1029,7 +1082,12 @@ void bootloader_jump(void)
 
     UG_FontSelect(&font_regular_9);
 
-    if (!bootloader_wait && shared_data.fields.auto_enter != sectrue_u8) {
+#ifdef BOOTLOADER_DEVELOPMENT
+    _show_bootdata_warning(2000);
+#endif
+
+    // Failed development recovery leaves the update interface available, without using bad data.
+    if (bootdata_valid && !bootloader_wait && shared_data.fields.auto_enter != sectrue_u8) {
 #ifdef BOOTLOADER_DEVELOPMENT
         if (!_development_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
             _binary_exec();

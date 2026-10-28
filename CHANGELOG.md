@@ -236,6 +236,7 @@ recorded separately.
 - Verify firmware with a versioned signature prehash.
 - Speed up the empty firmware check when entering bootloader mode.
 - Speed up firmware upgrades over USB.
+- Add a checksum for bootdata
 - Hold the screen reset pin low until bootloader is ready to initalize it.
 
 ### v1.2.2

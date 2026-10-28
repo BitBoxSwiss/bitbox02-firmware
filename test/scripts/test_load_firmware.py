@@ -84,7 +84,7 @@ class BootloaderPackageTests(unittest.TestCase):
             with self.subTest(size=len(payload)), self.assertRaises(ValueError):
                 bootloader_module.parse_signed_firmware(MAGIC + SIGDATA + payload)
 
-    def test_is_devdevice(self) -> None:
+    def test_is_development(self) -> None:
         for serial_number in (
             "bb02.bl:v1.0.0-dev",
             "v1.2.2+dev",
@@ -94,9 +94,9 @@ class BootloaderPackageTests(unittest.TestCase):
                 bootloader = bootloader_module.Bootloader(
                     DummyTransport(), device_info(serial_number)
                 )
-                self.assertTrue(bootloader.is_devdevice())
+                self.assertTrue(bootloader.is_development())
 
-    def test_is_devdevice_rejects_other_version_identifiers(self) -> None:
+    def test_is_development_rejects_other_version_identifiers(self) -> None:
         for serial_number in (
             "v1.2.2",
             "v1.2.2+git.123",
@@ -107,9 +107,9 @@ class BootloaderPackageTests(unittest.TestCase):
                 bootloader = bootloader_module.Bootloader(
                     DummyTransport(), device_info(serial_number)
                 )
-                self.assertFalse(bootloader.is_devdevice())
+                self.assertFalse(bootloader.is_development())
 
-    def test_is_devdevice_preserves_normalized_version(self) -> None:
+    def test_is_development_preserves_normalized_version(self) -> None:
         bootloader = bootloader_module.Bootloader(
             DummyTransport(), device_info("bb02.bl:v1.0.0-dev")
         )
@@ -196,7 +196,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.progress = mock.Mock()
 
     def test_unsigned_development_firmware(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         firmware = LOAD_FIRMWARE.FirmwareInput(PAYLOAD, None, None)
         self.assertTrue(
             LOAD_FIRMWARE._flash_firmware(
@@ -207,7 +207,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_not_called()
 
     def test_unsigned_production_firmware_is_allowed_with_warning(self) -> None:
-        self.bootloader.is_devdevice.return_value = False
+        self.bootloader.is_development.return_value = False
         firmware = LOAD_FIRMWARE.FirmwareInput(PAYLOAD, None, None)
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
@@ -219,7 +219,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_unsigned_firmware.assert_called_once_with(PAYLOAD, self.progress)
 
     def test_signed_production_firmware(self) -> None:
-        self.bootloader.is_devdevice.return_value = False
+        self.bootloader.is_development.return_value = False
         firmware = signed_input()
         self.assertTrue(
             LOAD_FIRMWARE._flash_firmware(
@@ -230,7 +230,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_called_once_with(SIGDATA)
 
     def test_mismatched_signed_production_firmware_is_attempted(self) -> None:
-        self.bootloader.is_devdevice.return_value = False
+        self.bootloader.is_development.return_value = False
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             result = LOAD_FIRMWARE._flash_firmware(
@@ -242,7 +242,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_called_once_with(SIGDATA)
 
     def test_signed_development_firmware_attempts_sigdata(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         firmware = signed_input()
         events = []
         self.bootloader.flash_unsigned_firmware.side_effect = lambda *_args: events.append(
@@ -257,7 +257,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.assertEqual(events, ["firmware", "sigdata"])
 
     def test_signed_development_sigdata_error_is_warning(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         self.bootloader.flash_sigdata.side_effect = bootloader_module.BootloaderError(ord("V"))
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
@@ -269,7 +269,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.assertIn("downgrade", stderr.getvalue())
 
     def test_signed_development_payload_error_is_fatal(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         self.bootloader.flash_unsigned_firmware.side_effect = bootloader_module.BootloaderError(
             ord("W")
         )
@@ -282,7 +282,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_not_called()
 
     def test_signed_development_transport_error_is_warning(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         self.bootloader.flash_sigdata.side_effect = Exception("transport failed")
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
@@ -293,7 +293,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.assertIn("transport failed", stderr.getvalue())
 
     def test_flash_can_be_declined(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         with mock.patch.object(LOAD_FIRMWARE, "_confirm_flash", return_value=False) as confirm:
             with contextlib.redirect_stderr(io.StringIO()):
                 result = LOAD_FIRMWARE._flash_firmware(
@@ -309,7 +309,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_not_called()
 
     def test_flash_can_be_confirmed(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         with mock.patch.object(LOAD_FIRMWARE, "_confirm_flash", return_value=True) as confirm:
             with contextlib.redirect_stderr(io.StringIO()):
                 result = LOAD_FIRMWARE._flash_firmware(
@@ -325,7 +325,7 @@ class FlashingMatrixTests(unittest.TestCase):
         self.bootloader.flash_sigdata.assert_called_once_with(SIGDATA)
 
     def test_yes_skips_confirmation(self) -> None:
-        self.bootloader.is_devdevice.return_value = True
+        self.bootloader.is_development.return_value = True
         firmware = LOAD_FIRMWARE.FirmwareInput(PAYLOAD, None, None)
         with mock.patch.object(LOAD_FIRMWARE, "_confirm_flash") as confirm:
             LOAD_FIRMWARE._flash_firmware(
@@ -362,8 +362,8 @@ class LoaderUxTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 0)
         help_text = stdout.getvalue()
         self.assertIn("signed firmware   + production device", help_text)
-        self.assertIn("signed firmware   + development device", help_text)
-        self.assertIn("unsigned firmware + development device", help_text)
+        self.assertIn("signed firmware   + development", help_text)
+        self.assertIn("unsigned firmware + development", help_text)
         self.assertIn("unsigned firmware + production device", help_text)
         self.assertIn("--yes", help_text)
         self.assertNotIn("--unsigned", help_text)
@@ -392,7 +392,7 @@ class LoaderUxTests(unittest.TestCase):
     def test_sigdata_warning_still_reboots(self) -> None:
         bootloader = mock.Mock()
         bootloader.erased.return_value = True
-        bootloader.is_devdevice.return_value = True
+        bootloader.is_development.return_value = True
         bootloader.expected_magic = MAGIC
         bootloader.flash_sigdata.side_effect = bootloader_module.BootloaderError(ord("V"))
         with mock.patch.object(
@@ -417,7 +417,7 @@ class LoaderUxTests(unittest.TestCase):
     def test_production_bootloader_error_is_fatal(self) -> None:
         bootloader = mock.Mock()
         bootloader.erased.return_value = True
-        bootloader.is_devdevice.return_value = False
+        bootloader.is_development.return_value = False
         bootloader.expected_magic = MAGIC
         bootloader.flash_sigdata.side_effect = bootloader_module.BootloaderError(ord("V"))
         stderr = io.StringIO()

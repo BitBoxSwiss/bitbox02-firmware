@@ -500,14 +500,19 @@ if(CMAKE_CROSSCOMPILING)
   )
   set(BB02_BLUPD_FIRMWARE_TARGETS ${BB02_BLUPD_FIRMWARE_TARGETS} PARENT_SCOPE)
 
-  function(add_bb02_stage1_target target rustlib product product_id bootloader_type is_plus)
+  function(add_bb02_stage1_target target rustlib product product_id development locked is_plus)
     set(header_dir ${CMAKE_CURRENT_BINARY_DIR}/bootloader/${target})
     set(header_manifest ${header_dir}/image_header.json)
     set(header_bin ${header_dir}/image_header.bin)
     set(header_obj ${header_dir}/image_header.o)
     set(header_flags 0)
-    if(bootloader_type STREQUAL "BOOTLOADER_DEVDEVICE")
+    set(bootloader_definitions)
+    if(development)
       set(header_flags 1)
+      list(APPEND bootloader_definitions BOOTLOADER_DEVELOPMENT)
+    endif()
+    if(locked)
+      list(APPEND bootloader_definitions BOOTLOADER_LOCKED)
     endif()
     configure_file(bootloader/image_header.json.in ${header_manifest} @ONLY)
     add_custom_command(
@@ -553,7 +558,7 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
     target_compile_definitions(${target}.elf PRIVATE
       BOOTLOADER
-      ${bootloader_type}
+      ${bootloader_definitions}
       ${product}
       "APP_U2F=0"
       ${LVGL_DEFINITIONS}
@@ -577,80 +582,9 @@ if(CMAKE_CROSSCOMPILING)
     set_property(TARGET ${target}.elf PROPERTY EXCLUDE_FROM_ALL ON)
   endfunction()
 
-  # Product IDs must match bootloader/bootloader_product.h.
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02-btconly-development
-    bb02-bl-btconly-development_rust_c
-    PRODUCT_BITBOX_BTCONLY
-    2
-    BOOTLOADER_DEVDEVICE
-    FALSE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02-btconly-production
-    bb02-bl-btconly-production_rust_c
-    PRODUCT_BITBOX_BTCONLY
-    2
-    BOOTLOADER_PRODUCTION
-    FALSE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02-multi-development
-    bb02-bl-multi-development_rust_c
-    PRODUCT_BITBOX_MULTI
-    1
-    BOOTLOADER_DEVDEVICE
-    FALSE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02-multi-production
-    bb02-bl-multi-production_rust_c
-    PRODUCT_BITBOX_MULTI
-    1
-    BOOTLOADER_PRODUCTION
-    FALSE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02nova-btconly-development
-    bb02p-bl-btconly-development_rust_c
-    PRODUCT_BITBOX_PLUS_BTCONLY
-    4
-    BOOTLOADER_DEVDEVICE
-    TRUE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02nova-btconly-production
-    bb02p-bl-btconly-production_rust_c
-    PRODUCT_BITBOX_PLUS_BTCONLY
-    4
-    BOOTLOADER_PRODUCTION
-    TRUE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02nova-multi-development
-    bb02p-bl-multi-development_rust_c
-    PRODUCT_BITBOX_PLUS_MULTI
-    3
-    BOOTLOADER_DEVDEVICE
-    TRUE)
-  add_bb02_stage1_target(
-    bootloader-stage1-bitbox02nova-multi-production
-    bb02p-bl-multi-production_rust_c
-    PRODUCT_BITBOX_PLUS_MULTI
-    3
-    BOOTLOADER_PRODUCTION
-    TRUE)
-
-  # Bare stage1 target names are exported for J-Link script generation.
-  set(BB02_STAGE1_TARGETS
-    bootloader-stage1-bitbox02-btconly-production
-    bootloader-stage1-bitbox02-multi-production
-    bootloader-stage1-bitbox02nova-btconly-production
-    bootloader-stage1-bitbox02nova-multi-production
-    bootloader-stage1-bitbox02-btconly-development
-    bootloader-stage1-bitbox02-multi-development
-    bootloader-stage1-bitbox02nova-btconly-development
-    bootloader-stage1-bitbox02nova-multi-development
-  )
-  set(BB02_STAGE1_TARGETS ${BB02_STAGE1_TARGETS} PARENT_SCOPE)
-
   # Builds one stage0 ELF/bin for a product. Production stage0 includes stage1 signature
   # verification; development stage0 skips that path and shows a visible development marker.
-  function(add_bb02_stage0_target stage0_target product target_product_id development)
+  function(add_bb02_stage0_target stage0_target product target_product_id development locked)
     set(stage0_sources
       ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0.c
       ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_descriptor.c
@@ -668,7 +602,7 @@ if(CMAKE_CROSSCOMPILING)
     )
     set(stage0_compile_definitions)
     if(development)
-      list(APPEND stage0_compile_definitions BB02_STAGE0_DEVELOPMENT)
+      list(APPEND stage0_compile_definitions BOOTLOADER_DEVELOPMENT)
     else()
       list(APPEND stage0_sources
         ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/stage1_pubkeys.c
@@ -676,6 +610,10 @@ if(CMAKE_CROSSCOMPILING)
         ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
         ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
       )
+    endif()
+
+    if(locked)
+      list(APPEND stage0_compile_definitions BOOTLOADER_LOCKED)
     endif()
 
     add_executable(${stage0_target}.elf ${stage0_sources})
@@ -710,59 +648,53 @@ if(CMAKE_CROSSCOMPILING)
     )
   endfunction()
 
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02-btconly-production
-    PRODUCT_BITBOX_BTCONLY
-    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
-    FALSE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02-multi-production
-    PRODUCT_BITBOX_MULTI
-    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
-    FALSE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02nova-btconly-production
-    PRODUCT_BITBOX_PLUS_BTCONLY
-    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
-    FALSE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02nova-multi-production
-    PRODUCT_BITBOX_PLUS_MULTI
-    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
-    FALSE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02-btconly-development
-    PRODUCT_BITBOX_BTCONLY
-    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
-    TRUE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02-multi-development
-    PRODUCT_BITBOX_MULTI
-    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
-    TRUE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02nova-btconly-development
-    PRODUCT_BITBOX_PLUS_BTCONLY
-    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
-    TRUE)
-  add_bb02_stage0_target(
-    bootloader-stage0-bitbox02nova-multi-development
-    PRODUCT_BITBOX_PLUS_MULTI
-    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
-    TRUE)
-
-  # Bare stage0 target names are exported for J-Link script generation.
-  set(BB02_STAGE0_TARGETS
-    bootloader-stage0-bitbox02-btconly-production
-    bootloader-stage0-bitbox02-multi-production
-    bootloader-stage0-bitbox02nova-btconly-production
-    bootloader-stage0-bitbox02nova-multi-production
-    bootloader-stage0-bitbox02-btconly-development
-    bootloader-stage0-bitbox02-multi-development
-    bootloader-stage0-bitbox02nova-btconly-development
-    bootloader-stage0-bitbox02nova-multi-development
-  )
+  # Product IDs must match bootloader/bootloader_product.h.
+  # Bare target names are exported for J-Link script generation.
+  set(BB02_STAGE0_TARGETS)
+  set(BB02_STAGE1_TARGETS)
+  foreach(product bitbox02 bitbox02nova)
+    set(is_plus FALSE)
+    set(rust_prefix bb02)
+    set(product_prefix PRODUCT_BITBOX)
+    set(product_id 1)
+    if(product STREQUAL "bitbox02nova")
+      set(is_plus TRUE)
+      set(rust_prefix bb02p)
+      set(product_prefix PRODUCT_BITBOX_PLUS)
+      set(product_id 3)
+    endif()
+    foreach(edition multi btconly)
+      string(TOUPPER ${edition} edition_upper)
+      set(product_definition ${product_prefix}_${edition_upper})
+      if(edition STREQUAL "btconly")
+        math(EXPR product_id "${product_id} + 1")
+      endif()
+      foreach(variant production development development-locked)
+        set(development FALSE)
+        set(locked FALSE)
+        set(rust_variant production)
+        if(variant MATCHES "^development")
+          set(development TRUE)
+          set(rust_variant development)
+        endif()
+        if(variant STREQUAL "production" OR variant STREQUAL "development-locked")
+          set(locked TRUE)
+        endif()
+        set(stage0_target bootloader-stage0-${product}-${edition}-${variant})
+        set(stage1_target bootloader-stage1-${product}-${edition}-${variant})
+        add_bb02_stage0_target(
+          ${stage0_target} ${product_definition} ${product_id} ${development} ${locked})
+        add_bb02_stage1_target(
+          ${stage1_target}
+          ${rust_prefix}-bl-${edition}-${rust_variant}_rust_c
+          ${product_definition} ${product_id} ${development} ${locked} ${is_plus})
+        list(APPEND BB02_STAGE0_TARGETS ${stage0_target})
+        list(APPEND BB02_STAGE1_TARGETS ${stage1_target})
+      endforeach()
+    endforeach()
+  endforeach()
   set(BB02_STAGE0_TARGETS ${BB02_STAGE0_TARGETS} PARENT_SCOPE)
+  set(BB02_STAGE1_TARGETS ${BB02_STAGE1_TARGETS} PARENT_SCOPE)
 
   # Creates the embedded prebuilt stage0 image object and stage1 update payload object used by one
   # bootloader-upgrade firmware target.

@@ -3,7 +3,7 @@
 #include "bootloader/boot_args.h"
 #include "bootloader_upgrade/bootloader_upgrade.h"
 #include <bootloader/bootloader_product.h>
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
     #include "bootloader_upgrade/stage1_pubkeys.h"
 #endif
 #include "driver_init.h"
@@ -13,7 +13,7 @@
 #include "stage0_install.h"
 #include "ui/oled/oled.h"
 #include "util.h"
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
     #include "pukcc/curve_p256.h"
     #include "pukcc/pukcc.h"
     #include "stage1_sigcheck.h"
@@ -117,7 +117,7 @@ static bool _oled_upside_down(void)
     return flash_upside_down;
 }
 
-#ifdef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_DEVELOPMENT
 static void _oled_development_cross_overlay(void)
 {
     for (int16_t x = 0; x < OLED_WIDTH; x++) {
@@ -161,7 +161,7 @@ static void _oled_progress(uint8_t done, uint8_t total)
             oled_set_pixel(x, y, true);
         }
     }
-#ifdef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_DEVELOPMENT
     _oled_development_cross_overlay();
 #endif
     oled_send_buffer();
@@ -239,7 +239,7 @@ static void _nvm_check_errors(void)
     }
 }
 
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_LOCKED
 static void _lock_debug_access(void)
 {
     // Hard lock the Device Service Unit, i.e., set the PAC write-protection bit,
@@ -427,7 +427,7 @@ static uint32_t _stage1_vector_addr(const bb02_stage1_header_t* header)
 
 static secbool_u32 _stage1_flags_ok(const bb02_stage1_header_t* header)
 {
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
     if ((header->flags & BB02_STAGE1_FLAG_DEVELOPMENT) != 0) {
         return secfalse_u32;
     }
@@ -460,7 +460,7 @@ static void _stage1_hash(const bb02_stage1_header_t* header, uint8_t hash_out[32
     sha_sync_sha256_finish(&HASH_ALGORITHM_0, hash_out);
 }
 
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
 static secbool_u32 _header_signatures_ok(const bb02_stage1_header_t* header)
 {
     return stage1_sigcheck_image_ok(header, bb02_stage1_pubkeys);
@@ -478,7 +478,7 @@ static secbool_u32 __attribute__((noinline, noclone)) _stage1_image_ok(
     }
 
     _stage1_hash(header, hash_out);
-#ifdef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_DEVELOPMENT
     return sectrue_u32;
 #else
     return _header_signatures_ok(header);
@@ -611,11 +611,12 @@ static void _boot_stage1(const bb02_stage1_header_t* stage1, const volatile secb
 
 static void __attribute__((noreturn, noinline)) _stage0_main(void)
 {
-#ifdef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_LOCKED
+    _lock_debug_access();
+#endif
+#ifdef BOOTLOADER_DEVELOPMENT
     _oled_init();
     _oled_development_cross();
-#else
-    _lock_debug_access();
 #endif
 
     uint8_t installed_hash[32];
@@ -643,7 +644,7 @@ static void __attribute__((noreturn, noinline)) _stage0_main(void)
                 _boot_stage1(installed, &boot_auth);
             }
         }
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
         _oled_init();
 #endif
         _oled_progress(0, 6);

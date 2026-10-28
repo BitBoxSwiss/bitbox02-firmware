@@ -36,25 +36,26 @@ def run(command: list[str], cwd: Path = ROOT) -> None:
 def cmake(config: Config, profile: str, targets: list[str]) -> None:
     directory = build_dir(config, profile)
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
-    if not (directory / "Makefile").exists():
-        run(
-            [
-                "cmake",
-                "-S",
-                str(ROOT),
-                "-B",
-                str(directory),
-                "-DCMAKE_TOOLCHAIN_FILE=arm.cmake",
-                f"-DCMAKE_BUILD_TYPE={profile.upper()}",
-            ]
-        )
+    first_build = not (directory / "Makefile").exists()
+    run(
+        [
+            "cmake",
+            "-S",
+            str(ROOT),
+            "-B",
+            str(directory),
+            "-DCMAKE_TOOLCHAIN_FILE=arm.cmake",
+            f"-DCMAKE_BUILD_TYPE={profile.upper()}",
+        ]
+    )
+    if first_build:
         run(["make", "-C", str(ROOT / "py/bitbox02")])
     run(["make", "-C", str(directory), *targets])
 
 
-def build_image(config: Config, image: str, variant: str = "development") -> None:
+def build_image(config: Config, image: str) -> None:
     profile = config.profile
-    info = image_info(config, image, variant=variant)
+    info = image_info(config, image)
     if config.product != "bitbox03":
         cmake(config, profile, [f"{info.name}.elf"])
         return
@@ -84,22 +85,6 @@ def dispatch(config: Config, target: str) -> None:
     elif target.startswith("firmware-blupgrade-"):
         product = target.split("-")[2]
         cmake(defaults(product), "relwithdebinfo", [target + ".elf"])
-    elif target in (
-        "bootloader-stage0-production",
-        "bootloader-stage0-development",
-        "bootloader-stage1-production",
-        "bootloader-stage1-development",
-    ):
-        image, variant = target.rsplit("-", 1)
-        # These aggregates retain their original all-product/all-edition coverage.
-        for product in ("bitbox02", "bitbox02nova"):
-            for edition in ("multi", "btc-only"):
-                base = defaults(product)
-                build_image(
-                    Config(product, base.board, edition, base.probe_software),
-                    image,
-                    variant=variant,
-                )
     elif target in ("bootloader-upgrade-assets", "bootloader-upgrade-assets-development"):
         suffix = "-development" if target.endswith("-development") else ""
         for product in ("bitbox02", "bitbox02nova"):

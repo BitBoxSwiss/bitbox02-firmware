@@ -8,6 +8,7 @@
 #include <hardfault.h>
 #include <platform_config.h>
 #include <platform_init.h>
+#include <platform_product.h>
 #include <rust/rust.h>
 #include <screen.h>
 #include <string.h>

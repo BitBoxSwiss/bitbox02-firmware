@@ -228,7 +228,7 @@ const BITBOX02_SOURCES: &[&str] = &[
     "src/memory/memory_shared.c",
     "src/memory/memory_spi.c",
     "src/memory/memory.c",
-    "src/platform/platform_init.c",
+    "src/platform/platform_product.c",
     "src/random.c",
     "src/reset.c",
     "src/screen.c",

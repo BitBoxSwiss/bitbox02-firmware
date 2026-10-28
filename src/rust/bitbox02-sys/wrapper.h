@@ -15,7 +15,7 @@
 #include <memory/smarteeprom.h>
 #include <memory/spi_mem.h>
 #include <platform/driver_init.h>
-#include <platform/platform_init.h>
+#include <platform/platform_product.h>
 #include <random.h>
 #include <reset.h>
 #include <screen.h>

@@ -28,7 +28,7 @@
 #include <usb/usb_processing.h>
 #include <util.h>
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVELOPMENT) || PLATFORM_BITBOX02PLUS == 1
     #include <memory/memory_spi.h>
     #include <qtouch/qtouch.h>
 #endif
@@ -890,7 +890,7 @@ static void _api_setup(void)
 
 static void _check_init(boot_data_t* data)
 {
-#ifdef BOOTLOADER_PRODUCTION
+#ifdef BOOTLOADER_LOCKED
     // Enable boot protection if not already enabled. The
     // BOOTPROT fuse is persistent and not erased on chip erase.
     while (NVMCTRL->STATUS.bit.READY == 0) {
@@ -946,8 +946,8 @@ static void _check_init(boot_data_t* data)
     }
 }
 
-#ifdef BOOTLOADER_DEVDEVICE
-static bool _devdevice_enter(secbool_u32 firmware_verified)
+#ifdef BOOTLOADER_DEVELOPMENT
+static bool _development_enter(secbool_u32 firmware_verified)
 {
     UG_ClearBuffer();
     UG_PutString(0, 0, "    <Enter bootloader>");
@@ -1023,8 +1023,8 @@ void bootloader_jump(void)
     UG_FontSelect(&font_regular_9);
 
     if (!bootloader_wait && shared_data.fields.auto_enter != sectrue_u8) {
-#ifdef BOOTLOADER_DEVDEVICE
-        if (!_devdevice_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
+#ifdef BOOTLOADER_DEVELOPMENT
+        if (!_development_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
             _binary_exec();
             /* no return */
         }

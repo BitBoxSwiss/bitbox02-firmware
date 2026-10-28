@@ -384,8 +384,8 @@ void bootloader_init(void)
     _oled_set_pins();
     _ptc_clock_init();
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
-    // Only needed for qtouch, which is only needed in the devdevice bootloader.
+#if defined(BOOTLOADER_DEVELOPMENT) || PLATFORM_BITBOX02PLUS == 1
+    // Only needed for qtouch, which is only needed in the development bootloader.
     _timer_peripheral_init();
 #endif
     _delay_driver_init();
@@ -420,7 +420,7 @@ void stage0_init(void)
     _flash_memory_init();
     _sha_init();
     _rand_init();
-#ifndef BB02_STAGE0_DEVELOPMENT
+#ifndef BOOTLOADER_DEVELOPMENT
     _ecdsa_init();
 #endif
 }

@@ -63,6 +63,9 @@ jobs:
       - name: Run Python unit tests
         run: PYTHONPATH=py/bitbox02 python3 -m unittest discover -s py/bitbox02/tests
 
+      - name: Run build configuration tests
+        run: python3 -m unittest discover -s test/scripts -p test_build_config.py
+
   lint-src:
     runs-on: ubuntu-22.04
     container:
@@ -198,8 +201,18 @@ jobs:
           - {target: firmware, product: bitbox02, edition: btc-only}
           - {target: firmware, product: bitbox02nova, edition: multi}
           - {target: firmware, product: bitbox02nova, edition: btc-only}
-          - {target: bootloader-stage0-production, product: bitbox02, edition: multi}
-          - {target: bootloader-stage1-production, product: bitbox02, edition: multi}
+          - {target: bootloader-stage0, product: bitbox02, edition: multi, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage0, product: bitbox02, edition: btc-only, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage0, product: bitbox02nova, edition: multi, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage0, product: bitbox02nova, edition: btc-only, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage1, product: bitbox02, edition: multi, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage1, product: bitbox02, edition: btc-only, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage1, product: bitbox02nova, edition: multi, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage1, product: bitbox02nova, edition: btc-only, locked: 'yes', development: 'no'}
+          - {target: bootloader-stage0, product: bitbox02, edition: multi, locked: 'yes', development: 'yes'}
+          - {target: bootloader-stage0, product: bitbox02nova, edition: multi, locked: 'yes', development: 'yes'}
+          - {target: bootloader-stage1, product: bitbox02, edition: multi, locked: 'yes', development: 'yes'}
+          - {target: bootloader-stage1, product: bitbox02nova, edition: multi, locked: 'yes', development: 'yes'}
           - {target: firmware-blupgrade-bitbox02-btconly, product: bitbox02, edition: multi}
           - {target: firmware-blupgrade-bitbox02-multi, product: bitbox02, edition: multi}
           - {target: firmware-blupgrade-bitbox02nova-btconly, product: bitbox02nova, edition: multi}
@@ -235,7 +248,7 @@ jobs:
         run: ./scripts/bootstrap-cargo-config
 
       - name: Configure product
-        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }}"
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }}"
 
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
@@ -260,7 +273,7 @@ jobs:
         if: github.event_name == 'push' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-${{github.sha}}.bin
+          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-${{github.sha}}.bin
           path: |
             build*/bin/*.bin
             build*/bin/*.elf

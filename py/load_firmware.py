@@ -40,11 +40,11 @@ BOOTLOADER_REBOOT_TIMEOUT_SECONDS = 30.0
 
 FLASHING_HELP = """\
 Flashing behavior:
-  signed firmware   + production device  flash firmware and signatures
-  signed firmware   + development device flash firmware, attempt signatures, and treat a
-                                         signature error as a warning
-  unsigned firmware + production device  flash firmware, but it will not boot
-  unsigned firmware + development device flash firmware without signatures
+  signed firmware   + production device   flash firmware and signatures
+  signed firmware   + development device  flash firmware, attempt signatures, and treat a
+                                          signature error as a warning
+  unsigned firmware + production device   flash firmware, but it will not boot
+  unsigned firmware + development device  flash firmware without signatures
 
 The input type is detected from the signed-firmware header. Recognized but malformed signed
 firmware is rejected. Every flash asks for confirmation; -y/--yes skips the prompt. Edition
@@ -219,14 +219,13 @@ def _find_and_open_usb_bitbox02(use_cache: bool) -> Tuple[devices.DeviceInfo, Tr
     return bootloader_device, u2fhid.U2FHid(hid_device)
 
 
-def _confirm_flash(signed: bool, devdevice: bool, product_string: str) -> bool:
+def _confirm_flash(signed: bool, development: bool, product_string: str) -> bool:
     """Ask the user to confirm the detected firmware and device combination."""
     firmware_kind = "signed" if signed else "unsigned"
-    device_kind = "development" if devdevice else "production"
+    device_kind = "development device" if development else "production device"
     try:
         response = input(
-            f"Flash {firmware_kind} firmware to this {device_kind} device "
-            f"({product_string})? [Y/n] "
+            f"Flash {firmware_kind} firmware to this {device_kind} " f"({product_string})? [Y/n] "
         )
     except EOFError:
         return False
@@ -241,10 +240,10 @@ def _flash_firmware(
     progress: Callable[[float], None],
 ) -> bool:
     """Flash a validated firmware input. Returns false if the user declines."""
-    devdevice = bootloader.is_devdevice()
+    development = bootloader.is_development()
     signed = firmware.sigdata is not None
 
-    if not signed and not devdevice:
+    if not signed and not development:
         eprint(
             "WARNING: Unsigned firmware cannot boot on a production device; rebooting is "
             "expected to show a firmware verification error."
@@ -254,13 +253,13 @@ def _flash_firmware(
             "WARNING: The signed firmware edition does not match the connected device; "
             "installing its signature data is expected to fail."
         )
-    if signed and devdevice:
+    if signed and development:
         eprint(
             "WARNING: Development device detected. Signature data will be attempted, but a "
             "rejection will not prevent the firmware from booting."
         )
 
-    if not yes and not _confirm_flash(signed, devdevice, bootloader_device["product_string"]):
+    if not yes and not _confirm_flash(signed, development, bootloader_device["product_string"]):
         return False
 
     bootloader.flash_unsigned_firmware(firmware.payload, progress)
@@ -271,7 +270,7 @@ def _flash_firmware(
     try:
         bootloader.flash_sigdata(firmware.sigdata)
     except Exception as error:  # pylint: disable=broad-exception-caught
-        if not devdevice:
+        if not development:
             raise
         if isinstance(error, BootloaderError):
             message = _bootloader_error_message(error)

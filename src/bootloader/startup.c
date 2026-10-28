@@ -15,7 +15,7 @@
 #include <usb/class/hid/hww/hid_hww.h>
 #include <usb/usb_processing.h>
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVELOPMENT) || PLATFORM_BITBOX02PLUS == 1
     #include <qtouch.h>
 #endif
 
@@ -70,7 +70,7 @@ int main(void)
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVELOPMENT) || PLATFORM_BITBOX02PLUS == 1
     qtouch_init();
 #endif
     bootloader_jump();

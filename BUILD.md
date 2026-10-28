@@ -165,9 +165,9 @@ make bootloader-stage1
 ```
 
 `make config` remembers selections in the git-ignored `config.mk`. It prompts for product, board,
-edition (`multi` or `btc-only`), debug builds (`no` or `yes`), probe software, and SWD speed in kHz,
-automatically selecting fields with one choice. `DEBUG` defaults to `no`; `SWD_SPEED` defaults to
-`4000` for all products and both probe backends.
+edition (`multi` or `btc-only`), debug builds, locked hardware, development mode, probe software, and
+SWD speed in kHz, automatically selecting fields with one choice. `DEBUG` defaults to `no`; `SWD_SPEED` defaults to
+`4000` for all products and both probe backends. `LOCKED` defaults to `no` and `DEVELOPMENT` to `yes`.
 Probe hardware is fixed by the board:
 
 | Product | Board | Probe | Software (default first) |
@@ -191,6 +191,7 @@ make config CONFIG_ARGS="--product bitbox03 --board dev-kit"
 make config CONFIG_ARGS="--product bitbox03 --board testboard"
 make config CONFIG_ARGS="--product bitbox03 --debug yes"
 make config CONFIG_ARGS="--product bitbox03 --swd-speed 1000"
+make config CONFIG_ARGS="--product bitbox02 --locked yes --development yes"
 make config CONFIG_ARGS="--defaults"
 ```
 
@@ -200,6 +201,13 @@ command, for example `make debug-server SWD_SPEED=1000`.
 The debug setting is also saved in `config.mk` and can be overridden per command with `DEBUG=yes`
 or `DEBUG=no`. Build, flash, and run commands use the same configured profile.
 
+For BitBox02/Nova bootloaders, `LOCKED=yes` enables hardware debug protection and stage1 boot
+protection. `DEVELOPMENT=yes` allows unsigned images and enables the development markers; `no`
+requires signatures and `LOCKED=yes`. These settings are independent of `DEBUG`. Both are saved
+in `config.mk` and can be overridden per command, for example
+`make bootloader-stage1 LOCKED=yes DEVELOPMENT=yes`. Use the same flags when flashing or running.
+BitBox03 does not yet implement these bootloader modes and only accepts their defaults.
+
 Invalid input, EOF, or Ctrl-C preserves the previous file. Interactive product changes reset
 incompatible saved choices. Run configuration separately from builds: `make config firmware` is
 rejected because Make has already parsed the old settings. Configuration and compilation require
@@ -208,7 +216,8 @@ neither installed probe software nor attached hardware.
 With `DEBUG=no`, BitBox02/Nova primary targets use `RelWithDebInfo` and BitBox03 uses Cargo release
 builds. `DEBUG=yes` selects debug builds for all products, with their existing RTT features.
 Firmware follows the selected edition; factorysetup is edition-independent; stage0/stage1 select
-development images for the configured product and edition. Build directories are flat:
+images for the configured product, edition, `LOCKED`, and `DEVELOPMENT` settings. Build directories
+are flat:
 
 | Backend | Directory |
 | --- | --- |
@@ -225,14 +234,16 @@ software or SWD speed does not affect compilation. Configuration never cleans. `
 build trees but preserves `config.mk`. Host tests and simulators still use `build-build` and
 `build-build-noasan`.
 
-`bootloader-stage{0,1}-{production,development}` builds all BitBox02/Nova editions, sequentially in
-each product's directory. Production/development upgrade-firmware and upgrade-assets aliases are
-retained. Named product commands always use that product's directory.
+Use `bootloader-stage0` and `bootloader-stage1` with `LOCKED=yes DEVELOPMENT=no` for production
+bootloaders, or `LOCKED=yes DEVELOPMENT=yes` for locked development devices. These targets build
+only the configured product and edition. Development artifact names use `-development`, with
+`-locked` appended for locked development devices. Production artifact names use `-production`
+and always enable locking. Upgrade-firmware and upgrade-assets aliases also use `-development`
+for development devices. Named product commands always use that product's directory.
 
 The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
-`bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above. Backend
-targets and artifact basenames remain unchanged. Additional BitBox03 board/edition implementations
-are deferred.
+`bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above.
+Additional BitBox03 board/edition implementations are deferred.
 
 Pass `-j<N>` to speed up a build, for example `make -j8 firmware`. Top-level aliases run sequentially.
 

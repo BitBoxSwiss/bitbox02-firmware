@@ -4,7 +4,7 @@
 #include "bootloader_upgrade/bootloader_upgrade.h"
 #include <bootloader/bootloader_product.h>
 
-#ifdef BB02_STAGE0_DEVELOPMENT
+#ifdef BOOTLOADER_DEVELOPMENT
     #define BB02_STAGE0_DESCRIPTOR_FLAGS BB02_STAGE0_FLAG_DEVELOPMENT
 #else
     #define BB02_STAGE0_DESCRIPTOR_FLAGS 0u

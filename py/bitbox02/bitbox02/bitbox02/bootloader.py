@@ -8,6 +8,7 @@ import io
 import math
 import hashlib
 import enum
+import warnings
 from typing import TypedDict
 
 import semver
@@ -126,16 +127,25 @@ class Bootloader:
             if metadata is not None
             for identifier in metadata.split(".")
         ]
-        self._is_devdevice = "dev" in version_identifiers
+        self._is_development = "dev" in version_identifiers
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
         self.version = version.replace(prerelease=None)
         assert self.expected_magic
         assert self.product_id
 
+    def is_development(self) -> bool:
+        """Returns whether this is a development bootloader."""
+        return self._is_development
+
     def is_devdevice(self) -> bool:
-        """Returns whether this is a development-device bootloader."""
-        return self._is_devdevice
+        """Deprecated: use is_development()."""
+        warnings.warn(
+            "Bootloader.is_devdevice() is deprecated; use is_development() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.is_development()
 
     def _query(self, msg: bytes) -> bytes:
         cid = self._transport.generate_cid()

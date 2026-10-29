@@ -9,6 +9,7 @@
 #include <touch/gestures.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
+#include <ui/components/icon_button.h>
 #include <ui/components/image.h>
 #include <ui/components/info_centered.h>
 #include <ui/components/keyboard_switch.h>
@@ -188,6 +189,74 @@ static void test_ui_components_confirm_transaction_fee(void** state)
     UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
 }
 
+static UG_S16 _first_pixel_y;
+static UG_S16 _last_pixel_y;
+
+static void _capture_pixel_bounds(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    (void)x;
+    if (color != C_WHITE) {
+        return;
+    }
+    if (y < _first_pixel_y) {
+        _first_pixel_y = y;
+    }
+    if (y > _last_pixel_y) {
+        _last_pixel_y = y;
+    }
+}
+
+static void _render_pixel_bounds(component_t* component)
+{
+    _first_pixel_y = 64;
+    _last_pixel_y = -1;
+    component->f->render(component);
+}
+
+static void test_ui_components_top_icon_alignment(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _capture_pixel_bounds, &font_regular_11, 128, 64);
+    component_t* parent = fake_component_create();
+    component_t* title = label_create("TITLE", NULL, CENTER_TOP, parent);
+    _render_pixel_bounds(title);
+    const UG_S16 title_bottom = _last_pixel_y;
+    assert_int_equal(title_bottom, 9);
+    title->f->cleanup(title);
+    parent->f->cleanup(parent);
+
+    const icon_button_type_t types[] = {ICON_BUTTON_CHECK, ICON_BUTTON_CROSS, ICON_BUTTON_NEXT};
+    for (size_t i = 0; i < sizeof(types) / sizeof(*types); i++) {
+        UG_FontSelect(&font_password_12);
+        component_t* button = icon_button_create(top_slider, types[i], NULL, NULL);
+        _render_pixel_bounds(button);
+        assert_int_equal(_last_pixel_y, title_bottom);
+        assert_int_equal(_first_pixel_y, types[i] == ICON_BUTTON_NEXT ? 1 : 3);
+
+        event_t event = {
+            .id = EVENT_CONTINUOUS_TAP,
+            .data =
+                {
+                    .source = top_slider,
+                    .position = types[i] == ICON_BUTTON_CROSS ? 0 : MAX_SLIDER_POS,
+                },
+        };
+        button->f->on_event(&event, button);
+        for (int frame = 0; frame < 20; frame++) {
+            _render_pixel_bounds(button);
+        }
+        assert_int_equal(_last_pixel_y, title_bottom + (types[i] == ICON_BUTTON_NEXT ? 0 : 4));
+        event.id = EVENT_SLIDE_RELEASED;
+        button->f->on_event(&event, button);
+        for (int frame = 0; frame < 6; frame++) {
+            _render_pixel_bounds(button);
+        }
+        assert_int_equal(_last_pixel_y, title_bottom);
+        button->f->cleanup(button);
+    }
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+}
+
 static void test_ui_components_info_centered(void** state)
 {
     component_t* info_centered = info_centered_create("Some info", NULL);
@@ -229,7 +298,8 @@ int main(void)
         cmocka_unit_test(test_ui_components_status),
         cmocka_unit_test(test_ui_components_confirm),
         cmocka_unit_test(test_ui_components_confirm_accented_text),
-        cmocka_unit_test(test_ui_components_confirm_transaction_fee)};
+        cmocka_unit_test(test_ui_components_confirm_transaction_fee),
+        cmocka_unit_test(test_ui_components_top_icon_alignment)};
 
     return cmocka_run_group_tests(tests, _setup, NULL);
 }

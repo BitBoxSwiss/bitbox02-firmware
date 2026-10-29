@@ -312,6 +312,38 @@ static void _test_ugui_fonts_exclude_ambiguous_characters(void** state)
     }
 }
 
+static void _test_ugui_font_glyph_bounds(void** state)
+{
+    (void)state;
+    const UG_FONT* fonts[] = {
+        &font_regular_9,
+        &font_regular_11,
+        &font_regular_12,
+        &font_password_9,
+        &font_password_12,
+        &font_monogram_16,
+    };
+    for (size_t i = 0; i < sizeof(fonts) / sizeof(*fonts); i++) {
+        for (const UG_FONT* font = fonts[i]; font != NULL; font = font->fallback) {
+            assert_int_equal(fonts[i]->line_height, font->line_height);
+            assert_int_equal(fonts[i]->base_line, font->base_line);
+            const lv_font_fmt_txt_dsc_t* font_dsc = font->dsc;
+            for (uint16_t j = 0; j < font_dsc->cmap_num; j++) {
+                const lv_font_fmt_txt_cmap_t* cmap = &font_dsc->cmaps[j];
+                for (uint32_t c = cmap->range_start; c < cmap->range_start + cmap->range_length;
+                     c++) {
+                    lv_font_glyph_dsc_t glyph;
+                    assert_true(font->get_glyph_dsc(font, &glyph, c, 0));
+                    const int top =
+                        fonts[i]->line_height - font->base_line - glyph.box_h - glyph.ofs_y;
+                    assert_true(top >= 0);
+                    assert_true(top + glyph.box_h <= fonts[i]->line_height);
+                }
+            }
+        }
+    }
+}
+
 static uint8_t _glyph_pixels[32][32];
 
 static void _set_glyph_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
@@ -372,11 +404,11 @@ static void _test_ugui_ascii_font_pixels_and_metrics(void** state)
         const UG_FONT* font;
         uint32_t hash;
     } cases[] = {
-        {&font_regular_9, 0xea2a3af8},
-        {&font_regular_11, 0x7a72fbc2},
-        {&font_regular_12, 0x3f5b6308},
-        {&font_password_9, 0x3e5071ab},
-        {&font_password_12, 0xf1db9eeb},
+        {&font_regular_9, 0x4619eef1},
+        {&font_regular_11, 0xa47cbde8},
+        {&font_regular_12, 0xc0cd263b},
+        {&font_password_9, 0xe9c15c66},
+        {&font_password_12, 0x4713fc30},
         {&font_monogram_16, 0xd2698414},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
@@ -597,6 +629,7 @@ int main(void)
         cmocka_unit_test(_test_ugui_tab_as_space),
         cmocka_unit_test(_test_ugui_fonts_use_supported_subset),
         cmocka_unit_test(_test_ugui_fonts_exclude_ambiguous_characters),
+        cmocka_unit_test(_test_ugui_font_glyph_bounds),
         cmocka_unit_test(_test_ugui_ascii_font_pixels_and_metrics),
         cmocka_unit_test(_test_ugui_packed_glyph_rows),
         cmocka_unit_test(_test_ugui_overhanging_glyph),

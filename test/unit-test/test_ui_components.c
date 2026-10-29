@@ -8,6 +8,7 @@
 
 #include <touch/gestures.h>
 #include <ui/components/confirm.h>
+#include <ui/components/confirm_transaction.h>
 #include <ui/components/image.h>
 #include <ui/components/info_centered.h>
 #include <ui/components/keyboard_switch.h>
@@ -15,6 +16,7 @@
 #include <ui/components/left_arrow.h>
 #include <ui/components/right_arrow.h>
 #include <ui/components/status.h>
+#include <ui/fonts/password_12.h>
 #include <ui/fonts/regular_fonts.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
@@ -139,6 +141,53 @@ static void test_ui_components_confirm(void** state)
     confirm->f->cleanup(confirm);
 }
 
+static void _set_pixel_in_screen(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    (void)x;
+    (void)color;
+    assert_in_range(y, 0, 63);
+}
+
+static void test_ui_components_confirm_accented_text(void** state)
+{
+    (void)state;
+    const confirm_params_t cases[] = {
+        {.title = "È oggi?", .body = "29 ottobre 2026"},
+        {.title = "È adesso?", .body = "29 ottobre 2026\n12:34"},
+        {.title = "Confirmar", .body = "ÁÉÍÑÓÚ Çç", .font = &font_password_12, .scrollable = true},
+        {.title = "Comisión\nalta", .body = "15%\ndel importe enviado.\n¿Continuar?"},
+        {.title = "Commissione\nalta", .body = "15%\ndell'importo inviato.\nProcedere?"},
+        {.title = "AVISO",
+         .body = "ÚLTIMO intento de\ncontraseña. Si fallas,\nse restablecerá\nel dispositivo."},
+        {.title = "AVVISO",
+         .body = "ULTIMO tentativo.\nSe sbagli password,\nil dispositivo verrà\nripristinato."},
+        {.title = "ÉÍÚÈ Ççgj", .body = "ÉÍÚÈ Ççgj\nÉÍÚÈ Ççgj\nÉÍÚÈ Ççgj\nÉÍÚÈ Ççgj"},
+    };
+    UG_Init(&gui, _set_pixel_in_screen, &font_regular_11, 128, 64);
+    for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
+        component_t* confirm = confirm_create(&cases[i], confirm_callback, NULL);
+        const component_t* title = confirm->sub_components.sub_components[0];
+        const component_t* body_container = confirm->sub_components.sub_components[1];
+        const component_t* body = body_container->sub_components.sub_components[0];
+        assert_true(body->position.top >= title->position.top + title->dimension.height + 1);
+        assert_true(body->position.top + body->dimension.height <= 64);
+        confirm->f->render(confirm);
+        confirm->f->cleanup(confirm);
+    }
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+}
+
+static void test_ui_components_confirm_transaction_fee(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel_in_screen, &font_regular_11, 128, 64);
+    component_t* confirm = confirm_transaction_fee_create(
+        "0.12345678 BTC", "0.00001234 BTC", false, confirm_callback, NULL);
+    confirm->f->render(confirm);
+    confirm->f->cleanup(confirm);
+    UG_Init(&gui, _set_pixel, &font_regular_11, 128, 64);
+}
+
 static void test_ui_components_info_centered(void** state)
 {
     component_t* info_centered = info_centered_create("Some info", NULL);
@@ -178,7 +227,9 @@ int main(void)
         cmocka_unit_test(test_ui_components_info_centered),
         cmocka_unit_test(test_ui_components_keyboard_switch),
         cmocka_unit_test(test_ui_components_status),
-        cmocka_unit_test(test_ui_components_confirm)};
+        cmocka_unit_test(test_ui_components_confirm),
+        cmocka_unit_test(test_ui_components_confirm_accented_text),
+        cmocka_unit_test(test_ui_components_confirm_transaction_fee)};
 
     return cmocka_run_group_tests(tests, _setup, NULL);
 }

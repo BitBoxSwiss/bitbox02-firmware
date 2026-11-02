@@ -40,6 +40,8 @@ message DeviceInfoResponse {
   string language = 10;
   // Empty on firmware without supported-language reporting.
   repeated string supported_languages = 11;
+  // Image version of the installed stage0. Not present if no stage0 is installed.
+  optional uint32 stage0_version = 12;
 }
 
 message InsertRemoveSDCardRequest {

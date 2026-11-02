@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <bootloader/stage0/stage0_descriptor.h>
 #include <bootloader_upgrade/bootloader_upgrade.h>
 #include <fake_memory.h>
 #include <memory/memory.h>
@@ -690,6 +691,48 @@ static void _test_memory_get_bootloader_version_invalid_arguments(void** state)
     assert_false(memory_get_bootloader_version(version_out, NULL));
 }
 
+static void _test_memory_get_stage0_version(void** state)
+{
+    (void)state;
+    const uint16_t versions[] = {0, 1, BB02_STAGE0_IMAGE_VERSION + 1, UINT16_MAX};
+    for (size_t i = 0; i < sizeof(versions) / sizeof(versions[0]); i++) {
+        const bb02_stage0_descriptor_t descriptor = {
+            .stage0_version = versions[i],
+            .magic = BB02_STAGE0_DESCRIPTOR_MAGIC,
+        };
+        memory_set_bootloader_stage0_descriptor_fake(
+            (const uint8_t*)&descriptor, sizeof(descriptor));
+
+        uint16_t version = 123;
+        assert_true(memory_get_stage0_version(&version));
+        assert_int_equal(version, versions[i]);
+    }
+}
+
+static void _test_memory_get_stage0_version_invalid_magic(void** state)
+{
+    (void)state;
+    const uint32_t magic_values[] = {0, UINT32_MAX, BB02_STAGE0_DESCRIPTOR_MAGIC ^ 1u};
+    for (size_t i = 0; i < sizeof(magic_values) / sizeof(magic_values[0]); i++) {
+        const bb02_stage0_descriptor_t descriptor = {
+            .stage0_version = 42,
+            .magic = magic_values[i],
+        };
+        memory_set_bootloader_stage0_descriptor_fake(
+            (const uint8_t*)&descriptor, sizeof(descriptor));
+
+        uint16_t version = 123;
+        assert_false(memory_get_stage0_version(&version));
+        assert_int_equal(version, 0);
+    }
+}
+
+static void _test_memory_get_stage0_version_invalid_argument(void** state)
+{
+    (void)state;
+    assert_false(memory_get_stage0_version(NULL));
+}
+
 static void _test_memory_set_attestation_device_pubkey(void** state)
 {
     EMPTYCHUNK(empty_chunk);
@@ -784,6 +827,9 @@ int main(void)
         cmocka_unit_test(_test_memory_get_bootloader_version_invalid_magic),
         cmocka_unit_test(_test_memory_get_bootloader_version_invalid_length),
         cmocka_unit_test(_test_memory_get_bootloader_version_invalid_arguments),
+        cmocka_unit_test(_test_memory_get_stage0_version),
+        cmocka_unit_test(_test_memory_get_stage0_version_invalid_magic),
+        cmocka_unit_test(_test_memory_get_stage0_version_invalid_argument),
         cmocka_unit_test(_test_memory_set_attestation_device_pubkey),
         cmocka_unit_test(_test_memory_set_attestation_certificate),
     };

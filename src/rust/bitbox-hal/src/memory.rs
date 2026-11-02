@@ -73,6 +73,7 @@ pub trait Memory {
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
     fn get_active_ble_firmware_version(&mut self) -> Result<String, Error>;
     fn get_bootloader_version(&mut self) -> Option<String>;
+    fn get_stage0_version(&mut self) -> Option<u16>;
     fn ble_firmware_flash_chunk(
         &mut self,
         slot: BleFirmwareSlot,

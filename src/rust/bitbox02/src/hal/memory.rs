@@ -118,6 +118,10 @@ impl Memory for BitBox02Memory {
         crate::memory::get_bootloader_version()
     }
 
+    fn get_stage0_version(&mut self) -> Option<u16> {
+        crate::memory::get_stage0_version()
+    }
+
     fn ble_firmware_flash_chunk(
         &mut self,
         slot: BleFirmwareSlot,

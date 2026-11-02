@@ -91,6 +91,7 @@ class DeviceInfoResponse(google.protobuf.message.Message):
     BOOTLOADER_VERSION_FIELD_NUMBER: builtins.int
     LANGUAGE_FIELD_NUMBER: builtins.int
     SUPPORTED_LANGUAGES_FIELD_NUMBER: builtins.int
+    STAGE0_VERSION_FIELD_NUMBER: builtins.int
     name: builtins.str
     initialized: builtins.bool
     version: builtins.str
@@ -106,6 +107,8 @@ class DeviceInfoResponse(google.protobuf.message.Message):
     """Marketing version of the installed stage1 bootloader. Not present on legacy bootloaders."""
     language: builtins.str
     """Current UI language code, e.g. "en" or "de". Empty on firmware without language support."""
+    stage0_version: builtins.int
+    """Image version of the installed stage0. Not present if no stage0 is installed."""
     @property
     def bluetooth(self) -> global___DeviceInfoResponse.Bluetooth:
         """Only present in Bluetooth-enabled devices."""
@@ -128,13 +131,16 @@ class DeviceInfoResponse(google.protobuf.message.Message):
         bootloader_version: builtins.str | None = ...,
         language: builtins.str = ...,
         supported_languages: collections.abc.Iterable[builtins.str] | None = ...,
+        stage0_version: builtins.int | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "_bootloader_version", b"_bootloader_version", "bluetooth", b"bluetooth", "bootloader_version", b"bootloader_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "_bootloader_version", b"_bootloader_version", "bluetooth", b"bluetooth", "bootloader_version", b"bootloader_version", "initialized", b"initialized", "language", b"language", "mnemonic_passphrase_enabled", b"mnemonic_passphrase_enabled", "monotonic_increments_remaining", b"monotonic_increments_remaining", "name", b"name", "password_stretching_algo", b"password_stretching_algo", "securechip_model", b"securechip_model", "supported_languages", b"supported_languages", "version", b"version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "_bootloader_version", b"_bootloader_version", "_stage0_version", b"_stage0_version", "bluetooth", b"bluetooth", "bootloader_version", b"bootloader_version", "stage0_version", b"stage0_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "_bootloader_version", b"_bootloader_version", "_stage0_version", b"_stage0_version", "bluetooth", b"bluetooth", "bootloader_version", b"bootloader_version", "initialized", b"initialized", "language", b"language", "mnemonic_passphrase_enabled", b"mnemonic_passphrase_enabled", "monotonic_increments_remaining", b"monotonic_increments_remaining", "name", b"name", "password_stretching_algo", b"password_stretching_algo", "securechip_model", b"securechip_model", "stage0_version", b"stage0_version", "supported_languages", b"supported_languages", "version", b"version"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_bluetooth", b"_bluetooth"]) -> typing.Literal["bluetooth"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_bootloader_version", b"_bootloader_version"]) -> typing.Literal["bootloader_version"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stage0_version", b"_stage0_version"]) -> typing.Literal["stage0_version"] | None: ...
 
 global___DeviceInfoResponse = DeviceInfoResponse
 

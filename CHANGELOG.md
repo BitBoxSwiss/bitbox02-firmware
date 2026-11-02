@@ -231,6 +231,7 @@ recorded separately.
 ## Bootloader
 
 ### Unreleased
+- Speed up the empty firmware check when entering bootloader mode.
 - Speed up firmware upgrades over USB.
 - Hold the screen reset pin low until bootloader is ready to initalize it.
 

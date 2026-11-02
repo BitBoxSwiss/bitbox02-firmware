@@ -124,21 +124,6 @@ static uint8_t _firmware_next_chunk = 0;
 // The value is computed at bootloader enter.
 static bool _is_app_flash_empty = false;
 
-// A "bare" app-flash hash where all app flash sections are empty. This is only used to decide
-// whether the bootloader should show empty-device UI; it is independent of the signed firmware
-// prehash below.
-// If FLASH_APP_LEN is changed, recompute with either a shell command:
-//     printf '%884736s' | tr ' ' '\377' | openssl sha256 -binary | openssl sha256 -hex
-// or python:
-//     hashlib.sha256(hashlib.sha256(b'\xff' * 884736).digest()).hexdigest()
-static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
-    0xbf, 0x71, 0x80, 0xc1, 0x23, 0xdf, 0xb5, 0x96, 0x1d, 0x93, 0xcd, 0x5f, 0xd9, 0x8a, 0xa4, 0x35,
-    0x00, 0xb8, 0xaf, 0x3a, 0x79, 0xf8, 0xc6, 0x56, 0x4a, 0x9b, 0x02, 0xe1, 0x8a, 0xb8, 0x21, 0xae,
-};
-#if FLASH_APP_LEN != 884736
-    #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
-#endif
-
 #if PLATFORM_BITBOX02PLUS == 1
 extern struct RustByteQueue* uart_write_queue;
 #endif
@@ -370,18 +355,6 @@ static void _render_hash(const char* title, const uint8_t* hash)
         delay_ms(1000);
     }
     bootloader_render_default_screen();
-}
-
-// Sets _is_app_flash_empty by computing a "bare" hash, identical to _firmware_hash
-// except omitting the firmware version.
-static void _compute_is_app_flash_empty(void)
-{
-    uint8_t hash[SHA256_DIGEST_LENGTH];
-    sha_sync_sha256_start(&HASH_ALGORITHM_0, &_pukcc_sha256_context, false);
-    sha_sync_sha256_update(&HASH_ALGORITHM_0, (const uint8_t*)FLASH_APP_START, FLASH_APP_LEN);
-    sha_sync_sha256_finish(&HASH_ALGORITHM_0, hash);
-    pukcc_sha256_compute(hash, SHA256_DIGEST_LENGTH, hash);
-    _is_app_flash_empty = MEMEQ(hash, _empty_bare_flash_hash, sizeof(_empty_bare_flash_hash));
 }
 
 static size_t _report_status(uint8_t status, uint8_t* output)
@@ -1067,7 +1040,7 @@ void bootloader_jump(void)
 
     // App not entered. Start USB API to receive boot commands
     util_log("Not jumping to firmware");
-    _compute_is_app_flash_empty();
+    _is_app_flash_empty = _is_erased((const void*)FLASH_APP_START, FLASH_APP_LEN);
     bootloader_render_default_screen();
     _api_setup();
     if (usb_start() != ERR_NONE) {

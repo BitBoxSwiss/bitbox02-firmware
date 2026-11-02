@@ -197,9 +197,9 @@
       }
     },
     "reset": {
-      "body": "In Werkszustand\nzurücksetzen?",
-      "status": "Zurückgesetzt",
-      "title": "Zurücksetzen"
+      "body": "Wallet vom\nGerät löschen?",
+      "status": "Wallet vom Gerät\ngelöscht",
+      "title": "Löschen"
     },
     "restore": {
       "backupName": "Name: {}. ID: {}",

@@ -114,6 +114,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_get_salt_root",
     "memory_get_securechip_type",
     "memory_get_seed_birthdate",
+    "memory_get_stage0_version",
     "memory_is_initialized",
     "memory_is_mnemonic_passphrase_enabled",
     "memory_is_seeded",

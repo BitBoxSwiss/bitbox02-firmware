@@ -216,6 +216,13 @@ void memory_bootloader_hash(uint8_t* hash_out);
  */
 USE_RESULT bool memory_get_bootloader_version(uint8_t* version_out, size_t* version_len_out);
 
+/**
+ * @param[out] version_out Receives the image version, or zero on failure if non-NULL.
+ * @return false if version_out is NULL or the descriptor magic is invalid (including when no stage0
+ * is installed). A valid descriptor with version zero returns true.
+ */
+USE_RESULT bool memory_get_stage0_version(uint16_t* version_out);
+
 typedef struct {
     secbool_u8 value;
 } auto_enter_t;

@@ -23,6 +23,10 @@ impl hal::memory::Memory for BitBox03Memory {
         None
     }
 
+    fn get_stage0_version(&mut self) -> Option<u16> {
+        None
+    }
+
     fn ble_firmware_flash_chunk(
         &mut self,
         _slot: bitbox_hal::memory::BleFirmwareSlot,

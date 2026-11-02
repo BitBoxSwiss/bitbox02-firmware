@@ -14,6 +14,7 @@ pub struct FakeMemory {
     ble_firmware_slots: [Vec<u8>; 2],
     active_ble_firmware_version: String,
     bootloader_version: Option<String>,
+    stage0_version: Option<u16>,
     securechip_type: SecurechipType,
     optiga_config_version: OptigaConfigVersion,
     platform: Platform,
@@ -63,6 +64,7 @@ impl FakeMemory {
             ],
             active_ble_firmware_version: "0.0.0".into(),
             bootloader_version: None,
+            stage0_version: None,
             securechip_type: SecurechipType::Optiga,
             optiga_config_version: OptigaConfigVersion::V0,
             platform: Platform::BitBox02,
@@ -95,6 +97,10 @@ impl FakeMemory {
 
     pub fn set_bootloader_version(&mut self, version: Option<&str>) {
         self.bootloader_version = version.map(String::from);
+    }
+
+    pub fn set_stage0_version(&mut self, version: Option<u16>) {
+        self.stage0_version = version;
     }
 
     pub fn set_salt_root(&mut self, salt_root: &[u8; 32]) {
@@ -142,6 +148,10 @@ impl bitbox_hal::Memory for FakeMemory {
 
     fn get_bootloader_version(&mut self) -> Option<String> {
         self.bootloader_version.clone()
+    }
+
+    fn get_stage0_version(&mut self) -> Option<u16> {
+        self.stage0_version
     }
 
     fn ble_firmware_flash_chunk(

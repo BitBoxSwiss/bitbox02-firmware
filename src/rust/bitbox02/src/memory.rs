@@ -117,6 +117,15 @@ pub fn get_bootloader_version() -> Option<String> {
     )
 }
 
+pub fn get_stage0_version() -> Option<u16> {
+    let mut version = 0u16;
+    if unsafe { bitbox02_sys::memory_get_stage0_version(&mut version) } {
+        Some(version)
+    } else {
+        None
+    }
+}
+
 pub fn get_attestation_pubkey_and_certificate(
     device_pubkey: &mut [u8; 64],
     certificate: &mut [u8; 64],

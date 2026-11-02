@@ -14,6 +14,7 @@
 #include "util.h"
 #include <rust/rust.h>
 
+#include "bootloader/stage0/stage0_descriptor.h"
 #include "bootloader_upgrade/bootloader_upgrade.h"
 
 #ifndef TESTING
@@ -816,6 +817,28 @@ bool memory_get_bootloader_version(uint8_t* version_out, size_t* version_len_out
 
     memcpy(version_out, header->stage1_marketing_version, version_len);
     *version_len_out = version_len;
+    return true;
+}
+
+bool memory_get_stage0_version(uint16_t* version_out)
+{
+    if (version_out == NULL) {
+        return false;
+    }
+    *version_out = 0;
+
+#ifdef TESTING
+    const bb02_stage0_descriptor_t* descriptor =
+        (const bb02_stage0_descriptor_t*)memory_get_bootloader_stage0_descriptor_fake();
+#else
+    const bb02_stage0_descriptor_t* descriptor =
+        (const bb02_stage0_descriptor_t*)BB02_STAGE0_DESCRIPTOR_ADDR;
+#endif
+
+    if (descriptor->magic != BB02_STAGE0_DESCRIPTOR_MAGIC) {
+        return false;
+    }
+    *version_out = descriptor->stage0_version;
     return true;
 }
 

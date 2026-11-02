@@ -21,4 +21,6 @@ void memory_bootloader_hash_fake(uint8_t* hash_out);
 void memory_set_bootloader_hash_fake(const uint8_t* fake_hash);
 const uint8_t* memory_get_bootloader_stage1_header_fake(void);
 void memory_set_bootloader_stage1_header_fake(const uint8_t* header, size_t header_len);
+const uint8_t* memory_get_bootloader_stage0_descriptor_fake(void);
+void memory_set_bootloader_stage0_descriptor_fake(const uint8_t* descriptor, size_t descriptor_len);
 #endif

@@ -54,12 +54,14 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
             hal_memory::PasswordStretchAlgo::V1 => "V2".into(),
         },
         bootloader_version: hal.memory().get_bootloader_version(),
+        stage0_version: hal.memory().get_stage0_version().map(u32::from),
     }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use prost::Message;
 
     use crate::hal::testing::TestingHal;
 
@@ -101,5 +103,21 @@ mod tests {
 
         hal.memory.set_bootloader_version(None);
         assert_eq!(_device_info(&mut hal).await.bootloader_version, None);
+    }
+
+    #[async_test::test]
+    async fn test_process_stage0_version() {
+        let mut hal = TestingHal::new();
+        assert_eq!(_device_info(&mut hal).await.stage0_version, None);
+
+        for version in [Some(1), Some(0), Some(u16::MAX), None] {
+            hal.memory.set_stage0_version(version);
+            let info = _device_info(&mut hal).await;
+            assert_eq!(info.stage0_version, version.map(u32::from));
+
+            let encoded = info.encode_to_vec();
+            let decoded = pb::DeviceInfoResponse::decode(encoded.as_slice()).unwrap();
+            assert_eq!(decoded.stage0_version, version.map(u32::from));
+        }
     }
 }

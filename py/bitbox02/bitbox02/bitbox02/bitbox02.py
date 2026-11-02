@@ -187,6 +187,11 @@ class BitBox02(BitBoxCommonAPI):
                 if response.device_info.HasField("bootloader_version")
                 else None
             ),
+            "stage0_version": (
+                response.device_info.stage0_version
+                if response.device_info.HasField("stage0_version")
+                else None
+            ),
             "initialized": response.device_info.initialized,
             "mnemonic_passphrase_enabled": response.device_info.mnemonic_passphrase_enabled,
             "monotonic_increments_remaining": response.device_info.monotonic_increments_remaining,

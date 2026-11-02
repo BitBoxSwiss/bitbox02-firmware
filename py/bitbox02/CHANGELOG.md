@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- `device_info()`: add the installed stage0 version, or `None` if absent
 - Bitcoin: fix signing Taproot wallet policies and avoid requiring previous transactions
   when all inputs are Taproot
 - Validate ECDSA signatures and recovery IDs in Anti-Klepto and direct signing flows

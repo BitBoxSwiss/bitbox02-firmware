@@ -130,6 +130,9 @@ pub struct DeviceInfoResponse {
     /// Empty on firmware without supported-language reporting.
     #[prost(string, repeated, tag = "11")]
     pub supported_languages: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Image version of the installed stage0. Not present if no stage0 is installed.
+    #[prost(uint32, optional, tag = "12")]
+    pub stage0_version: ::core::option::Option<u32>,
 }
 /// Nested message and enum types in `DeviceInfoResponse`.
 pub mod device_info_response {

@@ -309,7 +309,7 @@
   },
   "u2f": {
     "auth": "U2F auth",
-    "initializeWithBitBoxApp": "Initialize with BitBoxApp\nto use U2F",
+    "initializeWithBitBoxApp": "Initialize with\nBitBoxApp\nto use U2F",
     "refreshWebpage": "Refresh webpage",
     "register": "U2F register",
     "unknownSite": "Unknown site:",

@@ -160,7 +160,7 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-src-dir: src/rust
+          cache-workspaces: src/rust
 
       - name: install prost-build-proto
         run: cargo install --path tools/prost-build-proto --locked
@@ -327,7 +327,7 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-src-dir: src/rust
+          cache-workspaces: src/rust
           components: rust-src rustfmt
 
       - name: install prost-build-proto

@@ -65,7 +65,7 @@ struct ActiveTaskGuard(&'static AtomicUsize);
 impl ActiveTaskGuard {
     fn new(active_tasks: &'static AtomicUsize) -> Self {
         if active_tasks
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |active_tasks| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |active_tasks| {
                 (active_tasks < MAX_TASKS).then_some(active_tasks + 1)
             })
             .is_err()

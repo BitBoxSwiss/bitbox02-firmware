@@ -34,12 +34,16 @@ void smarteeprom_disable(void)
     /* Now set the SBLK value as well. */
     config_word = (config_word & ~NVMCTRL_FUSES_SEESBLK_Msk) | (NVMCTRL_FUSES_SEESBLK(0));
     NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
+    // SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
     while (!NVMCTRL->STATUS.bit.READY);
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    NVMCTRL->CTRLA.reg = ctrla;
 }
 
 void smarteeprom_setup(void)
@@ -72,12 +76,16 @@ void smarteeprom_setup(void)
     config_word = (config_word & ~NVMCTRL_FUSES_SEESBLK_Msk) |
                   (NVMCTRL_FUSES_SEESBLK(SMARTEEPROM_SBLK_VALUE));
     NVMCTRL->CTRLA.bit.WMODE = NVMCTRL_CTRLA_WMODE_MAN; // Manual write
+    // SAM D5x/E5x errata 2.14.1: disable both caches while loading the page buffer.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_EP); // Erase page
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_PBC); // Clear page buffer
     *((uint32_t*)NVMCTRL_FUSES_SEEPSZ_ADDR) = config_word;
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_WQW); // Write a 128-bit word
     while (!NVMCTRL->STATUS.bit.READY);
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    NVMCTRL->CTRLA.reg = ctrla;
 }
 
 void smarteeprom_bb02_config(void)
@@ -124,6 +132,9 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     }
     volatile uint8_t* eeprom = (uint8_t*)SEEPROM_ADDR + address;
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    // Disable both NVM caches during buffered writes and flushes.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     /*
      * Buffered write of multiple bytes.
      * Note that crossing a 32B page will still result in a partial flush
@@ -137,6 +148,7 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_SEEFLUSH);
     while (NVMCTRL->SEESTAT.bit.LOAD != 0);
     while (NVMCTRL->SEESTAT.bit.BUSY != 0);
+    NVMCTRL->CTRLA.reg = ctrla;
     /*
      * Read back the buffer.
      * Check that it matches what we've just written.

@@ -242,7 +242,7 @@
     "system": {
       "reboot": "Neustart?",
       "rebootToBootloader": "Gehe zu den\nStarteinstellungen?",
-      "upgrade": "Upgrade fortsetzen?"
+      "upgrade": "Firmware\naktualisieren?"
     }
   },
   "infoCentered": {

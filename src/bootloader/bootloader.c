@@ -547,12 +547,14 @@ static secbool_u32 _pubkeys_verified(const boot_data_t* data)
     return secfalse_u32;
 }
 
-// Computes sha256(product_id_le16 | firmware_version | firmware).
+// Computes sha256(0x01 | product_id_le16 | firmware_version | firmware).
 // pukcc_ecdsa_verify() hashes this prehash once more, so signatures cover:
-// sha256(sha256(product_id_le16 | firmware_version | firmware)).
+// sha256(sha256(0x01 | product_id_le16 | firmware_version | firmware)).
 static void _firmware_hash(const boot_data_t* data, uint8_t* hash_out)
 {
+    const uint8_t sighash_version = 0x01;
     sha_sync_sha256_start(&HASH_ALGORITHM_0, &_pukcc_sha256_context, false);
+    sha_sync_sha256_update(&HASH_ALGORITHM_0, &sighash_version, sizeof(sighash_version));
     _hash_product_id();
     sha_sync_sha256_update(
         &HASH_ALGORITHM_0,
@@ -646,7 +648,7 @@ static uint8_t _write_chunk(uint32_t address, const uint8_t* data)
 
 /*
  * input: firmware version | i signatures of the double hash of
- * [product id | version | firmware app]
+ * [0x01 | product id | version | firmware app]
  */
 static uint8_t _set_firmware_data(boot_data_t* data, const uint8_t* input)
 {

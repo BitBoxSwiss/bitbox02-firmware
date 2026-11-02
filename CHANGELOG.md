@@ -231,6 +231,9 @@ recorded separately.
 ## Bootloader
 
 ### Unreleased
+
+### v1.2.3
+- Verify firmware with a versioned signature prehash.
 - Speed up the empty firmware check when entering bootloader mode.
 - Speed up firmware upgrades over USB.
 - Hold the screen reset pin low until bootloader is ready to initalize it.
@@ -272,6 +275,8 @@ recorded separately.
 ### v3
 - Move the factory randomness backup out of the firmware area to preserve firmware integrity
   during stage1 updates.
+- Verify stage1 with a versioned signature prehash, allowing stage0 to be upgraded before the bundled
+  stage1 is installed.
 
 ### v2
 - Hold the screen reset pin low until bootloader is ready to initalize it.

@@ -9,7 +9,6 @@ import hashlib
 import struct
 from dataclasses import dataclass
 
-
 # A signed firmware file consists of MAGIC_LEN bytes of a product marker, followed by SIGDATA_LEN
 # bytes of signature data, and ending with the firmware bytes from the reproducible build.
 MAGIC_LEN = 4
@@ -88,14 +87,25 @@ def unsigned_sha256(signed_firmware: SignedFirmware) -> bytes:
 
 
 def sighash(signed_firmware: SignedFirmware) -> bytes:
-    """Return the current firmware hash verified and shown by the bootloader."""
+    """Return the firmware hash verified and shown by its target bootloader."""
 
     firmware_padded = signed_firmware.firmware + b"\xff" * (
         MAX_FIRMWARE_SIZE - len(signed_firmware.firmware)
     )
-    preimage = (
-        struct.pack("<H", signed_firmware.product.product_id)
-        + signed_firmware.version
-        + firmware_padded
-    )
+    version = int.from_bytes(signed_firmware.version, "little")
+    if version >= 57:
+        preimage = (
+            b"\x01"
+            + struct.pack("<H", signed_firmware.product.product_id)
+            + signed_firmware.version
+            + firmware_padded
+        )
+    elif version >= 51:
+        preimage = (
+            struct.pack("<H", signed_firmware.product.product_id)
+            + signed_firmware.version
+            + firmware_padded
+        )
+    else:
+        preimage = hashlib.sha256(signed_firmware.version + firmware_padded).digest()
     return hashlib.sha256(preimage).digest()

@@ -29,7 +29,8 @@ VERSION_LEN = 4
 SIGNING_PUBKEYS_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64 + NUM_ROOT_KEYS * 64
 FIRMWARE_DATA_LEN = VERSION_LEN + NUM_SIGNING_KEYS * 64
 SIGDATA_LEN = SIGNING_PUBKEYS_DATA_LEN + FIRMWARE_DATA_LEN
-NEW_SIGHASH_VERSION_CUTOFF = 50
+NEW_SIGHASH_VERSION_CUTOFF = 51
+VERSIONED_SIGHASH_VERSION_CUTOFF = 57
 
 
 def main() -> int:
@@ -81,7 +82,13 @@ def main() -> int:
     monotonic_version = struct.unpack("<I", version)[0]
     print("The monotonic firmware version is:", monotonic_version)
     print("The firmware sighash as verified/shown by the bootloader is:")
-    if monotonic_version >= NEW_SIGHASH_VERSION_CUTOFF:
+    if monotonic_version >= VERSIONED_SIGHASH_VERSION_CUTOFF:
+        print(
+            hashlib.sha256(
+                b"\x01" + struct.pack("<H", product_id) + version + firmware_padded
+            ).hexdigest()
+        )
+    elif monotonic_version >= NEW_SIGHASH_VERSION_CUTOFF:
         print(hashlib.sha256(struct.pack("<H", product_id) + version + firmware_padded).hexdigest())
     else:
         print(hashlib.sha256(hashlib.sha256(version + firmware_padded).digest()).hexdigest())

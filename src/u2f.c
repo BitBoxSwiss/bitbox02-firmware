@@ -192,6 +192,10 @@ static void _create_nudge_label(void)
         // The screen stack owns the existing component until its cleanup runs.
         return;
     }
+    // A workflow can retain its screen after releasing the transport lock.
+    if (!rust_async_usb_is_idle() || rust_workflow_u2f_is_active()) {
+        return;
+    }
 
     char initialize_with_bitboxapp[64] = {0};
     rust_i18n_translate_copy(
@@ -205,13 +209,17 @@ static void _create_nudge_label(void)
 
 static void _start_refresh_webpage_screen(void)
 {
+    _state.refresh_webpage_timeout = 0;
+    // Another workflow may have started since the unlock future completed.
+    if (!rust_async_usb_is_idle() || rust_workflow_u2f_is_active()) {
+        return;
+    }
     // Unfortunately unlocking takes more time than U2F is allowed to take. With the current
     // architecture of the firmware we cannot run it concurrently to other requests. Therefore
     // we will call it here, make the user unlock the device and then ask the user to refresh
     // the webpage. (refreshing is only needed for some FIDO Clients)
     _state.refresh_webpage = _create_refresh_webpage();
     ui_screen_stack_push(_state.refresh_webpage);
-    _state.refresh_webpage_timeout = 0;
 }
 
 /** Pop the "refresh webpage" screen, if any. */

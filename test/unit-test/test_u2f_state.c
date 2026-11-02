@@ -6,8 +6,50 @@
 #include <cmocka.h>
 
 #include <string.h>
+#include <ui/fonts/regular_fonts.h>
+#include <ui/ugui/ugui.h>
 
 #include "u2f.c"
+
+static bool _hww_idle = true;
+static bool _u2f_active = false;
+static UG_GUI _gui;
+
+static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    (void)x;
+    (void)y;
+    (void)color;
+}
+
+static int _setup(void** state)
+{
+    (void)state;
+    UG_Init(&_gui, _set_pixel, &font_regular_11, 128, 64);
+    return 0;
+}
+
+bool __wrap_rust_async_usb_is_idle(void)
+{
+    return _hww_idle;
+}
+
+bool __wrap_rust_workflow_u2f_is_active(void)
+{
+    return _u2f_active;
+}
+
+bool __wrap_rust_workflow_unlock_poll(bool* result_out)
+{
+    function_called();
+    *result_out = true;
+    return true;
+}
+
+bool __wrap_memory_is_initialized(void)
+{
+    return mock();
+}
 
 static void _set_confirming_state(uint8_t instruction, const USB_APDU* pending_apdu)
 {
@@ -293,6 +335,133 @@ static void test_blocked_error_uses_request_cid(void** state)
     assert_int_equal(out_packet.data_addr[1], U2F_SW_CONDITIONS_NOT_SATISFIED & 0xff);
 }
 
+static void _test_nudge(bool hww_idle, bool u2f_active)
+{
+    const bool blocked = !hww_idle || u2f_active;
+    for (int authenticate = 0; authenticate < 2; authenticate++) {
+        memset(&_state, 0, sizeof(_state));
+        _hww_idle = hww_idle;
+        _u2f_active = u2f_active;
+        assert_false(usb_processing_locked(usb_processing_hww()));
+        assert_false(usb_processing_locked(usb_processing_u2f()));
+        component_t* existing_screen = info_centered_create("Existing screen", NULL);
+        ui_screen_stack_push(existing_screen);
+
+        Packet in_packet =
+            authenticate ? _authenticate_message(0x12345678) : _register_message(0x12345678);
+        Packet out_packet = {0};
+        will_return(__wrap_memory_is_initialized, false);
+        _cmd_msg(&in_packet, &out_packet, sizeof(out_packet.data_addr));
+        assert_int_equal(out_packet.cid, in_packet.cid);
+        assert_int_equal(out_packet.len, 2);
+        assert_int_equal(out_packet.data_addr[0], U2F_SW_CONDITIONS_NOT_SATISFIED >> 8);
+        assert_int_equal(out_packet.data_addr[1], U2F_SW_CONDITIONS_NOT_SATISFIED & 0xff);
+        if (blocked) {
+            assert_null(_nudge_label);
+            assert_ptr_equal(ui_screen_stack_top(), existing_screen);
+        } else {
+            assert_non_null(_nudge_label);
+            assert_ptr_equal(ui_screen_stack_top(), _nudge_label);
+            component_t* nudge = _nudge_label;
+            usb_processing_unlock();
+            will_return(__wrap_memory_is_initialized, false);
+            _cmd_msg(&in_packet, &out_packet, sizeof(out_packet.data_addr));
+            assert_ptr_equal(_nudge_label, nudge);
+            ui_screen_stack_pop_and_clean();
+            assert_null(_nudge_label);
+            assert_ptr_equal(ui_screen_stack_top(), existing_screen);
+        }
+        ui_screen_stack_pop_and_clean();
+        assert_null(ui_screen_stack_top());
+        usb_processing_unlock();
+    }
+    _hww_idle = true;
+    _u2f_active = false;
+}
+
+static void test_nudge_during_unlocked_hww_workflow(void** state)
+{
+    (void)state;
+    _test_nudge(false, false);
+}
+
+static void test_nudge_during_unlocked_u2f_workflow(void** state)
+{
+    (void)state;
+    _test_nudge(true, true);
+}
+
+static void test_nudge_while_idle(void** state)
+{
+    (void)state;
+    _test_nudge(true, false);
+}
+
+static void _test_refresh_after_unlock(bool hww_idle, bool u2f_active)
+{
+    const bool blocked = !hww_idle || u2f_active;
+    for (int authenticate = 0; authenticate < 2; authenticate++) {
+        memset(&_state, 0, sizeof(_state));
+        _state.last_cmd = authenticate ? U2F_AUTHENTICATE : U2F_REGISTER;
+        if (authenticate) {
+            _state.auth = U2F_AUTHENTICATE_UNLOCKING;
+        } else {
+            _state.reg = U2F_REGISTER_UNLOCKING;
+        }
+        _state.refresh_webpage_timeout = 25000;
+        _hww_idle = hww_idle;
+        _u2f_active = u2f_active;
+        assert_false(usb_processing_locked(usb_processing_hww()));
+        assert_false(usb_processing_locked(usb_processing_u2f()));
+        component_t* existing_screen = info_centered_create("Existing screen", NULL);
+        ui_screen_stack_push(existing_screen);
+
+        expect_function_call(__wrap_rust_workflow_unlock_poll);
+        u2f_process();
+        assert_int_equal(
+            _state.auth, authenticate ? U2F_AUTHENTICATE_WAIT_REFRESH : U2F_AUTHENTICATE_IDLE);
+        assert_int_equal(_state.reg, authenticate ? U2F_REGISTER_IDLE : U2F_REGISTER_WAIT_REFRESH);
+        assert_int_equal(_state.refresh_webpage_timeout, 0);
+        if (blocked) {
+            assert_null(_state.refresh_webpage);
+            assert_ptr_equal(ui_screen_stack_top(), existing_screen);
+        } else {
+            assert_non_null(_state.refresh_webpage);
+            assert_ptr_equal(ui_screen_stack_top(), _state.refresh_webpage);
+        }
+
+        _state.refresh_webpage_timeout = 25000;
+        u2f_process();
+        ui_screen_stack_cleanup();
+        assert_int_equal(_state.auth, U2F_AUTHENTICATE_IDLE);
+        assert_int_equal(_state.reg, U2F_REGISTER_IDLE);
+        assert_null(_state.refresh_webpage);
+        assert_ptr_equal(ui_screen_stack_top(), existing_screen);
+        ui_screen_stack_pop_and_clean();
+        assert_null(ui_screen_stack_top());
+    }
+    _hww_idle = true;
+    _u2f_active = false;
+}
+
+static void test_refresh_after_unlock_during_hww_workflow(void** state)
+{
+    (void)state;
+    _test_refresh_after_unlock(false, false);
+}
+
+static void test_refresh_after_unlock_during_u2f_workflow(void** state)
+{
+    (void)state;
+    _test_refresh_after_unlock(true, true);
+}
+
+static void test_refresh_after_unlock_while_idle(void** state)
+{
+    (void)state;
+    _test_refresh_after_unlock(true, false);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -305,6 +474,12 @@ int main(void)
         cmocka_unit_test(test_malformed_message_preserves_workflow),
         cmocka_unit_test(test_init_preserves_workflow),
         cmocka_unit_test(test_blocked_error_uses_request_cid),
+        cmocka_unit_test(test_nudge_during_unlocked_hww_workflow),
+        cmocka_unit_test(test_nudge_during_unlocked_u2f_workflow),
+        cmocka_unit_test(test_nudge_while_idle),
+        cmocka_unit_test(test_refresh_after_unlock_during_hww_workflow),
+        cmocka_unit_test(test_refresh_after_unlock_during_u2f_workflow),
+        cmocka_unit_test(test_refresh_after_unlock_while_idle),
     };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, _setup, NULL);
 }

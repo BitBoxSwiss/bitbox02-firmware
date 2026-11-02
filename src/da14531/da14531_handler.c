@@ -166,9 +166,14 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
             break;
         }
 #if !defined(BOOTLOADER)
-        // A running HWW task can own a Rust-backed screen. Do not overlay it: if its watchdog
-        // cancels the task, the Rust screen owner assumes that its component is still on top.
-        if (usb_processing_locked(usb_processing_hww())) {
+        // HWW and U2F workflows can own Rust-backed screens even after releasing the transport
+        // lock. Do not overlay them: cleanup assumes that the owned component is still on top.
+        if (_ble_pairing_component != NULL || usb_processing_locked(usb_processing_hww()) ||
+            !rust_async_usb_is_idle()
+    #if APP_U2F == 1
+            || rust_workflow_u2f_is_active()
+    #endif
+        ) {
             _ble_pairing_respond(&frame->cmd_data[0], queue, false);
             break;
         }

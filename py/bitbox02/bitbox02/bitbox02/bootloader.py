@@ -28,6 +28,7 @@ BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
 NUM_SIGNING_KEYS = 3
 BOOTLOADER_NEW_SIGHASH_VERSION = semver.VersionInfo(1, 2, 0)
+BOOTLOADER_VERSIONED_SIGHASH_VERSION = semver.VersionInfo(1, 2, 3)
 
 MAX_FIRMWARE_SIZE = 884736  # 928kB - 64kB
 CHUNK_SIZE = 4096
@@ -274,6 +275,10 @@ class Bootloader:
 
     def _empty_firmware_hash(self, firmware_v: int) -> bytes:
         empty_firmware = struct.pack("<I", firmware_v) + b"\xff" * MAX_FIRMWARE_SIZE
+        if self.version >= BOOTLOADER_VERSIONED_SIGHASH_VERSION:
+            return hashlib.sha256(
+                b"\x01" + struct.pack("<H", self.product_id) + empty_firmware
+            ).digest()
         if self.version >= BOOTLOADER_NEW_SIGHASH_VERSION:
             return hashlib.sha256(struct.pack("<H", self.product_id) + empty_firmware).digest()
         return hashlib.sha256(hashlib.sha256(empty_firmware).digest()).digest()

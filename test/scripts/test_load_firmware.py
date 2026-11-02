@@ -3,14 +3,15 @@
 """Tests for py/load_firmware.py and its bootloader helpers."""
 
 import contextlib
+import hashlib
 import importlib.util
 import io
+import struct
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_PACKAGE_ROOT = REPOSITORY_ROOT / "py" / "bitbox02"
@@ -26,7 +27,6 @@ SPEC.loader.exec_module(LOAD_FIRMWARE)
 
 import bitbox02 as bitbox02_package  # noqa: E402
 from bitbox02.bitbox02 import bootloader as bootloader_module  # noqa: E402
-
 
 MAGIC = bootloader_module.SIGDATA_MAGIC_BITBOX02_MULTI
 OTHER_MAGIC = bootloader_module.SIGDATA_MAGIC_BITBOX02_BTCONLY
@@ -126,6 +126,46 @@ class BootloaderPackageTests(unittest.TestCase):
         bootloader = bootloader_module.Bootloader(transport, device_info())
         bootloader.flash_sigdata(SIGDATA)
         self.assertEqual(transport.queries, [b"s" + SIGDATA])
+
+    def test_empty_firmware_hash(self) -> None:
+        for product_id, product_string in enumerate(
+            (
+                bootloader_module.BB02MULTI_BOOTLOADER,
+                bootloader_module.BB02BTC_BOOTLOADER,
+                bootloader_module.BITBOX02PLUS_MULTI_BOOTLOADER,
+                bootloader_module.BITBOX02PLUS_BTC_BOOTLOADER,
+            ),
+            1,
+        ):
+            for version, scheme in (
+                ("v1.1.0", "legacy"),
+                ("v1.2.0", "product"),
+                ("v1.2.2", "product"),
+                ("v1.2.3", "versioned"),
+                ("v1.2.3-rc1", "versioned"),
+                ("v1.2.3+git.123", "versioned"),
+            ):
+                for firmware_version in (56, 57):
+                    with self.subTest(
+                        product=product_id, version=version, firmware=firmware_version
+                    ):
+                        info = device_info(version)
+                        info["product_string"] = product_string
+                        bootloader = bootloader_module.Bootloader(DummyTransport(), info)
+                        preimage = (
+                            struct.pack("<I", firmware_version)
+                            + b"\xff" * bootloader_module.MAX_FIRMWARE_SIZE
+                        )
+                        if scheme == "legacy":
+                            expected = hashlib.sha256(hashlib.sha256(preimage).digest()).digest()
+                        else:
+                            preimage = struct.pack("<H", product_id) + preimage
+                            if scheme == "versioned":
+                                preimage = b"\x01" + preimage
+                            expected = hashlib.sha256(preimage).digest()
+                        self.assertEqual(
+                            bootloader._empty_firmware_hash(firmware_version), expected
+                        )
 
     def test_flash_sigdata_rejects_wrong_length(self) -> None:
         bootloader = bootloader_module.Bootloader(DummyTransport(), device_info())

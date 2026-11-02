@@ -18,7 +18,7 @@
 #define EXTRA_HEADER_LEN (BB02_STAGE1_HEADER_ALIGNMENT)
 #define IMAGE_BUF_LEN (BB02_STAGE1_HEADER_LEN + EXTRA_HEADER_LEN + BODY_LEN)
 #define INVALID_DIGEST_BYTE (0xa5u)
-#define SHA_UPDATE_COUNT (6u)
+#define SHA_UPDATE_COUNT (7u)
 #define SIGNED_HEADER_TAIL_OFFSET ((uint32_t)offsetof(bb02_stage1_header_t, header_len))
 
 struct sha_sync_descriptor HASH_ALGORITHM_0;
@@ -58,7 +58,7 @@ MONOTONIC_VERSION = 7
 MARKETING_VERSION = b"dev"
 MARKETING_VERSION_FIELD_LEN = 37
 
-def compute_digest(header_len):
+def compute_digest(header_len, prefix=b"\x01"):
     image_len = header_len + BODY_LEN
     marketing_version_size = len(MARKETING_VERSION)
     marketing_version_field = MARKETING_VERSION + bytes(
@@ -89,20 +89,26 @@ def compute_digest(header_len):
     body = bytes((0x40 + i) & 0xff for i in range(BODY_LEN))
     signed_payload += body
     assert len(signed_payload) + len(signatures) == image_len
-    return hashlib.sha256(signed_payload).hexdigest()
+    return hashlib.sha256(prefix + signed_payload).hexdigest()
 
 print(compute_digest(header_len=1024))
 print(compute_digest(header_len=2048))
+print(compute_digest(header_len=1024, prefix=b""))
 PY
 */
 static const uint8_t _digest_fixture_default[BB02_STAGE1_SIGNED_DIGEST_LEN] = {
-    0xd4, 0xde, 0xc4, 0x9d, 0xab, 0x5f, 0x53, 0x7a, 0x3b, 0xfd, 0x3b, 0x29, 0xff, 0x34, 0xf3, 0x37,
-    0xdf, 0x27, 0x68, 0xc3, 0x0e, 0x65, 0x15, 0x5d, 0x6d, 0xca, 0x6b, 0xb8, 0x41, 0xc6, 0xf9, 0x4f,
+    0xfc, 0xd3, 0x70, 0xeb, 0x53, 0xe1, 0x29, 0x71, 0xba, 0xa3, 0x3e, 0xd6, 0xd7, 0xea, 0x38, 0x3b,
+    0xc9, 0x3e, 0x1d, 0x7f, 0x41, 0x56, 0xd9, 0x0f, 0x99, 0x6b, 0x0f, 0x54, 0x20, 0x72, 0x61, 0x82,
 };
 
 static const uint8_t _digest_fixture_extended_reserved[BB02_STAGE1_SIGNED_DIGEST_LEN] = {
-    0x39, 0xf9, 0xc2, 0x93, 0x12, 0x55, 0xb5, 0x0a, 0x1f, 0x86, 0xc0, 0xd7, 0x5c, 0xd7, 0x7e, 0x6a,
-    0xde, 0xda, 0x6b, 0x3f, 0x4b, 0x22, 0x05, 0xdb, 0x01, 0xda, 0x3c, 0x91, 0x53, 0x8e, 0xf4, 0x55,
+    0x11, 0x50, 0xa5, 0x86, 0xb7, 0xa6, 0xe9, 0x21, 0xf0, 0x7e, 0x96, 0xcc, 0x63, 0x4c, 0xc0, 0x0f,
+    0x3b, 0xde, 0x52, 0xd8, 0x1b, 0x61, 0x89, 0x6d, 0x82, 0xaf, 0xb7, 0xd9, 0x37, 0x2e, 0x24, 0x18,
+};
+
+static const uint8_t _digest_fixture_legacy[BB02_STAGE1_SIGNED_DIGEST_LEN] = {
+    0xd4, 0xde, 0xc4, 0x9d, 0xab, 0x5f, 0x53, 0x7a, 0x3b, 0xfd, 0x3b, 0x29, 0xff, 0x34, 0xf3, 0x37,
+    0xdf, 0x27, 0x68, 0xc3, 0x0e, 0x65, 0x15, 0x5d, 0x6d, 0xca, 0x6b, 0xb8, 0x41, 0xc6, 0xf9, 0x4f,
 };
 
 static bb02_stage1_header_t* _header_ptr(void)
@@ -152,10 +158,12 @@ static void _compute_digest(
 {
     void* ctx = rust_sha256_new();
     assert_non_null(ctx);
+    const uint8_t sighash_version = 0x01;
     const uint32_t expected_magic = BB02_STAGE1_HEADER_MAGIC;
     const uint32_t flags = header->flags;
     const uint16_t header_version = header->header_version;
     const uint16_t expected_product_id = BB02_STAGE1_PRODUCT_ID;
+    rust_sha256_update(ctx, &sighash_version, sizeof(sighash_version));
     rust_sha256_update(ctx, (const uint8_t*)&expected_magic, sizeof(expected_magic));
     rust_sha256_update(ctx, (const uint8_t*)&flags, sizeof(flags));
     rust_sha256_update(ctx, (const uint8_t*)&header_version, sizeof(header_version));
@@ -238,33 +246,38 @@ int32_t __wrap_sha_sync_sha256_update(
 
     switch (_sha_update_count) {
     case 0: {
-        const uint32_t expected = BB02_STAGE1_HEADER_MAGIC;
+        const uint8_t expected = 0x01;
         assert_int_equal(length, sizeof(expected));
         assert_memory_equal(input, &expected, sizeof(expected));
     } break;
     case 1: {
-        const uint32_t expected = _header.flags;
+        const uint32_t expected = BB02_STAGE1_HEADER_MAGIC;
         assert_int_equal(length, sizeof(expected));
         assert_memory_equal(input, &expected, sizeof(expected));
     } break;
     case 2: {
-        const uint16_t expected = _header.header_version;
+        const uint32_t expected = _header.flags;
         assert_int_equal(length, sizeof(expected));
         assert_memory_equal(input, &expected, sizeof(expected));
     } break;
     case 3: {
+        const uint16_t expected = _header.header_version;
+        assert_int_equal(length, sizeof(expected));
+        assert_memory_equal(input, &expected, sizeof(expected));
+    } break;
+    case 4: {
         const uint16_t expected = BB02_STAGE1_PRODUCT_ID;
         assert_int_equal(length, sizeof(expected));
         assert_memory_equal(input, &expected, sizeof(expected));
     } break;
-    case 4:
+    case 5:
         assert_ptr_equal(input, ((const uint8_t*)&_header) + SIGNED_HEADER_TAIL_OFFSET);
         assert_int_equal(
             length,
             _header.header_len - BB02_STAGE1_HEADER_SIGNATURES_LEN - SIGNED_HEADER_TAIL_OFFSET);
         break;
     default:
-        assert_int_equal(_sha_update_count, 5u);
+        assert_int_equal(_sha_update_count, 6u);
         assert_ptr_equal(input, _body());
         assert_int_equal(length, BODY_LEN);
         break;
@@ -398,6 +411,33 @@ static void test_stage1_sigcheck_image_ok_matches_extended_reserved_digest_fixtu
     _use_digest_fixture(_digest_fixture_extended_reserved);
 
     assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), sectrue_u32);
+    _assert_sha_calls();
+    _assert_call_order();
+}
+
+static void test_stage1_sigcheck_image_ok_rejects_legacy_digest(void** state)
+{
+    (void)state;
+    _reset_image();
+    _fill_reserved_fixture();
+    _fill_signature_fixture();
+    _reset_script(0x07, 0x07);
+    _use_digest_fixture(_digest_fixture_default);
+    memcpy(_accepted_digest, _digest_fixture_legacy, sizeof(_accepted_digest));
+
+    assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), secfalse_u32);
+    _assert_sha_calls();
+    _assert_call_order();
+}
+
+static void test_stage1_sigcheck_image_ok_rejects_prefix_hash_failure(void** state)
+{
+    (void)state;
+    _reset_image();
+    _reset_script(0x07, 0x07);
+    _sha_update_status[0] = -1;
+
+    assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), secfalse_u32);
     _assert_sha_calls();
     _assert_call_order();
 }
@@ -627,6 +667,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_stage1_sigcheck_image_ok_matches_default_digest_fixture),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_matches_extended_reserved_digest_fixture),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_legacy_digest),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_prefix_hash_failure),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_invalid_image_len),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_invalid_header_len),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_invalid_fixed_header_fields),

@@ -63,8 +63,15 @@ contains the unsigned binary with the following script (please install the [BitB
 ## Verify the hash as shown by the BitBox02 at startup
 
 When installing new firmware on the BitBox02, an option can be turned on to display the firmware
-hash on the device screen when the BitBox02 is plugged in. The hash shown is a hash of the firmware
-and the firmware version: `sha256d(<version><padded firmware>)`.
+hash on the device screen when the BitBox02 is plugged in. The displayed hash depends on the
+monotonic firmware version. All versions below are encoded as four little-endian bytes, product
+IDs as two little-endian bytes, and firmware is padded with `0xff` to 884736 bytes:
+
+- Through version 50: `sha256d(version || padded_firmware)`.
+- Versions 51 through 56: `sha256(product_id || version || padded_firmware)`.
+- From version 57: `sha256(0x01 || product_id || version || padded_firmware)`.
+
+The `0x01` prefix is one byte. The signature verifier hashes the displayed hash once more.
 
 It can be verified with the same tool as above. For example:
 

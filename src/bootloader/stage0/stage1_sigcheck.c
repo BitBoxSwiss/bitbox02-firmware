@@ -78,6 +78,7 @@ static int32_t _canonical_signed_digest(
 {
     memset(digest, STAGE1_SIGCHECK_INVALID_DIGEST_BYTE, BB02_STAGE1_SIGNED_DIGEST_LEN);
 
+    const uint8_t sighash_version = 0x01;
     const uint32_t expected_magic = BB02_STAGE1_HEADER_MAGIC;
     const uint32_t flags = header->flags;
     const uint16_t header_version = header->header_version;
@@ -90,6 +91,7 @@ static int32_t _canonical_signed_digest(
     const uint8_t* image_body = ((const uint8_t*)header) + header_len;
 
     int32_t status = sha_sync_sha256_start(&HASH_ALGORITHM_0, &_sha_context, false);
+    status |= sha_sync_sha256_update(&HASH_ALGORITHM_0, &sighash_version, sizeof(sighash_version));
     status |= sha_sync_sha256_update(
         &HASH_ALGORITHM_0, (const uint8_t*)&expected_magic, sizeof(expected_magic));
     status |= sha_sync_sha256_update(&HASH_ALGORITHM_0, (const uint8_t*)&flags, sizeof(flags));

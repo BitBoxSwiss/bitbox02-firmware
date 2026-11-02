@@ -9,7 +9,6 @@ from typing import TypedDict
 
 import ecdsa
 
-
 STAGE1_HEADER_MAGIC = 0x31534242
 STAGE0_DESCRIPTOR_MAGIC = 0x30534242
 STAGE1_HEADER_FORMAT_VERSION = 1
@@ -144,6 +143,8 @@ def _stage1_signed_digest(image: bytes) -> bytes:
         raise RuntimeError("stage1 image does not contain a vector table")
     signed_header_len = header["header_len"] - STAGE1_HEADER_SIGNATURES_LEN
     hasher = hashlib.sha256()
+    if header["monotonic_version"] >= 2:
+        hasher.update(b"\x01")
     hasher.update(image[:signed_header_len])
     hasher.update(image[header["header_len"] :])
     return hasher.digest()

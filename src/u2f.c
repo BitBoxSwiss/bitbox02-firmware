@@ -199,7 +199,7 @@ static void _create_nudge_label(void)
 
     char initialize_with_bitboxapp[64] = {0};
     rust_i18n_translate_copy(
-        "Initialize with BitBoxApp\nto use U2F",
+        "Initialize with\nBitBoxApp\nto use U2F",
         initialize_with_bitboxapp,
         sizeof(initialize_with_bitboxapp));
     _nudge_label = info_centered_create(initialize_with_bitboxapp, _nudge_label_cb);

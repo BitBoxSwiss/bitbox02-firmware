@@ -144,7 +144,7 @@ mod tests {
         );
         assert_eq!(
             translate(Language::German, "Proceed to upgrade?").as_ref(),
-            "Upgrade fortsetzen?"
+            "Firmware\naktualisieren?"
         );
         assert_eq!(
             translate(Language::German, "Not translated").as_ref(),

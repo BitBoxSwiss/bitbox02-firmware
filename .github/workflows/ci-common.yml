@@ -270,7 +270,7 @@ jobs:
           } | xargs -0 -r sha256sum
 
       - name: Upload artifact
-        if: github.event_name == 'push' && !cancelled()
+        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-${{github.sha}}.bin
@@ -281,6 +281,20 @@ jobs:
             build*/bin/simulator*
             build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-*
             build-bitbox03-cargo/thumbv8m.main-none-eabihf/release/bitbox03-*
+
+      - name: Package graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        run: |
+          build-build-noasan/bin/simulator-graphical --help
+          tar -czf simulator-graphical-linux-x86_64.tar.gz -C build-build-noasan/bin simulator-graphical
+
+      - name: Upload graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-graphical-linux-x86_64-${{ github.sha }}
+          path: simulator-graphical-linux-x86_64.tar.gz
+          if-no-files-found: error
 
   # Build simulators for macos aarch64
   build-macos:
@@ -326,12 +340,26 @@ jobs:
         run: sha256sum build*/bin/*
 
       - name: Upload artifact
-        if: github.event_name == 'push' && !cancelled()
+        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.target}}-apple-aarch64-darwin-${{github.sha}}.bin
           path: |
             build*/bin/simulator*
+
+      - name: Package graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        run: |
+          build-build-noasan/bin/simulator-graphical --help
+          tar -czf simulator-graphical-macos-aarch64.tar.gz -C build-build-noasan/bin simulator-graphical
+
+      - name: Upload graphical simulator
+        if: matrix.target == 'simulator-graphical'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-graphical-macos-aarch64-${{ github.sha }}
+          path: simulator-graphical-macos-aarch64.tar.gz
+          if-no-files-found: error
 
   doc:
     runs-on: ubuntu-22.04

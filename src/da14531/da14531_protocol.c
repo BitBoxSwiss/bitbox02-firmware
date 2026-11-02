@@ -29,6 +29,8 @@ enum firmware_loader_state {
 
 struct firmware_loader {
     enum firmware_loader_state state;
+    bool checksum_received;
+    uint8_t received_checksum;
 };
 
 enum serial_link_in_state {
@@ -95,6 +97,8 @@ static const char* _firmware_loader_state_str(enum firmware_loader_state state)
 static void _firmware_loader_init(struct firmware_loader* self)
 {
     self->state = FIRMWARE_LOADER_STATE_DONE;
+    self->checksum_received = false;
+    self->received_checksum = 0;
 }
 
 #define SOH 0x01
@@ -149,15 +153,15 @@ static void _firmware_loader_poll(
             if (buf_in[0] == ACK) {
                 util_log("da14513: sending firmware");
                 // Wait until uart tx is ready, and issue a write for the firmware.
-                // Don't use bytequeue as the source is static
+                // Don't use bytequeue because the firmware image is already in its own buffer.
+                // Keep the allocation live until uart_0_write_done().
                 if (ble_fw != NULL) {
                     // This should never happen
                     // TODO
                 }
 
-#ifndef TESTING
+                self->checksum_received = false;
                 while (!(uart_0_write(ble_fw, ble_fw_size)));
-#endif
                 self->state = FIRMWARE_LOADER_STATE_SENT_FIRMWARE;
             } else {
                 self->state = FIRMWARE_LOADER_STATE_IDLE;
@@ -167,19 +171,27 @@ static void _firmware_loader_poll(
         break;
     case FIRMWARE_LOADER_STATE_SENT_FIRMWARE:
         if (*buf_in_len == 1) {
-            if (buf_in[0] == ble_fw_checksum) {
-                util_log("da14531: checksum success (%x)", buf_in[0]);
+            if (!self->checksum_received) {
+                self->received_checksum = buf_in[0];
+                self->checksum_received = true;
+            }
+            *buf_in_len = 0;
+        }
+        if (self->checksum_received && uart_0_write_done()) {
+            if (self->received_checksum == ble_fw_checksum) {
+                util_log("da14531: checksum success (%x)", self->received_checksum);
                 rust_bytequeue_put(out_queue, ACK);
                 self->state = FIRMWARE_LOADER_STATE_DONE;
             } else {
                 util_log(
-                    "da14531: checksum failure, their:%02X, our:%02X", buf_in[0], ble_fw_checksum);
+                    "da14531: checksum failure, their:%02X, our:%02X",
+                    self->received_checksum,
+                    ble_fw_checksum);
                 self->state = FIRMWARE_LOADER_STATE_IDLE;
             }
-            ASSERT(buf_in[0] == ble_fw_checksum);
+            ASSERT(self->received_checksum == ble_fw_checksum);
             free(ble_fw);
             ble_fw = NULL;
-            *buf_in_len = 0;
         }
         break;
     case FIRMWARE_LOADER_STATE_DONE:

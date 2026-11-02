@@ -37,6 +37,8 @@ else()
      "-Wl,--wrap=util_cleanup_32"
      da14531_handler
      "-Wl,--wrap=confirm_create"
+     da14531_protocol
+     "-Wl,--wrap=free,--wrap=memory_spi_get_active_ble_firmware"
      gestures
      ""
      hww

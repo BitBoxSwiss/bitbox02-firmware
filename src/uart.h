@@ -10,6 +10,8 @@ struct RustByteQueue;
 void uart_init(void);
 int32_t uart_0_read(uint8_t* buf, uint16_t buf_len);
 bool uart_0_write(const uint8_t* buf, uint16_t buf_len);
+// Returns true once the previous write has completed and its buffer can be released.
+bool uart_0_write_done(void);
 bool uart_0_write_from_queue(struct RustByteQueue* queue);
 
 // Check if there are new bytes and try to send out if there are bytes to send

@@ -3,7 +3,7 @@
 # Script for vendoring our dependencies, including the deps of core/alloc.
 #
 # This script can be called from any directory. It runs Cargo from the
-# <git-project-root>/src/rust directory so rustup loads rust-toolchain.toml, and places the
+# <git-project-root>/src/rust directory with the repository's pinned toolchain, and places the
 # dependencies in <git-project-root>/external/vendor.
 #
 # For some reason Cargo needs to find the dependencies of all rust std libs. Since "test" depends

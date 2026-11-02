@@ -106,8 +106,8 @@ brew install arm-gcc-bin
 ```
 
 Install [rustup](https://rustup.rs). The toolchain version is pinned by
-`src/rust/rust-toolchain.toml`; rustup will download it automatically once you run `cargo` from
- within `src/rust` (or after setting a rustup override for the repository).
+`rust-toolchain.toml` at the repository root; rustup will download it automatically once you run
+`cargo` from within the repository.
 
 The build also invokes three tools that are not installed by the brew commands
 above. Install them with the same versions as the container (see the

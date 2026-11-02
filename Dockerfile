@@ -121,7 +121,7 @@ RUN mkdir -p /opt/go_dist && \
 # Install rust compiler
 ENV PATH=/opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
-COPY src/rust/rust-toolchain.toml rust-toolchain.toml
+COPY rust-toolchain.toml rust-toolchain.toml
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' rust-toolchain.toml) -y
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.2 --locked
 RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.1 --locked

@@ -626,12 +626,12 @@ mod tests {
                 mock_hal.ui.screens,
                 vec![
                     Screen::Confirm {
-                        title: "RESET".into(),
-                        body: "Proceed to\nfactory reset?".into(),
+                        title: "Delete".into(),
+                        body: "Delete your wallet\nfrom this device?".into(),
                         longtouch: true,
                     },
                     Screen::Status {
-                        title: "Device reset".into(),
+                        title: "Wallet deleted\nfrom this device".into(),
                         success: true,
                     }
                 ]

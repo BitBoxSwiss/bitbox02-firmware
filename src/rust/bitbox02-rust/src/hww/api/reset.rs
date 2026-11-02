@@ -10,8 +10,8 @@ use pb::response::Response;
 use crate::hal::Ui;
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
-    let title = crate::tr!(hal, "RESET");
-    let body = crate::tr!(hal, "Proceed to\nfactory reset?");
+    let title = crate::tr!(hal, "Delete");
+    let body = crate::tr!(hal, "Delete your wallet\nfrom this device?");
     let params = ConfirmParams {
         title: &title,
         body: &body,
@@ -44,8 +44,8 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Confirm {
-                title: "RESET".into(),
-                body: "Proceed to\nfactory reset?".into(),
+                title: "Delete".into(),
+                body: "Delete your wallet\nfrom this device?".into(),
                 longtouch: true,
             }],
         );
@@ -65,12 +65,12 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
-                    title: "RESET".into(),
-                    body: "Proceed to\nfactory reset?".into(),
+                    title: "Delete".into(),
+                    body: "Delete your wallet\nfrom this device?".into(),
                     longtouch: true,
                 },
                 Screen::Status {
-                    title: "Device reset".into(),
+                    title: "Wallet deleted\nfrom this device".into(),
                     success: true,
                 }
             ],

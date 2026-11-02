@@ -197,9 +197,9 @@
       }
     },
     "reset": {
-      "body": "Proceed to\nfactory reset?",
-      "status": "Device reset",
-      "title": "RESET"
+      "body": "Delete your wallet\nfrom this device?",
+      "status": "Wallet deleted\nfrom this device",
+      "title": "Delete"
     },
     "restore": {
       "backupName": "Name: {}. ID: {}",

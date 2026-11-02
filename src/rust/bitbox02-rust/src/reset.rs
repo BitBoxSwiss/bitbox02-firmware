@@ -9,11 +9,11 @@ use crate::i18n::I18n as _;
 /// - Resets the securechip EEPROM (U2F counter).
 /// - Resets MCU flash app memory.
 /// - Disables SmartEEPROM memory (will be erased/setup on next boot).
-/// - Shows a "Device reset" status message.
+/// - Shows a "Wallet deleted from this device" status message.
 ///
 /// `status` selects whether the status message indicates success or failure (user invoked vs forced).
 pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
-    let status_title = crate::tr!(hal, "Device reset");
+    let status_title = crate::tr!(hal, "Wallet deleted\nfrom this device");
     crate::keystore::lock();
     // Resetting takes longer than the default 500 ms watchdog. Bump the watchdog timeout to roughly
     // 7 seconds (longer than needed) so we don't assume communication was lost and this task gets
@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(
             hal.ui.screens,
             vec![Screen::Status {
-                title: "Device reset".into(),
+                title: "Wallet deleted\nfrom this device".into(),
                 success: true,
             }],
         );
@@ -137,7 +137,7 @@ mod tests {
         assert_eq!(
             hal.ui.screens,
             vec![Screen::Status {
-                title: "Device reset".into(),
+                title: "Wallet deleted\nfrom this device".into(),
                 success: false,
             }],
         );

@@ -132,6 +132,9 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     }
     volatile uint8_t* eeprom = (uint8_t*)SEEPROM_ADDR + address;
     while (NVMCTRL->SEESTAT.bit.BUSY);
+    // Disable both NVM caches during buffered writes and flushes.
+    const uint16_t ctrla = NVMCTRL->CTRLA.reg;
+    NVMCTRL->CTRLA.reg |= NVMCTRL_CTRLA_CACHEDIS0 | NVMCTRL_CTRLA_CACHEDIS1;
     /*
      * Buffered write of multiple bytes.
      * Note that crossing a 32B page will still result in a partial flush
@@ -145,6 +148,7 @@ void smarteeprom_write(size_t address, size_t bytes, const uint8_t* buffer)
     nvmctrl_exec_cmd(NVMCTRL_CTRLB_CMD_SEEFLUSH);
     while (NVMCTRL->SEESTAT.bit.LOAD != 0);
     while (NVMCTRL->SEESTAT.bit.BUSY != 0);
+    NVMCTRL->CTRLA.reg = ctrla;
     /*
      * Read back the buffer.
      * Check that it matches what we've just written.

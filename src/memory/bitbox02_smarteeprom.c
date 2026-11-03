@@ -134,7 +134,9 @@ void bitbox02_smarteeprom_init(void)
 bool bitbox02_smarteeprom_set_device_language(bitbox02_smarteeprom_language_t language)
 {
     if (!smarteeprom_is_enabled() || (language != BITBOX02_SMARTEEPROM_LANGUAGE_EN &&
-                                      language != BITBOX02_SMARTEEPROM_LANGUAGE_DE)) {
+                                      language != BITBOX02_SMARTEEPROM_LANGUAGE_DE &&
+                                      language != BITBOX02_SMARTEEPROM_LANGUAGE_IT &&
+                                      language != BITBOX02_SMARTEEPROM_LANGUAGE_ES)) {
         return false;
     }
     uint8_t value = (uint8_t)language;
@@ -155,6 +157,10 @@ bitbox02_smarteeprom_language_t bitbox02_smarteeprom_get_device_language(void)
     switch (language) {
     case BITBOX02_SMARTEEPROM_LANGUAGE_DE:
         return BITBOX02_SMARTEEPROM_LANGUAGE_DE;
+    case BITBOX02_SMARTEEPROM_LANGUAGE_IT:
+        return BITBOX02_SMARTEEPROM_LANGUAGE_IT;
+    case BITBOX02_SMARTEEPROM_LANGUAGE_ES:
+        return BITBOX02_SMARTEEPROM_LANGUAGE_ES;
     case BITBOX02_SMARTEEPROM_LANGUAGE_EN:
     default:
         return BITBOX02_SMARTEEPROM_LANGUAGE_EN;

@@ -40,6 +40,8 @@ pub enum Platform {
 pub enum Language {
     English,
     German,
+    Italian,
+    Spanish,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

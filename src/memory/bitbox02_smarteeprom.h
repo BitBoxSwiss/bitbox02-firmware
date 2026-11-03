@@ -11,6 +11,8 @@
 typedef enum {
     BITBOX02_SMARTEEPROM_LANGUAGE_EN = 0,
     BITBOX02_SMARTEEPROM_LANGUAGE_DE = 1,
+    BITBOX02_SMARTEEPROM_LANGUAGE_IT = 2,
+    BITBOX02_SMARTEEPROM_LANGUAGE_ES = 3,
 } bitbox02_smarteeprom_language_t;
 
 USE_RESULT bool bitbox02_smarteeprom_set_device_language(bitbox02_smarteeprom_language_t language);

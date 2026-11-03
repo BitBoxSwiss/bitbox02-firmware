@@ -16,6 +16,16 @@ typedef enum {
 USE_RESULT bool bitbox02_smarteeprom_set_device_language(bitbox02_smarteeprom_language_t language);
 bitbox02_smarteeprom_language_t bitbox02_smarteeprom_get_device_language(void);
 
+USE_RESULT bool bitbox02_smarteeprom_set_mnemonic_passphrase_enabled(bool enabled);
+bool bitbox02_smarteeprom_is_mnemonic_passphrase_enabled(void);
+
+// Both buffers must contain MEMORY_DEVICE_MAX_LEN_WITH_NULL bytes, including any padding.
+USE_RESULT bool bitbox02_smarteeprom_set_device_name(const uint8_t* name);
+void bitbox02_smarteeprom_get_device_name(uint8_t* name_out);
+
+// Clear the settings also cleared by memory_reset_hww(), once their migration has completed.
+void bitbox02_smarteeprom_reset_device_settings(void);
+
 /**
  * Reads and validates the last recorded number of unlock attempts.
  */

@@ -81,6 +81,10 @@ USE_RESULT bool memory_set_device_name(const char* name, size_t name_len);
 //    The name is cached in RAM, so the same random name is returned until reboot.
 void memory_get_device_name(char* name_out);
 
+// Migration source only. name_out must hold MEMORY_DEVICE_MAX_LEN_WITH_NULL bytes.
+void memory_get_legacy_device_name(uint8_t* name_out);
+bool memory_is_legacy_mnemonic_passphrase_enabled(void);
+
 /**
  * Sets the seed's birthdate to a unix timestamp.
  * @param[in] timestamp The seed birthdate.

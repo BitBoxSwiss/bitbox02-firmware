@@ -231,10 +231,12 @@ def save_config(path: Path, config: Config) -> None:
             os.unlink(name)
 
 
-def build_dir(config: Config, profile: str | None = None, root: Path = ROOT) -> Path:
+def build_dir(config: Config, root: Path = ROOT) -> Path:
+    edition = "btconly" if config.edition == "btc-only" else config.edition
     if config.product == "bitbox03":
-        return root / "build-bitbox03-cargo"
-    return root / f"build-{config.product}-cmake-{profile or config.profile}"
+        return root / f"build-bitbox03-{edition}"
+    profile = "debug" if config.debug == "yes" else "release"
+    return root / f"build-{config.product}-{edition}-{profile}"
 
 
 @dataclass(frozen=True)
@@ -274,8 +276,10 @@ def image_info(
         variant = "development" if config.development == "yes" else "production"
         if config.locked == "yes" and config.development == "yes":
             variant += "-locked"
-        name = f"{image}-{config.product}-{config.edition.replace('-', '')}-{variant}"
+        directory = root / ("build-debug" if config.debug == "yes" else "build") / "bin"
         address = 0 if image == "bootloader-stage0" else 0x2000
+        vectors = address + (0x400 if image == "bootloader-stage1" else 0)
+        return Image(image, directory / f"{image}-{variant}.elf", vectors)
     else:
         name = (
             "factory-setup"
@@ -283,9 +287,8 @@ def image_info(
             else ("firmware-btc" if config.edition == "btc-only" else "firmware")
         )
         address = 0x10000
-    vectors = address + (0x400 if image == "bootloader-stage1" else 0)
-    directory = build_dir(config, profile, root) / "bin"
-    return Image(name, directory / f"{name}.elf", vectors)
+    directory = build_dir(config, root=root) / "bin"
+    return Image(name, directory / f"{name}.elf", address)
 
 
 def main() -> int:

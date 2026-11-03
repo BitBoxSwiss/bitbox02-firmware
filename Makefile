@@ -95,7 +95,7 @@ run-rust-clippy:
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
-flash-dev-firmware: FIRMWARE_BIN = build-$(PRODUCT)-cmake-$(if $(filter yes,$(DEBUG)),debug,relwithdebinfo)/bin/firmware$(if $(filter btc-only,$(EDITION)),-btc).bin
+flash-dev-firmware: FIRMWARE_BIN = build-$(PRODUCT)-$(if $(filter btc-only,$(EDITION)),btconly,multi)-$(if $(filter yes,$(DEBUG)),debug,release)/bin/firmware$(if $(filter btc-only,$(EDITION)),-btc).bin
 flash-dev-firmware:
 	@case "$(PRODUCT)" in bitbox02|bitbox02nova) ;; *) echo "flash-dev-firmware is only supported on BitBox02/Nova" >&2; exit 1 ;; esac
 	@case "$(EDITION)" in multi|btc-only) ;; *) echo "Invalid edition: $(EDITION)" >&2; exit 1 ;; esac
@@ -124,7 +124,7 @@ prepare-tidy:
 	$(MAKE) build-build
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target
+	rm -rf build build-debug build-build build-build-noasan build-bitbox02-* build-bitbox02nova-* build-bitbox03-* src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:

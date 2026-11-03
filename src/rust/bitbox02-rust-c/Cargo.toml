@@ -30,22 +30,6 @@ zeroize = { workspace = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
-target-bb02-bl-multi = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-development = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-development-locked = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-production = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly-development = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly-production = ["bootloader", "platform-bitbox02"]
-target-bb02p-bl-multi = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-development = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-development-locked = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-production = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly-development = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly-production = ["bootloader", "platform-bitbox02plus"]
-target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
-target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = [
   # enable these features
   "factory-setup",

@@ -56,7 +56,7 @@ git checkout -- Dockerfile
 docker run -it --rm --volume `pwd`:/bb02 bitbox02-firmware bash -c "git config --global --add safe.directory /bb02 && cd /bb02 && $2"
 
 echo "Firmware binaries created at:"
-for binary in "$PWD"/build/bin/firmware*.bin "$PWD"/build-bitbox02*-cmake-*/bin/firmware*.bin; do
+for binary in "$PWD"/build/bin/firmware*.bin "$PWD"/build-bitbox02*/bin/firmware*.bin; do
   if [[ -f "$binary" ]]; then
     echo "$binary"
   fi

@@ -37,19 +37,21 @@ class TestBuildConfig(unittest.TestCase):
                                 locked=locked,
                                 development=development,
                             )
+                            profile = "debug" if debug == "yes" else "release"
+                            edition_name = "btconly" if edition == "btc-only" else "multi"
+                            self.assertEqual(
+                                build_config.build_dir(config).name,
+                                f"build-{product}-{edition_name}-{profile}",
+                            )
                             for stage, vectors in ((0, 0), (1, 0x2400)):
                                 info = build_config.image_info(config, f"bootloader-stage{stage}")
-                                expected = (
-                                    f"bootloader-stage{stage}-{product}-"
-                                    f"{edition.replace('-', '')}-{variant}"
-                                )
-                                self.assertEqual(info.name, expected)
+                                expected = f"bootloader-stage{stage}-{variant}"
+                                self.assertEqual(info.name, f"bootloader-stage{stage}")
                                 self.assertEqual(info.elf.name, expected + ".elf")
                                 self.assertEqual(info.vectors, vectors)
-                                profile = "debug" if debug == "yes" else "relwithdebinfo"
                                 self.assertEqual(
                                     info.elf.parent.parent.name,
-                                    f"build-{product}-cmake-{profile}",
+                                    "build-debug" if debug == "yes" else "build",
                                 )
 
     def test_config_flags_roundtrip(self) -> None:
@@ -116,6 +118,11 @@ class TestBuildConfig(unittest.TestCase):
         for config in (replace(base, locked="yes"), replace(base, development="no")):
             with self.assertRaisesRegex(ValueError, "not implemented for BitBox03"):
                 config.validate()
+
+    def test_build_dir_bitbox03(self) -> None:
+        for edition, name in (("multi", "multi"), ("btc-only", "btconly")):
+            config = replace(build_config.defaults("bitbox03"), edition=edition)
+            self.assertEqual(build_config.build_dir(config).name, f"build-bitbox03-{name}")
 
     def test_interactive_product_change_resets_unsupported_modes(self) -> None:
         saved = {"LOCKED": "yes", "DEVELOPMENT": "no"}

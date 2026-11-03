@@ -16,7 +16,8 @@ pub use pb::{BtcCoin, BtcOutputType};
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{multisig, params::Params};
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 use bitcoin::ScriptBuf;
 use bitcoin::bech32;

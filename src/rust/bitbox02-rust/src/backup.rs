@@ -10,8 +10,9 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use hmac::{Hmac, Mac};
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use hmac::{Mac, SimpleHmac};
+use util::sha256::Sha256;
 use zeroize::Zeroizing;
 
 #[derive(Debug)]
@@ -56,7 +57,7 @@ fn padded_seed(seed: &[u8]) -> Zeroizing<[u8; 32]> {
 }
 
 pub fn id(seed: &[u8]) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(b"backup").unwrap();
+    let mut mac = SimpleHmac::<Sha256>::new_from_slice(b"backup").unwrap();
     mac.update(padded_seed(seed).as_ref());
     hex::encode(mac.finalize_reset().into_bytes())
 }

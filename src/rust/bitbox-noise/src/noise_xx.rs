@@ -5,8 +5,9 @@ use alloc::vec::Vec;
 
 use bitbox_hal::Random;
 
+use crate::sha256::Sha256;
 use crate::x25519::{PrivateKey, PublicKey, X25519, genkey};
-use noise_rust_crypto::{ChaCha20Poly1305, Sha256, sensitive::Sensitive};
+use noise_rust_crypto::{ChaCha20Poly1305, sensitive::Sensitive};
 
 /// Specialization of noise_protocol::HandshakeState, picking the implementations for Diffie
 /// Hellman, Cipher and Hash.
@@ -225,7 +226,7 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{MockRandom, make_mock_host};
+    use crate::testing::MockRandom;
 
     impl HandshakeResult {
         fn response(self) -> Result<Vec<u8>, ()> {
@@ -247,7 +248,21 @@ mod tests {
         let mut bb02_random = MockRandom;
         let bb02_static_key = genkey(&mut bb02_random);
 
-        let mut host = make_mock_host();
+        // Use the original hash backend as an independent interoperability reference.
+        let mut host_random = MockRandom;
+        let mut host = noise_protocol::HandshakeState::<
+            X25519,
+            ChaCha20Poly1305,
+            noise_rust_crypto::Sha256,
+        >::new(
+            noise_protocol::patterns::noise_xx(),
+            true,
+            b"Noise_XX_25519_ChaChaPoly_SHA256",
+            Some(genkey(&mut host_random)),
+            Some(genkey(&mut host_random)),
+            None,
+            None,
+        );
         let mut bb02 = State::Nothing;
         bb02.init(bb02_static_key, &mut bb02_random);
 
@@ -264,6 +279,10 @@ mod tests {
         };
         bb02.handshake(&host_handshake_2).unwrap().done().unwrap();
 
+        assert_eq!(
+            bb02.get_handshake_hash().unwrap().as_slice(),
+            host.get_hash()
+        );
         bb02.set_pairing_verified().unwrap();
 
         let (mut host_send, mut host_recv) = host.get_ciphers();

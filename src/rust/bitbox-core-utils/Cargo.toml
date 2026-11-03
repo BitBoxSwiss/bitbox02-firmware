@@ -10,7 +10,7 @@ license = "Apache-2.0"
 [dependencies]
 bitbox-hal = { path = "../bitbox-hal" }
 digest = { workspace = true }
-sha2 = { workspace = true }
+util = { path = "../util" }
 zeroize = { workspace = true }
 
 [dev-dependencies]

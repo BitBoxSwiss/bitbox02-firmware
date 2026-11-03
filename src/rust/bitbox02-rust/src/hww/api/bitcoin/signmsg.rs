@@ -4,7 +4,8 @@ use crate::hal::ui::ConfirmParams;
 use crate::i18n::I18n as _;
 use alloc::vec::Vec;
 
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 use super::Error;
 use super::pb;

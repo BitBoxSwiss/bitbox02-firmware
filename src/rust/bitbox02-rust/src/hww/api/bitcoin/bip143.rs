@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bitcoin::consensus::encode::{VarInt, serialize};
-use sha2::Digest;
-use sha2::Sha256;
+use digest::Digest;
+use util::sha256::Sha256;
 
 /// https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification
 pub struct Args<'a> {

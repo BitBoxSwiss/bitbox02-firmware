@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::{Memory, SecureChip};
-use sha2::{Digest, Sha256};
+use digest::Digest;
+use util::sha256::Sha256;
 
 pub struct Data {
     pub bootloader_hash: [u8; 32],

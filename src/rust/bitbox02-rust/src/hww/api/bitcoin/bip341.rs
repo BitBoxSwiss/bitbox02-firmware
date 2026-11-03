@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use sha2::Digest;
-use sha2::Sha256;
+use digest::Digest;
+use util::sha256::Sha256;
 
 /// https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
 pub struct Args {

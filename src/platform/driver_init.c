@@ -4,6 +4,9 @@
 
 #include "driver_init.h"
 #include "bitbox02_pins.h"
+#if !defined(BOOTLOADER) && !defined(BOOTLOADER_STAGE0)
+    #include "memory/memory.h"
+#endif
 #include "memory/memory_shared.h"
 #include "util.h"
 #include <compiler.h>
@@ -256,14 +259,38 @@ static void _delay_driver_init(void)
     delay_init(SysTick);
 }
 
+static void __attribute__((noreturn)) _rand_init_abort(void)
+{
+#if !defined(BOOTLOADER) && !defined(BOOTLOADER_STAGE0)
+    // The regular abort path is not safe before the screen and USB have been initialized.
+    _flash_memory_init();
+    const auto_enter_t auto_enter = {
+        .value = sectrue_u8,
+    };
+    const upside_down_t upside_down = {
+        .value = false,
+    };
+    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
+        // The device might not enter the bootloader after it is restarted.
+    }
+#endif
+    __disable_irq();
+    while (1) {
+    }
+}
+
 /**
  * Initialize hardware random number generator
  */
 static void _rand_init(void)
 {
     hri_mclk_set_APBCMASK_TRNG_bit(MCLK);
-    rand_sync_init(&RAND_0, TRNG);
-    rand_sync_enable(&RAND_0);
+    if (rand_sync_init(&RAND_0, TRNG) != ERR_NONE) {
+        _rand_init_abort();
+    }
+    if (rand_sync_enable(&RAND_0) != ERR_NONE) {
+        _rand_init_abort();
+    }
 }
 
 /**

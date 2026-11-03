@@ -19,7 +19,7 @@ bitbox-hal = { path = "../bitbox-hal" }
 bitbox-core-utils = { path = "../bitbox-core-utils" }
 bitbox-i18n = { path = "../bitbox-i18n" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
-bitbox02 = { path = "../bitbox02" }
+bitbox02 = { path = "../bitbox02", optional = true }
 bitbox-platform-host = { path = "../bitbox-platform-host", optional = true }
 bitbox-u2fhid = { path = "../bitbox-u2fhid" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
@@ -119,7 +119,7 @@ simulator-graphical = [
   "firmware",
 ]
 
-firmware = []
+firmware = ["dep:bitbox02"]
 
 [dev-dependencies]
 async_test = { path = "../async_test" }

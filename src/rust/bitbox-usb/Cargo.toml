@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-usb"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Device-independent BitBox USB HID transport"
+
+[dependencies]
+bitbox-u2fhid = { path = "../bitbox-u2fhid" }
+embassy-usb = { version = "0.6.0", default-features = false }
+
+[dev-dependencies]
+hex_lit = { workspace = true }
+async_test = { path = "../async_test" }
+util = { path = "../util", features = ["testing"] }
+embassy-futures = "0.1.2"

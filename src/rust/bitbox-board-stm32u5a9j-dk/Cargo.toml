@@ -8,6 +8,15 @@ authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 description = "Board-specific STM32U5 DK support for bitbox02-firmware"
 license = "Apache-2.0"
 
+[features]
+usb = ["dep:bitbox-platform-stm32u5", "dep:bitbox-mcu-stm32u5", "dep:cortex-m", "dep:critical-section", "dep:embassy-sync", "dep:log"]
+
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+bitbox-platform-stm32u5 = { path = "../bitbox-platform-stm32u5", features = ["usb"], optional = true }
+bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5", optional = true }
+cortex-m = { workspace = true, optional = true }
+critical-section = { workspace = true, optional = true }
+embassy-sync = { version = "0.8.0", optional = true }
+log = { version = "0.4.22", default-features = false, optional = true }
 bitbox-board-stm32u5a9j-dk-sys = { path = "../bitbox-board-stm32u5a9j-dk-sys" }
 bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }

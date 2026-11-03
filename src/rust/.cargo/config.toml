@@ -3,6 +3,11 @@ include = [{ path = "../../../.cargo/config.local.toml", optional = true }]
 [source.crates-io]
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/embassy-rs/xarxa?rev=e5bc1b0408773f804f8d165257f34c3a11ae0181"]
+git = "https://github.com/embassy-rs/xarxa"
+rev = "e5bc1b0408773f804f8d165257f34c3a11ae0181"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/probe-rs/rtt-target.git?rev=08309db569ff5b93e9e77165984e32ebb22de277"]
 git = "https://github.com/probe-rs/rtt-target.git"
 rev = "08309db569ff5b93e9e77165984e32ebb22de277"
@@ -20,6 +25,11 @@ replace-with = "vendored-sources"
 
 [source.vendored-sources]
 directory = "../../external/vendor"
+
+[source."git+https://github.com/embassy-rs/embassy.git?rev=96375c267b51e4c7eb268504ef11e79bb3067612"]
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "96375c267b51e4c7eb268504ef11e79bb3067612"
+replace-with = "vendored-sources"
 
 [alias]
 bitbox03-boot0-stm32u5a9j-dk = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"

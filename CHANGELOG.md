@@ -15,6 +15,9 @@ recorded separately.
 - API: add a session reset command for clean host reconnects after interrupted operations
 - Add German firmware translations
 
+### v9.27.2
+- Intermediate release to update stage0 to v3 and stage1 to v1.2.3
+
 ### v9.27.1
 - API: include the installed bootloader version in the device info response
 - Ethereum: display the EIP-712 message type before signing

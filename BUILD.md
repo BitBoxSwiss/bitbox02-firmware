@@ -165,9 +165,10 @@ make bootloader-stage1
 ```
 
 `make config` remembers selections in the git-ignored `config.mk`. It prompts for product, board,
-edition (`multi` or `btc-only`), debug builds, locked hardware, development mode, probe software, and
-SWD speed in kHz, automatically selecting fields with one choice. `DEBUG` defaults to `no`; `SWD_SPEED` defaults to
-`4000` for all products and both probe backends. `LOCKED` defaults to `no` and `DEVELOPMENT` to `yes`.
+edition (`multi` or `btc-only`), debug builds, locked hardware, development mode, stage1 embedding,
+probe software, and SWD speed in kHz, automatically selecting fields with one choice. `DEBUG` defaults
+to `no`; `SWD_SPEED` defaults to `4000` for all products and both probe backends. `LOCKED` defaults to
+`no` and `DEVELOPMENT` to `yes`.
 Probe hardware is fixed by the board:
 
 | Product | Board | Probe | Software (default first) |
@@ -208,6 +209,22 @@ in `config.mk` and can be overridden per command, for example
 `make bootloader-stage1 LOCKED=yes DEVELOPMENT=yes`. Use the same flags when flashing or running.
 BitBox03 does not yet implement these bootloader modes and only accepts their defaults.
 
+For BitBox02/Nova firmware, `EMBED_STAGE1=yes` embeds the prebuilt stage1 update, stage0 image, and
+installer. This firmware runs the bootloader installer and reboots into the bootloader.
+The setting defaults to `no`, is saved by `make config` (`--embed-stage1 yes`), and can be overridden
+per build:
+
+```sh
+make firmware EMBED_STAGE1=yes
+make firmware PRODUCT=bitbox02nova EDITION=btc-only EMBED_STAGE1=yes LOCKED=yes DEVELOPMENT=no
+make firmware EMBED_STAGE1=no
+```
+
+The embedded assets match `PRODUCT`, `EDITION`, and `DEVELOPMENT`. Production updates require
+`LOCKED=yes DEVELOPMENT=no`; the default `DEVELOPMENT=yes` selects development updates.
+Both modes produce the usual `firmware.bin` or `firmware-btc.bin` in the product/profile directory,
+replacing the previous build there. BitBox03 does not yet support stage1 embedding.
+
 Invalid input, EOF, or Ctrl-C preserves the previous file. Interactive product changes reset
 incompatible saved choices. Run configuration separately from builds: `make config firmware` is
 rejected because Make has already parsed the old settings. Configuration and compilation require
@@ -238,10 +255,10 @@ Use `bootloader-stage0` and `bootloader-stage1` with `LOCKED=yes DEVELOPMENT=no`
 bootloaders, or `LOCKED=yes DEVELOPMENT=yes` for locked development devices. These targets build
 only the configured product and edition. Development artifact names use `-development`, with
 `-locked` appended for locked development devices. Production artifact names use `-production`
-and always enable locking. Upgrade-firmware and upgrade-assets aliases also use `-development`
-for development devices. Named product commands always use that product's directory.
+and always enable locking. Upgrade-assets aliases use `-development` for development devices.
+Named product commands always use that product's directory.
 
-The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
+The old `firmware-btc`, `firmware-blupgrade-*`, `factory-setup`, per-product stage build shortcuts, and
 `bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above.
 Additional BitBox03 board/edition implementations are deferred.
 

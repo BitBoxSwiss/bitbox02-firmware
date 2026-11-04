@@ -115,17 +115,17 @@ check_bootloader() {
 }
 
 shopt -s nullglob
-for firmware_elf in build-bitbox02*-cmake-*/bin/firmware.elf build-bitbox02*-cmake-*/bin/firmware-btc.elf; do
+for firmware_elf in build-bitbox02*-{multi,btconly}-{debug,release}/bin/{firmware,firmware-btc}.elf; do
     check_firmware "$firmware_elf"
 done
 
-for bootloader_elf in build-bitbox02*-cmake-*/bin/bootloader-stage0-*.elf build-bitbox02*-cmake-*/bin/bootloader-stage1-*.elf; do
+for bootloader_elf in build-bitbox02*-{multi,btconly}-{debug,release}/bin/bootloader-stage{0,1}.elf; do
     check_bootloader "$bootloader_elf"
 done
 shopt -u nullglob
 
 if [[ "$checked" == 0 ]]; then
-    echo "No checked ELF files found in build-bitbox02*-cmake-*/bin" >&2
+    echo "No checked ELF files found in BitBox02/Nova build directories" >&2
     exit 2
 fi
 

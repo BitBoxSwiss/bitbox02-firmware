@@ -221,16 +221,21 @@ are flat:
 
 | Backend | Directory |
 | --- | --- |
-| BitBox02/Nova CMake | `build-<product>-cmake-<profile>` |
-| BitBox03 Cargo | `build-bitbox03-cargo` |
+| BitBox02/Nova CMake | `build-<product>-<edition>-<profile>` |
+| BitBox03 Cargo | `build-bitbox03-<edition>` |
 
-For example, `build-bitbox02-cmake-relwithdebinfo/bin/firmware.elf`,
-`build-bitbox02nova-cmake-debug/bin/firmware-btc.elf`, and
-`build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-firmware`.
+The directory profile is `release` for non-debug builds and `debug` for debug builds; the edition
+is `multi` or `btconly`.
+For example, `build-bitbox02-multi-release/bin/firmware.elf`,
+`build-bitbox02nova-btconly-debug/bin/firmware-btc.elf`, and
+`build-bitbox03-multi/thumbv8m.main-none-eabihf/debug/bitbox03-firmware`.
+`make firmware` also copies the BitBox02/Nova binary to
+`build/bin/firmware-<product>-<edition>.bin`, for example `firmware-bitbox02-multi.bin` or
+`firmware-bitbox02nova-btconly.bin`. Debug copies use the same filenames in `build-debug/bin`.
 Cargo receives an absolute target directory; backend-managed contents keep their native layouts.
-CMake Rust feature caches remain inside their product/profile directory. Images and editions share
-those caches. Switching products and switching back reuses previous results; changing probe
-software or SWD speed does not affect compilation. Configuration never cleans. `make clean` removes
+CMake Rust feature caches remain inside their product/edition/profile directory. Images share
+those caches. Switching products or editions and switching back reuses previous results; changing
+probe software or SWD speed does not affect compilation. Configuration never cleans. `make clean` removes
 build trees but preserves `config.mk`. Host tests and simulators still use `build-build` and
 `build-build-noasan`.
 
@@ -240,6 +245,13 @@ only the configured product and edition. Development artifact names use `-develo
 `-locked` appended for locked development devices. Production artifact names use `-production`
 and always enable locking. Upgrade-firmware and upgrade-assets aliases also use `-development`
 for development devices. Named product commands always use that product's directory.
+
+BitBox02/Nova bootloaders are built as `bin/bootloader-stage0.{bin,elf,map}` and
+`bin/bootloader-stage1.{bin,elf,map}` in the CMake build directory. The Makefile shortcuts copy
+them to `build/bin` (`build-debug/bin` with `DEBUG=yes`), adding the mode suffix, for example
+`build/bin/bootloader-stage0-production.bin`. Flash and run shortcuts use the copied ELF files.
+These final names omit product and edition, so each build replaces the copy for that mode;
+rebuild after changing product or edition before flashing or running.
 
 The old `firmware-btc`, `factory-setup`, per-product stage build shortcuts, and
 `bitbox03-*` build shortcuts are replaced by configuration plus the primary targets above.
@@ -367,7 +379,7 @@ make flash-dev-firmware
 make docs
 ```
 
-To view the results, open `build-bitbox02-cmake-relwithdebinfo/docs/html/index.html` in a web browser.
+To view the results, open `build-bitbox02-multi-release/docs/html/index.html` in a web browser.
 
 ### Debugging
 

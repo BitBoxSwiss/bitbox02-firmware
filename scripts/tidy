@@ -14,16 +14,21 @@ command -v ${CLANGTIDY} >/dev/null 2>&1 || { echo >&2 "${CLANGTIDY} is missing";
 JQ=${JQ:-jq}
 command -v ${JQ} >/dev/null 2>&1 || { echo >&2 "${JQ} is missing"; exit 1; }
 
-if ! compgen -G 'build-bitbox02*-cmake-*/compile_commands.json' >/dev/null && test ! -f build-build/compile_commands.json; then
+shopt -s nullglob
+DATABASES=(build-bitbox02*-{multi,btconly}-{debug,release}/compile_commands.json)
+shopt -u nullglob
+if test -f build-build/compile_commands.json; then
+	DATABASES+=(build-build/compile_commands.json)
+fi
+
+if [ ${#DATABASES[@]} -eq 0 ]; then
 	echo >&2 "no product or host compilation database found"
 	echo >&2 "please run 'make <target>' before running tidy to generate compile_commands.json"
 	exit 1
 fi
 
-for dir in build-bitbox02*-cmake-* build-build; do
-	if ! test -d ${dir}; then
-		continue
-	fi
+for database in "${DATABASES[@]}"; do
+	dir="${database%/*}"
 
 	# Exclude drivers and external for now. We get the base file set from compile_commands.json, as
 	# clang-tidy unfortunately tries to lint a provided source anyway even if it is not part of the

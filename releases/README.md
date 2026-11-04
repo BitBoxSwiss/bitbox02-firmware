@@ -106,16 +106,17 @@ starting another build. On macOS, use `shasum -a 256` instead of `sha256sum`.
 
 #### Releases from v9.28.0 onwards
 
-Replace `vX.Y.Z` below with the release version:
+Replace `vX.Y.Z` below with the release version. The build copies the final binary to
+`temp/build/bin`:
 
 ```sh
 # Multi
 ./build.sh firmware/vX.Y.Z "make firmware EDITION=multi"
-sha256sum temp/build-bitbox02-cmake-relwithdebinfo/bin/firmware.bin
+sha256sum temp/build/bin/firmware-bitbox02-multi.bin
 
 # Bitcoin-only
 ./build.sh firmware/vX.Y.Z "make firmware EDITION=btc-only"
-sha256sum temp/build-bitbox02-cmake-relwithdebinfo/bin/firmware-btc.bin
+sha256sum temp/build/bin/firmware-bitbox02-btconly.bin
 ```
 
 #### Releases through v9.27.1

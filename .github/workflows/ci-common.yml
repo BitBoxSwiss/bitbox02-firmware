@@ -64,7 +64,7 @@ jobs:
         run: PYTHONPATH=py/bitbox02 python3 -m unittest discover -s py/bitbox02/tests
 
       - name: Run build configuration tests
-        run: python3 -m unittest discover -s test/scripts -p test_build_config.py
+        run: python3 -m unittest discover -s test/scripts -p 'test_build*.py'
 
   lint-src:
     runs-on: ubuntu-22.04
@@ -260,8 +260,8 @@ jobs:
       - name: Print hashes
         run: |
           {
-            for dir in build*/bin build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug \
-                build-bitbox03-cargo/thumbv8m.main-none-eabihf/release; do
+            for dir in build*/bin build-bitbox03-*/thumbv8m.main-none-eabihf/debug \
+                build-bitbox03-*/thumbv8m.main-none-eabihf/release; do
               if [ -d "$dir" ]; then
                 find "$dir" -maxdepth 1 -type f -print0
               fi
@@ -279,8 +279,8 @@ jobs:
             build*/bin/*.elf
             build*/bin/*.map
             build*/bin/simulator*
-            build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-*
-            build-bitbox03-cargo/thumbv8m.main-none-eabihf/release/bitbox03-*
+            build-bitbox03-*/thumbv8m.main-none-eabihf/debug/bitbox03-*
+            build-bitbox03-*/thumbv8m.main-none-eabihf/release/bitbox03-*
 
       - name: Package graphical simulator
         if: matrix.target == 'simulator-graphical'

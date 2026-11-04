@@ -4,6 +4,7 @@
 """Dispatch command aliases to the existing CMake and Cargo targets."""
 
 import argparse
+from dataclasses import replace
 import os
 from pathlib import Path
 import shlex
@@ -33,8 +34,8 @@ def run(command: list[str], cwd: Path = ROOT) -> None:
     subprocess.run(command, cwd=cwd, check=True, close_fds=False)
 
 
-def cmake(config: Config, profile: str, targets: list[str]) -> None:
-    directory = build_dir(config, profile)
+def cmake(config: Config, targets: list[str]) -> None:
+    directory = build_dir(config)
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
     first_build = not (directory / "Makefile").exists()
     run(
@@ -45,7 +46,11 @@ def cmake(config: Config, profile: str, targets: list[str]) -> None:
             "-B",
             str(directory),
             "-DCMAKE_TOOLCHAIN_FILE=arm.cmake",
-            f"-DCMAKE_BUILD_TYPE={profile.upper()}",
+            f"-DCMAKE_BUILD_TYPE={config.profile.upper()}",
+            f"-DPRODUCT={config.product}",
+            f"-DEDITION={config.edition}",
+            f"-DBOOTLOADER_DEVELOPMENT={'ON' if config.development == 'yes' else 'OFF'}",
+            f"-DBOOTLOADER_LOCKED={'ON' if config.locked == 'yes' else 'OFF'}",
         ]
     )
     if first_build:
@@ -57,7 +62,19 @@ def build_image(config: Config, image: str) -> None:
     profile = config.profile
     info = image_info(config, image)
     if config.product != "bitbox03":
-        cmake(config, profile, [f"{info.name}.elf"])
+        target = "firmware" if image == "firmware" else info.name
+        cmake(config, [f"{target}.elf"])
+        if image.startswith("bootloader-"):
+            run(["mkdir", "-p", str(info.elf.parent)])
+            for suffix in (".bin", ".elf", ".map"):
+                source = build_dir(config) / "bin" / f"{info.name}{suffix}"
+                run(["cp", str(source), str(info.elf.with_suffix(suffix))])
+        elif image == "firmware":
+            directory = ROOT / ("build-debug" if config.debug == "yes" else "build") / "bin"
+            edition = "btconly" if config.edition == "btc-only" else config.edition
+            destination = directory / f"firmware-{config.product}-{edition}.bin"
+            run(["mkdir", "-p", str(directory)])
+            run(["cp", str(info.elf.with_suffix(".bin")), str(destination)])
         return
     config.describe()
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
@@ -83,23 +100,25 @@ def dispatch(config: Config, target: str) -> None:
     if target in IMAGES:
         build_image(config, target)
     elif target.startswith("firmware-blupgrade-"):
-        product = target.split("-")[2]
-        cmake(defaults(product), "relwithdebinfo", [target + ".elf"])
+        suffix = "-development" if target.endswith("-development") else ""
+        product, edition = (
+            target.removeprefix("firmware-blupgrade-").removesuffix(suffix).rsplit("-", 1)
+        )
+        config = replace(
+            defaults(product), edition="btc-only" if edition == "btconly" else edition
+        ).validate()
+        cmake(config, [f"firmware-blupgrade{suffix}.elf"])
     elif target in ("bootloader-upgrade-assets", "bootloader-upgrade-assets-development"):
         suffix = "-development" if target.endswith("-development") else ""
         for product in ("bitbox02", "bitbox02nova"):
-            cmake(
-                defaults(product),
-                "relwithdebinfo",
-                [
-                    f"bootloader-upgrade-assets-{product}-{edition}{suffix}"
-                    for edition in ("multi", "btconly")
-                ],
-            )
+            for edition in ("multi", "btc-only"):
+                cmake(
+                    replace(defaults(product), edition=edition),
+                    [f"bootloader-upgrade-assets{suffix}"],
+                )
     elif target in ("docs", "rust-docs", "prepare-tidy"):
         cmake(
             defaults(),
-            "relwithdebinfo",
             [{"docs": "doc", "rust-docs": "rust-docs", "prepare-tidy": "rust-cbindgen"}[target]],
         )
     else:

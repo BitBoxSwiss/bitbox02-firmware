@@ -62,6 +62,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mod
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
+set(PRODUCT "bitbox02" CACHE STRING "Firmware and bootloader product: bitbox02 or bitbox02nova")
+set(EDITION "multi" CACHE STRING "Firmware and bootloader edition: multi or btc-only")
+option(BOOTLOADER_DEVELOPMENT "Allow unsigned bootloader images." ON)
+option(BOOTLOADER_LOCKED "Enable bootloader hardware protection." OFF)
 
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

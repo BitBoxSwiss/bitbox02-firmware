@@ -32,6 +32,10 @@ pub async fn process(
             .await?;
     }
     hal.memory().set_device_language(language)?;
+    if hal.memory().is_initialized() {
+        let status = crate::i18n::translate(language, "Success");
+        hal.ui().status(&status, true).await;
+    }
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -68,11 +72,17 @@ mod tests {
         );
         assert_eq!(
             mock_hal.ui.screens,
-            vec![Screen::Confirm {
-                title: "".into(),
-                body: "Change language\nto German?".into(),
-                longtouch: false,
-            }]
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Change language\nto German?".into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Erfolgreich".into(),
+                    success: true,
+                },
+            ]
         );
         assert_eq!(
             mock_hal.memory.get_device_language(),
@@ -97,10 +107,18 @@ mod tests {
                     body: "Change language\nto German?".into(),
                     longtouch: false,
                 },
+                Screen::Status {
+                    title: "Erfolgreich".into(),
+                    success: true,
+                },
                 Screen::Confirm {
                     title: "".into(),
                     body: "Sprache ändern\nauf Englisch?".into(),
                     longtouch: false,
+                },
+                Screen::Status {
+                    title: "Success".into(),
+                    success: true,
                 },
             ]
         );
@@ -109,7 +127,7 @@ mod tests {
             bitbox_hal::memory::Language::English
         );
 
-        mock_hal.ui.abort_nth(2);
+        mock_hal.ui.abort_nth(4);
         assert_eq!(
             process(
                 &mut mock_hal,

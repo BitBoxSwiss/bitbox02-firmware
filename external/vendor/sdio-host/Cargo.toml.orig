@@ -1,0 +1,19 @@
+[package]
+name = "sdio-host"
+version = "0.9.0"
+authors = ["Johan Kristell <johan@jott.se>",
+           "Richard Meadows <richard@richard.fish>"]
+edition = "2018"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jkristell/sdio-host"
+description = "SD host protocol library"
+keywords = [
+    "sd",
+    "sdio",
+    "sdmmc",
+]
+categories = [
+    "embedded",
+    "no-std",
+]

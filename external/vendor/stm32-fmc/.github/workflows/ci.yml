@@ -1,0 +1,26 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ staging, trying, master ]
+  pull_request:
+
+jobs:
+  build-dev:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - 1.43.0  # MSRV
+          - stable
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+
+      - name: Build
+        run: |
+          cargo test --verbose --features=sdram,nand

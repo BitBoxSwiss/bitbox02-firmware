@@ -7,3 +7,6 @@ edition = "2024"
 authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 description = "Board-specific STM32U5G9 test board support for BitBox03"
 license = "Apache-2.0"
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+embassy-stm32 = { version = "0.6.0", default-features = false, features = ["stm32u5g9zj"] }

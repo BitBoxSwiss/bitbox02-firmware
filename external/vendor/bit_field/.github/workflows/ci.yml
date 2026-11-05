@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install ${{ matrix.rust }} --profile minimal && rustup default ${{ matrix.rust }}
+      - run: cargo test
+      - if: matrix.rust == 'nightly'
+        run: cargo bench
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup target add thumbv7em-none-eabihf && rustup component add rustfmt clippy
+      - run: cargo build --target thumbv7em-none-eabihf
+      - run: cargo fmt --check
+      - run: cargo clippy --lib -- -D warnings

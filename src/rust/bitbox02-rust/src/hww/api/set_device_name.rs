@@ -41,6 +41,9 @@ pub async fn process(
 
     hal.memory().set_device_name(name)?;
 
+    let status = crate::tr!(hal, "Success");
+    hal.ui().status(&status, true).await;
+
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -70,11 +73,17 @@ mod tests {
         );
         assert_eq!(
             mock_hal.ui.screens,
-            vec![Screen::Confirm {
-                title: "Name".into(),
-                body: SOME_NAME.into(),
-                longtouch: false,
-            }]
+            vec![
+                Screen::Confirm {
+                    title: "Name".into(),
+                    body: SOME_NAME.into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Success".into(),
+                    success: true,
+                },
+            ]
         );
         assert_eq!(SOME_NAME, mock_hal.memory.get_device_name());
 

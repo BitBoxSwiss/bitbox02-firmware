@@ -176,6 +176,7 @@ dependencies = [
 name = "bitbox-board-stm32u5g9j-tb"
 version = "0.1.0"
 dependencies = [
+ "bitbox-platform-stm32u5-sys",
  "embassy-stm32",
 ]
 

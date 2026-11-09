@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use bitbox_mcu_stm32u5 as _;
+#[cfg(feature = "stm32u5a9")]
 use bitbox_mcu_stm32u5::pac::RCC;
-use cortex_m_rt::{exception, pre_init};
+use cortex_m_rt::exception;
+#[cfg(feature = "stm32u5a9")]
+use cortex_m_rt::pre_init;
 
 mod ffi {
     pub use bitbox_platform_stm32u5_sys::*;
@@ -30,6 +34,7 @@ fn SysTick() {
 ///   provided by `bitbox-platform-stm32u5-sys` as CMSIS compatibility symbols.
 /// - `SystemCoreClockUpdate()`: not currently needed; HAL clock configuration
 ///   updates `SystemCoreClock` through the HAL RCC code we link.
+#[cfg(feature = "stm32u5a9")]
 #[pre_init]
 unsafe fn system_init() {
     let rcc = unsafe { &*RCC::PTR };

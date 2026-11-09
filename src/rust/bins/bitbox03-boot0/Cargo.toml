@@ -10,7 +10,7 @@ test = false
 bench = false
 
 [features]
-board-stm32u5a9j-dk = ["dep:bitbox-board-stm32u5a9j-dk"]
+board-stm32u5a9j-dk = ["bitbox-platform-stm32u5/stm32u5a9", "dep:bitbox-board-stm32u5a9j-dk"]
 rtt = ["bitbox-debug/rtt"]
 
 [dependencies]

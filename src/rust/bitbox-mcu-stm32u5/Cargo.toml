@@ -12,5 +12,10 @@ license = "Apache-2.0"
 test = false
 doctest = false
 
+[features]
+stm32u5a9 = ["dep:stm32u5"]
+stm32u5g9 = ["dep:stm32-metapac"]
+
 [dependencies]
-stm32u5 = { version = "0.16", features = ["stm32u5a9"] }
+stm32u5 = { version = "0.16", features = ["stm32u5a9"], optional = true }
+stm32-metapac = { version = "21.0.0", features = ["stm32u5g9zj", "rt"], optional = true }

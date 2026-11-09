@@ -13,7 +13,6 @@ const ST_SOURCES: &[&str] = &[
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pwr_ex.c",
 ];
 
-const ST_DEFINES: &[&str] = &["USE_HAL_DRIVER", "STM32U5A9xx"];
 const ST_DEBUG_DEFINES: &[(&str, &str)] = &[("USE_FULL_ASSERT", "1U")];
 
 const ST_INCLUDES: &[&str] = &[
@@ -74,6 +73,13 @@ fn main() -> Result<(), &'static str> {
         return Ok(());
     }
 
+    let chip_define = match (cfg!(feature = "stm32u5a9"), cfg!(feature = "stm32u5g9")) {
+        (true, false) => "STM32U5A9xx",
+        (false, true) => "STM32U5G9xx",
+        _ => return Err("select exactly one STM32U5 chip"),
+    };
+    let st_defines = ["USE_HAL_DRIVER", chip_define];
+
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let out_path = out_dir.join("bindings.rs");
 
@@ -99,7 +105,7 @@ fn main() -> Result<(), &'static str> {
     let include_paths: Vec<PathBuf> = ST_INCLUDES.iter().map(|p| st_root.join(p)).collect();
 
     let release_profile = is_release_profile();
-    let mut clang_args: Vec<String> = ST_DEFINES.iter().map(|d| format!("-D{d}")).collect();
+    let mut clang_args: Vec<String> = st_defines.iter().map(|d| format!("-D{d}")).collect();
     if !release_profile {
         clang_args.extend(
             ST_DEBUG_DEFINES
@@ -124,7 +130,7 @@ fn main() -> Result<(), &'static str> {
     let source_paths: Vec<PathBuf> = ST_SOURCES.iter().map(|p| st_root.join(p)).collect();
     let mut build = cc::Build::new();
     build.files(&source_paths);
-    for def in ST_DEFINES {
+    for def in st_defines {
         build.define(def, None);
     }
     if !release_profile {

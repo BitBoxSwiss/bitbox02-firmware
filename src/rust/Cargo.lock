@@ -140,6 +140,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-board-stm32u5g9j-tb"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox-boot-utils"
 version = "0.1.0"
 dependencies = [

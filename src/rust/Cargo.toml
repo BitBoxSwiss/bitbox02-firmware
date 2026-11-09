@@ -12,6 +12,7 @@ members = [
     "bitbox-board-stm32u5a9j-dk",
     "bitbox-board-stm32u5a9j-dk-build",
     "bitbox-board-stm32u5a9j-dk-sys",
+    "bitbox-board-stm32u5g9j-tb",
     "bitbox-boot-utils",
     "bitbox-bytequeue",
     "bitbox-core-utils",

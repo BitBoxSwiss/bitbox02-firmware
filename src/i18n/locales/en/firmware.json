@@ -328,9 +328,13 @@
     "passphrase": {
       "confirm": "Confirm",
       "confirmEmpty": "Use empty\npassphrase?",
+      "confirmHost": "Enter passphrase\non host?",
       "doubleCheck": "You will be asked to\nvisually confirm your\npassphrase now.",
+      "enterOnHost": "Enter passphrase\non host",
       "title": "Optional passphrase",
-      "tryAgain": "Please try again"
+      "tooLong": "Passphrase too\nlong",
+      "tryAgain": "Please try again",
+      "unsupportedCharacters": "Unsupported\ncharacters"
     },
     "remainingAttempts": {
       "last": "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong.",

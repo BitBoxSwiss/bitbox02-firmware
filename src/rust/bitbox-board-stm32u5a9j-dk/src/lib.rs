@@ -9,6 +9,7 @@ pub mod ffi {
     pub use bitbox_platform_stm32u5_sys::*;
 }
 
+#[path = "../../bitbox-platform-stm32u5/src/bitbox03_memory.rs"]
 pub mod memory;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]

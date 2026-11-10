@@ -880,20 +880,25 @@ async fn validate_bip322_input(
 /// it is signed with are confirmed instead of a transaction:
 ///
 /// - The version is 0 or 2.
-/// - There is one input. It spends the output of the `to_spend` transaction of the message, see
-///   `validate_bip322_input`. Additional inputs would make it a proof of funds, which is not
-///   supported.
+/// - The first input spends the output of the `to_spend` transaction of the message, see
+///   `validate_bip322_input`.
+/// - Additional inputs make it a proof of funds: they spend coins of the account whose control is
+///   proven. They are validated like the inputs of a regular transaction, and their number and
+///   total amount are confirmed.
 /// - There is one output of value 0 with the scriptPubKey `OP_RETURN`.
 ///
-/// The input is signed like the input of a regular transaction, see `sign_input`, as verifiers run
-/// `to_sign` through the script interpreter. The signature commits to the outpoint of `to_spend`,
-/// a virtual transaction that cannot be mined, so the signature is not valid in any transaction on
-/// the network.
+/// The inputs are signed like the inputs of a regular transaction, see `sign_input`, as verifiers
+/// run `to_sign` through the script interpreter. Every signature commits to all outpoints,
+/// including the one of `to_spend`, a virtual transaction that cannot be mined, so no signature is
+/// valid in any transaction on the network. This is what keeps the signatures of a proof of funds
+/// from being usable to spend the coins.
+#[allow(clippy::too_many_arguments)]
 async fn process_bip322(
     hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
     message: &[u8],
     coin: pb::BtcCoin,
+    format_unit: FormatUnit,
     validated_script_configs: &[ValidatedScriptConfigWithKeypath<'_>],
     mut xpub_cache: Bip32XpubCache,
 ) -> Result<Response, Error> {
@@ -912,7 +917,7 @@ async fn process_bip322(
     if request.version != 0 && request.version != 2 {
         return Err(Error::InvalidInput);
     }
-    if request.num_inputs != 1 || request.num_outputs != 1 {
+    if request.num_inputs < 1 || request.num_outputs != 1 {
         return Err(Error::InvalidInput);
     }
 
@@ -942,12 +947,61 @@ async fn process_bip322(
     let mut hasher_sequence = Sha256::new();
     let mut hasher_amounts = Sha256::new();
     let mut hasher_scriptpubkeys = Sha256::new();
-    hasher_prevouts.update(tx_input.prev_out_hash.as_slice());
-    hasher_prevouts.update(tx_input.prev_out_index.to_le_bytes());
-    hasher_sequence.update(tx_input.sequence.to_le_bytes());
-    hasher_amounts.update(tx_input.prev_out_value.to_le_bytes());
-    hasher_scriptpubkeys.update(serialize(&VarInt(pk_script.len() as u64)));
-    hasher_scriptpubkeys.update(pk_script.as_slice());
+    let mut hash_input = |tx_input: &pb::BtcSignInputRequest, pk_script: &[u8]| {
+        hasher_prevouts.update(tx_input.prev_out_hash.as_slice());
+        hasher_prevouts.update(tx_input.prev_out_index.to_le_bytes());
+        hasher_sequence.update(tx_input.sequence.to_le_bytes());
+        hasher_amounts.update(tx_input.prev_out_value.to_le_bytes());
+        hasher_scriptpubkeys.update(serialize(&VarInt(pk_script.len() as u64)));
+        hasher_scriptpubkeys.update(pk_script);
+    };
+    hash_input(&tx_input, &pk_script);
+
+    // Proof of funds: the sum of the coins whose control is proven, i.e. of all inputs but the
+    // first.
+    let num_coins = request.num_inputs - 1;
+    let mut coins_sum_pass1: u64 = 0;
+    if num_coins > 0 {
+        // The previous transactions are streamed like in `_process`.
+        let taproot_only = validated_script_configs.iter().all(is_taproot);
+        let progress_title = crate::tr!(hal, "Loading data...");
+        let mut progress_component = hal.ui().progress_create(&progress_title);
+        for input_index in 1..request.num_inputs {
+            progress_component.set_fraction(input_index, request.num_inputs);
+
+            let tx_input = get_tx_input(input_index, &mut next_response).await?;
+            let script_config_account = validated_script_configs
+                .get(tx_input.script_config_index as usize)
+                .ok_or(Error::InvalidInput)?;
+            validate_input(&tx_input, coin_params, script_config_account)?;
+            coins_sum_pass1 = coins_sum_pass1
+                .checked_add(tx_input.prev_out_value)
+                .ok_or(Error::InvalidInput)?;
+
+            let pk_script = common::Payload::from(
+                hal,
+                &mut xpub_cache,
+                coin_params,
+                &tx_input.keypath,
+                script_config_account,
+            )
+            .await?
+            .pk_script(coin_params)?;
+            hash_input(&tx_input, &pk_script);
+
+            if !taproot_only {
+                handle_prevtx(
+                    input_index,
+                    &tx_input,
+                    pk_script.as_slice(),
+                    request.num_inputs,
+                    &mut progress_component,
+                    &mut next_response,
+                )
+                .await?;
+            }
+        }
+    }
 
     // The scriptPubKey of the output is `OP_RETURN` without data.
     let tx_output = get_tx_output(0, &mut next_response).await?;
@@ -971,6 +1025,25 @@ async fn process_bip322(
 
     let basic_info = crate::tr_format!(hal, "Coin: {}", &[coin_params.name]);
     super::signmsg::confirm_address(hal, &basic_info, &address).await?;
+    if num_coins > 0 {
+        let title = crate::tr!(hal, "Proof of funds");
+        let body = crate::tr_format!(
+            hal,
+            "Coins: {}\nTotal: {}",
+            &[
+                &num_coins.to_string(),
+                &format_amount(coin_params, format_unit, coins_sum_pass1)?,
+            ],
+        );
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: &title,
+                body: &body,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+    }
     super::signmsg::confirm_message(hal, message).await?;
 
     // The input is validated again: it is the one of the second pass that is signed.
@@ -998,6 +1071,36 @@ async fn process_bip322(
         &mut next_response,
     )
     .await?;
+
+    // Like in `_process`, the sum of the coins must be the confirmed one.
+    let mut coins_sum_pass2: u64 = 0;
+    for input_index in 1..request.num_inputs {
+        let tx_input = get_tx_input(input_index, &mut next_response).await?;
+        let script_config_account = validated_script_configs
+            .get(tx_input.script_config_index as usize)
+            .ok_or(Error::InvalidInput)?;
+        validate_input(&tx_input, coin_params, script_config_account)?;
+        coins_sum_pass2 = coins_sum_pass2
+            .checked_add(tx_input.prev_out_value)
+            .ok_or(Error::InvalidInput)?;
+        if coins_sum_pass2 > coins_sum_pass1 {
+            return Err(Error::InvalidInput);
+        }
+        sign_input(
+            hal,
+            &mut xpub_cache,
+            request,
+            &tx_hashes,
+            input_index,
+            &tx_input,
+            script_config_account,
+            &mut next_response,
+        )
+        .await?;
+    }
+    if coins_sum_pass1 != coins_sum_pass2 {
+        return Err(Error::InvalidInput);
+    }
 
     next_response.next.r#type = NextType::Done as _;
     Ok(next_response.to_protobuf())
@@ -1089,6 +1192,7 @@ async fn _process(
             request,
             message,
             coin,
+            format_unit,
             &validated_script_configs,
             xpub_cache,
         ))
@@ -3632,35 +3736,59 @@ mod tests {
         }
     }
 
+    /// A coin of the account whose control is proven in a BIP-322 proof of funds.
+    struct Bip322Coin {
+        keypath: Vec<u32>,
+        value: u64,
+    }
+
     /// Signs `message` through BTCSign with the address at `keypath` of the account
-    /// `script_config`. `tamper` can modify the `to_sign` transaction the host streams.
+    /// `script_config`, proving control of `coins` (a proof of funds, if not empty). `tamper` can
+    /// modify the `to_sign` transaction the host streams.
     ///
-    /// Returns the PSBT of `to_sign` containing the signature of the device. For P2WPKH-P2SH and
-    /// P2WSH, the redeem/witness script has to be added before it can be finalized.
+    /// Returns the PSBT of `to_sign` containing the signatures of the device. For P2WPKH-P2SH and
+    /// P2WSH, the redeem/witness scripts have to be added before it can be finalized.
     async fn bip322_sign(
         hal: &mut TestingHal<'_>,
         script_config: &pb::BtcScriptConfigWithKeypath,
         keypath: &[u32],
         message: &[u8],
+        coins: &[Bip322Coin],
         tamper: impl FnOnce(&mut Transaction),
     ) -> Result<bitcoin::psbt::Psbt, Error> {
         let coin = pb::BtcCoin::Btc;
         let coin_params = super::super::params::get(coin);
 
+        // The scriptPubKey and public key of the address and of every coin.
         let script_config_account = validate_script_config(hal, script_config, coin_params)
             .await
             .unwrap();
-        let script_pubkey = common::Payload::from(
-            hal,
-            &mut Bip32XpubCache::new(Compute::Once),
-            coin_params,
-            keypath,
-            &script_config_account,
-        )
-        .await
-        .unwrap()
-        .pk_script(coin_params)
-        .unwrap();
+        let mut script_pubkeys = Vec::new();
+        let mut pubkeys = Vec::new();
+        for keypath in core::iter::once(keypath).chain(coins.iter().map(|coin| &coin.keypath[..])) {
+            script_pubkeys.push(
+                common::Payload::from(
+                    hal,
+                    &mut Bip32XpubCache::new(Compute::Once),
+                    coin_params,
+                    keypath,
+                    &script_config_account,
+                )
+                .await
+                .unwrap()
+                .pk_script(coin_params)
+                .unwrap(),
+            );
+            pubkeys.push(
+                bitcoin::PublicKey::from_slice(
+                    crate::keystore::get_xpub(hal, keypath, Compute::Once)
+                        .await
+                        .unwrap()
+                        .public_key(),
+                )
+                .unwrap(),
+            );
+        }
 
         let mut transaction = Transaction {
             coin,
@@ -3668,7 +3796,7 @@ mod tests {
             version: 0,
             inputs: vec![TxInput {
                 input: pb::BtcSignInputRequest {
-                    prev_out_hash: bip322::to_spend_txid(message, &script_pubkey).to_vec(),
+                    prev_out_hash: bip322::to_spend_txid(message, &script_pubkeys[0]).to_vec(),
                     prev_out_index: 0,
                     prev_out_value: 0,
                     sequence: 0,
@@ -3689,6 +3817,35 @@ mod tests {
             locktime: 0,
             payment_request: None,
         };
+        // Every coin is the only output of a made up previous transaction.
+        for (index, coin) in coins.iter().enumerate() {
+            let mut input = TxInput {
+                input: pb::BtcSignInputRequest {
+                    prev_out_hash: vec![],
+                    prev_out_index: 0,
+                    prev_out_value: coin.value,
+                    sequence: 0xffffffff,
+                    keypath: coin.keypath.clone(),
+                    script_config_index: 0,
+                    host_nonce_commitment: None,
+                },
+                prevtx_version: 2,
+                prevtx_inputs: vec![pb::BtcPrevTxInputRequest {
+                    prev_out_hash: vec![index as u8 + 1; 32],
+                    prev_out_index: 0,
+                    signature_script: vec![],
+                    sequence: 0xffffffff,
+                }],
+                prevtx_outputs: vec![pb::BtcPrevTxOutputRequest {
+                    value: coin.value,
+                    pubkey_script: script_pubkeys[index + 1].clone(),
+                }],
+                prevtx_locktime: 0,
+                host_nonce: None,
+            };
+            input.input.prev_out_hash = prevtx_hash(&input);
+            transaction.inputs.push(input);
+        }
         tamper(&mut transaction);
 
         let init_request = pb::BtcSignInitRequest {
@@ -3727,36 +3884,48 @@ mod tests {
             }],
         })
         .unwrap();
-        psbt.inputs[0].witness_utxo = Some(bitcoin::TxOut {
-            value: bitcoin::Amount::ZERO,
-            script_pubkey: bitcoin::ScriptBuf::from_bytes(script_pubkey),
-        });
+        for (index, input) in psbt.inputs.iter_mut().enumerate() {
+            input.witness_utxo = Some(bitcoin::TxOut {
+                value: bitcoin::Amount::from_sat(transaction.inputs[index].input.prev_out_value),
+                script_pubkey: bitcoin::ScriptBuf::from_bytes(script_pubkeys[index].clone()),
+            });
+        }
 
-        mock_host_responder(alloc::rc::Rc::new(core::cell::RefCell::new(transaction)));
+        // The signature of an input is returned with the request for the next input, the last one
+        // with the final response.
+        let signatures = alloc::rc::Rc::new(core::cell::RefCell::new(Vec::<Vec<u8>>::new()));
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+            let signatures = signatures.clone();
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+                if next.has_signature {
+                    signatures.borrow_mut().push(next.signature.clone());
+                }
+                Ok(transaction.make_host_request(response))
+            }))
+        };
         let response = Box::pin(process(hal, &init_request)).await?;
         let next = extract_next(&response);
         assert_eq!(NextType::try_from(next.r#type).unwrap(), NextType::Done);
         assert!(next.has_signature);
+        signatures.borrow_mut().push(next.signature.clone());
 
-        let input = &mut psbt.inputs[0];
-        let pubkey = bitcoin::PublicKey::from_slice(
-            crate::keystore::get_xpub(hal, keypath, Compute::Once)
-                .await
-                .unwrap()
-                .public_key(),
-        )
-        .unwrap();
-        if input.witness_utxo.as_ref().unwrap().script_pubkey.is_p2tr() {
-            input.tap_internal_key = Some(pubkey.inner.x_only_public_key().0);
-            input.tap_key_sig =
-                Some(bitcoin::taproot::Signature::from_slice(&next.signature).unwrap());
-        } else {
-            input.partial_sigs.insert(
-                pubkey,
-                bitcoin::ecdsa::Signature::sighash_all(
-                    bitcoin::secp256k1::ecdsa::Signature::from_compact(&next.signature).unwrap(),
-                ),
-            );
+        let signatures = signatures.borrow();
+        assert_eq!(signatures.len(), psbt.inputs.len());
+        for (index, input) in psbt.inputs.iter_mut().enumerate() {
+            if input.witness_utxo.as_ref().unwrap().script_pubkey.is_p2tr() {
+                input.tap_internal_key = Some(pubkeys[index].inner.x_only_public_key().0);
+                input.tap_key_sig =
+                    Some(bitcoin::taproot::Signature::from_slice(&signatures[index]).unwrap());
+            } else {
+                input.partial_sigs.insert(
+                    pubkeys[index],
+                    bitcoin::ecdsa::Signature::sighash_all(
+                        bitcoin::secp256k1::ecdsa::Signature::from_compact(&signatures[index])
+                            .unwrap(),
+                    ),
+                );
+            }
         }
         Ok(psbt)
     }
@@ -3778,6 +3947,7 @@ mod tests {
             &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
             &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
             b"message",
+            &[],
             |_| {},
         )
         .await
@@ -3817,6 +3987,7 @@ mod tests {
             &bip322_script_config(SimpleType::P2wpkhP2sh, &keypath[..3]),
             &keypath,
             b"message",
+            &[],
             |tx| {
                 tx.version = 2;
                 tx.locktime = 100;
@@ -3840,6 +4011,7 @@ mod tests {
             &bip322_script_config(SimpleType::P2tr, &[86 + HARDENED, HARDENED, HARDENED]),
             &[86 + HARDENED, HARDENED, HARDENED, 0, 0],
             b"message",
+            &[],
             |_| {},
         )
         .await
@@ -3886,6 +4058,7 @@ mod tests {
             },
             &keypath,
             b"message",
+            &[],
             |_| {},
         )
         .await
@@ -3930,7 +4103,7 @@ mod tests {
 
     #[async_test::test]
     async fn test_bip322_invalid() {
-        let tampers: [fn(&mut Transaction); 13] = [
+        let tampers: [fn(&mut Transaction); 12] = [
             // The version is not 0 or 2.
             |tx| tx.version = 1,
             |tx| tx.version = 3,
@@ -3942,18 +4115,6 @@ mod tests {
             |tx| tx.inputs[0].input.prev_out_value = 1,
             // The message is not signed with a receive address.
             |tx| tx.inputs[0].input.keypath[4] = 10000,
-            // A second input, which would make it a proof of funds.
-            |tx| {
-                let input = TxInput {
-                    input: tx.inputs[0].input.clone(),
-                    prevtx_version: 0,
-                    prevtx_inputs: vec![],
-                    prevtx_outputs: vec![],
-                    prevtx_locktime: 0,
-                    host_nonce: None,
-                };
-                tx.inputs.push(input);
-            },
             // A second output.
             |tx| {
                 let output = tx.outputs[0].clone();
@@ -3974,6 +4135,7 @@ mod tests {
                 &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
                 &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
                 b"message",
+                &[],
                 tamper,
             )
             .await;
@@ -3988,6 +4150,7 @@ mod tests {
             &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
             &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
             &[b'a'; 1025],
+            &[],
             |_| {},
         )
         .await;
@@ -4031,6 +4194,7 @@ mod tests {
             &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
             &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
             b"message",
+            &[],
             |_| {},
         )
         .await;
@@ -4040,5 +4204,120 @@ mod tests {
             mock_hal.ui.screens.last(),
             Some(Screen::Confirm { .. })
         ));
+    }
+
+    /// The screen confirming a proof of funds, shown between the address and the message.
+    fn bip322_proof_of_funds_screen(screens: &[Screen]) -> &Screen {
+        assert_eq!(screens.len(), 4);
+        &screens[2]
+    }
+
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_p2wpkh() {
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let psbt = bip322_sign(
+            &mut mock_hal,
+            &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
+            &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
+            b"message",
+            &[
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 0, 1],
+                    value: 50_000,
+                },
+                Bip322Coin {
+                    keypath: vec![84 + HARDENED, HARDENED, HARDENED, 1, 0],
+                    value: 25_000,
+                },
+            ],
+            |_| {},
+        )
+        .await
+        .unwrap();
+        assert_bip322_psbt_valid(psbt);
+        assert_eq!(
+            bip322_proof_of_funds_screen(&mock_hal.ui.screens),
+            &Screen::Confirm {
+                title: "Proof of funds".into(),
+                body: "Coins: 2\nTotal: 0.00075000 BTC".into(),
+                longtouch: false,
+            }
+        );
+    }
+
+    /// The previous transactions of taproot coins are not streamed.
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_p2tr() {
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let psbt = bip322_sign(
+            &mut mock_hal,
+            &bip322_script_config(SimpleType::P2tr, &[86 + HARDENED, HARDENED, HARDENED]),
+            &[86 + HARDENED, HARDENED, HARDENED, 0, 0],
+            b"message",
+            &[Bip322Coin {
+                keypath: vec![86 + HARDENED, HARDENED, HARDENED, 0, 3],
+                value: 100_000,
+            }],
+            |tx| tx.inputs[1].prevtx_outputs.clear(),
+        )
+        .await
+        .unwrap();
+        assert_bip322_psbt_valid(psbt);
+        assert_eq!(
+            bip322_proof_of_funds_screen(&mock_hal.ui.screens),
+            &Screen::Confirm {
+                title: "Proof of funds".into(),
+                body: "Coins: 1\nTotal: 0.00100000 BTC".into(),
+                longtouch: false,
+            }
+        );
+    }
+
+    #[async_test::test]
+    async fn test_bip322_proof_of_funds_invalid() {
+        let tampers: [fn(&mut Transaction); 5] = [
+            // The first input is a coin, it does not spend `to_spend`.
+            |tx| {
+                tx.inputs.remove(0);
+            },
+            |tx| tx.inputs.swap(0, 1),
+            // The amount of a coin is not the one of its previous transaction.
+            |tx| tx.inputs[1].input.prev_out_value += 1,
+            // The script of a coin is not the one of its previous transaction.
+            |tx| tx.inputs[1].input.keypath[4] += 1,
+            // A coin without value.
+            |tx| {
+                let input = &mut tx.inputs[2];
+                input.input.prev_out_value = 0;
+                input.prevtx_outputs[0].value = 0;
+                input.input.prev_out_hash = prevtx_hash(input);
+            },
+        ];
+        for tamper in tampers {
+            mock_unlocked();
+            let mut mock_hal = TestingHal::new();
+            let result = bip322_sign(
+                &mut mock_hal,
+                &bip322_script_config(SimpleType::P2wpkh, &[84 + HARDENED, HARDENED, HARDENED]),
+                &[84 + HARDENED, HARDENED, HARDENED, 0, 0],
+                b"message",
+                &[
+                    Bip322Coin {
+                        keypath: vec![84 + HARDENED, HARDENED, HARDENED, 0, 1],
+                        value: 50_000,
+                    },
+                    Bip322Coin {
+                        keypath: vec![84 + HARDENED, HARDENED, HARDENED, 1, 0],
+                        value: 25_000,
+                    },
+                ],
+                tamper,
+            )
+            .await;
+            assert_eq!(result.err(), Some(Error::InvalidInput));
+            assert!(mock_hal.ui.screens.is_empty());
+        }
     }
 }

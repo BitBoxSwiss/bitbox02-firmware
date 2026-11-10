@@ -12,14 +12,14 @@ pub use bitbox_i18n::{
     SUPPORTED_LANGUAGES, format, is_translatable, language_code, language_from_code, translate,
 };
 
-/// Verifying at compile time that the literal exists in the English source file.
-/// Prevents literals to drift from the locale file i.e. translations silently falling back to English.
+/// Verifying at compile time that the message exists in the English source file.
+/// Prevents messages from drifting from the locale file and silently falling back to English.
 #[macro_export]
 macro_rules! tr {
-    ($hal:expr, $msg:literal $(,)?) => {{
+    ($hal:expr, $msg:expr $(,)?) => {{
         const _: () = ::core::assert!(
             $crate::i18n::is_translatable($msg),
-            "i18n: string literal is not a value in src/i18n/locales/en/firmware.json",
+            "i18n: message is not a value in src/i18n/locales/en/firmware.json",
         );
         $hal.tr($msg)
     }};

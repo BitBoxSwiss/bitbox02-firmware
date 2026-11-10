@@ -17,7 +17,7 @@ pub(crate) async fn confirm_value(
 ) -> Result<(), UserAbort> {
     if params.body.len() > MAX_CONFIRM_BODY_SIZE {
         let title = crate::tr!(hal, "Warning");
-        let body = hal.tr(TRUNCATION_WARNING_BODY);
+        let body = crate::tr!(hal, TRUNCATION_WARNING_BODY);
         hal.ui()
             .confirm(&ConfirmParams {
                 title: &title,

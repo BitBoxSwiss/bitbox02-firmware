@@ -4,6 +4,7 @@ use core::ffi::{c_char, c_void};
 
 pub use bitbox_i18n::{format, language_code, language_from_code, translate};
 
+#[allow(clippy::disallowed_methods)]
 pub fn translate_current<'a>(english: &'a str) -> alloc::borrow::Cow<'a, str> {
     translate(crate::memory::get_device_language(), english)
 }
@@ -13,6 +14,7 @@ pub fn translate_current<'a>(english: &'a str) -> alloc::borrow::Cow<'a, str> {
 /// `input` must be a valid, null-terminated string pointer. `output` must be a valid pointer to a
 /// buffer of at least `output_len` bytes.
 #[unsafe(no_mangle)]
+#[allow(clippy::disallowed_methods)]
 pub unsafe extern "C" fn rust_i18n_translate_copy(
     input: *const c_char,
     output: *mut c_char,

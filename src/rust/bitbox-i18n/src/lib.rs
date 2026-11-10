@@ -34,7 +34,10 @@ const FNV1A64_PRIME: u64 = 0x100000001b3;
 macro_rules! tr {
     ($language:expr, $msg:expr $(,)?) => {{
         const _: &str = $crate::checked_message($msg);
-        $crate::translate($language, const { $msg })
+        #[allow(clippy::disallowed_methods)]
+        {
+            $crate::translate($language, const { $msg })
+        }
     }};
 }
 
@@ -50,7 +53,10 @@ macro_rules! tr {
 macro_rules! format {
     ($language:expr, $msg:expr, $args:expr $(,)?) => {{
         const _: &str = $crate::checked_message($msg);
-        $crate::format($language, const { $msg }, $args)
+        #[allow(clippy::disallowed_methods)]
+        {
+            $crate::format($language, const { $msg }, $args)
+        }
     }};
 }
 
@@ -95,6 +101,7 @@ pub fn translate<'a>(language: Language, english: &'a str) -> Cow<'a, str> {
     }
 }
 
+#[allow(clippy::disallowed_methods)]
 pub fn format(language: Language, english: &'static str, args: &[&str]) -> String {
     let translated = translate(language, english);
     format_pattern(&translated, args)
@@ -187,6 +194,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::disallowed_methods)]
     fn test_translate() {
         assert_eq!(
             translate(Language::English, "Proceed to upgrade?").as_ref(),
@@ -238,6 +246,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::disallowed_methods)]
     fn test_format() {
         assert_eq!(
             format(

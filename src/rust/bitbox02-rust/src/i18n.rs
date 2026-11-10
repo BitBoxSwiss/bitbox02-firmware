@@ -18,7 +18,10 @@ pub use bitbox_i18n::{
 macro_rules! tr {
     ($hal:expr, $msg:expr $(,)?) => {{
         const _: &str = $crate::i18n::checked_message($msg);
-        $hal.tr(const { $msg })
+        #[allow(clippy::disallowed_methods)]
+        {
+            $hal.tr(const { $msg })
+        }
     }};
 }
 
@@ -26,7 +29,10 @@ macro_rules! tr {
 macro_rules! tr_format {
     ($hal:expr, $msg:expr, $args:expr $(,)?) => {{
         const _: &str = $crate::i18n::checked_message($msg);
-        $hal.tr_format(const { $msg }, $args)
+        #[allow(clippy::disallowed_methods)]
+        {
+            $hal.tr_format(const { $msg }, $args)
+        }
     }};
 }
 
@@ -42,11 +48,13 @@ pub trait I18n {
 }
 
 impl<T: Hal> I18n for T {
+    #[allow(clippy::disallowed_methods)]
     fn tr<'a>(&mut self, english: &'a str) -> Cow<'a, str> {
         let language = self.memory().get_device_language();
         translate(language, english)
     }
 
+    #[allow(clippy::disallowed_methods)]
     fn tr_format(&mut self, english: &'static str, args: &[&str]) -> String {
         let language = self.memory().get_device_language();
         format(language, english, args)

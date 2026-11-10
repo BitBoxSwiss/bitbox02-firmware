@@ -8,8 +8,10 @@ include = [{ path = "config.local.toml", optional = true }]
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 # The compact SHA-2 backend saves ~3kB (measured when first enabled).
 # See https://github.com/RustCrypto/hashes/pull/686.
-# Keep the SHA-2 flags in sync with CMakeLists.txt and .github/workflows/ci-common.yml.
+# 32-bit crypto-bigint limbs save ~2.4kB on Cortex-M4. Use the same backend in host tests.
+# Keep these flags in sync with CMakeLists.txt and .github/workflows/ci-common.yml.
 rustflags = [
+    "--cfg", 'cpubits="32"',
     "--cfg", "rust_secp_no_symbol_renaming",
     "--cfg", 'sha2_backend="soft"',
     "--cfg", 'sha2_backend_soft="compact"',
@@ -17,6 +19,7 @@ rustflags = [
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 rustflags = [
+    "--cfg", 'cpubits="32"',
     "--cfg", "rust_secp_no_symbol_renaming",
     "--cfg", 'sha2_backend="soft"',
     "--cfg", 'sha2_backend_soft="compact"',

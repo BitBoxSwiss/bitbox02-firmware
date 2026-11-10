@@ -173,6 +173,9 @@ else()
     set(RUSTFLAGS "")
 endif()
 
+# Keep the smaller 32-bit crypto-bigint backend in sync with .cargo/config.toml.
+string(APPEND RUSTFLAGS " --cfg=cpubits=\"32\"")
+
 # Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 # This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.

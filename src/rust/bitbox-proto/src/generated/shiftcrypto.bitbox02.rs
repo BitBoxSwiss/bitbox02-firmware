@@ -987,7 +987,9 @@ pub struct BtcSignMessageRequest {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BtcSignMessageResponse {
-    /// 65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid).
+    /// P2TR: the BIP-322 "simple" signature, i.e. the ASCII prefix "smp" followed by the
+    /// base64-encoded witness stack.
+    /// Other script types: 65 bytes (32 bytes big endian R, 32 bytes big endian S, 1 recid).
     #[prost(bytes = "vec", tag = "1")]
     pub signature: ::prost::alloc::vec::Vec<u8>,
 }

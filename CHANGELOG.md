@@ -14,6 +14,7 @@ recorded separately.
 - Cardano: limit xpub requests to 20 keypaths per batch
 - API: add a session reset command for clean host reconnects after interrupted operations
 - Add German firmware translations
+- Bitcoin: allow signing messages with taproot (P2TR) keys, as BIP-322 simple signatures
 
 ### v9.27.1
 - API: include the installed bootloader version in the device info response

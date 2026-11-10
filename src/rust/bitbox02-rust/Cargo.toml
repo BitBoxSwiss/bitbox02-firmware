@@ -123,6 +123,7 @@ firmware = []
 
 [dev-dependencies]
 async_test = { path = "../async_test" }
+binascii = { version = "0.1.4", default-features = false, features = ["decode"] }
 bitbox-platform-host = { path = "../bitbox-platform-host", features = ["testing"] }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1", features = ["testing"] }
 bitbox-test-vectors = { path = "../bitbox-test-vectors" }

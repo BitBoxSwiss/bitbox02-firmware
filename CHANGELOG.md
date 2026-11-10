@@ -231,6 +231,7 @@ recorded separately.
 ## Bootloader
 
 ### Unreleased
+- BitBox02 Nova: fix stale Bluetooth pairing state when switching to USB.
 
 ### v1.2.3
 - Verify firmware with a versioned signature prehash.

@@ -144,6 +144,7 @@ int main(void)
                     uart_poll(NULL, 0, NULL, uart_write_queue);
                 }
                 rust_communication_mode_ble_disable();
+                bootloader_pairing_request = false;
                 bootloader_render_default_screen();
             }
 #endif

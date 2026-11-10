@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::vec::Vec;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Implements the digest traits for Sha512 backing it with bitcoin::hashes. This is done to avoid
 /// using a second sha512 implementation like `sha2::Sha512`, which bloats the binary by an
@@ -10,7 +11,21 @@ use alloc::vec::Vec;
 /// streaming fashion, even when using `update()`.
 #[derive(Default, Clone)]
 pub struct Sha512 {
-    message: Vec<u8>,
+    message: Zeroizing<Vec<u8>>,
+}
+
+impl Sha512 {
+    fn append(&mut self, data: &[u8]) {
+        let required = self.message.len().checked_add(data.len()).unwrap();
+        if required > self.message.capacity() {
+            let capacity = required.max(self.message.capacity().saturating_mul(2));
+            let mut replacement = Zeroizing::new(Vec::with_capacity(capacity));
+            replacement.extend_from_slice(self.message.as_slice());
+            // Drop the old wrapper to wipe its allocation before freeing it.
+            self.message = replacement;
+        }
+        self.message.extend_from_slice(data);
+    }
 }
 
 impl digest::HashMarker for Sha512 {}
@@ -30,13 +45,13 @@ impl digest::FixedOutput for Sha512 {
 
 impl digest::Update for Sha512 {
     fn update(&mut self, data: &[u8]) {
-        self.message.extend(data);
+        self.append(data);
     }
 }
 
 impl digest::Reset for Sha512 {
     fn reset(&mut self) {
-        self.message.clear()
+        self.message.zeroize();
     }
 }
 
@@ -46,7 +61,8 @@ impl digest::core_api::BlockSizeUser for Sha512 {
 
 impl digest::core_api::UpdateCore for Sha512 {
     fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
-        self.message
-            .extend(blocks.iter().flat_map(|b| b.iter().copied()))
+        for block in blocks {
+            self.append(block);
+        }
     }
 }

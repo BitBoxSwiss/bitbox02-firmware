@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use crate::hash::Sha512;
 use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv, Xpub};
@@ -82,8 +82,11 @@ pub struct SignResult {
 
 /// Expands a 32-byte Ed25519 seed using the firmware's compact SHA-512 implementation.
 pub fn expanded_secret_key_from_seed(seed: &[u8; 32]) -> ExpandedSecretKey {
-    let hash = Sha512::digest(seed);
-    ExpandedSecretKey::from_bytes(hash.as_ref())
+    let mut hash = Box::new(zeroize::Zeroizing::new([0u8; 64]));
+    let mut hasher = Sha512::new();
+    hasher.update(seed);
+    hasher.finalize_into((&mut **hash).into());
+    ExpandedSecretKey::from_bytes(&hash)
 }
 
 /// Signs `msg` with an expanded Ed25519 secret key using the firmware's compact SHA-512 implementation.

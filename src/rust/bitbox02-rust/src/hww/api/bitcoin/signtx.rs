@@ -735,6 +735,7 @@ async fn _process(
     }
     // Validate the coin.
     let coin = pb::BtcCoin::try_from(request.coin)?;
+    super::coin_enabled(coin)?;
     let coin_params = super::params::get(coin);
     // Validate the format_unit.
     let format_unit = FormatUnit::try_from(request.format_unit)?;

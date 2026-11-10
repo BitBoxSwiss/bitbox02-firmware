@@ -42,6 +42,45 @@ fn validate_external_service_keypath(keypath: &[u32]) -> Result<(), Error> {
     }
 }
 
+/// Confirms signing a message with `address`. `basic_info` is shown first and names the coin.
+pub(super) async fn confirm_address(
+    hal: &mut impl crate::hal::Hal,
+    basic_info: &str,
+    address: &str,
+) -> Result<(), Error> {
+    let title = crate::tr!(hal, "Sign message");
+    let confirm_params = ConfirmParams {
+        title: &title,
+        body: basic_info,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    };
+    hal.ui().confirm(&confirm_params).await?;
+
+    let address_formatted = util::strings::format_address(address);
+    let title = crate::tr!(hal, "Address");
+    let confirm_params = ConfirmParams {
+        title: &title,
+        body: &address_formatted,
+        scrollable: true,
+        accept_is_nextarrow: true,
+        ..Default::default()
+    };
+    hal.ui().confirm(&confirm_params).await?;
+    Ok(())
+}
+
+/// Confirms the message to sign, as the final step before signing.
+pub(super) async fn confirm_message(
+    hal: &mut impl crate::hal::Hal,
+    msg: &[u8],
+) -> Result<(), Error> {
+    let title_long = crate::tr!(hal, "Sign message");
+    let title_short = crate::tr!(hal, "Sign");
+    verify_message::verify(hal, &title_long, &title_short, msg, true).await?;
+    Ok(())
+}
+
 /// Compute the BIP-322 "simple" signature of the P2TR address at the keypath.
 ///
 /// Returns the signature encoded as specified by BIP-322: the prefix `smp` followed by the
@@ -187,35 +226,14 @@ pub async fn process(
         crate::keystore::Compute::Twice,
     )
     .await?;
-    let address_formatted = util::strings::format_address(&address);
 
     let basic_info = if is_standard_keypath {
         crate::tr_format!(hal, "Coin: {}", &[coin_params.name])
     } else {
         crate::tr_format!(hal, "Coin: {}\nExternal service key", &[coin_params.name])
     };
-    let title = crate::tr!(hal, "Sign message");
-    let confirm_params = ConfirmParams {
-        title: &title,
-        body: &basic_info,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    };
-    hal.ui().confirm(&confirm_params).await?;
-
-    let title = crate::tr!(hal, "Address");
-    let confirm_params = ConfirmParams {
-        title: &title,
-        body: &address_formatted,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    };
-    hal.ui().confirm(&confirm_params).await?;
-
-    let title_long = crate::tr!(hal, "Sign message");
-    let title_short = crate::tr!(hal, "Sign");
-    verify_message::verify(hal, &title_long, &title_short, &request.msg, true).await?;
+    confirm_address(hal, &basic_info, &address).await?;
+    confirm_message(hal, &request.msg).await?;
 
     let signature = if simple_type == SimpleType::P2tr {
         sign_bip322_p2tr(hal, coin_params, keypath, &request.msg).await?

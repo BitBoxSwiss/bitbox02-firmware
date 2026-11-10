@@ -27,7 +27,7 @@ where
     fn decode(rlp: &Rlp<'_>) -> Result<Self, DecoderError> {
         rlp.decoder().decode_value(|bytes| {
             if bytes.first().cloned() == Some(0) {
-                Err(rlp::DecoderError::RlpInvalidIndirection)
+                Err(DecoderError::RlpInvalidIndirection)
             } else {
                 let mut repr = <Self as Encoding>::Repr::default();
                 let offset = repr

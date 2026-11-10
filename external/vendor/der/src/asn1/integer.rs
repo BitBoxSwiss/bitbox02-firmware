@@ -3,17 +3,17 @@
 pub(super) mod int;
 pub(super) mod uint;
 
-use core::{cmp::Ordering, mem};
+use int::IntRef;
+use uint::UintRef;
 
-use crate::{EncodeValue, Result, SliceWriter};
+use core::{cmp::Ordering, mem::size_of};
+
+use crate::{EncodeValue, Result, encode::encode_value_to_slice};
 
 /// Is the highest bit of the first byte in the slice set to `1`? (if present)
 #[inline]
 fn is_highest_bit_set(bytes: &[u8]) -> bool {
-    bytes
-        .first()
-        .map(|byte| byte & 0b10000000 != 0)
-        .unwrap_or(false)
+    bytes.first().is_some_and(|byte| byte & 0b10000000 != 0)
 }
 
 /// Compare two integer values
@@ -22,22 +22,35 @@ where
     T: Copy + EncodeValue + Sized,
 {
     const MAX_INT_SIZE: usize = 16;
-    debug_assert!(mem::size_of::<T>() <= MAX_INT_SIZE);
+    debug_assert!(size_of::<T>() <= MAX_INT_SIZE);
 
     let mut buf1 = [0u8; MAX_INT_SIZE];
-    let mut encoder1 = SliceWriter::new(&mut buf1);
-    a.encode_value(&mut encoder1)?;
-
     let mut buf2 = [0u8; MAX_INT_SIZE];
-    let mut encoder2 = SliceWriter::new(&mut buf2);
-    b.encode_value(&mut encoder2)?;
 
-    Ok(encoder1.finish()?.cmp(encoder2.finish()?))
+    let buf1 = encode_value_to_slice(&mut buf1, &a)?;
+    let buf2 = encode_value_to_slice(&mut buf2, &b)?;
+
+    Ok(buf1.cmp(buf2))
+}
+
+/// Borrow the owned or ref `INTEGER` as [`IntRef`]
+pub trait AsIntRef {
+    /// Borrows the owned or ref `INTEGER` as [`IntRef`]
+    #[must_use]
+    fn as_int_ref<'a>(&'a self) -> IntRef<'a>;
+}
+
+/// Borrow the owned or ref `INTEGER` as [`UintRef`]
+pub trait AsUintRef {
+    /// Borrows the owned or ref `INTEGER` as [`UintRef`]
+    #[must_use]
+    fn as_uint_ref<'a>(&'a self) -> UintRef<'a>;
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 pub(crate) mod tests {
-    use crate::{Decode, Encode};
+    use crate::{Decode, Encode, ErrorKind, Tag};
 
     // Vectors from Section 5.7 of:
     // https://luca.ntop.org/Teaching/Appunti/asn1.html
@@ -148,6 +161,20 @@ pub(crate) mod tests {
         assert_eq!(I256_BYTES, 256u16.encode_to_slice(&mut buffer).unwrap());
         assert_eq!(I32767_BYTES, 32767u16.encode_to_slice(&mut buffer).unwrap());
         assert_eq!(I65535_BYTES, 65535u16.encode_to_slice(&mut buffer).unwrap());
+    }
+
+    /// Integers cannot be empty.
+    ///
+    /// From X.690 § 8.3.1: "The contents octets shall consist of one or more octets"
+    #[test]
+    fn reject_empty() {
+        const EMPTY_INT: &[u8] = &[0x02, 0x00];
+
+        let err = u8::from_der(EMPTY_INT).expect_err("empty INTEGER should return error");
+        assert_eq!(err.kind(), ErrorKind::Length { tag: Tag::Integer });
+
+        let err = i8::from_der(EMPTY_INT).expect_err("empty INTEGER should return error");
+        assert_eq!(err.kind(), ErrorKind::Length { tag: Tag::Integer });
     }
 
     /// Integers must be encoded with a minimum number of octets

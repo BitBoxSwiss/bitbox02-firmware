@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.1 (2026-06-17)
+### Changed
+- Have `getrandom` feature enable `rand_core` ([#2452])
+
+[#2452]: https://github.com/RustCrypto/traits/pull/2452
+
+## 0.6.0 (2026-06-08)
+### Added
+- Enable `missing_debug_implementations` lint and add `Debug` impls ([#1411])
+- `AeadCore::TAG_POSITION` and `TagPosition` enum ([#1798])
+- Re-export `crypto_common` as `common` ([#2237])
+
+### Changed
+- Replace `generic-array` with `hybrid-array` ([#1384])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#1759])
+- Replace `AeadInPlace` with `AeadInOut` ([#1793])
+- Split `new_test!` into `new_pass_test!` and `new_fail_test!` ([#2019])
+- Bump `crypto-common` to v0.2 ([#2276])
+
+### Removed
+- `AeadCore::CiphertextOverhead` constant ([#1737])
+- Stateful AEAD traits: `AeadMut*` ([#1740])
+- `stream` module - extracted into `aead-stream` crate ([#1801])
+- `heapless` support - will be added back in a future patch release ([#1999])
+- Nonce generation APIs - use `Generate` trait instead ([#2098])
+
+### Fixed
+- Minor documentation error in `AeadCore::TagSize` ([#1351])
+
+[#1351]: https://github.com/RustCrypto/traits/pull/1351
+[#1384]: https://github.com/RustCrypto/traits/pull/1384
+[#1411]: https://github.com/RustCrypto/traits/pull/1411
+[#1737]: https://github.com/RustCrypto/traits/pull/1737
+[#1740]: https://github.com/RustCrypto/traits/pull/1740
+[#1759]: https://github.com/RustCrypto/traits/pull/1759
+[#1793]: https://github.com/RustCrypto/traits/pull/1793
+[#1798]: https://github.com/RustCrypto/traits/pull/1798
+[#1801]: https://github.com/RustCrypto/traits/pull/1801
+[#1999]: https://github.com/RustCrypto/traits/pull/1999
+[#2019]: https://github.com/RustCrypto/traits/pull/2019
+[#2098]: https://github.com/RustCrypto/traits/pull/2098
+[#2237]: https://github.com/RustCrypto/traits/pull/2237
+[#2276]: https://github.com/RustCrypto/traits/pull/2276
+
 ## 0.5.2 (2023-04-02)
 ### Added
 - `arrayvec` feature ([#1219])

@@ -1,6 +1,6 @@
 [package]
 name = "chacha20poly1305"
-version = "0.10.1"
+version = "0.11.0"
 description = """
 Pure Rust implementation of the ChaCha20Poly1305 Authenticated Encryption
 with Additional Data Cipher (RFC 8439) with optional architecture-specific
@@ -9,34 +9,38 @@ extended nonce variant of ChaCha20Poly1305, and the reduced-round
 ChaCha8Poly1305 and ChaCha12Poly1305 lightweight variants.
 """
 authors = ["RustCrypto Developers"]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0 OR MIT"
 readme = "README.md"
 documentation = "https://docs.rs/chacha20poly1305"
-repository = "https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305"
+homepage = "https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305"
+repository = "https://github.com/RustCrypto/AEADs"
 keywords = ["aead", "chacha20", "poly1305", "xchacha20", "xchacha20poly1305"]
 categories = ["cryptography", "no-std"]
+rust-version = "1.85"
 
 [dependencies]
-aead = { version = "0.5", default-features = false }
-chacha20 = { version = "0.9", features = ["zeroize"] }
-cipher = "0.4"
-poly1305 = "0.8"
-zeroize = { version = "1.5", default-features = false }
+aead = { version = "0.6", default-features = false }
+chacha20 = { version = "0.10", default-features = false, features = ["xchacha"] }
+cipher = "0.5"
+poly1305 = "0.9"
+zeroize = { version = "1.8", optional = true, default-features = false }
 
 [dev-dependencies]
-aead = { version = "0.5", features = ["dev"], default-features = false }
+aead = { version = "0.6", features = ["dev"], default-features = false }
 
 [features]
-default       = ["alloc", "getrandom"]
-std           = ["aead/std", "alloc"]
-alloc         = ["aead/alloc"]
-getrandom     = ["aead/getrandom", "rand_core"]
-heapless      = ["aead/heapless"]
-rand_core     = ["aead/rand_core"]
+default = ["alloc", "getrandom"]
+alloc = ["aead/alloc"]
+arrayvec = ["aead/arrayvec"]
+bytes = ["aead/bytes"]
+getrandom = ["aead/getrandom"]
+rand_core = ["aead/rand_core"]
 reduced-round = []
-stream        = ["aead/stream"]
+zeroize = ["dep:zeroize", "chacha20/zeroize"]
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]

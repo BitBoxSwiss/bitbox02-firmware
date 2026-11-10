@@ -1,70 +1,24 @@
-//! The Poly1305 universal hash function and message authentication code.
-//!
-//! # About
-//!
-//! Poly1305 is a universal hash function suitable for use as a one-time
-//! authenticator and, when combined with a cipher, a message authentication
-//! code (MAC).
-//!
-//! It takes a 32-byte one-time key and a message and produces a 16-byte tag,
-//! which can be used to authenticate the message.
-//!
-//! Poly1305 is primarily notable for its use in the [`ChaCha20Poly1305`] and
-//! [`XSalsa20Poly1305`] authenticated encryption algorithms.
-//!
-//! # Minimum Supported Rust Version
-//!
-//! Rust **1.56** or higher.
-//!
-//! Minimum supported Rust version may be changed in the future, but such
-//! changes will be accompanied with a minor version bump.
-//!
-//! # Security Notes
-//!
-//! This crate has received one [security audit by NCC Group][audit], with no
-//! significant findings. We would like to thank [MobileCoin] for funding the
-//! audit.
-//!
-//! NOTE: the audit predates the AVX2 backend, which has not yet been audited.
-//!
-//! All implementations contained in the crate are designed to execute in constant
-//! time, either by relying on hardware intrinsics (e.g. AVX2 on x86/x86_64), or
-//! using a portable implementation which is only constant time on processors which
-//! implement constant-time multiplication.
-//!
-//! It is not suitable for use on processors with a variable-time multiplication
-//! operation (e.g. short circuit on multiply-by-zero / multiply-by-one, such as
-//! certain 32-bit PowerPC CPUs and some non-ARM microcontrollers).
-//!
-//! [`ChaCha20Poly1305`]: https://docs.rs/chacha20poly1305
-//! [`XSalsa20Poly1305`]: https://docs.rs/xsalsa20poly1305
-//! [audit]: https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
-//! [MobileCoin]: https://mobilecoin.com
-
 #![no_std]
+#![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-#![warn(missing_docs, rust_2018_idioms)]
-
-#[cfg(feature = "std")]
-extern crate std;
 
 pub use universal_hash;
 
+use core::fmt::{self, Debug};
 use universal_hash::{
+    KeyInit, UhfClosure, UniversalHash,
+    common::{BlockSizeUser, KeySizeUser},
     consts::{U16, U32},
-    crypto_common::{BlockSizeUser, KeySizeUser},
-    generic_array::GenericArray,
-    KeyInit, UniversalHash,
 };
 
 mod backend;
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    not(poly1305_force_soft),
+    not(poly1305_backend = "soft"),
     target_feature = "avx2", // Fuzz tests bypass AVX2 autodetection code
     any(fuzzing, test)
 ))]
@@ -72,13 +26,13 @@ mod fuzz;
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    not(poly1305_force_soft)
+    not(poly1305_backend = "soft")
 ))]
 use crate::backend::autodetect::State;
 
 #[cfg(not(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    not(poly1305_force_soft)
+    not(poly1305_backend = "soft")
 )))]
 use crate::backend::soft::State;
 
@@ -126,15 +80,12 @@ impl BlockSizeUser for Poly1305 {
 }
 
 impl UniversalHash for Poly1305 {
-    fn update_with_backend(
-        &mut self,
-        f: impl universal_hash::UhfClosure<BlockSize = Self::BlockSize>,
-    ) {
+    fn update_with_backend(&mut self, f: impl UhfClosure<BlockSize = Self::BlockSize>) {
         self.state.update_with_backend(f);
     }
 
     /// Get the hashed output
-    fn finalize(self) -> Tag {
+    fn finalize(mut self) -> Tag {
         self.state.finalize()
     }
 }
@@ -143,28 +94,44 @@ impl Poly1305 {
     /// Compute unpadded Poly1305 for the given input data.
     ///
     /// The main use case for this is XSalsa20Poly1305.
+    #[must_use]
     pub fn compute_unpadded(mut self, data: &[u8]) -> Tag {
-        for chunk in data.chunks(BLOCK_SIZE) {
-            if chunk.len() == BLOCK_SIZE {
-                let block = GenericArray::from_slice(chunk);
-                self.state.compute_block(block, false);
-            } else {
-                let mut block = Block::default();
-                block[..chunk.len()].copy_from_slice(chunk);
-                block[chunk.len()] = 1;
-                self.state.compute_block(&block, true)
-            }
+        let (blocks, remaining) = Block::slice_as_chunks(data);
+
+        for block in blocks {
+            self.state.compute_block(block, false);
+        }
+
+        if !remaining.is_empty() {
+            let mut block = Block::default();
+            block[..remaining.len()].copy_from_slice(remaining);
+            block[remaining.len()] = 1;
+            self.state.compute_block(&block, true);
         }
 
         self.state.finalize()
     }
 }
 
-opaque_debug::implement!(Poly1305);
+impl Debug for Poly1305 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Poly1305").finish_non_exhaustive()
+    }
+}
+
+impl Drop for Poly1305 {
+    fn drop(&mut self) {
+        // SAFETY: `Poly1305` satisfies the safety conditions of `zeroize_flat_type`
+        #[cfg(feature = "zeroize")]
+        unsafe {
+            zeroize::zeroize_flat_type(self);
+        }
+    }
+}
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    not(poly1305_force_soft),
+    not(poly1305_backend = "soft"),
     target_feature = "avx2", // Fuzz tests bypass AVX2 autodetection code
     any(fuzzing, test)
 ))]

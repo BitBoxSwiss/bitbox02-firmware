@@ -10,16 +10,23 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.65"
+edition = "2024"
+rust-version = "1.85"
 name = "ecdsa"
-version = "0.16.9"
+version = "0.17.0"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
-Pure Rust implementation of the Elliptic Curve Digital Signature Algorithm
-(ECDSA) as specified in FIPS 186-4 (Digital Signature Standard), providing
-RFC6979 deterministic signatures as well as support for added entropy
+Pure Rust implementation of the Elliptic Curve Digital Signature Algorithm (ECDSA) as specified in
+FIPS 186-4 (Digital Signature Standard), implemented generically over elliptic curves, providing
+RFC6979 deterministic signing support as well as randomized signatures and signature verification
 """
+homepage = "https://github.com/RustCrypto/signatures/tree/master/ecdsa"
 readme = "README.md"
 keywords = [
     "crypto",
@@ -33,116 +40,155 @@ categories = [
     "no-std",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/signatures/tree/master/ecdsa"
+repository = "https://github.com/RustCrypto/signatures"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
-
-[dependencies.der]
-version = "0.7"
-optional = true
-
-[dependencies.digest]
-version = "0.10.7"
-features = ["oid"]
-optional = true
-default-features = false
-
-[dependencies.elliptic-curve]
-version = "0.13.6"
-features = [
-    "digest",
-    "sec1",
-]
-default-features = false
-
-[dependencies.rfc6979]
-version = "0.4"
-optional = true
-
-[dependencies.serdect]
-version = "0.2"
-features = ["alloc"]
-optional = true
-default-features = false
-
-[dependencies.sha2]
-version = "0.10"
-features = ["oid"]
-optional = true
-default-features = false
-
-[dependencies.signature]
-version = "2.0, <2.3"
-features = ["rand_core"]
-default-features = false
-
-[dependencies.spki]
-version = "0.7.2"
-optional = true
-default-features = false
-
-[dev-dependencies.elliptic-curve]
-version = "0.13"
-features = ["dev"]
-default-features = false
-
-[dev-dependencies.hex-literal]
-version = "0.4"
-
-[dev-dependencies.sha2]
-version = "0.10"
-default-features = false
 
 [features]
+algorithm = [
+    "dep:rfc6979",
+    "digest",
+    "elliptic-curve/arithmetic",
+]
 alloc = [
     "elliptic-curve/alloc",
     "signature/alloc",
     "spki/alloc",
 ]
-arithmetic = ["elliptic-curve/arithmetic"]
 default = ["digest"]
+der = ["dep:der"]
 dev = [
-    "arithmetic",
-    "digest",
+    "algorithm",
+    "digest/dev",
     "elliptic-curve/dev",
-    "hazmat",
 ]
 digest = [
     "dep:digest",
+    "elliptic-curve/digest",
     "signature/digest",
 ]
-hazmat = []
+getrandom = ["elliptic-curve/getrandom"]
 pem = [
     "elliptic-curve/pem",
     "pkcs8",
 ]
 pkcs8 = [
+    "der",
     "digest",
     "elliptic-curve/pkcs8",
-    "der",
 ]
 serde = [
+    "dep:serdect",
     "elliptic-curve/serde",
-    "serdect",
-]
-signing = [
-    "arithmetic",
-    "digest",
-    "hazmat",
-    "rfc6979",
+    "pkcs8",
 ]
 std = [
     "alloc",
     "elliptic-curve/std",
-    "signature/std",
 ]
-verifying = [
-    "arithmetic",
-    "digest",
-    "hazmat",
-]
+
+[lib]
+name = "ecdsa"
+path = "src/lib.rs"
+
+[[test]]
+name = "lib"
+path = "tests/lib.rs"
+
+[dependencies.der]
+version = "0.8"
+optional = true
+
+[dependencies.digest]
+version = "0.11"
+features = ["oid"]
+optional = true
+default-features = false
+
+[dependencies.elliptic-curve]
+version = "0.14"
+features = ["sec1"]
+default-features = false
+
+[dependencies.rfc6979]
+version = "0.6"
+optional = true
+
+[dependencies.serdect]
+version = "0.4"
+features = ["alloc"]
+optional = true
+default-features = false
+
+[dependencies.sha2]
+version = "0.11"
+features = ["oid"]
+optional = true
+default-features = false
+
+[dependencies.signature]
+version = "3"
+features = ["rand_core"]
+default-features = false
+
+[dependencies.spki]
+version = "0.8"
+optional = true
+default-features = false
+
+[dependencies.zeroize]
+version = "1.5"
+default-features = false
+
+[dev-dependencies.elliptic-curve]
+version = "0.14"
+features = ["dev"]
+default-features = false
+
+[dev-dependencies.sha2]
+version = "0.11"
+default-features = false
+
+[lints.clippy]
+as_conversions = "warn"
+borrow_as_ptr = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_saturating_sub = "warn"
+integer_division_remainder_used = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+needless_range_loop = "allow"
+ptr_as_ptr = "warn"
+redundant_closure_for_method_calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
+trivially_copy_pass_by_ref = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unwrap_used = "warn"
+
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unreachable_pub = "warn"
+unsafe_code = "forbid"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"

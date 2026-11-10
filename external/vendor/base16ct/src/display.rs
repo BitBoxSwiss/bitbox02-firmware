@@ -6,7 +6,7 @@ pub struct HexDisplay<'a>(pub &'a [u8]);
 
 impl fmt::Display for HexDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:X}", self)
+        write!(f, "{self:X}")
     }
 }
 

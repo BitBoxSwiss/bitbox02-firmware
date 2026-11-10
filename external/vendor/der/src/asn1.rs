@@ -5,12 +5,14 @@
 mod internal_macros;
 
 mod any;
-mod bit_string;
+mod application;
+pub(crate) mod bit_string;
 #[cfg(feature = "alloc")]
 mod bmp_string;
 mod boolean;
 mod choice;
 mod context_specific;
+mod general_string;
 mod generalized_time;
 mod ia5_string;
 mod integer;
@@ -20,6 +22,7 @@ mod octet_string;
 mod oid;
 mod optional;
 mod printable_string;
+mod private;
 #[cfg(feature = "real")]
 mod real;
 mod sequence;
@@ -32,18 +35,19 @@ mod videotex_string;
 
 pub use self::{
     any::AnyRef,
-    bit_string::{BitStringIter, BitStringRef},
+    application::{Application, ApplicationRef},
+    bit_string::{AsBitStringRef, BitStringIter, BitStringRef},
     choice::Choice,
     context_specific::{ContextSpecific, ContextSpecificRef},
+    general_string::GeneralStringRef,
     generalized_time::GeneralizedTime,
     ia5_string::Ia5StringRef,
-    integer::{int::IntRef, uint::UintRef},
+    integer::{AsIntRef, AsUintRef, int::IntRef, uint::UintRef},
     null::Null,
     octet_string::OctetStringRef,
     printable_string::PrintableStringRef,
+    private::{Private, PrivateRef},
     sequence::{Sequence, SequenceRef},
-    sequence_of::{SequenceOf, SequenceOfIter},
-    set_of::{SetOf, SetOfIter},
     teletex_string::TeletexStringRef,
     utc_time::UtcTime,
     utf8_string::Utf8StringRef,
@@ -62,6 +66,15 @@ pub use self::{
     set_of::SetOfVec,
     teletex_string::TeletexString,
 };
+
+#[cfg(feature = "heapless")]
+pub use self::{
+    sequence_of::{SequenceOf, SequenceOfIter},
+    set_of::SetOf,
+};
+
+#[cfg(any(feature = "alloc", feature = "heapless"))]
+pub use set_of::{SetOfIter, SetOfRef};
 
 #[cfg(feature = "oid")]
 pub use const_oid::ObjectIdentifier;

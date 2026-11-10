@@ -1,25 +1,25 @@
 //! Non-zero scalar type.
 
 use crate::{
+    CurveArithmetic, Error, FieldBytes, PrimeCurve, Scalar, ScalarValue, SecretKey,
     ops::{Invert, Reduce, ReduceNonZero},
+    point::NonIdentity,
     scalar::IsHigh,
-    CurveArithmetic, Error, FieldBytes, PrimeCurve, Scalar, ScalarPrimitive, SecretKey,
 };
 use base16ct::HexDisplay;
+use common::Generate;
 use core::{
     fmt,
-    ops::{Deref, Mul, Neg},
+    ops::{Deref, Mul, MulAssign, Neg},
     str,
 };
-use crypto_bigint::{ArrayEncoding, Integer};
 use ff::{Field, PrimeField};
-use generic_array::{typenum::Unsigned, GenericArray};
-use rand_core::CryptoRngCore;
+use rand_core::{CryptoRng, TryCryptoRng};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::Zeroize;
 
 #[cfg(feature = "serde")]
-use serdect::serde::{de, ser, Deserialize, Serialize};
+use serdect::serde::{Deserialize, Serialize, de, ser};
 
 /// Non-zero scalar type.
 ///
@@ -30,6 +30,8 @@ use serdect::serde::{de, ser, Deserialize, Serialize};
 /// In the context of ECC, it's useful for ensuring that scalar multiplication
 /// cannot result in the point at infinity.
 #[derive(Clone)]
+// `repr` is needed for `unsafe` safety invariants below
+#[repr(transparent)]
 pub struct NonZeroScalar<C>
 where
     C: CurveArithmetic,
@@ -37,22 +39,16 @@ where
     scalar: Scalar<C>,
 }
 
+impl<C: CurveArithmetic> fmt::Debug for NonZeroScalar<C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("NonZeroScalar").finish_non_exhaustive()
+    }
+}
+
 impl<C> NonZeroScalar<C>
 where
     C: CurveArithmetic,
 {
-    /// Generate a random `NonZeroScalar`.
-    pub fn random(mut rng: &mut impl CryptoRngCore) -> Self {
-        // Use rejection sampling to eliminate zero values.
-        // While this method isn't constant-time, the attacker shouldn't learn
-        // anything about unrelated outputs so long as `rng` is a secure `CryptoRng`.
-        loop {
-            if let Some(result) = Self::new(Field::random(&mut rng)).into() {
-                break result;
-            }
-        }
-    }
-
     /// Create a [`NonZeroScalar`] from a scalar.
     pub fn new(scalar: Scalar<C>) -> CtOption<Self> {
         CtOption::new(Self { scalar }, !scalar.is_zero())
@@ -65,7 +61,34 @@ where
 
     /// Create a [`NonZeroScalar`] from a `C::Uint`.
     pub fn from_uint(uint: C::Uint) -> CtOption<Self> {
-        ScalarPrimitive::new(uint).and_then(|scalar| Self::new(scalar.into()))
+        ScalarValue::new(uint).and_then(|scalar| Self::new(scalar.into()))
+    }
+
+    /// Transform array reference containing [`NonZeroScalar`]s to an array reference to the inner
+    /// scalar type.
+    pub fn cast_array_as_inner<const N: usize>(scalars: &[Self; N]) -> &[Scalar<C>; N] {
+        // SAFETY: `NonZeroScalar` is a `repr(transparent)` newtype for `Scalar<C>` so it's safe to
+        // cast to the inner scalar type.
+        #[allow(unsafe_code)]
+        unsafe {
+            &*scalars.as_ptr().cast()
+        }
+    }
+
+    /// Transform slice containing [`NonZeroScalar`]s to a slice of the inner scalar type.
+    pub fn cast_slice_as_inner(scalars: &[Self]) -> &[Scalar<C>] {
+        // SAFETY: `NonZeroScalar` is a `repr(transparent)` newtype for `Scalar<C>` so it's safe to
+        // cast to the inner scalar type.
+        #[allow(unsafe_code)]
+        unsafe {
+            &*(core::ptr::from_ref(scalars) as *const [Scalar<C>])
+        }
+    }
+
+    /// Deprecated: Generate a random [`NonZeroScalar`].
+    #[deprecated(since = "0.14.0", note = "use the `Generate` trait instead")]
+    pub fn random<R: CryptoRng + ?Sized>(rng: &mut R) -> Self {
+        Self::generate_from_rng(rng)
     }
 }
 
@@ -111,6 +134,8 @@ where
     }
 }
 
+impl<C> Eq for NonZeroScalar<C> where C: CurveArithmetic {}
+
 impl<C> From<NonZeroScalar<C>> for FieldBytes<C>
 where
     C: CurveArithmetic,
@@ -129,22 +154,22 @@ where
     }
 }
 
-impl<C> From<NonZeroScalar<C>> for ScalarPrimitive<C>
+impl<C> From<NonZeroScalar<C>> for ScalarValue<C>
 where
     C: CurveArithmetic,
 {
     #[inline]
-    fn from(scalar: NonZeroScalar<C>) -> ScalarPrimitive<C> {
+    fn from(scalar: NonZeroScalar<C>) -> ScalarValue<C> {
         Self::from(&scalar)
     }
 }
 
-impl<C> From<&NonZeroScalar<C>> for ScalarPrimitive<C>
+impl<C> From<&NonZeroScalar<C>> for ScalarValue<C>
 where
     C: CurveArithmetic,
 {
-    fn from(scalar: &NonZeroScalar<C>) -> ScalarPrimitive<C> {
-        ScalarPrimitive::from_bytes(&scalar.to_repr()).unwrap()
+    fn from(scalar: &NonZeroScalar<C>) -> ScalarValue<C> {
+        scalar.scalar.into()
     }
 }
 
@@ -162,9 +187,25 @@ where
     C: CurveArithmetic,
 {
     fn from(sk: &SecretKey<C>) -> NonZeroScalar<C> {
-        let scalar = sk.as_scalar_primitive().to_scalar();
+        let scalar = sk.as_scalar_value().to_scalar();
         debug_assert!(!bool::from(scalar.is_zero()));
         Self { scalar }
+    }
+}
+
+impl<C> Generate for NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+{
+    fn try_generate_from_rng<R: TryCryptoRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        // Use rejection sampling to eliminate zero values.
+        // While this method isn't constant-time, the attacker shouldn't learn
+        // anything about unrelated outputs so long as `rng` is a secure `CryptoRng`.
+        loop {
+            if let Some(result) = Self::new(Scalar::<C>::try_generate_from_rng(rng)?).into() {
+                break Ok(result);
+            }
+        }
     }
 }
 
@@ -239,42 +280,91 @@ where
     }
 }
 
-/// Note: this is a non-zero reduction, as it's impl'd for [`NonZeroScalar`].
-impl<C, I> Reduce<I> for NonZeroScalar<C>
+impl<C, P> Mul<NonIdentity<P>> for NonZeroScalar<C>
 where
     C: CurveArithmetic,
-    I: Integer + ArrayEncoding,
-    Scalar<C>: Reduce<I> + ReduceNonZero<I>,
+    NonIdentity<P>: Mul<NonZeroScalar<C>, Output = NonIdentity<P>>,
 {
-    type Bytes = <Scalar<C> as Reduce<I>>::Bytes;
+    type Output = NonIdentity<P>;
 
-    fn reduce(n: I) -> Self {
-        let scalar = Scalar::<C>::reduce_nonzero(n);
-        debug_assert!(!bool::from(scalar.is_zero()));
-        Self { scalar }
-    }
-
-    fn reduce_bytes(bytes: &Self::Bytes) -> Self {
-        let scalar = Scalar::<C>::reduce_nonzero_bytes(bytes);
-        debug_assert!(!bool::from(scalar.is_zero()));
-        Self { scalar }
+    fn mul(self, rhs: NonIdentity<P>) -> Self::Output {
+        rhs * self
     }
 }
 
-/// Note: forwards to the [`Reduce`] impl.
-impl<C, I> ReduceNonZero<I> for NonZeroScalar<C>
+impl<C, P> Mul<&NonIdentity<P>> for NonZeroScalar<C>
 where
-    Self: Reduce<I>,
     C: CurveArithmetic,
-    I: Integer + ArrayEncoding,
-    Scalar<C>: Reduce<I, Bytes = Self::Bytes> + ReduceNonZero<I>,
+    for<'a> &'a NonIdentity<P>: Mul<NonZeroScalar<C>, Output = NonIdentity<P>>,
 {
-    fn reduce_nonzero(n: I) -> Self {
-        Self::reduce(n)
-    }
+    type Output = NonIdentity<P>;
 
-    fn reduce_nonzero_bytes(bytes: &Self::Bytes) -> Self {
-        Self::reduce_bytes(bytes)
+    fn mul(self, rhs: &NonIdentity<P>) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl<C, P> Mul<NonIdentity<P>> for &NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+    for<'a> NonIdentity<P>: Mul<&'a NonZeroScalar<C>, Output = NonIdentity<P>>,
+{
+    type Output = NonIdentity<P>;
+
+    fn mul(self, rhs: NonIdentity<P>) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl<C, P> Mul<&NonIdentity<P>> for &NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+    for<'a> &'a NonIdentity<P>: Mul<&'a NonZeroScalar<C>, Output = NonIdentity<P>>,
+{
+    type Output = NonIdentity<P>;
+
+    fn mul(self, rhs: &NonIdentity<P>) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl<C> MulAssign for NonZeroScalar<C>
+where
+    C: PrimeCurve + CurveArithmetic,
+{
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+
+impl<C> PartialEq for NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.scalar.eq(&other.scalar)
+    }
+}
+
+impl<C, T> Reduce<T> for NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+    Scalar<C>: ReduceNonZero<T>,
+{
+    fn reduce(n: &T) -> Self {
+        <Self as ReduceNonZero<T>>::reduce_nonzero(n)
+    }
+}
+
+impl<C, T> ReduceNonZero<T> for NonZeroScalar<C>
+where
+    C: CurveArithmetic,
+    Scalar<C>: ReduceNonZero<T>,
+{
+    fn reduce_nonzero(n: &T) -> Self {
+        let scalar = Scalar::<C>::reduce_nonzero(n);
+        debug_assert!(!bool::from(scalar.is_zero()));
+        Self { scalar }
     }
 }
 
@@ -285,14 +375,9 @@ where
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Error> {
-        if bytes.len() == C::FieldBytesSize::USIZE {
-            Option::from(NonZeroScalar::from_repr(GenericArray::clone_from_slice(
-                bytes,
-            )))
+        NonZeroScalar::from_repr(bytes.try_into()?)
+            .into_option()
             .ok_or(Error)
-        } else {
-            Err(Error)
-        }
     }
 }
 
@@ -347,7 +432,7 @@ where
         let mut bytes = FieldBytes::<C>::default();
 
         if base16ct::mixed::decode(hex, &mut bytes)?.len() == bytes.len() {
-            Option::from(Self::from_repr(bytes)).ok_or(Error)
+            Self::from_repr(bytes).into_option().ok_or(Error)
         } else {
             Err(Error)
         }
@@ -363,7 +448,7 @@ where
     where
         S: ser::Serializer,
     {
-        ScalarPrimitive::from(self).serialize(serializer)
+        ScalarValue::from(self).serialize(serializer)
     }
 }
 
@@ -376,8 +461,9 @@ where
     where
         D: de::Deserializer<'de>,
     {
-        let scalar = ScalarPrimitive::deserialize(deserializer)?;
-        Option::from(Self::new(scalar.into()))
+        let scalar = ScalarValue::deserialize(deserializer)?;
+        Self::new(scalar.into())
+            .into_option()
             .ok_or_else(|| de::Error::custom("expected non-zero scalar"))
     }
 }

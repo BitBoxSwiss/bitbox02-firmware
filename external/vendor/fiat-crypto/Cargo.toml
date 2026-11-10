@@ -10,18 +10,29 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.83.0"
 name = "fiat-crypto"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Fiat Crypto library authors <jgross@mit.edu>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Fiat-crypto generated Rust"
 homepage = "https://github.com/mit-plv/fiat-crypto"
 readme = "README.md"
 license = "MIT OR Apache-2.0 OR BSD-1-Clause"
 repository = "https://github.com/mit-plv/fiat-crypto"
 
-[dependencies]
-
 [features]
 default = ["std"]
 std = []
+
+[lib]
+name = "fiat_crypto"
+path = "src/lib.rs"
+
+[dependencies]

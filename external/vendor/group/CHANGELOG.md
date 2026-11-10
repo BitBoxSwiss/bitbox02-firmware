@@ -7,6 +7,38 @@ and this library adheres to Rust's notion of
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-06-01
+### Added
+- `group::CurveAffine`, an affine-representation trait that the curve-specific
+  affine traits are now built on top of.
+- `group::Group::mul_by_generator`, with a default implementation. Implementors
+  can override it to take advantage of precomputed tables.
+- `group::Group::try_random<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error>`,
+  a new trait method that must be implemented by downstreams. It samples a
+  non-identity group element using a fallible RNG and propagates the RNG's error.
+
+### Changed
+- MSRV is now 1.85.0.
+- Bumped dependencies to `ff 0.14`, `rand_core 0.10`.
+- `group::Group::random(rng: impl RngCore) -> Self` has been changed to
+  `Group::random<R: Rng + ?Sized>(rng: &mut R) -> Self`, to enable passing a
+  trait object as the RNG. It now has a default implementation in terms of
+  `Group::try_random`.
+- The curve-related traits have been refactored around the new `CurveAffine`
+  trait:
+  - `group::Curve::AffineRepr` has been renamed to `Curve::Affine`.
+  - All of the trait methods and associated types on the following traits have
+    been removed (use `group::Curve::Affine` or the `group::CurveAffine` trait
+    instead; trait implementors must implement `group::CurveAffine` instead
+    using the same logic):
+    - `group::cofactor::CofactorCurve`
+    - `group::cofactor::CofactorCurveAffine`
+    - `group::prime::PrimeCurve`
+    - `group::prime::PrimeCurveAffine`
+  - `group::cofactor::CofactorCurveAffine` and `group::prime::PrimeCurveAffine`
+    now have blanket implementations for all types `C: group::CurveAffine` where
+    `C::Curve` implements `CofactorCurve` or `PrimeCurve` respectively.
+
 ## [0.13.0] - 2022-12-06
 ### Changed
 - Bumped `ff` to `0.13`

@@ -1,9 +1,6 @@
-use core::fmt;
-use core::ops::{Mul, Neg};
-use ff::PrimeField;
 use subtle::{Choice, CtOption};
 
-use crate::{prime::PrimeGroup, Curve, Group, GroupEncoding, GroupOps, GroupOpsOwned};
+use crate::{prime::PrimeGroup, Curve, CurveAffine, Group, GroupEncoding, GroupOps, GroupOpsOwned};
 
 /// This trait represents an element of a cryptographic group with a large prime-order
 /// subgroup and a comparatively-small cofactor.
@@ -54,47 +51,10 @@ pub trait CofactorGroup:
 
 /// Efficient representation of an elliptic curve point guaranteed to be
 /// in the correct prime order subgroup.
-pub trait CofactorCurve:
-    Curve<AffineRepr = <Self as CofactorCurve>::Affine> + CofactorGroup
-{
-    type Affine: CofactorCurveAffine<Curve = Self, Scalar = Self::Scalar>
-        + Mul<Self::Scalar, Output = Self>
-        + for<'r> Mul<&'r Self::Scalar, Output = Self>;
-}
+pub trait CofactorCurve: Curve + CofactorGroup {}
 
 /// Affine representation of an elliptic curve point guaranteed to be
 /// in the correct prime order subgroup.
-pub trait CofactorCurveAffine:
-    GroupEncoding
-    + Copy
-    + Clone
-    + Sized
-    + Send
-    + Sync
-    + fmt::Debug
-    + PartialEq
-    + Eq
-    + 'static
-    + Neg<Output = Self>
-    + Mul<<Self as CofactorCurveAffine>::Scalar, Output = <Self as CofactorCurveAffine>::Curve>
-    + for<'r> Mul<
-        &'r <Self as CofactorCurveAffine>::Scalar,
-        Output = <Self as CofactorCurveAffine>::Curve,
-    >
-{
-    type Scalar: PrimeField;
-    type Curve: CofactorCurve<Affine = Self, Scalar = Self::Scalar>;
+pub trait CofactorCurveAffine: CurveAffine {}
 
-    /// Returns the additive identity.
-    fn identity() -> Self;
-
-    /// Returns a fixed generator of unknown exponent.
-    fn generator() -> Self;
-
-    /// Determines if this point represents the point at infinity; the
-    /// additive identity.
-    fn is_identity(&self) -> Choice;
-
-    /// Converts this element to its curve representation.
-    fn to_curve(&self) -> Self::Curve;
-}
+impl<C: CurveAffine> CofactorCurveAffine for C where C::Curve: CofactorCurve {}

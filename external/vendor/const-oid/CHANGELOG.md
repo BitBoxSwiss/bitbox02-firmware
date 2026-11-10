@@ -4,21 +4,98 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.9.6 (2023-12-14)
+## 0.10.2 (2026-01-07)
 ### Added
-- RFC 6962 OID ([#1282])
+- `ObjectIdentifier::from_bytes_sized` which ensures OIDs use all available space in the backing
+  array ([#1852])
+- Microsoft and Kerberos OIDs ([#2035])
 
-[#1282]: https://github.com/RustCrypto/formats/pull/1282
+### Fixed
+- Switch from `doc_auto_cfg` to `doc_cfg` ([#2072])
+
+[#1852]: https://github.com/RustCrypto/formats/pull/1852
+[#2035]: https://github.com/RustCrypto/formats/pull/2035
+[#2072]: https://github.com/RustCrypto/formats/pull/2072
+
+## 0.10.1 (2025-04-08)
+### Added
+- RFC9688 OIDs ([#1692])
+
+### Fixed
+- Encoder `base128_len` calculation ([#1753])
+
+[#1692]: https://github.com/RustCrypto/formats/pull/1692
+[#1753]: https://github.com/RustCrypto/formats/pull/1753
+
+## 0.10.0 (2025-02-24)
+### Added
+- `ObjectIdentifier::starts_with` ([#964])
+- SHA-3 OIDs ([#1000])
+- RFC6962 OIDs ([#1094])
+- RFC2985 OIDS for PKCS#9 ([#1248])
+- `ObjectIdentifierRef` type ([#1305], [#1308])
+- RFC7693 OIDs for BLAKE2 ([#1261])
+- TPM-related OIDs ([#1337])
+- STB (Belarus standards) OIDs ([#1394])
+- RFC3161 OIDs ([#1407])
+- OIDs for ML-DSA and SLH-DSA ([#1541])
+- RFC5753 OIDs ([#1547])
+- RFC7292 OIDs for PKCS#12 ([#1568])
+- Brainpool RFC5639 OIDs ([#1636])
+- Support for X.509 `GN` as an alias to `givenName` ([#1648])
+
+### Changed
+- Return all matched names when looking up OID ([#1129])
+- Make `ObjectIdentifier`'s size const generic ([#1300])
+- Upgrade to 2024 edition; MSRV 1.85 ([#1670])
+
+### Fixed
+- Off-by-one error in `Encoder` size check ([#1304])
+- Large arc handling ([#1522], [#1592])
+- Handling of repeated dot characters in input ([#1595])
+- Bugs in Base 128 encoder ([#1600])
+
+### Removed
+- `std` feature ([#1535])
+
+[#964]: https://github.com/RustCrypto/formats/pull/964
+[#1000]: https://github.com/RustCrypto/formats/pull/1000
+[#1094]: https://github.com/RustCrypto/formats/pull/1094
+[#1248]: https://github.com/RustCrypto/formats/pull/1248
+[#1261]: https://github.com/RustCrypto/formats/pull/1261
+[#1300]: https://github.com/RustCrypto/formats/pull/1300
+[#1304]: https://github.com/RustCrypto/formats/pull/1304
+[#1305]: https://github.com/RustCrypto/formats/pull/1305
+[#1337]: https://github.com/RustCrypto/formats/pull/1337
+[#1394]: https://github.com/RustCrypto/formats/pull/1394
+[#1407]: https://github.com/RustCrypto/formats/pull/1407
+[#1522]: https://github.com/RustCrypto/formats/pull/1522
+[#1535]: https://github.com/RustCrypto/formats/pull/1535
+[#1541]: https://github.com/RustCrypto/formats/pull/1541
+[#1547]: https://github.com/RustCrypto/formats/pull/1547
+[#1568]: https://github.com/RustCrypto/formats/pull/1568
+[#1592]: https://github.com/RustCrypto/formats/pull/1529
+[#1595]: https://github.com/RustCrypto/formats/pull/1595
+[#1600]: https://github.com/RustCrypto/formats/pull/1600
+[#1636]: https://github.com/RustCrypto/formats/pull/1636
+[#1648]: https://github.com/RustCrypto/formats/pull/1648
+[#1670]: https://github.com/RustCrypto/formats/pull/1670
+
+## 0.9.6 (2023-12-15)
+### Added
+- RFC6962 (Certificate Transparency) OIDs ([#1134])
+
+[#1134]: https://github.com/RustCrypto/formats/pull/1134
 
 ## 0.9.5 (2023-08-02)
 ### Added
-- rfc8410 (curve25519) OIDS. ([#867])
+- RFC8410 (curve25519) OIDs ([#867])
 
 [#867]: https://github.com/RustCrypto/formats/pull/867
 
 ## 0.9.4 (2023-07-10)
 ### Added
-- rfc8894 (SCEP) OIDs. ([#1114])
+- RFC8894 (SCEP) OIDs ([#1114])
 
 [#1114]: https://github.com/RustCrypto/formats/pull/1114
 
@@ -30,9 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.9.2 (2023-02-26)
 ### Added
-- Implement `Arbitrary` trait ([#761])
+- `arbitrary` crate feature ([#895])
 
-[#761]: https://github.com/RustCrypto/formats/pull/761
+[#895]: https://github.com/RustCrypto/formats/pull/895
 
 ## 0.9.1 (2022-11-12)
 ### Added

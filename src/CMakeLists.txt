@@ -356,7 +356,7 @@ foreach(type ${RUST_LIBS})
         rustc
         $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv>
         --offline
-        $ENV{CARGOFLAGS}
+        ${CARGO_ENV_FLAGS}
         --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt>
         --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
         --target-dir ${RUST_BINARY_DIR}/feature-${type}
@@ -371,6 +371,8 @@ foreach(type ${RUST_LIBS})
       ${CMAKE_CURRENT_SOURCE_DIR}/rust
     COMMENT "Building Rust library lib${type}_rust_c.a"
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
+    VERBATIM
+    COMMAND_EXPAND_LISTS
   )
   add_custom_target(${type}-rust-target DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
   add_library(${type}_rust_c STATIC IMPORTED GLOBAL)

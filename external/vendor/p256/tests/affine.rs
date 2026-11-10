@@ -1,13 +1,13 @@
 //! Affine arithmetic tests.
 
-#![cfg(all(feature = "arithmetic"))]
+#![cfg(feature = "arithmetic")]
 
 use elliptic_curve::{
-    group::{prime::PrimeCurveAffine, GroupEncoding},
-    sec1::{FromEncodedPoint, ToCompactEncodedPoint, ToEncodedPoint},
+    group::{CurveAffine, GroupEncoding},
+    sec1::{FromSec1Point, ToCompactSec1Point, ToSec1Point},
 };
 use hex_literal::hex;
-use p256::{AffinePoint, EncodedPoint};
+use p256::{AffinePoint, Sec1Point};
 
 const UNCOMPRESSED_BASEPOINT: &[u8] = &hex!(
     "04 6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
@@ -29,42 +29,42 @@ const UNCOMPACT_BASEPOINT: &[u8] = &hex!(
 
 #[test]
 fn uncompressed_round_trip() {
-    let pubkey = EncodedPoint::from_bytes(UNCOMPRESSED_BASEPOINT).unwrap();
-    let point = AffinePoint::from_encoded_point(&pubkey).unwrap();
+    let pubkey = Sec1Point::from_bytes(UNCOMPRESSED_BASEPOINT).unwrap();
+    let point = AffinePoint::from_sec1_point(&pubkey).unwrap();
     assert_eq!(point, AffinePoint::generator());
 
-    let res: EncodedPoint = point.into();
+    let res: Sec1Point = point.into();
     assert_eq!(res, pubkey);
 }
 
 #[test]
 fn compressed_round_trip() {
-    let pubkey = EncodedPoint::from_bytes(COMPRESSED_BASEPOINT).unwrap();
-    let point = AffinePoint::from_encoded_point(&pubkey).unwrap();
+    let pubkey = Sec1Point::from_bytes(COMPRESSED_BASEPOINT).unwrap();
+    let point = AffinePoint::from_sec1_point(&pubkey).unwrap();
     assert_eq!(point, AffinePoint::generator());
 
-    let res: EncodedPoint = point.to_encoded_point(true);
+    let res: Sec1Point = point.to_sec1_point(true);
     assert_eq!(res, pubkey);
 }
 
 #[test]
 fn uncompressed_to_compressed() {
-    let encoded = EncodedPoint::from_bytes(UNCOMPRESSED_BASEPOINT).unwrap();
+    let encoded = Sec1Point::from_bytes(UNCOMPRESSED_BASEPOINT).unwrap();
 
-    let res = AffinePoint::from_encoded_point(&encoded)
+    let res = AffinePoint::from_sec1_point(&encoded)
         .unwrap()
-        .to_encoded_point(true);
+        .to_sec1_point(true);
 
     assert_eq!(res.as_bytes(), COMPRESSED_BASEPOINT);
 }
 
 #[test]
 fn compressed_to_uncompressed() {
-    let encoded = EncodedPoint::from_bytes(COMPRESSED_BASEPOINT).unwrap();
+    let encoded = Sec1Point::from_bytes(COMPRESSED_BASEPOINT).unwrap();
 
-    let res = AffinePoint::from_encoded_point(&encoded)
+    let res = AffinePoint::from_sec1_point(&encoded)
         .unwrap()
-        .to_encoded_point(false);
+        .to_sec1_point(false);
 
     assert_eq!(res.as_bytes(), UNCOMPRESSED_BASEPOINT);
 }
@@ -77,32 +77,32 @@ fn affine_negation() {
 
 #[test]
 fn compact_round_trip() {
-    let pubkey = EncodedPoint::from_bytes(COMPACT_BASEPOINT).unwrap();
+    let pubkey = Sec1Point::from_bytes(COMPACT_BASEPOINT).unwrap();
     assert!(pubkey.is_compact());
 
-    let point = AffinePoint::from_encoded_point(&pubkey).unwrap();
+    let point = AffinePoint::from_sec1_point(&pubkey).unwrap();
     let res = point.to_compact_encoded_point().unwrap();
-    assert_eq!(res, pubkey)
+    assert_eq!(res, pubkey);
 }
 
 #[test]
 fn uncompact_to_compact() {
-    let pubkey = EncodedPoint::from_bytes(UNCOMPACT_BASEPOINT).unwrap();
-    assert_eq!(false, pubkey.is_compact());
+    let pubkey = Sec1Point::from_bytes(UNCOMPACT_BASEPOINT).unwrap();
+    assert!(!pubkey.is_compact());
 
-    let point = AffinePoint::from_encoded_point(&pubkey).unwrap();
+    let point = AffinePoint::from_sec1_point(&pubkey).unwrap();
     let res = point.to_compact_encoded_point().unwrap();
-    assert_eq!(res.as_bytes(), COMPACT_BASEPOINT)
+    assert_eq!(res.as_bytes(), COMPACT_BASEPOINT);
 }
 
 #[test]
 fn compact_to_uncompact() {
-    let pubkey = EncodedPoint::from_bytes(COMPACT_BASEPOINT).unwrap();
+    let pubkey = Sec1Point::from_bytes(COMPACT_BASEPOINT).unwrap();
     assert!(pubkey.is_compact());
 
-    let point = AffinePoint::from_encoded_point(&pubkey).unwrap();
+    let point = AffinePoint::from_sec1_point(&pubkey).unwrap();
     // Do not do compact encoding as we want to keep uncompressed point
-    let res = point.to_encoded_point(false);
+    let res = point.to_sec1_point(false);
     assert_eq!(res.as_bytes(), UNCOMPACT_BASEPOINT);
 }
 
@@ -114,13 +114,13 @@ fn identity_encoding() {
         AffinePoint::from_bytes(&AffinePoint::IDENTITY.to_bytes())
             .unwrap()
             .is_identity()
-    ))
+    ));
 }
 
 #[test]
 fn noncompatible_is_none() {
-    use elliptic_curve::generic_array::GenericArray;
-    let noncompactable_secret = GenericArray::from([
+    use elliptic_curve::array::Array;
+    let noncompactable_secret = Array::from([
         175, 232, 180, 255, 91, 106, 124, 191, 224, 31, 177, 208, 236, 127, 191, 169, 201, 217, 75,
         141, 184, 175, 120, 85, 171, 8, 54, 57, 33, 177, 83, 211,
     ]);
@@ -131,6 +131,6 @@ fn noncompatible_is_none() {
         .as_affine()
         .to_compact_encoded_point()
         .is_some()
-        .unwrap_u8();
-    assert_eq!(is_compactable, 0);
+        .to_bool();
+    assert!(!is_compactable);
 }

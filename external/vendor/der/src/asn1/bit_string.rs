@@ -1,10 +1,16 @@
 //! ASN.1 `BIT STRING` support.
 
+pub mod allowed_len_bit_string;
+
 use crate::{
     BytesRef, DecodeValue, DerOrd, EncodeValue, Error, ErrorKind, FixedTag, Header, Length, Reader,
     Result, Tag, ValueOrd, Writer,
 };
 use core::{cmp::Ordering, iter::FusedIterator};
+use unused_bits::UnusedBits;
+
+#[cfg(feature = "flagset")]
+use core::mem::size_of_val;
 
 /// ASN.1 `BIT STRING` type.
 ///
@@ -15,71 +21,91 @@ use core::{cmp::Ordering, iter::FusedIterator};
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BitStringRef<'a> {
     /// Number of unused bits in the final octet.
-    unused_bits: u8,
-
-    /// Length of this `BIT STRING` in bits.
-    bit_length: usize,
+    unused_bits: UnusedBits,
 
     /// Bitstring represented as a slice of bytes.
-    inner: BytesRef<'a>,
+    inner: &'a BytesRef,
 }
 
 impl<'a> BitStringRef<'a> {
-    /// Maximum number of unused bits allowed.
-    pub const MAX_UNUSED_BITS: u8 = 7;
-
     /// Create a new ASN.1 `BIT STRING` from a byte slice.
     ///
     /// Accepts an optional number of "unused bits" (0-7) which are omitted
     /// from the final octet. This number is 0 if the value is octet-aligned.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if any of the following occur:
+    /// - `unused_bits` is invalid
+    /// - `bytes` is too long
+    /// - an overflow occurred calculating the bit length
     pub fn new(unused_bits: u8, bytes: &'a [u8]) -> Result<Self> {
-        if (unused_bits > Self::MAX_UNUSED_BITS) || (unused_bits != 0 && bytes.is_empty()) {
-            return Err(Self::TAG.value_error());
-        }
-
+        let unused_bits = UnusedBits::new(unused_bits, bytes)?;
         let inner = BytesRef::new(bytes).map_err(|_| Self::TAG.length_error())?;
+        let value = Self::new_unchecked(unused_bits, inner);
+        value
+            .bit_len_checked()
+            .ok_or_else(|| Error::from(ErrorKind::Overflow))?;
+        Ok(value)
+    }
 
-        let bit_length = usize::try_from(inner.len())?
-            .checked_mul(8)
-            .and_then(|n| n.checked_sub(usize::from(unused_bits)))
-            .ok_or(ErrorKind::Overflow)?;
-
-        Ok(Self {
-            unused_bits,
-            bit_length,
-            inner,
-        })
+    /// Internal function. Assumptions:
+    /// - [`UnusedBits`] was checked for given [`BytesRef`],
+    /// - [`BitStringRef::bit_len_checked`] was called and returned `Ok`.
+    pub(crate) fn new_unchecked(unused_bits: UnusedBits, inner: &'a BytesRef) -> Self {
+        Self { unused_bits, inner }
     }
 
     /// Create a new ASN.1 `BIT STRING` from the given bytes.
     ///
     /// The "unused bits" are set to 0.
+    ///
+    /// # Errors
+    /// Has the same error cases as [`BitStringRef::new`].
     pub fn from_bytes(bytes: &'a [u8]) -> Result<Self> {
         Self::new(0, bytes)
     }
 
     /// Get the number of unused bits in this byte slice.
+    #[must_use]
     pub fn unused_bits(&self) -> u8 {
-        self.unused_bits
+        *self.unused_bits
     }
 
     /// Is the number of unused bits a value other than 0?
+    #[must_use]
     pub fn has_unused_bits(&self) -> bool {
-        self.unused_bits != 0
+        *self.unused_bits != 0
+    }
+
+    /// Get the length of this `BIT STRING` in bits, or `None` if the value overflows.
+    ///
+    /// Ensured to be valid in the constructor.
+    fn bit_len_checked(&self) -> Option<usize> {
+        usize::try_from(self.inner.len())
+            .ok()
+            .and_then(|n| n.checked_mul(8))
+            .and_then(|n| n.checked_sub(usize::from(*self.unused_bits)))
     }
 
     /// Get the length of this `BIT STRING` in bits.
+    #[must_use]
     pub fn bit_len(&self) -> usize {
-        self.bit_length
+        let bit_len = self.bit_len_checked();
+        debug_assert!(bit_len.is_some());
+
+        // Ensured to be valid in the constructor.
+        bit_len.unwrap_or(0)
     }
 
     /// Get the number of bytes/octets needed to represent this `BIT STRING`
     /// when serialized in an octet-aligned manner.
+    #[must_use]
     pub fn byte_len(&self) -> Length {
         self.inner.len()
     }
 
     /// Is the inner byte slice empty?
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
@@ -91,6 +117,7 @@ impl<'a> BitStringRef<'a> {
     ///
     /// Use [`BitString::raw_bytes`] to obtain access to the raw value
     /// regardless of the presence of unused bits.
+    #[must_use]
     pub fn as_bytes(&self) -> Option<&'a [u8]> {
         if self.has_unused_bits() {
             None
@@ -104,30 +131,43 @@ impl<'a> BitStringRef<'a> {
     /// Note that the byte string may contain extra unused bits in the final
     /// octet. If the number of unused bits is expected to be 0, the
     /// [`BitStringRef::as_bytes`] function can be used instead.
+    #[must_use]
     pub fn raw_bytes(&self) -> &'a [u8] {
         self.inner.as_slice()
     }
 
     /// Iterator over the bits of this `BIT STRING`.
+    #[must_use]
     pub fn bits(self) -> BitStringIter<'a> {
         BitStringIter {
             bit_string: self,
             position: 0,
         }
     }
+
+    /// Returns Some(bit) if index is valid
+    #[must_use]
+    pub fn get(&self, position: usize) -> Option<bool> {
+        if position >= self.bit_len() {
+            return None;
+        }
+
+        let byte = self.raw_bytes().get(position / 8)?;
+        let bitmask = 1u8 << (7 - (position % 8));
+        Some(byte & bitmask != 0)
+    }
 }
 
 impl_any_conversions!(BitStringRef<'a>, 'a);
 
 impl<'a> DecodeValue<'a> for BitStringRef<'a> {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        let header = Header {
-            tag: header.tag,
-            length: (header.length - Length::ONE)?,
-        };
+        let header = header.with_length((header.length() - Length::ONE)?);
 
         let unused_bits = reader.read_byte()?;
-        let inner = BytesRef::decode_value(reader, header)?;
+        let inner = <&'a BytesRef>::decode_value(reader, header)?;
         Self::new(unused_bits, inner.as_slice())
     }
 }
@@ -138,7 +178,7 @@ impl EncodeValue for BitStringRef<'_> {
     }
 
     fn encode_value(&self, writer: &mut impl Writer) -> Result<()> {
-        writer.write_byte(self.unused_bits)?;
+        writer.write_byte(*self.unused_bits)?;
         writer.write(self.raw_bytes())
     }
 }
@@ -146,7 +186,7 @@ impl EncodeValue for BitStringRef<'_> {
 impl ValueOrd for BitStringRef<'_> {
     fn value_cmp(&self, other: &Self) -> Result<Ordering> {
         match self.unused_bits.cmp(&other.unused_bits) {
-            Ordering::Equal => self.inner.der_cmp(&other.inner),
+            Ordering::Equal => self.inner.der_cmp(other.inner),
             ordering => Ok(ordering),
         }
     }
@@ -175,18 +215,89 @@ impl<'a> TryFrom<&&'a [u8]> for BitStringRef<'a> {
     }
 }
 
+impl<'a, const N: usize> TryFrom<&'a [u8; N]> for BitStringRef<'a> {
+    type Error = Error;
+
+    fn try_from(bytes: &'a [u8; N]) -> Result<BitStringRef<'a>> {
+        BitStringRef::from_bytes(bytes)
+    }
+}
+
+impl<'a, const N: usize> TryFrom<BitStringRef<'a>> for [u8; N] {
+    type Error = Error;
+
+    fn try_from(bit_string: BitStringRef<'a>) -> Result<Self> {
+        let bytes: &[u8] = TryFrom::try_from(bit_string)?;
+        bytes
+            .try_into()
+            .map_err(|_| Tag::BitString.length_error().into())
+    }
+}
+
 impl<'a> TryFrom<BitStringRef<'a>> for &'a [u8] {
     type Error = Error;
 
     fn try_from(bit_string: BitStringRef<'a>) -> Result<&'a [u8]> {
         bit_string
             .as_bytes()
-            .ok_or_else(|| Tag::BitString.value_error())
+            .ok_or_else(|| Tag::BitString.value_error().into())
     }
 }
 
-impl<'a> FixedTag for BitStringRef<'a> {
+impl FixedTag for BitStringRef<'_> {
     const TAG: Tag = Tag::BitString;
+}
+
+/// [`AsBitStringRef`] marks object that will act like a `BitString`.
+///
+/// It will allow to get a [`BitStringRef`] that points back to the underlying bytes.
+///
+/// Note: this trait does not simplify to [`AsRef<BitStringRef>`], because `BIT STRING`
+/// contains unused bits prefix and therefore cannot be a simple `&'a BitStringRef` slice.
+pub trait AsBitStringRef {
+    /// Borrows the owned or ref `BIT STRING` as [`BitStringRef`]
+    fn as_bit_string_ref(&self) -> BitStringRef<'_>;
+}
+
+impl AsBitStringRef for BitStringRef<'_> {
+    fn as_bit_string_ref(&self) -> BitStringRef<'_> {
+        *self
+    }
+}
+
+/// Sealed, so that `UnusedBits` newtype can't be created directly
+mod unused_bits {
+    use core::ops::Deref;
+
+    use crate::{Result, Tag};
+
+    /// Value in range `0..=7`
+    ///
+    /// Must be zero for empty `BIT STRING`.
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+    pub(crate) struct UnusedBits(u8);
+
+    impl UnusedBits {
+        /// Maximum number of unused bits allowed.
+        pub const MAX_UNUSED_BITS: u8 = 7;
+
+        /// Represents number of "unused bits" (0-7) in `BIT STRING` which are omitted
+        /// from the final octet. This number is 0 if the value is octet-aligned.
+        pub fn new(unused_bits: u8, bytes: &[u8]) -> Result<Self> {
+            if (unused_bits > Self::MAX_UNUSED_BITS) || (unused_bits != 0 && bytes.is_empty()) {
+                Err(Tag::BitString.value_error().into())
+            } else {
+                Ok(Self(unused_bits))
+            }
+        }
+    }
+    impl Deref for UnusedBits {
+        type Target = u8;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
 }
 
 // Implement by hand because the derive would create invalid values.
@@ -195,14 +306,14 @@ impl<'a> FixedTag for BitStringRef<'a> {
 impl<'a> arbitrary::Arbitrary<'a> for BitStringRef<'a> {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
         Self::new(
-            u.int_in_range(0..=Self::MAX_UNUSED_BITS)?,
-            BytesRef::arbitrary(u)?.as_slice(),
+            u.int_in_range(0..=UnusedBits::MAX_UNUSED_BITS)?,
+            <&'a BytesRef>::arbitrary(u)?.as_slice(),
         )
         .map_err(|_| arbitrary::Error::IncorrectFormat)
     }
 
     fn size_hint(depth: usize) -> (usize, Option<usize>) {
-        arbitrary::size_hint::and(u8::size_hint(depth), BytesRef::size_hint(depth))
+        arbitrary::size_hint::and(u8::size_hint(depth), <&'a BytesRef>::size_hint(depth))
     }
 }
 
@@ -212,7 +323,7 @@ pub use self::allocating::BitString;
 #[cfg(feature = "alloc")]
 mod allocating {
     use super::*;
-    use crate::referenced::*;
+    use crate::{asn1::Any, referenced::*};
     use alloc::vec::Vec;
 
     /// Owned form of ASN.1 `BIT STRING` type.
@@ -222,10 +333,7 @@ mod allocating {
     #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
     pub struct BitString {
         /// Number of unused bits in the final octet.
-        unused_bits: u8,
-
-        /// Length of this `BIT STRING` in bits.
-        bit_length: usize,
+        unused_bits: UnusedBits,
 
         /// Bitstring represented as a slice of bytes.
         inner: Vec<u8>,
@@ -239,15 +347,20 @@ mod allocating {
         ///
         /// Accepts an optional number of "unused bits" (0-7) which are omitted
         /// from the final octet. This number is 0 if the value is octet-aligned.
+        ///
+        /// # Errors
+        /// Returns [`Error`] if any of the following occur:
+        /// - `unused_bits` is invalid
+        /// - `bytes` is too long
+        /// - an overflow occurred calculating the bit length
         pub fn new(unused_bits: u8, bytes: impl Into<Vec<u8>>) -> Result<Self> {
             let inner = bytes.into();
 
             // Ensure parameters parse successfully as a `BitStringRef`.
-            let bit_length = BitStringRef::new(unused_bits, &inner)?.bit_length;
+            let ref_value = BitStringRef::new(unused_bits, &inner)?;
 
             Ok(BitString {
-                unused_bits,
-                bit_length,
+                unused_bits: ref_value.unused_bits,
                 inner,
             })
         }
@@ -255,27 +368,51 @@ mod allocating {
         /// Create a new ASN.1 `BIT STRING` from the given bytes.
         ///
         /// The "unused bits" are set to 0.
+        ///
+        /// # Errors
+        /// If `bytes` is too long.
         pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
             Self::new(0, bytes)
         }
 
         /// Get the number of unused bits in the octet serialization of this
         /// `BIT STRING`.
+        #[must_use]
         pub fn unused_bits(&self) -> u8 {
-            self.unused_bits
+            *self.unused_bits
         }
 
         /// Is the number of unused bits a value other than 0?
+        #[must_use]
         pub fn has_unused_bits(&self) -> bool {
-            self.unused_bits != 0
+            *self.unused_bits != 0
+        }
+
+        /// Returns inner [`BytesRef`] slice.
+        pub(crate) fn bytes_ref(&self) -> &BytesRef {
+            // Ensured to parse successfully in constructor
+            BytesRef::new_unchecked(&self.inner)
+        }
+
+        /// Get the length of this `BIT STRING` in bits, or `None` if the value overflows.
+        ///
+        /// Ensured to be valid in the constructor.
+        fn bit_len_checked(&self) -> Option<usize> {
+            BitStringRef::new_unchecked(self.unused_bits, self.bytes_ref()).bit_len_checked()
         }
 
         /// Get the length of this `BIT STRING` in bits.
+        #[must_use]
         pub fn bit_len(&self) -> usize {
-            self.bit_length
+            let bit_len = self.bit_len_checked();
+            debug_assert!(bit_len.is_some());
+
+            // Ensured to be valid in the constructor.
+            bit_len.unwrap_or(0)
         }
 
         /// Is the inner byte slice empty?
+        #[must_use]
         pub fn is_empty(&self) -> bool {
             self.inner.is_empty()
         }
@@ -287,6 +424,7 @@ mod allocating {
         ///
         /// Use [`BitString::raw_bytes`] to obtain access to the raw value
         /// regardless of the presence of unused bits.
+        #[must_use]
         pub fn as_bytes(&self) -> Option<&[u8]> {
             if self.has_unused_bits() {
                 None
@@ -296,21 +434,31 @@ mod allocating {
         }
 
         /// Borrow the raw bytes of this `BIT STRING`.
+        #[must_use]
         pub fn raw_bytes(&self) -> &[u8] {
             self.inner.as_slice()
         }
 
         /// Iterator over the bits of this `BIT STRING`.
+        #[must_use]
         pub fn bits(&self) -> BitStringIter<'_> {
             BitStringRef::from(self).bits()
+        }
+
+        /// Returns Some(bit) if index is valid
+        #[must_use]
+        pub fn get(&self, position: usize) -> Option<bool> {
+            BitStringRef::from(self).get(position)
         }
     }
 
     impl_any_conversions!(BitString);
 
     impl<'a> DecodeValue<'a> for BitString {
+        type Error = Error;
+
         fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-            let inner_len = (header.length - Length::ONE)?;
+            let inner_len = (header.length() - Length::ONE)?;
             let unused_bits = reader.read_byte()?;
             let inner = reader.read_vec(inner_len)?;
             Self::new(unused_bits, inner)
@@ -323,7 +471,7 @@ mod allocating {
         }
 
         fn encode_value(&self, writer: &mut impl Writer) -> Result<()> {
-            writer.write_byte(self.unused_bits)?;
+            writer.write_byte(*self.unused_bits)?;
             writer.write(&self.inner)
         }
     }
@@ -335,8 +483,52 @@ mod allocating {
     impl<'a> From<&'a BitString> for BitStringRef<'a> {
         fn from(bit_string: &'a BitString) -> BitStringRef<'a> {
             // Ensured to parse successfully in constructor
-            BitStringRef::new(bit_string.unused_bits, &bit_string.inner)
-                .expect("invalid BIT STRING")
+            BitStringRef::new_unchecked(bit_string.unused_bits, bit_string.bytes_ref())
+        }
+    }
+
+    impl From<BitStringRef<'_>> for Any {
+        fn from(bit_string_ref: BitStringRef<'_>) -> Any {
+            Any::from(&bit_string_ref)
+        }
+    }
+
+    impl From<&BitStringRef<'_>> for Any {
+        fn from(bit_string_ref: &BitStringRef<'_>) -> Any {
+            Any::encode_from(bit_string_ref).expect("should encode successfully")
+        }
+    }
+
+    impl From<BitString> for Any {
+        fn from(bit_string: BitString) -> Any {
+            bit_string.owned_to_ref().into()
+        }
+    }
+
+    impl From<&BitString> for Any {
+        fn from(bit_string: &BitString) -> Any {
+            bit_string.owned_to_ref().into()
+        }
+    }
+
+    /// Hack for simplifying the custom derive use case.
+    impl<'a> TryFrom<&'a Vec<u8>> for BitStringRef<'a> {
+        type Error = Error;
+
+        fn try_from(bytes: &'a Vec<u8>) -> Result<BitStringRef<'a>> {
+            BitStringRef::from_bytes(bytes)
+        }
+    }
+
+    /// Hack for simplifying the custom derive use case.
+    impl<'a> TryFrom<BitStringRef<'a>> for Vec<u8> {
+        type Error = Error;
+
+        fn try_from(bit_string: BitStringRef<'a>) -> Result<Vec<u8>> {
+            bit_string
+                .as_bytes()
+                .map(<[u8]>::to_vec)
+                .ok_or_else(|| Tag::BitString.value_error().into())
         }
     }
 
@@ -356,13 +548,13 @@ mod allocating {
         fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
             Self::new(
                 u.int_in_range(0..=Self::MAX_UNUSED_BITS)?,
-                BytesRef::arbitrary(u)?.as_slice(),
+                <&'a BytesRef>::arbitrary(u)?.as_slice(),
             )
             .map_err(|_| arbitrary::Error::IncorrectFormat)
         }
 
         fn size_hint(depth: usize) -> (usize, Option<usize>) {
-            arbitrary::size_hint::and(u8::size_hint(depth), BytesRef::size_hint(depth))
+            arbitrary::size_hint::and(u8::size_hint(depth), <&'a BytesRef>::size_hint(depth))
         }
     }
 
@@ -371,7 +563,6 @@ mod allocating {
         fn ref_to_owned(&self) -> Self::Owned {
             BitString {
                 unused_bits: self.unused_bits,
-                bit_length: self.bit_length,
                 inner: Vec::from(self.inner.as_slice()),
             }
         }
@@ -383,9 +574,16 @@ mod allocating {
             self.into()
         }
     }
+
+    impl AsBitStringRef for BitString {
+        fn as_bit_string_ref(&self) -> BitStringRef<'_> {
+            BitStringRef::from(self)
+        }
+    }
 }
 
 /// Iterator over the bits of a [`BitString`].
+#[derive(Debug)]
 pub struct BitStringIter<'a> {
     /// [`BitString`] being iterated over.
     bit_string: BitStringRef<'a>,
@@ -394,10 +592,10 @@ pub struct BitStringIter<'a> {
     position: usize,
 }
 
-impl<'a> Iterator for BitStringIter<'a> {
+impl Iterator for BitStringIter<'_> {
     type Item = bool;
 
-    #[allow(clippy::integer_arithmetic)]
+    #[allow(clippy::arithmetic_side_effects)]
     fn next(&mut self) -> Option<bool> {
         if self.position >= self.bit_string.bit_len() {
             return None;
@@ -408,47 +606,64 @@ impl<'a> Iterator for BitStringIter<'a> {
         self.position = self.position.checked_add(1)?;
         Some(byte & bit != 0)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.bit_string.bit_len().saturating_sub(self.position);
+        (len, Some(len))
+    }
 }
 
-impl<'a> ExactSizeIterator for BitStringIter<'a> {
+impl ExactSizeIterator for BitStringIter<'_> {
     fn len(&self) -> usize {
         self.bit_string.bit_len()
     }
 }
 
-impl<'a> FusedIterator for BitStringIter<'a> {}
+impl FusedIterator for BitStringIter<'_> {}
 
 #[cfg(feature = "flagset")]
 impl<T: flagset::Flags> FixedTag for flagset::FlagSet<T> {
     const TAG: Tag = BitStringRef::TAG;
 }
 
+/// Compares the BIT STRING encodings (X.690 11.6 orders `SET OF` components by their
+/// encodings). The encoding puts flag 0 in the most significant bit of the first octet and drops
+/// trailing zero bits, so this differs from comparing [`FlagSet::bits`][flagset::FlagSet::bits]
+/// as an integer.
 #[cfg(feature = "flagset")]
 impl<T> ValueOrd for flagset::FlagSet<T>
 where
     T: flagset::Flags,
-    T::Type: Ord,
+    T::Type: From<bool>,
+    T::Type: core::ops::Shl<usize, Output = T::Type>,
+    u128: From<T::Type>,
 {
     fn value_cmp(&self, other: &Self) -> Result<Ordering> {
-        Ok(self.bits().cmp(&other.bits()))
+        let mut buf1 = [0u8; 17];
+        let mut buf2 = [0u8; 17];
+        let a = crate::encode::encode_value_to_slice(&mut buf1, self)?;
+        let b = crate::encode::encode_value_to_slice(&mut buf2, other)?;
+        Ok(a.cmp(b))
     }
 }
 
 #[cfg(feature = "flagset")]
-#[allow(clippy::integer_arithmetic)]
+#[allow(clippy::arithmetic_side_effects)]
 impl<'a, T> DecodeValue<'a> for flagset::FlagSet<T>
 where
     T: flagset::Flags,
     T::Type: From<bool>,
     T::Type: core::ops::Shl<usize, Output = T::Type>,
 {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
         let position = reader.position();
         let bits = BitStringRef::decode_value(reader, header)?;
 
         let mut flags = T::none().bits();
 
-        if bits.bit_len() > core::mem::size_of_val(&flags) * 8 {
+        if bits.bit_len() > size_of_val(&flags) * 8 {
             return Err(Error::new(ErrorKind::Overlength, position));
         }
 
@@ -461,7 +676,7 @@ where
 }
 
 #[cfg(feature = "flagset")]
-#[allow(clippy::integer_arithmetic)]
+#[allow(clippy::arithmetic_side_effects)]
 #[inline(always)]
 fn encode_flagset<T>(set: &flagset::FlagSet<T>) -> (usize, [u8; 16])
 where
@@ -480,7 +695,7 @@ where
 }
 
 #[cfg(feature = "flagset")]
-#[allow(clippy::cast_possible_truncation, clippy::integer_arithmetic)]
+#[allow(clippy::cast_possible_truncation, clippy::arithmetic_side_effects)]
 impl<T: flagset::Flags> EncodeValue for flagset::FlagSet<T>
 where
     T::Type: From<bool>,
@@ -501,7 +716,10 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use core::cmp::Ordering;
+
     use super::{BitStringRef, Result, Tag};
     use crate::asn1::AnyRef;
     use hex_literal::hex;
@@ -534,7 +752,7 @@ mod tests {
         assert_eq!(bits.len(), 18);
 
         for bit in [0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1] {
-            assert_eq!(u8::from(bits.next().unwrap()), bit)
+            assert_eq!(u8::from(bits.next().unwrap()), bit);
         }
 
         // Ensure `None` is returned on successive calls
@@ -546,7 +764,47 @@ mod tests {
     fn reject_unused_bits_in_empty_string() {
         assert_eq!(
             parse_bitstring(&[0x03]).err().unwrap().kind(),
-            Tag::BitString.value_error().kind()
-        )
+            Tag::BitString.value_error()
+        );
+    }
+
+    #[test]
+    fn bitstring_valueord_value_cmp() {
+        use crate::ord::DerOrd;
+
+        let bs1 = parse_bitstring(&hex!("00010204")).unwrap();
+        let bs2 = parse_bitstring(&hex!("00010203")).unwrap();
+        assert_eq!(bs1.der_cmp(&bs2), Ok(Ordering::Greater));
+    }
+
+    #[cfg(feature = "flagset")]
+    #[test]
+    fn flagset_valueord_is_encoding_order() {
+        use crate::{DerOrd, Encode, ValueOrd};
+
+        flagset::flags! {
+            enum Flags: u16 {
+                A, B, C, D, E, F, G, H, I,
+            }
+        }
+
+        // {A} encodes as `03 02 07 80`, {B} as `03 02 06 40`: {B} sorts first.
+        let a = flagset::FlagSet::from(Flags::A);
+        let b = flagset::FlagSet::from(Flags::B);
+        assert_eq!(b.value_cmp(&a), Ok(Ordering::Less));
+        assert_eq!(a.der_cmp(&b), Ok(Ordering::Greater));
+
+        // every pair agrees with the order of the encodings
+        let all: [flagset::FlagSet<Flags>; 512] =
+            core::array::from_fn(|i| flagset::FlagSet::new(u16::try_from(i).unwrap()).unwrap());
+        for x in &all {
+            for y in &all {
+                let mut bx = [0u8; 8];
+                let mut by = [0u8; 8];
+                let ex = x.encode_to_slice(&mut bx).unwrap();
+                let ey = y.encode_to_slice(&mut by).unwrap();
+                assert_eq!(x.der_cmp(y), Ok(ex.cmp(ey)), "{x:?} vs {y:?}");
+            }
+        }
     }
 }

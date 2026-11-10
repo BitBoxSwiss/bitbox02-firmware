@@ -12,10 +12,7 @@ use alloc::vec::Vec;
 
 use bitcoin::bech32;
 
-use blake2::{
-    Blake2b, Digest,
-    digest::consts::{U20, U32},
-};
+use blake2::{Blake2b, Blake2b256, Digest, digest::consts::U20};
 
 use crate::hal::Ui;
 use crate::i18n::I18n as _;
@@ -335,7 +332,7 @@ async fn _process(
     hal.ui().status(&status, true).await;
 
     let tx_body_hash: [u8; 32] = {
-        let mut hasher = Blake2b::<U32>::new();
+        let mut hasher = Blake2b256::new();
         cbor::encode_transaction_body(hal, request, cbor::HashedWriter::new(&mut hasher)).await?;
 
         hasher.finalize().into()

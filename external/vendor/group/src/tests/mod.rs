@@ -4,11 +4,7 @@ use ff::{Field, PrimeField};
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
-use crate::{
-    prime::{PrimeCurve, PrimeCurveAffine},
-    wnaf::WnafGroup,
-    GroupEncoding, UncompressedEncoding,
-};
+use crate::{prime::PrimeCurve, wnaf::WnafGroup, CurveAffine, GroupEncoding, UncompressedEncoding};
 
 pub fn curve_tests<G: PrimeCurve>() {
     let mut rng = XorShiftRng::from_seed([
@@ -309,7 +305,7 @@ fn random_addition_tests<G: PrimeCurve>() {
             assert_eq!(aplusa, aplusamixed);
         }
 
-        let mut tmp = vec![G::identity(); 6];
+        let mut tmp = [G::identity(); 6];
 
         // (a + b) + c
         tmp[0] = a;
@@ -378,8 +374,8 @@ fn random_transformation_tests<G: PrimeCurve>() {
     for _ in 0..10 {
         let mut v = (0..1000).map(|_| G::random(&mut rng)).collect::<Vec<_>>();
 
-        use rand::distributions::{Distribution, Uniform};
-        let between = Uniform::new(0, 1000);
+        use rand::distr::{Distribution, Uniform};
+        let between = Uniform::new(0, 1000).unwrap();
         // Sprinkle in some normalized points
         for _ in 0..5 {
             v[between.sample(&mut rng)] = G::identity();
@@ -426,7 +422,7 @@ fn random_compressed_encoding_tests<G: PrimeCurve>() {
 
 pub fn random_uncompressed_encoding_tests<G: PrimeCurve>()
 where
-    <G as PrimeCurve>::Affine: UncompressedEncoding,
+    G::Affine: UncompressedEncoding,
 {
     let mut rng = XorShiftRng::from_seed([
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,

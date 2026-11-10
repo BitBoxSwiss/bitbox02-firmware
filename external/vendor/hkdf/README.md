@@ -1,4 +1,4 @@
-# RustCrypto: HKDF
+# [RustCrypto]: HKDF
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
@@ -38,6 +38,13 @@ assert_eq!(okm, expected);
 Normally the PRK (Pseudo-Random Key) remains hidden within the HKDF object, but if you need to access it, use `Hkdf::extract` instead of `Hkdf::new`.
 
 ```rust
+use sha2::Sha256;
+use hkdf::Hkdf;
+use hex_literal::hex;
+
+let ikm = hex!("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+let salt = hex!("000102030405060708090a0b0c");
+
 let (prk, hk) = Hkdf::<Sha256>::extract(Some(&salt[..]), &ikm);
 let expected = hex!("
     077709362c2e32df0ddc3f0dc47bba63
@@ -53,6 +60,13 @@ step. In this case, you pass a Pseudo-Random Key (PRK) into the
 as usual.
 
 ```rust
+use sha2::Sha256;
+use hkdf::Hkdf;
+use hex_literal::hex;
+
+let salt = hex!("000102030405060708090a0b0c");
+let info = hex!("f0f1f2f3f4f5f6f7f8f9");
+ 
 let prk = hex!("
     077709362c2e32df0ddc3f0dc47bba63
     90b6c73bb50f9c3122ec844ad7c2b3e5
@@ -71,6 +85,21 @@ let expected = hex!("
 assert_eq!(okm, expected);
 ```
 
+## License
+
+Licensed under either of:
+
+* [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+* [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
 [//]: # (badges)
 
 [crate-image]: https://img.shields.io/crates/v/hkdf.svg
@@ -78,8 +107,12 @@ assert_eq!(okm, expected);
 [docs-image]: https://docs.rs/hkdf/badge.svg
 [docs-link]: https://docs.rs/hkdf/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260043-KDFs
 [build-image]: https://github.com/RustCrypto/KDFs/workflows/hkdf/badge.svg?branch=master&event=push
 [build-link]: https://github.com/RustCrypto/KDFs/actions?query=workflow:hkdf
+
+[//]: # (links)
+
+[RustCrypto]: https://github.com/RustCrypto

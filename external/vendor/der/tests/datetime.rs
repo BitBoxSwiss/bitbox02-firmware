@@ -1,6 +1,8 @@
 //! Tests for the [`DateTime`] type.
 
-use der::{asn1::UtcTime, DateTime, Decode, Encode};
+#![cfg(any(unix, windows))]
+
+use der::{DateTime, Decode, Encode, asn1::UtcTime};
 use proptest::prelude::*;
 
 proptest! {
@@ -31,9 +33,9 @@ proptest! {
         let utc_time1 = UtcTime::try_from(datetime).unwrap();
 
         let mut buf = [0u8; 128];
-        let mut encoder = der::SliceWriter::new(&mut buf);
-        utc_time1.encode(&mut encoder).unwrap();
-        let der_bytes = encoder.finish().unwrap();
+        let mut writer = der::SliceWriter::new(&mut buf);
+        utc_time1.encode(&mut writer).unwrap();
+        let der_bytes = writer.finish().unwrap();
 
         let utc_time2 = UtcTime::from_der(der_bytes).unwrap();
         prop_assert_eq!(utc_time1, utc_time2);
@@ -44,11 +46,7 @@ fn make_datetime(year: u16, month: u8, day: u8, hour: u8, min: u8, sec: u8) -> D
     let max_day = if month == 2 {
         let is_leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
 
-        if is_leap_year {
-            29
-        } else {
-            28
-        }
+        if is_leap_year { 29 } else { 28 }
     } else {
         30
     };
@@ -56,9 +54,6 @@ fn make_datetime(year: u16, month: u8, day: u8, hour: u8, min: u8, sec: u8) -> D
     let day = if day > max_day { max_day } else { day };
 
     DateTime::new(year, month, day, hour, min, sec).unwrap_or_else(|e| {
-        panic!(
-            "invalid DateTime: {:02}-{:02}-{:02}T{:02}:{:02}:{:02}: {}",
-            year, month, day, hour, min, sec, e
-        );
+        panic!("invalid DateTime: {year:02}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}: {e}");
     })
 }

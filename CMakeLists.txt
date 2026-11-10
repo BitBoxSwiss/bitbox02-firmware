@@ -178,6 +178,10 @@ endif()
 # This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
 string(APPEND RUSTFLAGS " --cfg=rust_secp_no_symbol_renaming")
 
+# Keep the compact SHA-2 backend in sync with .cargo/config.toml.
+string(APPEND RUSTFLAGS " --cfg=sha2_backend=\"soft\" --cfg=sha2_backend_soft=\"compact\"")
+separate_arguments(CARGO_ENV_FLAGS NATIVE_COMMAND "$ENV{CARGOFLAGS}")
+
 #-----------------------------------------------------------------------------
 # Print system information and build options
 

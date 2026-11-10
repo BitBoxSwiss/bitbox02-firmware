@@ -1,6 +1,6 @@
 //! ASN.1 `TeletexString` support.
 //!
-use crate::{asn1::AnyRef, FixedTag, Result, StrRef, Tag};
+use crate::{FixedTag, Result, StringRef, Tag, asn1::AnyRef};
 use core::{fmt, ops::Deref};
 
 macro_rules! impl_teletex_string {
@@ -34,18 +34,24 @@ macro_rules! impl_teletex_string {
 ///
 /// # Supported characters
 ///
-/// The standard defines a complex character set allowed in this type. However, quoting the ASN.1
-/// mailing list, "a sizable volume of software in the world treats TeletexString (T61String) as a
-/// simple 8-bit string with mostly Windows Latin 1 (superset of iso-8859-1) encoding".
+/// The standard defines a complex character set allowed in this type. However,
+/// [quoting the ASN.1 mailing list]:
 ///
+/// > "a sizable volume of software in the world treats TeletexString (T61String) as
+/// > a simple 8-bit string with mostly Windows Latin 1 (superset of iso-8859-1) encoding".
+///
+/// [quoting the ASN.1 mailing list]: https://www.mail-archive.com/asn1@asn1.org/msg00460.html
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct TeletexStringRef<'a> {
     /// Inner value
-    inner: StrRef<'a>,
+    inner: &'a StringRef,
 }
 
 impl<'a> TeletexStringRef<'a> {
     /// Create a new ASN.1 `TeletexString`.
+    ///
+    /// # Errors
+    /// If `input` contains characters outside the allowed range.
     pub fn new<T>(input: &'a T) -> Result<Self>
     where
         T: AsRef<[u8]> + ?Sized,
@@ -54,22 +60,28 @@ impl<'a> TeletexStringRef<'a> {
 
         // FIXME: support higher part of the charset
         if input.iter().any(|&c| c > 0x7F) {
-            return Err(Self::TAG.value_error());
+            return Err(Self::TAG.value_error().into());
         }
 
-        StrRef::from_bytes(input)
+        StringRef::from_bytes(input)
             .map(|inner| Self { inner })
-            .map_err(|_| Self::TAG.value_error())
+            .map_err(|_| Self::TAG.value_error().into())
+    }
+
+    /// Borrow the inner `str`.
+    #[must_use]
+    pub fn as_str(&self) -> &'a str {
+        self.inner.as_str()
     }
 }
 
 impl_teletex_string!(TeletexStringRef<'a>, 'a);
 
 impl<'a> Deref for TeletexStringRef<'a> {
-    type Target = StrRef<'a>;
+    type Target = StringRef;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        self.inner
     }
 }
 
@@ -81,7 +93,7 @@ impl<'a> From<&TeletexStringRef<'a>> for TeletexStringRef<'a> {
 
 impl<'a> From<TeletexStringRef<'a>> for AnyRef<'a> {
     fn from(teletex_string: TeletexStringRef<'a>) -> AnyRef<'a> {
-        AnyRef::from_tag_and_value(Tag::TeletexString, teletex_string.inner.into())
+        AnyRef::from_tag_and_value(Tag::TeletexString, teletex_string.inner.as_ref())
     }
 }
 
@@ -93,11 +105,11 @@ mod allocation {
     use super::TeletexStringRef;
 
     use crate::{
+        BytesRef, Error, FixedTag, Result, StringOwned, Tag,
         asn1::AnyRef,
         referenced::{OwnedToRef, RefToOwned},
-        BytesRef, Error, FixedTag, Result, StrOwned, Tag,
     };
-    use alloc::string::String;
+    use alloc::{borrow::ToOwned, string::String};
     use core::{fmt, ops::Deref};
 
     /// ASN.1 `TeletexString` type.
@@ -111,17 +123,20 @@ mod allocation {
     /// # Supported characters
     ///
     /// The standard defines a complex character set allowed in this type. However, quoting the ASN.1
-    /// mailing list, "a sizable volume of software in the world treats TeletexString (T61String) as a
+    /// mailing list, "a sizable volume of software in the world treats `TeletexString` (`T61String`) as a
     /// simple 8-bit string with mostly Windows Latin 1 (superset of iso-8859-1) encoding".
     ///
     #[derive(Clone, Eq, PartialEq, PartialOrd, Ord)]
     pub struct TeletexString {
         /// Inner value
-        inner: StrOwned,
+        inner: StringOwned,
     }
 
     impl TeletexString {
         /// Create a new ASN.1 `TeletexString`.
+        ///
+        /// # Errors
+        /// If characters are out-of-range.
         pub fn new<T>(input: &T) -> Result<Self>
         where
             T: AsRef<[u8]> + ?Sized,
@@ -130,16 +145,16 @@ mod allocation {
 
             TeletexStringRef::new(input)?;
 
-            StrOwned::from_bytes(input)
+            StringOwned::from_bytes(input)
                 .map(|inner| Self { inner })
-                .map_err(|_| Self::TAG.value_error())
+                .map_err(|_| Self::TAG.value_error().into())
         }
     }
 
     impl_teletex_string!(TeletexString);
 
     impl Deref for TeletexString {
-        type Target = StrOwned;
+        type Target = StringOwned;
 
         fn deref(&self) -> &Self::Target {
             &self.inner
@@ -149,7 +164,7 @@ mod allocation {
     impl<'a> From<TeletexStringRef<'a>> for TeletexString {
         fn from(value: TeletexStringRef<'a>) -> TeletexString {
             let inner =
-                StrOwned::from_bytes(value.inner.as_bytes()).expect("Invalid TeletexString");
+                StringOwned::from_bytes(value.inner.as_bytes()).expect("Invalid TeletexString");
             Self { inner }
         }
     }
@@ -163,11 +178,17 @@ mod allocation {
         }
     }
 
+    impl<'a> From<&'a TeletexString> for TeletexStringRef<'a> {
+        fn from(teletex_string: &'a TeletexString) -> TeletexStringRef<'a> {
+            teletex_string.owned_to_ref()
+        }
+    }
+
     impl<'a> RefToOwned<'a> for TeletexStringRef<'a> {
         type Owned = TeletexString;
         fn ref_to_owned(&self) -> Self::Owned {
             TeletexString {
-                inner: self.inner.ref_to_owned(),
+                inner: self.inner.to_owned(),
             }
         }
     }
@@ -176,7 +197,7 @@ mod allocation {
         type Borrowed<'a> = TeletexStringRef<'a>;
         fn owned_to_ref(&self) -> Self::Borrowed<'_> {
             TeletexStringRef {
-                inner: self.inner.owned_to_ref(),
+                inner: self.inner.as_ref(),
             }
         }
     }
@@ -187,14 +208,15 @@ mod allocation {
         fn try_from(input: String) -> Result<Self> {
             TeletexStringRef::new(&input)?;
 
-            StrOwned::new(input)
+            StringOwned::new(input)
                 .map(|inner| Self { inner })
-                .map_err(|_| Self::TAG.value_error())
+                .map_err(|_| Self::TAG.value_error().into())
         }
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::TeletexStringRef;
     use crate::Decode;

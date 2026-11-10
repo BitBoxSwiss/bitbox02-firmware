@@ -10,16 +10,23 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.65"
+edition = "2024"
+rust-version = "1.85"
 name = "primeorder"
-version = "0.13.6"
+version = "0.14.0"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Pure Rust implementation of complete addition formulas for prime order elliptic
 curves (Renes-Costello-Batina 2015). Generic over field elements and curve
 equation coefficients
 """
+homepage = "https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder"
 documentation = "https://docs.rs/primeorder"
 readme = "README.md"
 keywords = [
@@ -31,31 +38,24 @@ categories = [
     "no-std",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder"
+repository = "https://github.com/RustCrypto/elliptic-curves"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
-
-[dependencies.elliptic-curve]
-version = "0.13.7"
-features = [
-    "arithmetic",
-    "sec1",
-]
-default-features = false
-
-[dependencies.serdect]
-version = "0.2"
-optional = true
-default-features = false
 
 [features]
-alloc = ["elliptic-curve/alloc"]
+alloc = [
+    "elliptic-curve/alloc",
+    "serdect?/alloc",
+]
+basepoint-table = []
+critical-section = [
+    "basepoint-table",
+    "once_cell/critical-section",
+]
 dev = []
+hash2curve = []
 serde = [
     "elliptic-curve/serde",
     "serdect",
@@ -63,4 +63,73 @@ serde = [
 std = [
     "alloc",
     "elliptic-curve/std",
+    "once_cell?/std",
 ]
+
+[lib]
+name = "primeorder"
+path = "src/lib.rs"
+
+[dependencies.elliptic-curve]
+version = "0.14.1"
+features = [
+    "arithmetic",
+    "sec1",
+]
+default-features = false
+
+[dependencies.once_cell]
+version = "1.21"
+optional = true
+default-features = false
+
+[dependencies.primefield]
+version = "0.14"
+
+[dependencies.serdect]
+version = "0.4"
+optional = true
+default-features = false
+
+[dependencies.wnaf]
+version = "0.14"
+default-features = false
+
+[lints.clippy]
+borrow_as_ptr = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_saturating_sub = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+needless_range_loop = "allow"
+ptr_as_ptr = "warn"
+redundant_closure_for_method_calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
+trivially_copy_pass_by_ref = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
+
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"

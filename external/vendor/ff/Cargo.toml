@@ -11,23 +11,61 @@
 
 [package]
 edition = "2021"
+rust-version = "1.85"
 name = "ff"
-version = "0.13.0"
-authors = ["Sean Bowe <ewillbefull@gmail.com>", "Jack Grigg <thestr4d@gmail.com>"]
+version = "0.14.0"
+authors = [
+    "Sean Bowe <ewillbefull@gmail.com>",
+    "Jack Grigg <thestr4d@gmail.com>",
+]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Library for building and interfacing with finite fields"
 homepage = "https://github.com/zkcrypto/ff"
 documentation = "https://docs.rs/ff/"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/zkcrypto/ff"
-resolver = "2"
+
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
+
+[badges.maintenance]
+status = "actively-developed"
+
+[features]
+alloc = []
+bits = [
+    "bitvec",
+    "ff_derive?/bits",
+]
+default = [
+    "bits",
+    "std",
+]
+derive = [
+    "byteorder",
+    "ff_derive",
+]
+std = ["alloc"]
+
+[lib]
+name = "ff"
+path = "src/lib.rs"
 
 [[test]]
 name = "derive"
+path = "tests/derive.rs"
 required-features = ["derive"]
+
 [dependencies.bitvec]
 version = "1"
 optional = true
@@ -39,29 +77,21 @@ optional = true
 default-features = false
 
 [dependencies.ff_derive]
-version = "0.13"
+version = "0.14"
 optional = true
 
 [dependencies.rand_core]
-version = "0.6"
+version = "0.10"
 default-features = false
 
 [dependencies.subtle]
 version = "2.2.1"
 features = ["i128"]
 default-features = false
+
 [dev-dependencies.blake2b_simd]
 version = "1"
 
-[dev-dependencies.rand]
-version = "0.8"
-
-[features]
-alloc = []
-bits = ["bitvec"]
-default = ["bits", "std"]
-derive = ["byteorder", "ff_derive"]
-derive_bits = ["bits", "ff_derive/bits"]
-std = ["alloc"]
-[badges.maintenance]
-status = "actively-developed"
+[dev-dependencies.getrandom]
+version = "0.4"
+features = ["sys_rng"]

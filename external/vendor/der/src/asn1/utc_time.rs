@@ -1,12 +1,11 @@
 //! ASN.1 `UTCTime` support.
 
 use crate::{
-    datetime::{self, DateTime},
-    ord::OrdIsValueOrd,
     DecodeValue, EncodeValue, Error, ErrorKind, FixedTag, Header, Length, Reader, Result, Tag,
-    Writer,
+    ValueOrd, Writer,
+    datetime::{self, DateTime},
 };
-use core::time::Duration;
+use core::{cmp::Ordering, time::Duration};
 
 #[cfg(feature = "std")]
 use std::time::SystemTime;
@@ -40,31 +39,42 @@ impl UtcTime {
     pub const MAX_YEAR: u16 = 2049;
 
     /// Create a [`UtcTime`] from a [`DateTime`].
+    ///
+    /// # Errors
+    /// Returns [`Error`] in the event `datetime` has a year that exceeds [`UtcTime::MAX_YEAR`].
     pub fn from_date_time(datetime: DateTime) -> Result<Self> {
         if datetime.year() <= UtcTime::MAX_YEAR {
             Ok(Self(datetime))
         } else {
-            Err(Self::TAG.value_error())
+            Err(Self::TAG.value_error().into())
         }
     }
 
     /// Convert this [`UtcTime`] into a [`DateTime`].
+    #[must_use]
     pub fn to_date_time(&self) -> DateTime {
         self.0
     }
 
     /// Create a new [`UtcTime`] given a [`Duration`] since `UNIX_EPOCH`
     /// (a.k.a. "Unix time")
+    ///
+    /// # Errors
+    /// If [`DateTime`] couldn't be created from `unix_duration` successfully.
     pub fn from_unix_duration(unix_duration: Duration) -> Result<Self> {
         DateTime::from_unix_duration(unix_duration)?.try_into()
     }
 
     /// Get the duration of this timestamp since `UNIX_EPOCH`.
+    #[must_use]
     pub fn to_unix_duration(&self) -> Duration {
         self.0.unix_duration()
     }
 
     /// Instantiate from [`SystemTime`].
+    ///
+    /// # Errors
+    /// If a time conversion error occurred.
     #[cfg(feature = "std")]
     pub fn from_system_time(time: SystemTime) -> Result<Self> {
         DateTime::try_from(time)
@@ -74,6 +84,7 @@ impl UtcTime {
 
     /// Convert to [`SystemTime`].
     #[cfg(feature = "std")]
+    #[must_use]
     pub fn to_system_time(&self) -> SystemTime {
         self.0.to_system_time()
     }
@@ -82,9 +93,11 @@ impl UtcTime {
 impl_any_conversions!(UtcTime);
 
 impl<'a> DecodeValue<'a> for UtcTime {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        if Self::LENGTH != usize::try_from(header.length)? {
-            return Err(Self::TAG.value_error());
+        if Self::LENGTH != usize::try_from(header.length())? {
+            return Err(reader.error(Self::TAG.value_error()));
         }
 
         let mut bytes = [0u8; Self::LENGTH];
@@ -92,7 +105,21 @@ impl<'a> DecodeValue<'a> for UtcTime {
 
         match bytes {
             // RFC 5280 requires mandatory seconds and Z-normalized time zone
-            [year1, year2, mon1, mon2, day1, day2, hour1, hour2, min1, min2, sec1, sec2, b'Z'] => {
+            [
+                year1,
+                year2,
+                mon1,
+                mon2,
+                day1,
+                day2,
+                hour1,
+                hour2,
+                min1,
+                min2,
+                sec1,
+                sec2,
+                b'Z',
+            ] => {
                 let year = u16::from(datetime::decode_decimal(Self::TAG, year1, year2)?);
                 let month = datetime::decode_decimal(Self::TAG, mon1, mon2)?;
                 let day = datetime::decode_decimal(Self::TAG, day1, day2)?;
@@ -109,10 +136,10 @@ impl<'a> DecodeValue<'a> for UtcTime {
                 .ok_or(ErrorKind::DateTime)?;
 
                 DateTime::new(year, month, day, hour, minute, second)
-                    .map_err(|_| Self::TAG.value_error())
+                    .map_err(|_| reader.error(Self::TAG.value_error()))
                     .and_then(|dt| Self::from_unix_duration(dt.unix_duration()))
             }
-            _ => Err(Self::TAG.value_error()),
+            _ => Err(reader.error(Self::TAG.value_error())),
         }
     }
 }
@@ -126,7 +153,7 @@ impl EncodeValue for UtcTime {
         let year = match self.0.year() {
             y @ 1950..=1999 => y.checked_sub(1900),
             y @ 2000..=2049 => y.checked_sub(2000),
-            _ => return Err(Self::TAG.value_error()),
+            _ => return Err(Self::TAG.value_error().into()),
         }
         .and_then(|y| u8::try_from(y).ok())
         .ok_or(ErrorKind::DateTime)?;
@@ -145,7 +172,27 @@ impl FixedTag for UtcTime {
     const TAG: Tag = Tag::UtcTime;
 }
 
-impl OrdIsValueOrd for UtcTime {}
+/// Compares the `YYMMDDHHMMSSZ` encodings (X.690 11.6 orders `SET OF` components by their
+/// encodings), which differs from [`Ord`] (chronological) across 2000: `000101000000Z`
+/// (2000) sorts before `991231235959Z` (1999).
+impl ValueOrd for UtcTime {
+    fn value_cmp(&self, other: &Self) -> Result<Ordering> {
+        // Every field is encoded as two decimal digits, so comparing the fields in order is
+        // comparing the encodings.
+        let fields = |t: &Self| {
+            let dt = &t.0;
+            (
+                dt.year() % 100,
+                dt.month(),
+                dt.day(),
+                dt.hour(),
+                dt.minutes(),
+                dt.seconds(),
+            )
+        };
+        Ok(fields(self).cmp(&fields(other)))
+    }
+}
 
 impl From<&UtcTime> for UtcTime {
     fn from(value: &UtcTime) -> UtcTime {
@@ -193,6 +240,7 @@ impl From<UtcTime> for SystemTime {
 // The DateTime type has a way bigger range of valid years than UtcTime,
 // so the DateTime year is mapped into a valid range to throw away less inputs.
 #[cfg(feature = "arbitrary")]
+#[allow(clippy::unwrap_in_result)]
 impl<'a> arbitrary::Arbitrary<'a> for UtcTime {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
         const MIN_YEAR: u16 = 1970;
@@ -223,10 +271,23 @@ impl<'a> arbitrary::Arbitrary<'a> for UtcTime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::UtcTime;
-    use crate::{Decode, Encode, SliceWriter};
+    use crate::{Decode, DerOrd, Encode, SliceWriter, ValueOrd};
+    use core::cmp::Ordering;
     use hex_literal::hex;
+
+    #[test]
+    fn value_ord_is_encoding_order() {
+        // 1999-12-31 encodes as "99...", 2000-01-01 as "00...": X.690 11.6 puts 2000 first.
+        let y1999 = UtcTime::from_der(&hex!("170d 3939313233313233353935395a")).unwrap();
+        let y2000 = UtcTime::from_der(&hex!("170d 3030303130313030303030305a")).unwrap();
+        assert!(y1999 < y2000); // `Ord` stays chronological
+        assert_eq!(y2000.value_cmp(&y1999), Ok(Ordering::Less));
+        assert_eq!(y2000.der_cmp(&y1999), Ok(Ordering::Less));
+        assert_eq!(y1999.value_cmp(&y1999), Ok(Ordering::Equal));
+    }
 
     #[test]
     fn round_trip_vector() {
@@ -235,8 +296,8 @@ mod tests {
         assert_eq!(utc_time.to_unix_duration().as_secs(), 673573540);
 
         let mut buf = [0u8; 128];
-        let mut encoder = SliceWriter::new(&mut buf);
-        utc_time.encode(&mut encoder).unwrap();
-        assert_eq!(example_bytes, encoder.finish().unwrap());
+        let mut writer = SliceWriter::new(&mut buf);
+        utc_time.encode(&mut writer).unwrap();
+        assert_eq!(example_bytes, writer.finish().unwrap());
     }
 }

@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.13.0 (2026-03-30)
+### Added
+- New `Hkdf` and `HkdfExtract` type aliases for `GenericHkdf` and `GenericHkdfExtract` ([#155])
+- Implement `kdf::Kdf` for `GenericHkdfExtract` ([#173])
+
+### Changed
+- Bump MSRV to 1.85 and edition to 2024 ([#114])
+- Bump `hmac` dependency to v0.13
+- Use `digest::EagerHash` ([#148])
+- Unseal `HmacImpl` trait ([#154])
+- Rename `Hkdf` and `HkdfExtract` to `GenericHkdf` and `GenericHkdfExtract` respectively ([#155])
+- Use simplified `H: HmacImpl` bounds ([#155])
+
+### Removed
+- `std` crate feature ([#105])
+
+[#105]: https://github.com/RustCrypto/KDFs/pull/105
+[#114]: https://github.com/RustCrypto/KDFs/pull/114
+[#148]: https://github.com/RustCrypto/KDFs/pull/148
+[#154]: https://github.com/RustCrypto/KDFs/pull/154
+[#155]: https://github.com/RustCrypto/KDFs/pull/155
+[#173]: https://github.com/RustCrypto/KDFs/pull/173
+
 ## 0.12.3 (2022-02-17)
 ### Fixed
 - Minimal versions build ([#63])

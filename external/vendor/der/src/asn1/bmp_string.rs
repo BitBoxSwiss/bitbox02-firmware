@@ -2,7 +2,7 @@
 
 use crate::{
     BytesOwned, DecodeValue, EncodeValue, Error, FixedTag, Header, Length, Reader, Result, Tag,
-    Writer,
+    Writer, ord::OrdIsValueOrd,
 };
 use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, str::FromStr};
@@ -18,11 +18,14 @@ pub struct BmpString {
 
 impl BmpString {
     /// Create a new [`BmpString`] from its UCS-2 encoding.
+    ///
+    /// # Errors
+    /// If `bytes` contains out-of-range characters.
     pub fn from_ucs2(bytes: impl Into<Box<[u8]>>) -> Result<Self> {
         let bytes = bytes.into();
 
         if bytes.len() % 2 != 0 {
-            return Err(Tag::BmpString.length_error());
+            return Err(Tag::BmpString.length_error().into());
         }
 
         let ret = Self {
@@ -31,10 +34,10 @@ impl BmpString {
 
         for maybe_char in char::decode_utf16(ret.codepoints()) {
             match maybe_char {
-                // All surrogates paired and character is in the Basic Multilingual Plane
+                // Character is in the Basic Multilingual Plane
                 Ok(c) if (c as u64) < u64::from(u16::MAX) => (),
-                // Unpaired surrogates or characters outside Basic Multilingual Plane
-                _ => return Err(Tag::BmpString.value_error()),
+                // Characters outside Basic Multilingual Plane or unpaired surrogates
+                _ => return Err(Tag::BmpString.value_error().into()),
             }
         }
 
@@ -42,6 +45,9 @@ impl BmpString {
     }
 
     /// Create a new [`BmpString`] from a UTF-8 string.
+    ///
+    /// # Errors
+    /// If a length calculation overflowed or an internal conversion failed.
     pub fn from_utf8(utf8: &str) -> Result<Self> {
         let capacity = utf8
             .len()
@@ -58,17 +64,20 @@ impl BmpString {
     }
 
     /// Borrow the encoded UCS-2 as bytes.
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.bytes.as_ref()
     }
 
     /// Obtain the inner bytes.
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Box<[u8]> {
         self.bytes.into()
     }
 
     /// Get an iterator over characters in the string.
+    #[allow(clippy::missing_panics_doc)]
     pub fn chars(&self) -> impl Iterator<Item = char> + '_ {
         char::decode_utf16(self.codepoints())
             .map(|maybe_char| maybe_char.expect("unpaired surrogates checked in constructor"))
@@ -76,7 +85,7 @@ impl BmpString {
 
     /// Get an iterator over the `u16` codepoints.
     pub fn codepoints(&self) -> impl Iterator<Item = u16> + '_ {
-        // TODO(tarcieri): use `array_chunks`
+        // TODO(tarcieri): use `as_chunks`
         self.as_bytes()
             .chunks_exact(2)
             .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
@@ -90,8 +99,10 @@ impl AsRef<[u8]> for BmpString {
 }
 
 impl<'a> DecodeValue<'a> for BmpString {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        Self::from_ucs2(reader.read_vec(header.length)?)
+        Self::from_ucs2(reader.read_vec(header.length())?)
     }
 }
 
@@ -117,22 +128,35 @@ impl FromStr for BmpString {
     }
 }
 
+impl OrdIsValueOrd for BmpString {}
+
+/// Hack for simplifying the custom derive use case,
+/// as there is no `BmpStringRef` yet.
+impl From<&BmpString> for BmpString {
+    fn from(value: &BmpString) -> Self {
+        BmpString {
+            bytes: value.bytes.clone(),
+        }
+    }
+}
+
 impl fmt::Debug for BmpString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BmpString(\"{}\")", self)
+        write!(f, "BmpString(\"{self}\")")
     }
 }
 
 impl fmt::Display for BmpString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for c in self.chars() {
-            write!(f, "{}", c)?;
+            write!(f, "{c}")?;
         }
         Ok(())
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::BmpString;
     use crate::{Decode, Encode};

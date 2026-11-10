@@ -3,7 +3,7 @@
 use alloc::boxed::Box;
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use hex_lit::hex;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 

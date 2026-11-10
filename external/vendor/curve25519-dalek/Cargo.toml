@@ -10,18 +10,24 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.60.0"
+edition = "2024"
+rust-version = "1.85.0"
 name = "curve25519-dalek"
-version = "4.1.3"
+version = "5.0.0"
 authors = [
     "Isis Lovecruft <isis@patternsinthevoid.net>",
     "Henry de Valence <hdevalence@hdevalence.ca>",
 ]
+build = "build.rs"
 exclude = [
     "**/.gitignore",
     ".gitignore",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A pure-Rust implementation of group operations on ristretto255 and Curve25519"
 homepage = "https://github.com/dalek-cryptography/curve25519-dalek"
 documentation = "https://docs.rs/curve25519-dalek"
@@ -39,24 +45,44 @@ categories = [
 ]
 license = "BSD-3-Clause"
 repository = "https://github.com/dalek-cryptography/curve25519-dalek/tree/main/curve25519-dalek"
+resolver = "2"
 
 [package.metadata.docs.rs]
-features = [
-    "serde",
-    "rand_core",
-    "digest",
-    "legacy_compatibility",
-    "group-bits",
-]
 rustdoc-args = [
     "--html-in-header",
     "docs/assets/rustdoc-include-katex-header.html",
     "--cfg",
     "docsrs",
 ]
+all-features = true
+
+[features]
+alloc = ["zeroize?/alloc"]
+default = [
+    "alloc",
+    "precomputed-tables",
+    "zeroize",
+]
+digest = ["dep:digest"]
+group = [
+    "dep:group",
+    "rand_core",
+]
+legacy_compatibility = []
+lizard = ["digest"]
+precomputed-tables = []
+rand_core = [
+    "dep:rand_core",
+    "digest/rand_core",
+]
+
+[lib]
+name = "curve25519_dalek"
+path = "src/lib.rs"
 
 [[bench]]
 name = "dalek_benchmarks"
+path = "benches/dalek_benchmarks.rs"
 harness = false
 required-features = [
     "alloc",
@@ -67,22 +93,23 @@ required-features = [
 version = "1"
 
 [dependencies.digest]
-version = "0.10"
+version = "0.11"
+features = ["block-api"]
 optional = true
 default-features = false
 
 [dependencies.ff]
-version = "0.13"
+version = "0.14"
 optional = true
 default-features = false
 
 [dependencies.group]
-version = "0.13"
+version = "0.14"
 optional = true
 default-features = false
 
 [dependencies.rand_core]
-version = "0.6.4"
+version = "0.10"
 optional = true
 default-features = false
 
@@ -93,7 +120,8 @@ optional = true
 default-features = false
 
 [dependencies.subtle]
-version = "2.3.0"
+version = "2.6.0"
+features = ["const-generics"]
 default-features = false
 
 [dependencies.zeroize]
@@ -101,55 +129,48 @@ version = "1"
 optional = true
 default-features = false
 
-[dev-dependencies.bincode]
-version = "1"
-
 [dev-dependencies.criterion]
 version = "0.5"
 features = ["html_reports"]
 
+[dev-dependencies.getrandom]
+version = "0.4"
+features = ["sys_rng"]
+
 [dev-dependencies.hex]
 version = "0.4.2"
 
-[dev-dependencies.rand]
-version = "0.8"
+[dev-dependencies.postcard]
+version = "1"
+features = ["alloc"]
 
-[dev-dependencies.rand_core]
-version = "0.6"
-features = ["getrandom"]
-default-features = false
+[dev-dependencies.proptest]
+version = "1"
 
 [dev-dependencies.sha2]
-version = "0.10"
+version = "0.11"
 default-features = false
 
 [build-dependencies.rustc_version]
 version = "0.4.0"
 
-[features]
-alloc = ["zeroize?/alloc"]
-default = [
-    "alloc",
-    "precomputed-tables",
-    "zeroize",
-]
-group = [
-    "dep:group",
-    "rand_core",
-]
-group-bits = [
-    "group",
-    "ff/bits",
-]
-legacy_compatibility = []
-precomputed-tables = []
-
-[target."cfg(all(not(curve25519_dalek_backend = \"fiat\"), not(curve25519_dalek_backend = \"serial\"), target_arch = \"x86_64\"))".dependencies.curve25519-dalek-derive]
+[target.'cfg(all(not(curve25519_dalek_backend = "fiat"), not(curve25519_dalek_backend = "serial"), target_arch = "x86_64"))'.dependencies.curve25519-dalek-derive]
 version = "0.1"
 
-[target."cfg(curve25519_dalek_backend = \"fiat\")".dependencies.fiat-crypto]
-version = "0.2.1"
+[target.'cfg(curve25519_dalek_backend = "fiat")'.dependencies.fiat-crypto]
+version = "0.3.0"
 default-features = false
 
-[target."cfg(target_arch = \"x86_64\")".dependencies.cpufeatures]
-version = "0.2.6"
+[target.'cfg(target_arch = "x86_64")'.dependencies.cpufeatures]
+version = "0.3"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = [
+    "cfg(allow_unused_unsafe)",
+    'cfg(curve25519_dalek_backend, values("fiat", "serial", "simd", "avx512"))',
+    'cfg(curve25519_dalek_diagnostics, values("build"))',
+    'cfg(curve25519_dalek_bits, values("32", "64"))',
+    "cfg(nightly)",
+]

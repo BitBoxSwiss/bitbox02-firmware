@@ -12,9 +12,15 @@ use std::io;
 /// Writer trait which outputs encoded DER.
 pub trait Writer {
     /// Write the given DER-encoded bytes as output.
+    ///
+    /// # Errors
+    /// If the write operation failed.
     fn write(&mut self, slice: &[u8]) -> Result<()>;
 
     /// Write a single byte.
+    ///
+    /// # Errors
+    /// If the write operation failed.
     fn write_byte(&mut self, byte: u8) -> Result<()> {
         self.write(&[byte])
     }

@@ -1,10 +1,8 @@
 //! Development-related functionality.
 
-// TODO(tarcieri): move all development-related macros into this module
-
 /// Implement projective arithmetic tests.
 #[macro_export]
-macro_rules! impl_projective_arithmetic_tests {
+macro_rules! test_projective_arithmetic {
     (
         $affine:tt,
         $projective:tt,
@@ -18,7 +16,7 @@ macro_rules! impl_projective_arithmetic_tests {
             ($actual:expr, $expected:expr) => {
                 let (expected_x, expected_y) = $expected;
 
-                let point = $actual.to_affine().to_encoded_point(false);
+                let point = $actual.to_affine().to_sec1_point(false);
                 let (actual_x, actual_y) = match point.coordinates() {
                     sec1::Coordinates::Uncompressed { x, y } => (x, y),
                     _ => unreachable!(),
@@ -139,15 +137,12 @@ macro_rules! impl_projective_arithmetic_tests {
                 .iter()
                 .enumerate()
                 .map(|(k, coords)| (<$scalar>::from(k as u64 + 1), *coords))
-                .chain($mul_vectors.iter().cloned().map(|(k, x, y)| {
-                    (
-                        <$scalar>::from_repr(
-                            $crate::generic_array::GenericArray::clone_from_slice(&k),
-                        )
-                        .unwrap(),
-                        (x, y),
-                    )
-                }))
+                .chain(
+                    $mul_vectors
+                        .iter()
+                        .cloned()
+                        .map(|(k, x, y)| (<$scalar>::from_repr(k.into()).unwrap(), (x, y))),
+                )
             {
                 let p = generator * &k;
                 assert_point_eq!(p, coords);

@@ -3,6 +3,7 @@
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
 [![Build Status][build-image]][build-link]
+[![codecov][coverage-image]][coverage-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Project Chat][chat-image]][chat-link]
@@ -20,36 +21,62 @@ using const generics.
 - Supports `no_std`-friendly const generic stack-allocated big integers.
 - Constant-time by default. Variable-time functions are explicitly marked as such.
 - Leverage what is possible today with const generics on `stable` rust.
-- Support `const fn` as much as possible, including decoding big integers from
-  bytes/hex and performing arithmetic operations on them, with the goal of
-  being able to compute values at compile-time.
+- Support `const fn` as much as possible with the goal of being able to compute
+  values at compile-time.
+- Optional heap-allocated `Boxed*` types gated under an `alloc` feature.
+
+## Supported CPU architectures
+
+This crate is designed to operate in constant-time on the following CPU architectures:
+
+- `arm` (32-bit)
+- `aarch64` ✅
+- `riscv32` ✅
+- `riscv64`
+- `thumbv6` ✅
+- `thumbv7` (with checks for `thumbv7em` ✅)
+- `x86`
+- `x86_64` ✅
+- `wasm32`
+
+✅: indicates architectures where we use [`cargo checkct`] / [BINSEC] in CI to
+ensure that, for functions with `checkct` assertions, changes do not introduce
+variable-time operations.
+
+Other architectures are officially unsupported, however a use-at-your-own-risk
+portable fallback implementation based on bitwise arithmetic and `black_box` is
+provided without constant-time codegen guarantees. Please do not open issues
+about codegen problems on unsupported CPU architectures: they will be closed
+noting they're unsupported. If you would like such problems addressed, please
+open a pull request that addresses the issue instead.
+
+Notably this library is NOT suitable for use on processors with a variable-time
+multiplication operation, e.g. short circuit on multiply-by-zero /
+multiply-by-one, such as certain 32-bit PowerPC CPUs and microcontrollers.
 
 ## Security Notes
 
 This crate has been [audited by NCC Group] with no significant
 findings. We would like to thank [Entropy] for funding the audit.
+Note that the implementation has diverged significantly since the last audit.
 
 All functions contained in the crate are designed to execute in constant
 time unless explicitly specified otherwise (via a `*_vartime` name suffix).
 
-This library is not suitable for use on processors with a variable-time
-multiplication operation (e.g. short circuit on multiply-by-zero /
-multiply-by-one, such as certain 32-bit PowerPC CPUs and some non-ARM
-microcontrollers).
+## Minimum Supported Rust Version (MSRV) Policy
 
-## Minimum Supported Rust Version
+MSRV increases are not considered breaking changes and can happen in patch
+releases.
 
-This crate requires **Rust 1.65** at a minimum.
-
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
+The crate MSRV accounts for all supported targets and crate feature
+combinations, excluding explicitly unstable features.
 
 ## License
 
 Licensed under either of:
 
-- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
-- [MIT license](http://opensource.org/licenses/MIT)
+- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](https://opensource.org/license/mit)
 
 at your option.
 
@@ -61,19 +88,23 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/crypto-bigint
+[crate-image]: https://img.shields.io/crates/v/crypto-bigint?logo=rust
 [crate-link]: https://crates.io/crates/crypto-bigint
 [docs-image]: https://docs.rs/crypto-bigint/badge.svg
 [docs-link]: https://docs.rs/crypto-bigint/
-[build-image]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml/badge.svg
-[build-link]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml
+[build-image]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml?query=branch:master
+[coverage-image]: https://codecov.io/gh/RustCrypto/crypto-bigint/graph/badge.svg?token=B4J72KDXXJ
+[coverage-link]: https://codecov.io/gh/RustCrypto/crypto-bigint
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.87+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/300602-crypto-bigint
 
 [//]: # (links)
 
 [RustCrypto]: https://github.com/rustcrypto
-[audited by NCC Group]: https://research.nccgroup.com/2023/08/30/public-report-entropy-rust-cryptography-review/
+[`cargo checkct`]: https://github.com/Ledger-Donjon/cargo-checkct
+[BINSEC]: https://binsec.github.io/
+[audited by NCC Group]: https://www.nccgroup.com/us/research-blog/public-report-entropyrust-cryptography-review/
 [Entropy]: https://entropy.xyz/

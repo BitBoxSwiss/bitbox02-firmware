@@ -11,20 +11,6 @@ General purpose Elliptic Curve Cryptography (ECC) support, including types
 and traits for representing various elliptic curve forms, scalars, points,
 and public/secret keys composed thereof.
 
-[Documentation][docs-link]
-
-## Minimum Supported Rust Version
-
-Requires Rust **1.65** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
-
-## SemVer Policy
-
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
-
 ## License
 
 All crates licensed under either of
@@ -42,13 +28,13 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/elliptic-curve
+[crate-image]: https://img.shields.io/crates/v/elliptic-curve
 [crate-link]: https://crates.io/crates/elliptic-curve
 [docs-image]: https://docs.rs/elliptic-curve/badge.svg
 [docs-link]: https://docs.rs/elliptic-curve/
-[build-image]: https://github.com/RustCrypto/traits/actions/workflows/elliptic-curve.yml/badge.svg
-[build-link]: https://github.com/RustCrypto/traits/actions/workflows/elliptic-curve.yml
+[build-image]: https://github.com/RustCrypto/traits/actions/workflows/elliptic-curve.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/traits/actions/workflows/elliptic-curve.yml?query=branch:master
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.87+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260040-elliptic-curves

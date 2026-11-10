@@ -10,16 +10,23 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.57"
+edition = "2024"
+rust-version = "1.85"
 name = "const-oid"
-version = "0.9.6"
+version = "0.10.2"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Const-friendly implementation of the ISO/IEC Object Identifier (OID) standard
 as defined in ITU X.660, with support for BER/DER encoding/decoding as well as
 heapless no_std (i.e. embedded) support
 """
+homepage = "https://github.com/RustCrypto/formats/tree/master/const-oid"
 documentation = "https://docs.rs/const-oid"
 readme = "README.md"
 keywords = [
@@ -36,7 +43,8 @@ categories = [
     "parser-implementations",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/formats/tree/master/const-oid"
+repository = "https://github.com/RustCrypto/formats"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -45,14 +53,35 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[features]
+db = []
+
+[lib]
+name = "const_oid"
+path = "src/lib.rs"
+
+[[test]]
+name = "oid"
+path = "tests/oid.rs"
+
+[[test]]
+name = "oid_ref"
+path = "tests/oid_ref.rs"
+
+[[test]]
+name = "proptests"
+path = "tests/proptests.rs"
+
 [dependencies.arbitrary]
-version = "1.2"
+version = "1.4"
 features = ["derive"]
 optional = true
 
 [dev-dependencies.hex-literal]
-version = "0.3"
+version = "1"
 
-[features]
-db = []
-std = []
+[dev-dependencies.proptest]
+version = "1"
+
+[dev-dependencies.regex]
+version = "1"

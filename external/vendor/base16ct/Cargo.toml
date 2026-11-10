@@ -10,16 +10,23 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.60"
+edition = "2024"
+rust-version = "1.85"
 name = "base16ct"
-version = "0.2.0"
+version = "1.0.0"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Pure Rust implementation of Base16 a.k.a hexadecimal (RFC 4648) which avoids
 any usages of data-dependent branches/LUTs and thereby provides portable
-\"best effort\" constant-time operation and embedded-friendly no_std support
+"best effort" constant-time operation and embedded-friendly no_std support
 """
+homepage = "https://github.com/RustCrypto/formats/tree/master/base16ct"
 documentation = "https://docs.rs/base16ct"
 readme = "README.md"
 keywords = [
@@ -34,7 +41,8 @@ categories = [
     "parser-implementations",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/formats/tree/master/base16ct"
+repository = "https://github.com/RustCrypto/formats"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -45,4 +53,15 @@ rustdoc-args = [
 
 [features]
 alloc = []
-std = ["alloc"]
+
+[lib]
+name = "base16ct"
+path = "src/lib.rs"
+
+[[test]]
+name = "lib"
+path = "tests/lib.rs"
+
+[[bench]]
+name = "mod"
+path = "benches/mod.rs"

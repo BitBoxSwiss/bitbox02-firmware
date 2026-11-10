@@ -55,12 +55,12 @@ obtain the BER/DER serialization of an OID, even one declared `const`.
 Additionally, it impls `FromStr` and `TryFrom<&[u8]>` and functions just as
 well as a runtime OID library.
 
-## Minimum Supported Rust Version
+## Minimum Supported Rust Version (MSRV) Policy
 
-This crate requires **Rust 1.57** at a minimum.
+MSRV increases are not considered breaking changes and can happen in patch releases.
 
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
+The crate MSRV accounts for all supported targets and crate feature combinations, excluding
+explicitly unstable features.
 
 ## License
 
@@ -79,12 +79,14 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/const-oid
+[crate-image]: https://img.shields.io/crates/v/const-oid?logo=rust
 [crate-link]: https://crates.io/crates/const-oid
 [docs-image]: https://docs.rs/const-oid/badge.svg
 [docs-link]: https://docs.rs/const-oid/
+[build-image]: https://github.com/RustCrypto/formats/actions/workflows/const-oid.yml/badge.svg
+[build-link]: https://github.com/RustCrypto/formats/actions/workflows/const-oid.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.57+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/300570-formats
 [build-image]: https://github.com/RustCrypto/formats/workflows/const-oid/badge.svg?branch=master&event=push

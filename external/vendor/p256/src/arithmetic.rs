@@ -5,15 +5,17 @@
 //! [NIST SP 800-186]: https://csrc.nist.gov/publications/detail/sp/800-186/final
 
 pub(crate) mod field;
+pub(crate) mod scalar;
+
 #[cfg(feature = "hash2curve")]
 mod hash2curve;
-pub(crate) mod scalar;
-pub(crate) mod util;
+#[cfg(feature = "precomputed-tables")]
+mod tables;
 
 use self::{field::FieldElement, scalar::Scalar};
 use crate::NistP256;
-use elliptic_curve::{CurveArithmetic, PrimeCurveArithmetic};
-use primeorder::{point_arithmetic, PrimeCurveParams};
+use elliptic_curve::{CurveArithmetic, PrimeCurveArithmetic, hazmat::FieldArithmetic};
+use primeorder::{PrimeCurveParams, point_arithmetic};
 
 /// Elliptic curve point in affine coordinates.
 pub type AffinePoint = primeorder::AffinePoint<NistP256>;
@@ -27,6 +29,10 @@ impl CurveArithmetic for NistP256 {
     type Scalar = Scalar;
 }
 
+impl FieldArithmetic for NistP256 {
+    type FieldElement = FieldElement;
+}
+
 impl PrimeCurveArithmetic for NistP256 {
     type CurveGroup = ProjectivePoint;
 }
@@ -35,14 +41,20 @@ impl PrimeCurveArithmetic for NistP256 {
 ///
 /// [NIST SP 800-186]: https://csrc.nist.gov/publications/detail/sp/800-186/final
 impl PrimeCurveParams for NistP256 {
-    type FieldElement = FieldElement;
     type PointArithmetic = point_arithmetic::EquationAIsMinusThree;
+
+    #[cfg(not(feature = "precomputed-tables"))]
+    type Backend = primeorder::mul_backend::VariableOnly;
+    // TODO(tarcieri): use `primeorder::mul_backend::PrecomputedTables` when MSRV 1.90
+    #[cfg(feature = "precomputed-tables")]
+    type Backend = tables::backend::PrecomputedTables;
 
     /// a = -3
     const EQUATION_A: FieldElement = FieldElement::from_u64(3).neg();
 
-    const EQUATION_B: FieldElement =
-        FieldElement::from_hex("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b");
+    const EQUATION_B: FieldElement = FieldElement::from_hex_vartime(
+        "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
+    );
 
     /// Base point of P-256.
     ///
@@ -53,7 +65,11 @@ impl PrimeCurveParams for NistP256 {
     /// Gᵧ = 4fe342e2 fe1a7f9b 8ee7eb4a 7c0f9e16 2bce3357 6b315ece cbb64068 37bf51f5
     /// ```
     const GENERATOR: (FieldElement, FieldElement) = (
-        FieldElement::from_hex("6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"),
-        FieldElement::from_hex("4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"),
+        FieldElement::from_hex_vartime(
+            "6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+        ),
+        FieldElement::from_hex_vartime(
+            "4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
+        ),
     );
 }

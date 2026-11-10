@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.6 (2026-11-07)
+### Fixed
+- Stacked/Tree Borrows violation in `InOutBufReserved` ([#1591])
+
+[#1591]: https://github.com/RustCrypto/utils/pull/1591
+
+## 0.2.5 (2026-10-19)
+### Fixed
+- Return `PadError` from `InOutBufReserved::into_padded_blocks`
+  for incorrect `Padding` implementations  ([#1563])
+
+[#1563]: https://github.com/RustCrypto/utils/pull/1563
+
+## 0.2.4 (2026-10-16)
+### Fixed
+- Output buffer length check in `InOutBufReserved::into_padded_blocks` ([#1559])
+
+[#1559]: https://github.com/RustCrypto/utils/pull/1559
+
+## 0.2.3 (2026-10-14) [YANKED]
+### Fixed
+- List of safety pre-conditions in `InOutBufReserved::from_raw` docs ([#1502])
+- Stacked Borrows violation in `PaddedInOutBuf` ([#1556])
+
+[#1502]: https://github.com/RustCrypto/utils/pull/1502
+[#1556]: https://github.com/RustCrypto/utils/pull/1556
+
+## 0.2.2 (2025-12-27)
+### Changed
+- Require `block-padding` v0.4.2 ([#1291])
+
+[#1291]: https://github.com/RustCrypto/utils/pull/1291
+
+## 0.2.1 (2025-10-06)
+### Changed
+- Migrate to fixed `Padding::pad_detached` from `block-padding` v0.4.1 ([#1227])
+
+[#1227]: https://github.com/RustCrypto/utils/pull/1227
+
+## 0.2.0 (2025-10-06) [YANKED]
+### Changed
+- Migrated from `generic-array` to `hybrid-array` ([#944])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#1149])
+
+### Added
+- `InOut::into_out` and `InOutBufReserved::into_out` methods ([#1132])
+- `InOutBufReserved::split_reserved` method ([#1133])
+- `InOut::into_out_with_copied_in` and `InOutBuf::into_out_with_copied_in` methods ([#1169])
+
+[#944]: https://github.com/RustCrypto/utils/pull/944
+[#1132]: https://github.com/RustCrypto/utils/pull/1132
+[#1133]: https://github.com/RustCrypto/utils/pull/1133
+[#1149]: https://github.com/RustCrypto/utils/pull/1149
+[#1169]: https://github.com/RustCrypto/utils/pull/1169
+
+## 0.1.4 (2025-02-21)
+### Fixed
+- Return output length from `InOutBufReserved::get_out_len` instead of input length ([#1150])
+
+[#1150]: https://github.com/RustCrypto/utils/pull/1150
+
 ## 0.1.3 (2022-03-31)
 ### Fixed
 - MIRI error in `From` impl for `InOutBuf` ([#755])

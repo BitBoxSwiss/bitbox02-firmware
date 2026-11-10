@@ -2,20 +2,32 @@
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
+[![Build Status][build-image]][build-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
-[![Build Status][build-image]][build-link]
+[![Project Chat][chat-image]][chat-link]
+[![HAZMAT][hazmat-image]][hazmat-link]
 
 [Poly1305][1] is a [universal hash function][2] which, when combined with a cipher,
 can be used as a [Message Authentication Code (MAC)][3].
+
+It takes a 32-byte one-time key and an arbitrary-length message and produces a 16-byte tag,
+which can be used to authenticate the message.
 
 In practice, Poly1305 is primarily combined with ciphers from the
 [Salsa20 Family][4] such as in [ChaCha20Poly1305][5] and [XSalsa20Poly1305][6]
 (a.k.a. NaCl `crypto_secretbox`).
 
-[Documentation][docs-link]
+## Security
 
-## Security Notes
+### ⚠️ Warning: [Hazmat!][hazmat-link]
+
+Universal hash functions have subtle security properties and are primarily intended as a 
+building block for constructions like AEAD algorithms.
+
+USE AT YOUR OWN RISK!
+
+### Notes
 
 This crate has received one [security audit by NCC Group][7], with no significant
 findings. We would like to thank [MobileCoin][8] for funding the audit.
@@ -48,14 +60,18 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/poly1305.svg
+[crate-image]: https://img.shields.io/crates/v/poly1305.svg?logo=rust
 [crate-link]: https://crates.io/crates/poly1305
 [docs-image]: https://docs.rs/poly1305/badge.svg
 [docs-link]: https://docs.rs/poly1305/
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/channel/260051-universal-hashes
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
-[build-image]: https://github.com/RustCrypto/universal-hashes/workflows/poly1305/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/universal-hashes/actions?query=workflow%3Apoly1305
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
+[build-image]: https://github.com/RustCrypto/universal-hashes/actions/workflows/poly1305.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/universal-hashes/actions/workflows/poly1305.yml?query=branch:master
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
+[hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
 [//]: # (footnotes)
 

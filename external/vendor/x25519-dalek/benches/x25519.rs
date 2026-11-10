@@ -11,22 +11,30 @@
 
 //! Benchmark the Diffie-Hellman operation.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
-use rand_core::OsRng;
+use getrandom::{SysRng, rand_core::UnwrapErr};
 
 use x25519_dalek::EphemeralSecret;
 use x25519_dalek::PublicKey;
 
 fn bench_diffie_hellman(c: &mut Criterion) {
-    let bob_secret = EphemeralSecret::random_from_rng(OsRng);
+    let bob_secret = EphemeralSecret::random_from_rng(&mut UnwrapErr(SysRng));
     let bob_public = PublicKey::from(&bob_secret);
 
     c.bench_function("diffie_hellman", move |b| {
         b.iter_with_setup(
-            || EphemeralSecret::random_from_rng(OsRng),
+            || EphemeralSecret::random_from_rng(&mut UnwrapErr(SysRng)),
             |alice_secret| alice_secret.diffie_hellman(&bob_public),
         )
+    });
+}
+
+fn bench_pubkey_constructor(c: &mut Criterion) {
+    let bob_secret = EphemeralSecret::random_from_rng(&mut UnwrapErr(SysRng));
+
+    c.bench_function("PublicKey::from", move |b| {
+        b.iter(|| PublicKey::from(&bob_secret))
     });
 }
 
@@ -35,6 +43,7 @@ criterion_group! {
     config = Criterion::default();
     targets =
         bench_diffie_hellman,
+        bench_pubkey_constructor,
 }
 criterion_main! {
     x25519_benches,

@@ -1,6 +1,6 @@
 [package]
 name = "primeorder"
-version = "0.13.6"
+version = "0.14.0"
 description = """
 Pure Rust implementation of complete addition formulas for prime order elliptic
 curves (Renes-Costello-Batina 2015). Generic over field elements and curve
@@ -9,26 +9,35 @@ equation coefficients
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
 documentation = "https://docs.rs/primeorder"
-repository = "https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder"
+homepage = "https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder"
+repository = "https://github.com/RustCrypto/elliptic-curves"
 readme = "README.md"
 categories = ["cryptography", "no-std"]
 keywords = ["crypto", "ecc"]
-edition = "2021"
-rust-version = "1.65"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
-elliptic-curve = { version = "0.13.7", default-features = false, features = ["arithmetic", "sec1"] }
+elliptic-curve = { version = "0.14.1", default-features = false, features = ["arithmetic", "sec1"] }
+primefield = "0.14"
+wnaf = { version = "0.14", default-features = false }
 
 # optional dependencies
-serdect = { version = "0.2", optional = true, default-features = false }
+once_cell = { version = "1.21", optional = true, default-features = false }
+serdect = { version = "0.4", optional = true, default-features = false }
 
 [features]
-alloc = ["elliptic-curve/alloc"]
-std = ["alloc", "elliptic-curve/std"]
+alloc = ["elliptic-curve/alloc", "serdect?/alloc"]
+std = ["alloc", "elliptic-curve/std", "once_cell?/std"]
 
+basepoint-table = []
+critical-section = ["basepoint-table", "once_cell/critical-section"]
 dev = []
+hash2curve = []
 serde = ["elliptic-curve/serde", "serdect"]
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]

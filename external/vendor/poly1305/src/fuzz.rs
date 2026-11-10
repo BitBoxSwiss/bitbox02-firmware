@@ -1,28 +1,16 @@
-use universal_hash::{generic_array::GenericArray, UniversalHash};
-
-use crate::{backend, Block, Key, BLOCK_SIZE};
+use crate::{Block, Key, backend};
 
 /// Helper function for fuzzing the AVX2 backend.
 pub fn fuzz_avx2(key: &Key, data: &[u8]) {
     let mut avx2 = backend::avx2::State::new(key);
     let mut soft = backend::soft::State::new(key);
+    let (blocks, remaining) = Block::slice_as_chunks(data);
 
-    for (_i, chunk) in data.chunks(BLOCK_SIZE).enumerate() {
-        if chunk.len() == BLOCK_SIZE {
-            let block = GenericArray::from_slice(chunk);
-            unsafe {
-                avx2.compute_block(block, false);
-            }
-            soft.compute_block(block, false);
-        } else {
-            let mut block = Block::default();
-            block[..chunk.len()].copy_from_slice(chunk);
-            block[chunk.len()] = 1;
-            unsafe {
-                avx2.compute_block(&block, true);
-            }
-            soft.compute_block(&block, true);
+    for (_i, block) in blocks.iter().enumerate() {
+        unsafe {
+            avx2.compute_block(block, false);
         }
+        soft.compute_block(block, false);
 
         // Check that the same tag would be derived after each chunk.
         // We add the chunk number to the assertion for debugging.
@@ -34,11 +22,22 @@ pub fn fuzz_avx2(key: &Key, data: &[u8]) {
         );
     }
 
+    if !remaining.is_empty() {
+        let mut block = Block::default();
+        block[..remaining.len()].copy_from_slice(remaining);
+        block[remaining.len()] = 1;
+        unsafe {
+            avx2.compute_block(&block, true);
+        }
+        soft.compute_block(&block, true);
+    }
+
     assert_eq!(unsafe { avx2.finalize() }, soft.finalize());
 }
 
+#[allow(dead_code)]
 fn avx2_fuzzer_test_case(data: &[u8]) {
-    fuzz_avx2(data[0..32].into(), &data[32..]);
+    fuzz_avx2(data[0..32].try_into().unwrap(), &data[32..]);
 }
 
 #[test]

@@ -8,14 +8,47 @@
 //! $ cargo expand --test derive --all-features
 
 #![cfg(all(feature = "derive", feature = "alloc"))]
+#![allow(
+    clippy::bool_assert_comparison,
+    clippy::needless_question_mark, // TODO: fix needless_question_mark in the derive crate
+    clippy::std_instead_of_core
+)]
+
+/// Custom error type.
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+pub struct CustomError(der::Error);
+
+impl core::error::Error for CustomError {}
+
+impl core::fmt::Display for CustomError {
+    fn fmt(&self, _: &mut core::fmt::Formatter) -> core::fmt::Result {
+        unimplemented!()
+    }
+}
+
+impl From<der::Error> for CustomError {
+    fn from(value: der::Error) -> Self {
+        Self(value)
+    }
+}
+
+impl From<core::convert::Infallible> for CustomError {
+    fn from(_value: std::convert::Infallible) -> Self {
+        unreachable!()
+    }
+}
 
 /// Custom derive test cases for the `Choice` macro.
 mod choice {
+    use super::CustomError;
+
     /// `Choice` with `EXPLICIT` tagging.
     mod explicit {
+        use super::CustomError;
         use der::{
-            asn1::{GeneralizedTime, UtcTime},
             Choice, Decode, Encode, SliceWriter,
+            asn1::{GeneralizedTime, UtcTime},
         };
         use hex_literal::hex;
         use std::time::Duration;
@@ -40,12 +73,19 @@ mod choice {
         }
 
         impl Time {
-            fn to_unix_duration(self) -> Duration {
+            fn to_unix_duration(&self) -> Duration {
                 match self {
                     Time::UtcTime(t) => t.to_unix_duration(),
                     Time::GeneralTime(t) => t.to_unix_duration(),
                 }
             }
+        }
+
+        #[derive(Choice)]
+        #[asn1(error = CustomError)]
+        pub enum WithCustomError {
+            #[asn1(type = "GeneralizedTime")]
+            Foo(GeneralizedTime),
         }
 
         const UTC_TIMESTAMP_DER: &[u8] = &hex!("17 0d 39 31 30 35 30 36 32 33 34 35 34 30 5a");
@@ -59,6 +99,10 @@ mod choice {
 
             let general_time = Time::from_der(GENERAL_TIMESTAMP_DER).unwrap();
             assert_eq!(general_time.to_unix_duration().as_secs(), 673573540);
+
+            let WithCustomError::Foo(with_custom_error) =
+                WithCustomError::from_der(GENERAL_TIMESTAMP_DER).unwrap();
+            assert_eq!(with_custom_error.to_unix_duration().as_secs(), 673573540);
         }
 
         #[test]
@@ -66,22 +110,24 @@ mod choice {
             let mut buf = [0u8; 128];
 
             let utc_time = Time::from_der(UTC_TIMESTAMP_DER).unwrap();
-            let mut encoder = SliceWriter::new(&mut buf);
-            utc_time.encode(&mut encoder).unwrap();
-            assert_eq!(UTC_TIMESTAMP_DER, encoder.finish().unwrap());
+            let mut writer = SliceWriter::new(&mut buf);
+            utc_time.encode(&mut writer).unwrap();
+            assert_eq!(UTC_TIMESTAMP_DER, writer.finish().unwrap());
 
             let general_time = Time::from_der(GENERAL_TIMESTAMP_DER).unwrap();
-            let mut encoder = SliceWriter::new(&mut buf);
-            general_time.encode(&mut encoder).unwrap();
-            assert_eq!(GENERAL_TIMESTAMP_DER, encoder.finish().unwrap());
+            let mut writer = SliceWriter::new(&mut buf);
+            general_time.encode(&mut writer).unwrap();
+            assert_eq!(GENERAL_TIMESTAMP_DER, writer.finish().unwrap());
         }
     }
 
     /// `Choice` with `IMPLICIT` tagging.
+    #[cfg(feature = "heapless")]
     mod implicit {
+        use der::asn1::Null;
         use der::{
-            asn1::{BitStringRef, GeneralizedTime},
-            Choice, Decode, Encode, SliceWriter,
+            Choice, Decode, Encode, Sequence, SliceWriter,
+            asn1::{BitStringRef, GeneralizedTime, SequenceOf},
         };
         use hex_literal::hex;
 
@@ -97,6 +143,9 @@ mod choice {
 
             #[asn1(context_specific = "2", type = "UTF8String")]
             Utf8String(String),
+
+            #[asn1(context_specific = "3", constructed = "true")]
+            SequenceOfNulls(SequenceOf<Null, 1>),
         }
 
         impl<'a> ImplicitChoice<'a> {
@@ -138,20 +187,47 @@ mod choice {
             let mut buf = [0u8; 128];
 
             let cs_bit_string = ImplicitChoice::from_der(BITSTRING_DER).unwrap();
-            let mut encoder = SliceWriter::new(&mut buf);
-            cs_bit_string.encode(&mut encoder).unwrap();
-            assert_eq!(BITSTRING_DER, encoder.finish().unwrap());
+            let mut writer = SliceWriter::new(&mut buf);
+            cs_bit_string.encode(&mut writer).unwrap();
+            assert_eq!(BITSTRING_DER, writer.finish().unwrap());
 
             let cs_time = ImplicitChoice::from_der(TIME_DER).unwrap();
-            let mut encoder = SliceWriter::new(&mut buf);
-            cs_time.encode(&mut encoder).unwrap();
-            assert_eq!(TIME_DER, encoder.finish().unwrap());
+            let mut writer = SliceWriter::new(&mut buf);
+            cs_time.encode(&mut writer).unwrap();
+            assert_eq!(TIME_DER, writer.finish().unwrap());
+        }
+
+        #[test]
+        fn roundtrip_implicit_constructed_variant() {
+            let mut seq = SequenceOf::new();
+            seq.add(Null).unwrap();
+            let obj = ImplicitChoice::SequenceOfNulls(seq);
+            let mut buf = [0u8; 128];
+
+            let mut writer = SliceWriter::new(&mut buf);
+            obj.encode(&mut writer).unwrap();
+
+            let encoded = writer.finish().unwrap();
+            println!("encoded: {encoded:02X?}");
+
+            let decoded = ImplicitChoice::from_der(encoded).unwrap();
+
+            assert_eq!(decoded, obj);
+        }
+
+        /// Test case for `CHOICE` inside `[0]` `EXPLICIT` tag in `SEQUENCE`.
+        #[derive(Sequence, Debug, Eq, PartialEq)]
+        #[allow(dead_code)]
+        pub struct ExplicitChoiceInsideSequence<'a> {
+            #[asn1(tag_mode = "EXPLICIT", context_specific = "0")]
+            choice_field: ImplicitChoice<'a>,
         }
     }
 }
 
 /// Custom derive test cases for the `Enumerated` macro.
 mod enumerated {
+    use super::CustomError;
     use der::{Decode, Encode, Enumerated, SliceWriter};
     use hex_literal::hex;
 
@@ -174,6 +250,14 @@ mod enumerated {
     const UNSPECIFIED_DER: &[u8] = &hex!("0a 01 00");
     const KEY_COMPROMISE_DER: &[u8] = &hex!("0a 01 01");
 
+    #[derive(Enumerated, Copy, Clone, Eq, PartialEq, Debug)]
+    #[asn1(error = CustomError)]
+    #[repr(u32)]
+    pub enum EnumWithCustomError {
+        Unspecified = 0,
+        Specified = 1,
+    }
+
     #[test]
     fn decode() {
         let unspecified = CrlReason::from_der(UNSPECIFIED_DER).unwrap();
@@ -181,29 +265,33 @@ mod enumerated {
 
         let key_compromise = CrlReason::from_der(KEY_COMPROMISE_DER).unwrap();
         assert_eq!(CrlReason::KeyCompromise, key_compromise);
+
+        let custom_error_enum = EnumWithCustomError::from_der(UNSPECIFIED_DER).unwrap();
+        assert_eq!(custom_error_enum, EnumWithCustomError::Unspecified);
     }
 
     #[test]
     fn encode() {
         let mut buf = [0u8; 128];
 
-        let mut encoder = SliceWriter::new(&mut buf);
-        CrlReason::Unspecified.encode(&mut encoder).unwrap();
-        assert_eq!(UNSPECIFIED_DER, encoder.finish().unwrap());
+        let mut writer = SliceWriter::new(&mut buf);
+        CrlReason::Unspecified.encode(&mut writer).unwrap();
+        assert_eq!(UNSPECIFIED_DER, writer.finish().unwrap());
 
-        let mut encoder = SliceWriter::new(&mut buf);
-        CrlReason::KeyCompromise.encode(&mut encoder).unwrap();
-        assert_eq!(KEY_COMPROMISE_DER, encoder.finish().unwrap());
+        let mut writer = SliceWriter::new(&mut buf);
+        CrlReason::KeyCompromise.encode(&mut writer).unwrap();
+        assert_eq!(KEY_COMPROMISE_DER, writer.finish().unwrap());
     }
 }
 
 /// Custom derive test cases for the `Sequence` macro.
-#[cfg(feature = "oid")]
+#[cfg(all(feature = "heapless", feature = "oid"))]
 mod sequence {
+    use super::CustomError;
     use core::marker::PhantomData;
     use der::{
-        asn1::{AnyRef, ObjectIdentifier, SetOf},
         Decode, Encode, Sequence, ValueOrd,
+        asn1::{AnyRef, ObjectIdentifier, SetOf},
     };
     use hex_literal::hex;
 
@@ -226,7 +314,7 @@ mod sequence {
     // ```
     //
     // [RFC 5280 Section 5.2.5]: https://datatracker.ietf.org/doc/html/rfc5280#section-5.2.5
-    #[derive(Sequence)]
+    #[derive(Sequence, Default)]
     pub struct IssuingDistributionPointExample {
         // Omit distributionPoint and only_some_reasons because corresponding structs are not
         // available here and are not germane to the example
@@ -268,7 +356,7 @@ mod sequence {
         )]
         pub only_contains_attribute_certs: bool,
 
-        /// Test handling of PhantomData.
+        /// Test handling of `PhantomData`.
         pub phantom: PhantomData<()>,
     }
 
@@ -317,8 +405,38 @@ mod sequence {
         pub subject_public_key: &'a [u8],
     }
 
+    #[test]
+    fn decode_spki() {
+        let spki_bytes = hex!(
+        // first SPKI
+        "30 1A
+            30 0D
+                06 09
+                    2A 86 48 86 F7 0D 01 01 01
+                05 00
+            03 09
+                00 A0 A1 A2 A3 A4 A5 A6 A7"
+        // second SPKI
+        "30 1A
+            30 0D
+                06 09
+                    2A 86 48 86 F7 0D 01 01 01
+                05 00
+            03 09
+                00 B0 B1 B2 B3 B4 B5 B6 B7");
+
+        // decode first
+        let (spki, remaining) = SubjectPublicKeyInfo::from_der_partial(&spki_bytes).unwrap();
+        assert_eq!(spki.subject_public_key, hex!("A0 A1 A2 A3 A4 A5 A6 A7"));
+
+        // decode second
+        let (spki, _) = SubjectPublicKeyInfo::from_der_partial(remaining).unwrap();
+        assert_eq!(spki.subject_public_key, hex!("B0 B1 B2 B3 B4 B5 B6 B7"));
+    }
+
     /// PKCS#8v2 `OneAsymmetricKey`
     #[derive(Sequence)]
+    #[allow(dead_code)]
     pub struct OneAsymmetricKey<'a> {
         pub version: u8,
         pub private_key_algorithm: AlgorithmIdentifier<'a>,
@@ -338,6 +456,7 @@ mod sequence {
     /// X.509 extension
     // TODO(tarcieri): tests for code derived with the `default` attribute
     #[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+    #[allow(dead_code)]
     pub struct Extension<'a> {
         extn_id: ObjectIdentifier,
         #[asn1(default = "critical_default")]
@@ -347,6 +466,7 @@ mod sequence {
     }
 
     /// Default value of the `critical` bit
+    #[allow(dead_code)]
     fn critical_default() -> bool {
         false
     }
@@ -359,7 +479,7 @@ mod sequence {
     const ALGORITHM_IDENTIFIER_DER: &[u8] =
         &hex!("30 13 06 07 2a 86 48 ce 3d 02 01 06 08 2a 86 48 ce 3d 03 01 07");
 
-    #[derive(Sequence)]
+    #[derive(Sequence, Default, Eq, PartialEq, Debug)]
     #[asn1(tag_mode = "IMPLICIT")]
     pub struct TypeCheckExpandedSequenceFieldAttributeCombinations<'a> {
         pub simple: bool,
@@ -367,8 +487,19 @@ mod sequence {
         pub typed: &'a [u8],
         #[asn1(context_specific = "0")]
         pub context_specific: bool,
+
         #[asn1(optional = "true")]
         pub optional: Option<bool>,
+
+        #[asn1(type = "OCTET STRING", optional = "true")]
+        pub optional_octet_string: Option<&'a [u8]>,
+
+        #[asn1(type = "BIT STRING", optional = "true")]
+        pub optional_bit_string: Option<&'a [u8]>,
+
+        #[asn1(optional = "true")]
+        pub optional_oid: Option<ObjectIdentifier>,
+
         #[asn1(default = "default_false_example")]
         pub default: bool,
         #[asn1(type = "BIT STRING", context_specific = "1")]
@@ -378,7 +509,130 @@ mod sequence {
         #[asn1(context_specific = "3", default = "default_false_example")]
         pub context_specific_default: bool,
         #[asn1(type = "BIT STRING", context_specific = "4", optional = "true")]
-        pub typed_context_specific_optional: Option<&'a [u8]>,
+        pub typed_context_specific_optional_bits: Option<&'a [u8]>,
+        #[asn1(type = "OCTET STRING", context_specific = "5", optional = "true")]
+        pub typed_context_specific_optional_implicit: Option<&'a [u8]>,
+        #[asn1(
+            type = "OCTET STRING",
+            context_specific = "6",
+            optional = "true",
+            tag_mode = "EXPLICIT"
+        )]
+        pub typed_context_specific_optional_explicit: Option<&'a [u8]>,
+    }
+
+    #[test]
+    fn type_combinations_instance() {
+        let obj = TypeCheckExpandedSequenceFieldAttributeCombinations {
+            optional: Some(true),
+            optional_octet_string: Some(&[0xAA, 0xBB]),
+            optional_bit_string: Some(&[0xCC, 0xDD]),
+            context_specific_optional: Some(true),
+            typed_context_specific: &[0, 1],
+            typed_context_specific_optional_bits: Some(&[2, 3]),
+            typed_context_specific_optional_implicit: Some(&[4, 5, 6]),
+            typed_context_specific_optional_explicit: Some(&[7, 8]),
+
+            ..Default::default()
+        };
+
+        let der_encoded = obj.to_der().unwrap();
+
+        let obj_decoded =
+            TypeCheckExpandedSequenceFieldAttributeCombinations::from_der(&der_encoded).unwrap();
+        assert_eq!(obj, obj_decoded);
+    }
+
+    #[derive(Sequence, Default, Eq, PartialEq, Debug)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct TypeCheckOwnedSequenceFieldAttributeCombinations {
+        /// Without deref = "true" macro generates an error:
+        ///
+        /// the trait `From<Vec<u8>>` is not implemented for `BitStringRef<'_>`
+        #[asn1(type = "OCTET STRING", deref = "true")]
+        pub owned_bytes: Vec<u8>,
+
+        #[asn1(type = "BIT STRING", deref = "true")]
+        pub owned_bits: Vec<u8>,
+
+        /// pure Vec<.> Needs additional deref in the derive macro
+        /// for the `OctetStringRef::try_from`
+        #[asn1(type = "OCTET STRING", context_specific = "0", deref = "true")]
+        pub owned_implicit_bytes: Vec<u8>,
+
+        /// deref
+        #[asn1(type = "BIT STRING", context_specific = "1", deref = "true")]
+        pub owned_implicit_bits: Vec<u8>,
+
+        /// deref
+        #[asn1(
+            type = "OCTET STRING",
+            context_specific = "2",
+            deref = "true",
+            tag_mode = "EXPLICIT"
+        )]
+        pub owned_explicit_bytes: Vec<u8>,
+
+        /// deref
+        #[asn1(
+            type = "BIT STRING",
+            context_specific = "3",
+            deref = "true",
+            tag_mode = "EXPLICIT"
+        )]
+        pub owned_explicit_bits: Vec<u8>,
+
+        /// Option<Vec<..>> does not need deref
+        #[asn1(type = "BIT STRING", context_specific = "4", optional = "true")]
+        pub owned_optional_implicit_bits: Option<Vec<u8>>,
+        #[asn1(type = "OCTET STRING", context_specific = "5", optional = "true")]
+        pub owned_optional_implicit_bytes: Option<Vec<u8>>,
+
+        #[asn1(
+            type = "BIT STRING",
+            context_specific = "6",
+            optional = "true",
+            tag_mode = "EXPLICIT"
+        )]
+        pub owned_optional_explicit_bits: Option<Vec<u8>>,
+        #[asn1(
+            type = "OCTET STRING",
+            context_specific = "7",
+            optional = "true",
+            tag_mode = "EXPLICIT"
+        )]
+        pub owned_optional_explicit_bytes: Option<Vec<u8>>,
+    }
+
+    #[test]
+    fn type_combinations_alloc_instance() {
+        let obj = TypeCheckOwnedSequenceFieldAttributeCombinations {
+            owned_bytes: vec![0xAA, 0xBB],
+            owned_bits: vec![0xCC, 0xDD],
+
+            owned_implicit_bytes: vec![0, 1],
+            owned_implicit_bits: vec![2, 3],
+
+            owned_explicit_bytes: vec![4, 5],
+            owned_explicit_bits: vec![6, 7],
+
+            owned_optional_implicit_bits: Some(vec![8, 9]),
+            owned_optional_implicit_bytes: Some(vec![10, 11]),
+
+            owned_optional_explicit_bits: Some(vec![12, 13]),
+            owned_optional_explicit_bytes: Some(vec![14, 15]),
+        };
+
+        let der_encoded = obj.to_der().unwrap();
+        let obj_decoded =
+            TypeCheckOwnedSequenceFieldAttributeCombinations::from_der(&der_encoded).unwrap();
+        assert_eq!(obj, obj_decoded);
+    }
+
+    #[derive(Sequence)]
+    #[asn1(error = CustomError)]
+    pub struct TypeWithCustomError {
+        pub simple: bool,
     }
 
     #[test]
@@ -406,6 +660,28 @@ mod sequence {
         assert_eq!(idp.only_contains_cacerts, false);
         assert_eq!(idp.indirect_crl, false);
         assert_eq!(idp.only_contains_attribute_certs, true);
+    }
+
+    #[test]
+    fn idp_encode_twice() {
+        let mut vec_buf = Vec::new();
+
+        IssuingDistributionPointExample {
+            only_contains_user_certs: true,
+            ..Default::default()
+        }
+        .encode_to_vec(&mut vec_buf)
+        .unwrap();
+
+        // encode to the same vec by appending
+        IssuingDistributionPointExample {
+            only_contains_cacerts: true,
+            ..Default::default()
+        }
+        .encode_to_vec(&mut vec_buf)
+        .unwrap();
+
+        assert_eq!(vec_buf, hex!("30038101FF 30038201FF"));
     }
 
     // demonstrates default field that is not context specific
@@ -442,6 +718,9 @@ mod sequence {
             PRIME256V1_OID,
             ObjectIdentifier::try_from(algorithm_identifier.parameters.unwrap()).unwrap()
         );
+
+        let t = TypeWithCustomError::from_der(&hex!("30030101FF")).unwrap();
+        assert!(t.simple);
     }
 
     #[test]
@@ -457,5 +736,522 @@ mod sequence {
             ALGORITHM_IDENTIFIER_DER,
             algorithm_identifier.to_der().unwrap()
         );
+    }
+}
+
+/// Custom derive test cases for the `EncodeValue` macro.
+mod encode_value {
+    use der::{Encode, EncodeValue, FixedTag, Tag};
+    use hex_literal::hex;
+
+    #[derive(EncodeValue, Default, Eq, PartialEq, Debug)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct EncodeOnlyCheck<'a> {
+        #[asn1(type = "OCTET STRING", context_specific = "5")]
+        pub field: &'a [u8],
+    }
+    impl FixedTag for EncodeOnlyCheck<'_> {
+        const TAG: Tag = Tag::Sequence;
+    }
+
+    #[test]
+    fn sequence_encode_only_to_der() {
+        let obj = EncodeOnlyCheck {
+            field: &[0x33, 0x44],
+        };
+
+        let der_encoded = obj.to_der().unwrap();
+
+        assert_eq!(der_encoded, hex!("30 04 85 02 33 44"));
+    }
+}
+
+/// Custom derive test cases for the `DecodeValue` macro.
+mod decode_value {
+    use der::{Decode, DecodeValue, FixedTag, Tag};
+    use hex_literal::hex;
+
+    #[derive(DecodeValue, Default, Eq, PartialEq, Debug)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct DecodeOnlyCheck<'a> {
+        #[asn1(type = "OCTET STRING", context_specific = "5")]
+        pub field: &'a [u8],
+    }
+    impl FixedTag for DecodeOnlyCheck<'_> {
+        const TAG: Tag = Tag::Sequence;
+    }
+
+    #[test]
+    fn sequence_decode_only_from_der() {
+        let obj = DecodeOnlyCheck::from_der(&hex!("30 04 85 02 33 44")).unwrap();
+
+        assert_eq!(obj.field, &[0x33, 0x44]);
+    }
+}
+
+/// Custom derive test cases for the `DecodeValue` + `EncodeValue` macro combo.
+mod decode_encode_value {
+    use der::{DecodeValue, EncodeValue, IsConstructed};
+
+    /// Example of a structure, that does not have a tag and is not a sequence
+    /// but can be encoded as `[0] IMPLICIT`
+    #[derive(DecodeValue, EncodeValue, Default, Eq, PartialEq, Debug)]
+    #[allow(dead_code)]
+    struct DecodeEncodeCheck {
+        field: bool,
+    }
+    impl IsConstructed for DecodeEncodeCheck {
+        const CONSTRUCTED: bool = true;
+    }
+}
+
+#[cfg(all(feature = "derive", feature = "oid"))]
+mod custom_application {
+    use const_oid::ObjectIdentifier;
+    use der::{Decode, DecodeValue, Encode, EncodeValue, FixedTag, Sequence, Tag, TagNumber};
+    use hex_literal::hex;
+
+    const TACHO_CERT_DER: &[u8] = &hex!(
+    "7F 21  81 C8" // Application 33
+
+        "7F 4E  81 81" // Application 78
+
+            "5F 29" // Application 41
+                "01 00"
+            "42 08" // Application 2
+                "FD 45 43 20 01 FF FF 01"
+            "5F 4C  07" // Application 76
+                "FF 53 4D 52 44 54 0E"
+            "7F 49  4D" // Application 73
+                "06 08 2A 86 48  CE 3D 03 01 07 86 41 04
+        30 E8 EE D8 05 1D FB 8F  05 BF 4E 34 90 B8 A0 1C
+        83 21 37 4E 99 41 67 70  64 28 23 A2 C9 E1 21 16
+        D9 27 46 45 94 DD CB CC  79 42 B5 F3 EE 1A A3 AB
+        A2 5C E1 6B 20 92 00 F0  09 70 D9 CF 83 0A 33 4B"
+
+
+            "5F 20 08" // Application 32
+                "17 47 52 20 02  FF FF 01"
+            "5F 25 04" // Application 37
+                "62 A3 B0 D0"
+            "5F 24 04" // Application 36
+                "6F F6 49 50"
+        "5F 37 40" // Application 55
+            "6D 3E FD 97
+        BE 83 EC 65 5F 51 4D 8C  47 60 DB FD 9B A2 D1 5D
+        3C 1A 21 93 CE D7 EA F2  A2 0D 89 CC 4A 4F 0C 4B
+        E5 3F A3 F9 0F 20 B5 74  67 26 DB 19 9E FF DE 0B
+        D0 B9 2C B9 D1 5A E2 18  08 6C F0 E2"
+    );
+
+    /// EU Tachograph G2 certificate
+    #[derive(DecodeValue, EncodeValue)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct TachographCertificate<'a> {
+        /// constructed
+        #[asn1(application = "78")]
+        pub body: TachographCertificateBody<'a>,
+
+        /// primitive
+        #[asn1(application = "55", type = "OCTET STRING")]
+        pub signature: &'a [u8],
+    }
+
+    impl FixedTag for TachographCertificate<'_> {
+        const TAG: Tag = Tag::Application {
+            number: TagNumber(33), // 7F 21
+            constructed: true,
+        };
+    }
+
+    /// EU Tachograph G2 certificate body
+    #[derive(Sequence)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct TachographCertificateBody<'a> {
+        /// primitive
+        #[asn1(application = "41", type = "OCTET STRING")]
+        pub profile_identifier: &'a [u8],
+
+        /// primitive
+        #[asn1(application = "2", type = "OCTET STRING")]
+        pub authority_reference: &'a [u8],
+
+        /// primitive
+        #[asn1(application = "76", type = "OCTET STRING")]
+        pub holder_authorisation: &'a [u8],
+
+        /// constructed
+        #[asn1(application = "73")]
+        pub public_key: CertificatePublicKey<'a>,
+
+        /// primitive
+        #[asn1(application = "32", type = "OCTET STRING")]
+        pub holder_reference: &'a [u8],
+
+        /// primitive
+        #[asn1(application = "37", type = "OCTET STRING")]
+        pub effective_date: &'a [u8],
+
+        /// primitive
+        #[asn1(application = "36", type = "OCTET STRING")]
+        pub expiration_date: &'a [u8],
+    }
+
+    /// EU Tachograph G2 certificate public key
+    #[derive(Sequence)]
+    #[asn1(tag_mode = "IMPLICIT")]
+    pub struct CertificatePublicKey<'a> {
+        pub domain_parameters: ObjectIdentifier,
+
+        #[asn1(context_specific = "6", type = "OCTET STRING")]
+        pub public_point: &'a [u8],
+    }
+    #[test]
+    fn decode_tacho_application_tags() {
+        let tacho_cert = TachographCertificate::from_der(TACHO_CERT_DER).unwrap();
+
+        let sig = tacho_cert.signature;
+        assert_eq!(&sig[..2], hex!("6D 3E"));
+        assert_eq!(tacho_cert.body.profile_identifier, &[0x00]);
+        assert_eq!(
+            tacho_cert.body.authority_reference,
+            hex!("FD 45 43 20 01 FF FF 01")
+        );
+        assert_eq!(
+            tacho_cert.body.holder_authorisation,
+            hex!("FF 53 4D 52 44 54 0E")
+        );
+        assert_eq!(
+            tacho_cert.body.public_key.domain_parameters,
+            ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7")
+        );
+        assert_eq!(
+            &tacho_cert.body.public_key.public_point[..4],
+            hex!("04 30 E8 EE")
+        );
+        const GREECE: &[u8] = b"GR ";
+        assert_eq!(&tacho_cert.body.holder_reference[1..4], GREECE);
+
+        // Re-encode
+        let mut buf = [0u8; 256];
+        let encoded = tacho_cert.encode_to_slice(&mut buf).unwrap();
+        assert_eq!(encoded, TACHO_CERT_DER);
+    }
+}
+
+/// Custom derive test cases for the `BitString` macro.
+#[cfg(feature = "std")]
+mod bitstring {
+    use der::BitString;
+    use der::Decode;
+    use der::Encode;
+    use hex_literal::hex;
+
+    const BITSTRING_EXAMPLE: &[u8] = &hex!("03 03 06 03 80");
+
+    // this BitString allows only 10..=10 bits
+    #[derive(BitString)]
+    pub struct MyBitStringTest {
+        pub first_bit: bool,
+        pub second_bit: bool,
+        pub third_bit: bool,
+        pub fourth_bit: bool,
+        pub a: bool,
+        pub b: bool,
+        pub almost_least_significant: bool,
+        pub least_significant_bit: bool,
+
+        // second byte
+        pub second_byte_bit: bool,
+        pub second_byte_bit2: bool,
+    }
+
+    #[test]
+    fn decode_bitstring() {
+        let test_flags = MyBitStringTest::from_der(BITSTRING_EXAMPLE).unwrap();
+
+        assert!(!test_flags.first_bit);
+
+        assert!(test_flags.almost_least_significant);
+        assert!(test_flags.least_significant_bit);
+        assert!(test_flags.second_byte_bit);
+        assert!(!test_flags.second_byte_bit2);
+
+        let reencoded = test_flags.to_der().unwrap();
+
+        assert_eq!(reencoded, BITSTRING_EXAMPLE);
+    }
+
+    /// This `BitString` will allow only `3..=4` bits in `Decode`, but will always `Encode` 4-bits.
+    #[derive(BitString)]
+    pub struct MyBitString3or4 {
+        pub bit_0: bool,
+        pub bit_1: bool,
+        pub bit_2: bool,
+
+        #[asn1(optional = "true")]
+        pub bit_3: bool,
+    }
+
+    #[test]
+    fn decode_bitstring_3_used_first_lit() {
+        // 5 unused bits, so 3 used
+        let bits_3 = MyBitString3or4::from_der(&hex!("03 02 05 80")).unwrap();
+
+        assert!(bits_3.bit_0);
+        assert!(!bits_3.bit_1);
+        assert!(!bits_3.bit_2);
+        assert!(!bits_3.bit_3);
+    }
+    #[test]
+    fn decode_bitstring_3_used_all_lit() {
+        // 5 unused bits, so 3 used
+        let bits_3 = MyBitString3or4::from_der(&hex!("03 02 05 FF")).unwrap();
+
+        assert!(bits_3.bit_0);
+        assert!(bits_3.bit_1);
+        assert!(bits_3.bit_2);
+        assert!(!bits_3.bit_3);
+    }
+
+    #[test]
+    fn decode_bitstring_4_used_all_lit() {
+        // 4 unused bits, so 4 used
+        let bits_3 = MyBitString3or4::from_der(&hex!("03 02 04 FF")).unwrap();
+
+        assert!(bits_3.bit_0);
+        assert!(bits_3.bit_1);
+        assert!(bits_3.bit_2);
+        assert!(bits_3.bit_3);
+    }
+
+    #[test]
+    fn decode_invalid_bitstring_5_used() {
+        // 3 unused bits, so 5 used
+        assert!(MyBitString3or4::from_der(&hex!("03 02 03 FF")).is_err());
+    }
+
+    #[test]
+    fn decode_invalid_bitstring_2_used() {
+        // 6 unused bits, so 2 used
+        assert!(MyBitString3or4::from_der(&hex!("03 02 06 FF")).is_err());
+    }
+
+    #[test]
+    fn encode_3_zero_bits() {
+        let encoded_3_zeros = MyBitString3or4 {
+            bit_0: false,
+            bit_1: false,
+            bit_2: false,
+            bit_3: false,
+        }
+        .to_der()
+        .unwrap();
+
+        // 4 bits used, 4 unused
+        assert_eq!(encoded_3_zeros, hex!("03 02 04 00"));
+    }
+
+    #[test]
+    fn encode_3_one_bits() {
+        let encoded_3_zeros = MyBitString3or4 {
+            bit_0: true,
+            bit_1: true,
+            bit_2: true,
+            bit_3: false,
+        }
+        .to_der()
+        .unwrap();
+
+        // 4 bits used, 4 unused
+        assert_eq!(encoded_3_zeros, hex!("03 02 04 E0"));
+    }
+
+    #[test]
+    fn encode_4_one_bits() {
+        let encoded_4_zeros = MyBitString3or4 {
+            bit_0: true,
+            bit_1: true,
+            bit_2: true,
+            bit_3: true,
+        }
+        .to_der()
+        .unwrap();
+
+        // 4 bits used, 4 unused
+        assert_eq!(encoded_4_zeros, hex!("03 02 04 F0"));
+    }
+
+    #[test]
+    fn encode_optional_one_4_used() {
+        let encoded_4_zeros = MyBitString3or4 {
+            bit_0: false,
+            bit_1: false,
+            bit_2: false,
+            bit_3: true,
+        }
+        .to_der()
+        .unwrap();
+
+        // 4 bits used, 4 unused
+        assert_eq!(encoded_4_zeros, hex!("03 02 04 10"));
+    }
+
+    /// ```asn1
+    /// PasswordFlags ::= BIT STRING {
+    ///     case-sensitive (0),
+    ///     local (1),
+    ///     change-disabled (2),
+    ///     unblock-disabled (3),
+    ///     initialized (4),
+    ///     needs-padding (5),
+    ///     unblockingPassword (6),
+    ///     soPassword (7),
+    ///     disable-allowed (8),
+    ///     integrity-protected (9),
+    ///     confidentiality-protected (10),
+    ///     exchangeRefData (11),
+    ///     resetRetryCounter1 (12),
+    ///     resetRetryCounter2 (13),
+    ///     context-dependent (14),
+    ///     multiStepProtocol (15)
+    /// }
+    ///  ```
+    #[derive(Clone, Debug, Eq, PartialEq, BitString)]
+    pub struct PasswordFlags {
+        /// `case-sensitive` (0)
+        pub case_sensitive: bool,
+
+        /// `local` (1)
+        pub local: bool,
+
+        /// `change-disabled` (2)
+        pub change_disabled: bool,
+
+        /// `unblock-disabled` (3)
+        pub unblock_disabled: bool,
+
+        /// `initialized` (4)
+        pub initialized: bool,
+
+        /// `needs-padding` (5)
+        pub needs_padding: bool,
+
+        /// `unblockingPassword` (6)
+        pub unblocking_password: bool,
+
+        /// `soPassword` (7)
+        pub so_password: bool,
+
+        /// `disable-allowed` (8)
+        pub disable_allowed: bool,
+
+        /// `integrity-protected` (9)
+        pub integrity_protected: bool,
+
+        /// `confidentiality-protected` (10)
+        pub confidentiality_protected: bool,
+
+        /// `exchangeRefData` (11)
+        pub exchange_ref_data: bool,
+
+        /// Second edition 2016-05-15
+        /// `resetRetryCounter1` (12)
+        #[asn1(optional = "true")]
+        pub reset_retry_counter1: bool,
+
+        /// `resetRetryCounter2` (13)
+        #[asn1(optional = "true")]
+        pub reset_retry_counter2: bool,
+
+        /// `context-dependent` (14)
+        #[asn1(optional = "true")]
+        pub context_dependent: bool,
+
+        /// `multiStepProtocol` (15)
+        #[asn1(optional = "true")]
+        pub multi_step_protocol: bool,
+
+        /// `fake_bit_for_testing` (16)
+        #[asn1(optional = "true")]
+        pub fake_bit_for_testing: bool,
+    }
+
+    const PASS_FLAGS_EXAMPLE_IN: &[u8] = &hex!("03 03 04 FF FF");
+    const PASS_FLAGS_EXAMPLE_OUT: &[u8] = &hex!("03 04 07 FF F0 00");
+
+    #[test]
+    fn decode_short_bitstring_2_bytes() {
+        let pass_flags = PasswordFlags::from_der(PASS_FLAGS_EXAMPLE_IN).unwrap();
+
+        // case-sensitive (0)
+        assert!(pass_flags.case_sensitive);
+
+        // exchangeRefData (11)
+        assert!(pass_flags.exchange_ref_data);
+
+        // resetRetryCounter1 (12)
+        assert!(!pass_flags.reset_retry_counter1);
+
+        let reencoded = pass_flags.to_der().unwrap();
+
+        assert_eq!(reencoded, PASS_FLAGS_EXAMPLE_OUT);
+    }
+}
+mod infer_default {
+    //! When another crate might define a `PartialEq` for another type, the use of
+    //! `default="Default::default"` in the der derivation will not provide enough
+    //! information for `der_derive` crate to figure out.
+    //!
+    //! This provides a reproduction for that case. This is intended to fail when we
+    //! compile tests.
+    //! ```
+    //! error[E0282]: type annotations needed
+    //!   --> der/tests/derive.rs:480:26
+    //!    |
+    //!480 |         #[asn1(default = "Default::default")]
+    //!    |                          ^^^^^^^^^^^^^^^^^^ cannot infer type
+    //!
+    //!error[E0283]: type annotations needed
+    //!   --> der/tests/derive.rs:478:14
+    //!    |
+    //!478 |     #[derive(Sequence)]
+    //!    |              ^^^^^^^^ cannot infer type
+    //!    |
+    //!note: multiple `impl`s satisfying `bool: PartialEq<_>` found
+    //!   --> der/tests/derive.rs:472:5
+    //!    |
+    //!472 |     impl PartialEq<BooleanIsh> for bool {
+    //!    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //!    = note: and another `impl` found in the `core` crate:
+    //!            - impl<host> PartialEq for bool
+    //!              where the constant `host` has type `bool`;
+    //!    = note: required for `&bool` to implement `PartialEq<&_>`
+    //!    = note: this error originates in the derive macro `Sequence` (in Nightly builds, run with -Z macro-backtrace for more info)
+    //! ```
+
+    use der::Sequence;
+
+    struct BooleanIsh;
+
+    impl PartialEq<BooleanIsh> for bool {
+        fn eq(&self, _other: &BooleanIsh) -> bool {
+            unimplemented!("This is only here to mess up the compiler's type inference")
+        }
+    }
+
+    #[derive(Sequence)]
+    #[allow(dead_code)]
+    struct Foo {
+        #[asn1(default = "Default::default")]
+        pub use_default_default: bool,
+
+        #[asn1(default = "something_true")]
+        pub use_custom: bool,
+    }
+
+    #[allow(dead_code)]
+    fn something_true() -> bool {
+        todo!()
     }
 }

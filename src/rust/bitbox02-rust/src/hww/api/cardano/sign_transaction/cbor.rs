@@ -240,7 +240,7 @@ pub async fn encode_transaction_body<W: Write>(
 mod tests {
     use super::*;
     use alloc::vec::Vec;
-    use blake2::{Blake2b, Digest, digest::consts::U32};
+    use blake2::{Blake2b256, Digest};
 
     fn encode_something<W: Write>(
         encoder: &mut Encoder<W>,
@@ -275,14 +275,14 @@ mod tests {
             let mut encoder = Encoder::new(&mut cbor_encoded);
             encode_something(&mut encoder).unwrap();
 
-            let mut hasher = Blake2b::<U32>::new();
+            let mut hasher = Blake2b256::new();
             Digest::update(&mut hasher, &cbor_encoded);
             hasher.finalize().into()
         };
 
         // Now encode CBOR into the hasher directly and compare results.
         let hash: [u8; 32] = {
-            let mut hasher = Blake2b::<U32>::new();
+            let mut hasher = Blake2b256::new();
             let mut encoder = Encoder::new(HashedWriter::new(&mut hasher));
             encode_something(&mut encoder).unwrap();
             hasher.finalize().into()

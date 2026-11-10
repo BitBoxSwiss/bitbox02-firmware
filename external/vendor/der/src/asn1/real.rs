@@ -4,21 +4,23 @@
 #![allow(
     clippy::cast_lossless,
     clippy::cast_sign_loss,
-    clippy::integer_arithmetic
+    clippy::arithmetic_side_effects
 )]
 
 use crate::{
-    BytesRef, DecodeValue, EncodeValue, FixedTag, Header, Length, Reader, Result, StrRef, Tag,
-    Writer,
+    BytesRef, DecodeValue, EncodeValue, Error, FixedTag, Header, Length, Reader, Result, StringRef,
+    Tag, Writer,
 };
 
 use super::integer::uint::strip_leading_zeroes;
 
 impl<'a> DecodeValue<'a> for f64 {
-    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        let bytes = BytesRef::decode_value(reader, header)?.as_slice();
+    type Error = Error;
 
-        if header.length == Length::ZERO {
+    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
+        let bytes = <&'a BytesRef>::decode_value(reader, header)?.as_slice();
+
+        if header.length() == Length::ZERO {
             Ok(0.0)
         } else if is_nth_bit_one::<7>(bytes) {
             // Binary encoding from section 8.5.7 applies
@@ -29,7 +31,7 @@ impl<'a> DecodeValue<'a> for f64 {
 
             if base != 0 {
                 // Real related error: base is not DER compliant (base encoded in enum)
-                return Err(Tag::Real.value_error());
+                return Err(reader.error(Tag::Real.value_error()));
             }
 
             // Section 8.5.7.3
@@ -40,17 +42,25 @@ impl<'a> DecodeValue<'a> for f64 {
             let exponent = match mnth_bits_to_u8::<1, 0>(bytes) {
                 0 => {
                     mantissa_start = 2;
+                    // Section 8.5.7.4: the exponent octet must follow the control octet
+                    if bytes.len() < 2 {
+                        return Err(reader.error(Tag::Real.value_error()));
+                    }
                     let ebytes = (i16::from_be_bytes([0x0, bytes[1]])).to_be_bytes();
                     u64::from_be_bytes([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ebytes[0], ebytes[1]])
                 }
                 1 => {
                     mantissa_start = 3;
+                    // Section 8.5.7.4: both exponent octets must follow the control octet
+                    if bytes.len() < 3 {
+                        return Err(reader.error(Tag::Real.value_error()));
+                    }
                     let ebytes = (i16::from_be_bytes([bytes[1], bytes[2]])).to_be_bytes();
                     u64::from_be_bytes([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ebytes[0], ebytes[1]])
                 }
                 _ => {
                     // Real related error: encoded exponent cannot be represented on an IEEE-754 double
-                    return Err(Tag::Real.value_error());
+                    return Err(reader.error(Tag::Real.value_error()));
                 }
             };
             // Section 8.5.7.5: Read the remaining bytes for the mantissa
@@ -59,7 +69,7 @@ impl<'a> DecodeValue<'a> for f64 {
                 n_bytes[7 - pos] = *byte;
             }
             let n = u64::from_be_bytes(n_bytes);
-            // Multiply byt 2^F corresponds to just a left shift
+            // Multiply byte 2^F corresponds to just a left shift
             let mantissa = n << scaling_factor;
             // Create the f64
             Ok(encode_f64(sign, exponent, mantissa))
@@ -70,14 +80,14 @@ impl<'a> DecodeValue<'a> for f64 {
                 1 => Ok(f64::NEG_INFINITY),
                 2 => Ok(f64::NAN),
                 3 => Ok(-0.0_f64),
-                _ => Err(Tag::Real.value_error()),
+                _ => Err(reader.error(Tag::Real.value_error())),
             }
         } else {
-            let astr = StrRef::from_bytes(&bytes[1..])?;
-            match astr.inner.parse::<f64>() {
+            let astr = StringRef::from_bytes(&bytes[1..])?;
+            match astr.as_str().parse::<f64>() {
                 Ok(val) => Ok(val),
                 // Real related error: encoding not supported or malformed
-                Err(_) => Err(Tag::Real.value_error()),
+                Err(_) => Err(reader.error(Tag::Real.value_error())),
             }
         }
     }
@@ -172,7 +182,7 @@ impl EncodeValue for f64 {
                 3 => first_byte |= 0b0000_0010,
                 _ => {
                     // TODO: support multi octet exponent encoding?
-                    return Err(Tag::Real.value_error());
+                    return Err(Tag::Real.value_error().into());
                 }
             }
 
@@ -200,10 +210,7 @@ impl FixedTag for f64 {
 /// NOTE: this function is zero indexed
 pub(crate) fn is_nth_bit_one<const N: usize>(bytes: &[u8]) -> bool {
     if N < 8 {
-        bytes
-            .first()
-            .map(|byte| byte & (1 << N) != 0)
-            .unwrap_or(false)
+        bytes.first().is_some_and(|byte| byte & (1 << N) != 0)
     } else {
         false
     }
@@ -213,7 +220,7 @@ pub(crate) fn is_nth_bit_one<const N: usize>(bytes: &[u8]) -> bool {
 pub(crate) fn mnth_bits_to_u8<const M: usize, const N: usize>(bytes: &[u8]) -> u8 {
     let bit_m = is_nth_bit_one::<M>(bytes);
     let bit_n = is_nth_bit_one::<N>(bytes);
-    (bit_m as u8) << 1 | bit_n as u8
+    ((bit_m as u8) << 1) | bit_n as u8
 }
 
 /// Decode an f64 as its sign, exponent, and mantissa in u64 and in that order, using bit shifts and masks.
@@ -222,7 +229,7 @@ pub(crate) fn mnth_bits_to_u8<const M: usize, const N: usize>(bytes: &[u8]) -> u
 pub(crate) fn decode_f64(f: f64) -> (u64, u64, u64) {
     let bits = f.to_bits();
     let sign = bits >> 63;
-    let exponent = bits >> 52 & 0x7ff;
+    let exponent = (bits >> 52) & 0x7ff;
     let exponent_bytes_no_bias = (exponent as i16 - 1023).to_be_bytes();
     let exponent_no_bias = u64::from_be_bytes([
         0x0,
@@ -243,11 +250,12 @@ pub(crate) fn encode_f64(sign: u64, exponent: u64, mantissa: u64) -> f64 {
     // Add the bias to the exponent
     let exponent_with_bias =
         (i16::from_be_bytes([exponent.to_be_bytes()[6], exponent.to_be_bytes()[7]]) + 1023) as u64;
-    let bits = sign << 63 | exponent_with_bias << 52 | (mantissa - 1);
+    let bits = (sign << 63) | (exponent_with_bias << 52) | (mantissa - 1);
     f64::from_bits(bits)
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Decode, Encode};
 
@@ -286,7 +294,7 @@ mod tests {
 
     #[test]
     fn encdec_normal() {
-        // The comments correspond to the decoded value from the ASN.1 playground when the bytes are inputed.
+        // The comments correspond to the decoded value from the ASN.1 playground when the bytes are inputted.
         {
             // rec1value R ::= 0
             let val = 0.0;
@@ -295,15 +303,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -315,15 +320,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -335,15 +337,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -355,15 +354,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -376,15 +372,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -396,15 +389,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -418,15 +408,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
     }
@@ -442,15 +429,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -463,15 +447,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
         {
@@ -483,15 +464,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
     }
@@ -509,15 +487,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -531,15 +506,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -553,15 +525,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -574,15 +543,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -596,15 +562,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -617,15 +580,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -638,15 +598,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -659,15 +616,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -680,15 +634,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -701,15 +652,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -722,15 +670,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -743,15 +688,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -764,15 +706,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
 
@@ -785,15 +724,12 @@ mod tests {
             let encoded = val.encode_to_slice(&mut buffer).unwrap();
             assert_eq!(
                 expected, encoded,
-                "invalid encoding of {}:\ngot  {:x?}\nwant: {:x?}",
-                val, encoded, expected
+                "invalid encoding of {val}:\ngot  {encoded:x?}\nwant: {expected:x?}"
             );
             let decoded = f64::from_der(encoded).unwrap();
             assert!(
                 (decoded - val).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                val,
-                decoded
+                "wanted: {val}\tgot: {decoded}"
             );
         }
     }
@@ -816,18 +752,16 @@ mod tests {
             f64::MIN_POSITIVE,
             f64::MAX,
             f64::MIN,
-            3.1415,
+            core::f64::consts::PI,
+            -core::f64::consts::PI,
             951.2357864,
-            -3.1415,
             -951.2357864,
         ] {
             let (s, e, m) = decode_f64(val);
             let val2 = encode_f64(s, e, m);
             assert!(
                 (val - val2).abs() < f64::EPSILON,
-                "fail - want {}\tgot {}",
-                val,
-                val2
+                "fail - want {val}\tgot {val2}"
             );
         }
     }
@@ -835,7 +769,7 @@ mod tests {
     #[test]
     fn validation_cases() {
         // Caveat: these test cases are validated on the ASN.1 playground: https://asn1.io/asn1playground/ .
-        // The test case consists in inputing the bytes in the "decode" field and checking that the decoded
+        // The test case consists in inputting the bytes in the "decode" field and checking that the decoded
         // value corresponds to the one encoded here.
         // This tool encodes _all_ values that are non-zero in the ISO 6093 NR3 representation.
         // This does not seem to perfectly adhere to the ITU specifications, Special Cases section.
@@ -850,9 +784,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -861,9 +793,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -872,9 +802,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -883,9 +811,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -894,9 +820,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -908,9 +832,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         // Negative trivial numbers
@@ -920,9 +842,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -931,9 +851,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -944,9 +862,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -955,9 +871,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -966,9 +880,7 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
         {
@@ -981,10 +893,26 @@ mod tests {
             let decoded = f64::from_der(testcase).unwrap();
             assert!(
                 (decoded - expect).abs() < f64::EPSILON,
-                "wanted: {}\tgot: {}",
-                expect,
-                decoded
+                "wanted: {expect}\tgot: {decoded}"
             );
         }
+    }
+
+    #[test]
+    fn decode_truncated_binary_encoding_is_an_error() {
+        // GHSA-27m6-7r55-vwr2: the binary-encoding branch reads the exponent
+        // octets at a fixed offset in the value content without checking that
+        // the content is long enough to hold them. Truncated content must be
+        // an error, not a panic.
+        //
+        // One content octet in the one-octet exponent form (bits 1-0 = 00):
+        // reading `bytes[1]` is out of bounds.
+        assert!(f64::from_der(&[0x09, 0x01, 0x80]).is_err());
+        // One content octet in the two-octet exponent form (bits 1-0 = 01):
+        // reading `bytes[1]` is out of bounds.
+        assert!(f64::from_der(&[0x09, 0x01, 0x81]).is_err());
+        // Two content octets in the two-octet exponent form:
+        // reading `bytes[2]` is out of bounds.
+        assert!(f64::from_der(&[0x09, 0x02, 0x81, 0x00]).is_err());
     }
 }

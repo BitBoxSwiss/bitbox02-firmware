@@ -17,8 +17,15 @@ default-features = false
 features = ["use_alloc"]
 
 [dependencies.chacha20poly1305]
-version = "0.10.1"
+version = "0.11.0"
 default-features = false
+features = ["zeroize"]
+
+# Wipe ChaCha's buffered keystream as well as its key.
+[dependencies.cipher]
+version = "0.5.2"
+default-features = false
+features = ["zeroize"]
 
 [dependencies.sha2]
 workspace = true
@@ -27,7 +34,7 @@ workspace = true
 workspace = true
 
 [dependencies.x25519-dalek]
-version = "2.0.0"
+version = "3.0.0"
 default-features = false
 features = ["static_secrets", "zeroize"]
 

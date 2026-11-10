@@ -35,21 +35,20 @@ bitbox-aes = { path = "../bitbox-aes" }
 hex = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true, optional = true }
-keccak = { workspace = true, optional = true }
 digest = { workspace = true }
 zeroize = { workspace = true }
 num-bigint = { workspace = true, optional = true }
 num-traits = { version = "0.2", default-features = false }
 # If you change this, also change src/rust/.cargo/config.toml.
-bip32-ed25519 = { git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519", tag = "v0.2.1" }
-blake2 = { version = "0.10.6", default-features = false, features = ["size_opt"], optional = true }
+bip32-ed25519 = { git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519", tag = "v0.2.2" }
+blake2 = { version = "0.11.0", default-features = false, features = ["size_opt"], optional = true }
 minicbor = { version = "0.24.0", default-features = false, features = ["alloc"], optional = true }
 crc = { workspace = true, optional = true }
-ed25519-dalek = { version = "2.1.1", default-features = false, features = ["hazmat", "digest", "zeroize"] }
+ed25519-dalek = { version = "3.0.0", default-features = false, features = ["hazmat", "digest", "zeroize"] }
 hmac = { workspace = true }
-hkdf = { version = "0.12.4", default-features = false }
-chacha20poly1305 = { version = "0.10.1", default-features = false }
-x25519-dalek = { version = "2.0.0", default-features = false, features = ["static_secrets", "zeroize"] }
+hkdf = { version = "0.13.0", default-features = false }
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["zeroize"] }
+x25519-dalek = { version = "3.0.0", default-features = false, features = ["static_secrets", "zeroize"] }
 
 miniscript = { version = "13.0.0", default-features = false, features = [], optional = true }
 bitcoin = { workspace = true }
@@ -71,7 +70,6 @@ features = ["derive"]
 app-ethereum = [
   "dep:erc20_params",
   "dep:sha3",
-  "dep:keccak",
   "dep:num-bigint",
   "bitbox02/app-ethereum",
 ]

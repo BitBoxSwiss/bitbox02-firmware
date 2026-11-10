@@ -12,7 +12,7 @@
 [package]
 edition = "2024"
 name = "bip32-ed25519"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
 build = false
 autolib = false
@@ -38,31 +38,30 @@ name = "table_test"
 path = "tests/table_test.rs"
 
 [dependencies.curve25519-dalek]
-version = "4"
+version = "5.0"
 default-features = false
 
 [dependencies.digest]
-version = "0.10"
+version = "0.11"
 default-features = false
 
 [dependencies.hmac]
-version = "0.12"
-features = ["reset"]
+version = "0.13"
 default-features = false
 
 [dependencies.zeroize]
-version = "1"
+version = "1.9"
 features = ["zeroize_derive"]
 
 [dev-dependencies]
-ed25519-bip32 = "0.4.0"
-num-bigint = "0.4.0"
-quickcheck = "1"
-quickcheck_macros = "1"
-serde_json = "1.0.48"
+ed25519-bip32 = "0.5.0"
+num-bigint = "0.5.1"
+quickcheck = "1.1"
+quickcheck_macros = "1.2"
+serde_json = "1.0.154"
 
 [dev-dependencies.ed25519-dalek]
-version = "2.0.0"
+version = "3.0.0"
 features = ["hazmat"]
 default-features = false
 
@@ -71,9 +70,9 @@ version = "0.4.3"
 features = ["serde"]
 
 [dev-dependencies.serde]
-version = "1.0.104"
+version = "1.0.229"
 features = ["derive"]
 
 [dev-dependencies.sha2]
-version = "0.10"
+version = "0.11"
 default-features = false

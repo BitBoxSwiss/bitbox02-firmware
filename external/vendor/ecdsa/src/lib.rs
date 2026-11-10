@@ -1,50 +1,29 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-#![forbid(unsafe_code)]
-#![warn(
-    clippy::cast_lossless,
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    clippy::checked_conversions,
-    clippy::implicit_saturating_sub,
-    clippy::panic,
-    clippy::panic_in_result_fn,
-    clippy::unwrap_used,
-    missing_docs,
-    rust_2018_idioms,
-    unused_lifetimes,
-    unused_qualifications
-)]
 
 //! ## `serde` support
 //!
-//! When the `serde` feature of this crate is enabled, `Serialize` and
-//! `Deserialize` impls are provided for the [`Signature`] and [`VerifyingKey`]
-//! types.
+//! When the `serde` feature of this crate is enabled, `Serialize` and `Deserialize` impls are
+//! provided for the [`Signature`] and [`VerifyingKey`] types.
 //!
 //! Please see type-specific documentation for more information.
 //!
 //! ## Interop
 //!
-//! Any crates which provide an implementation of ECDSA for a particular
-//! elliptic curve can leverage the types from this crate, along with the
-//! [`k256`], [`p256`], and/or [`p384`] crates to expose ECDSA functionality in
-//! a generic, interoperable way by leveraging the [`Signature`] type with in
-//! conjunction with the [`signature::Signer`] and [`signature::Verifier`]
-//! traits.
+//! Any crates which provide an implementation of ECDSA for a particular elliptic curve can leverage
+//! the types from this crate, along with the [`k256`], [`p256`], and/or [`p384`] crates to expose
+//! ECDSA functionality in a generic, interoperable way by leveraging the [`Signature`] type with in
+//! conjunction with the [`signature::Signer`] and [`signature::Verifier`] traits.
 //!
-//! For example, the [`ring-compat`] crate implements the [`signature::Signer`]
-//! and [`signature::Verifier`] traits in conjunction with the
-//! [`p256::ecdsa::Signature`] and [`p384::ecdsa::Signature`] types to
-//! wrap the ECDSA implementations from [*ring*] in a generic, interoperable
-//! API.
+//! For example, the [`ring-compat`] crate implements the [`signature::Signer`] and
+//! [`signature::Verifier`] traits in conjunction with the [`p256::ecdsa::Signature`] and
+//! [`p384::ecdsa::Signature`] types to wrap the ECDSA implementations from [*ring*] in a generic,
+//! interoperable API.
 //!
 //! [`k256`]: https://docs.rs/k256
 //! [`p256`]: https://docs.rs/p256
@@ -57,65 +36,63 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-mod normalized;
 mod recovery;
 
 #[cfg(feature = "der")]
 pub mod der;
 #[cfg(feature = "dev")]
 pub mod dev;
-#[cfg(feature = "hazmat")]
+#[cfg(feature = "algorithm")]
 pub mod hazmat;
-#[cfg(feature = "signing")]
+#[cfg(feature = "algorithm")]
 mod signing;
-#[cfg(feature = "verifying")]
+#[cfg(feature = "algorithm")]
 mod verifying;
 
-pub use crate::{normalized::NormalizedSignature, recovery::RecoveryId};
+pub use crate::recovery::RecoveryId;
 
 // Re-export the `elliptic-curve` crate (and select types)
-pub use elliptic_curve::{self, sec1::EncodedPoint, PrimeCurve};
+pub use elliptic_curve::{self, PrimeCurve, sec1::Sec1Point};
 
 // Re-export the `signature` crate (and select types)
 pub use signature::{self, Error, Result, SignatureEncoding};
+use zeroize::Zeroize;
 
-#[cfg(feature = "signing")]
+#[cfg(feature = "algorithm")]
 pub use crate::signing::SigningKey;
-#[cfg(feature = "verifying")]
+#[cfg(feature = "algorithm")]
 pub use crate::verifying::VerifyingKey;
 
 use core::{fmt, ops::Add};
 use elliptic_curve::{
-    generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
-    FieldBytes, FieldBytesSize, ScalarPrimitive,
+    Curve, FieldBytes, FieldBytesSize, ScalarValue,
+    array::{Array, ArraySize, typenum::Unsigned},
 };
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-
-#[cfg(feature = "arithmetic")]
-use {
-    core::str,
-    elliptic_curve::{scalar::IsHigh, CurveArithmetic, NonZeroScalar},
-};
-
 #[cfg(feature = "digest")]
 use digest::{
+    Digest, FixedOutput,
+    common::BlockSizeUser,
     const_oid::{AssociatedOid, ObjectIdentifier},
-    Digest,
 };
-
-#[cfg(feature = "pkcs8")]
-use elliptic_curve::pkcs8::spki::{
-    der::AnyRef, AlgorithmIdentifierRef, AssociatedAlgorithmIdentifier,
-};
-
-#[cfg(feature = "serde")]
-use serdect::serde::{de, ser, Deserialize, Serialize};
-
 #[cfg(all(feature = "alloc", feature = "pkcs8"))]
 use elliptic_curve::pkcs8::spki::{
     self, AlgorithmIdentifierOwned, DynAssociatedAlgorithmIdentifier,
+};
+#[cfg(feature = "pkcs8")]
+use elliptic_curve::pkcs8::spki::{
+    AlgorithmIdentifierRef, AssociatedAlgorithmIdentifier, der::AnyRef,
+};
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Serialize, de, ser};
+#[cfg(feature = "algorithm")]
+use {
+    core::str,
+    elliptic_curve::{
+        CurveArithmetic, NonZeroScalar, scalar::IsHigh, subtle::ConditionallySelectable,
+    },
 };
 
 /// OID for ECDSA with SHA-224 digests.
@@ -164,13 +141,23 @@ const SHA384_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("2.16.840.1.10
 #[cfg(feature = "digest")]
 const SHA512_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("2.16.840.1.101.3.4.2.3");
 
+/// Marker trait for elliptic curves intended for use with ECDSA.
+pub trait EcdsaCurve:
+    Curve<FieldBytesSize: Add<Output: ArraySize<ArrayType<u8>: Copy>>> + PrimeCurve
+{
+    /// Does this curve use low-S normalized signatures?
+    ///
+    /// This is typically `false`. See [`Signature::normalize_s`] for more information.
+    const NORMALIZE_S: bool;
+}
+
 /// Size of a fixed sized signature for the given elliptic curve.
 pub type SignatureSize<C> = <FieldBytesSize<C> as Add>::Output;
 
 /// Fixed-size byte array containing an ECDSA signature
-pub type SignatureBytes<C> = GenericArray<u8, SignatureSize<C>>;
+pub type SignatureBytes<C> = Array<u8, SignatureSize<C>>;
 
-/// ECDSA signature (fixed-size). Generic over elliptic curve types.
+/// ECDSA signature (fixed-size, a.k.a. [IEEE P1363]). Generic over elliptic curve types.
 ///
 /// Serialized as fixed-sized big endian scalar values with no added framing:
 ///
@@ -179,62 +166,64 @@ pub type SignatureBytes<C> = GenericArray<u8, SignatureSize<C>>;
 ///
 /// Both `r` and `s` MUST be non-zero.
 ///
-/// For example, in a curve with a 256-bit modulus like NIST P-256 or
-/// secp256k1, `r` and `s` will both be 32-bytes and serialized as big endian,
-/// resulting in a signature with a total of 64-bytes.
+/// For example, in a curve with a 256-bit modulus like NIST P-256 or secp256k1, `r` and `s` are
+/// both 32-bytes and serialized as big endian, resulting in a signature with a total of 64-bytes.
 ///
-/// ASN.1 DER-encoded signatures also supported via the
-/// [`Signature::from_der`] and [`Signature::to_der`] methods.
+/// ASN.1 DER-encoded signatures also supported via the [`Signature::from_der`] and
+/// [`Signature::to_der`] methods.
 ///
 /// # `serde` support
 ///
-/// When the `serde` feature of this crate is enabled, it provides support for
-/// serializing and deserializing ECDSA signatures using the `Serialize` and
-/// `Deserialize` traits.
+/// When the `serde` feature of this crate is enabled, it provides support for serializing and
+/// deserializing ECDSA signatures using the `Serialize` and `Deserialize` traits.
 ///
-/// The serialization uses a hexadecimal encoding when used with
-/// "human readable" text formats, and a binary encoding otherwise.
-#[derive(Clone, Eq, PartialEq)]
-pub struct Signature<C: PrimeCurve> {
-    r: ScalarPrimitive<C>,
-    s: ScalarPrimitive<C>,
+/// The serialization uses a hexadecimal encoding when used with "human readable" text formats, and
+/// a binary encoding otherwise.
+///
+/// [IEEE P1363]: https://en.wikipedia.org/wiki/IEEE_P1363
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct Signature<C: EcdsaCurve> {
+    r: ScalarValue<C>,
+    s: ScalarValue<C>,
 }
 
 impl<C> Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
-    /// Parse a signature from fixed-width bytes, i.e. 2 * the size of
-    /// [`FieldBytes`] for a particular curve.
+    /// Parse a signature from fixed-width bytes, i.e. 2 * the size of [`FieldBytes`] for a
+    /// particular curve.
     ///
-    /// # Returns
-    /// - `Ok(signature)` if the `r` and `s` components are both in the valid
-    ///   range `1..n` when serialized as concatenated big endian integers.
-    /// - `Err(err)` if the `r` and/or `s` component of the signature is
-    ///   out-of-range when interpreted as a big endian integer.
+    /// # Errors
+    /// If the `r` and/or `s` component of the signature is out-of-range when interpreted as a big
+    /// endian integer.
     pub fn from_bytes(bytes: &SignatureBytes<C>) -> Result<Self> {
-        let (r_bytes, s_bytes) = bytes.split_at(C::FieldBytesSize::USIZE);
-        let r = FieldBytes::<C>::clone_from_slice(r_bytes);
-        let s = FieldBytes::<C>::clone_from_slice(s_bytes);
+        let chunks = FieldBytes::<C>::slice_as_chunks(bytes).0;
+        let r = chunks[0];
+        let s = chunks[1];
         Self::from_scalars(r, s)
     }
 
     /// Parse a signature from a byte slice.
+    ///
+    /// # Errors
+    /// Returns [`Error`] in the event the signature is not the expected size, i.e. 2 * the size of
+    /// [`FieldBytes`] for a particular curve.
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
-        if slice.len() == SignatureSize::<C>::USIZE {
-            Self::from_bytes(SignatureBytes::<C>::from_slice(slice))
-        } else {
-            Err(Error::new())
-        }
+        <&SignatureBytes<C>>::try_from(slice)
+            .map_err(|_| Error::new())
+            .and_then(Self::from_bytes)
     }
 
     /// Parse a signature from ASN.1 DER.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if `input` failed to parse as an ASN.1 DER-encoded ECDSA signature.
     #[cfg(feature = "der")]
     pub fn from_der(bytes: &[u8]) -> Result<Self>
     where
-        der::MaxSize<C>: ArrayLength<u8>,
-        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+        der::MaxSize<C>: ArraySize,
+        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
     {
         der::Signature::<C>::try_from(bytes).and_then(Self::try_from)
     }
@@ -242,14 +231,12 @@ where
     /// Create a [`Signature`] from the serialized `r` and `s` scalar values
     /// which comprise the signature.
     ///
-    /// # Returns
-    /// - `Ok(signature)` if the `r` and `s` components are both in the valid
-    ///   range `1..n` when serialized as concatenated big endian integers.
-    /// - `Err(err)` if the `r` and/or `s` component of the signature is
-    ///   out-of-range when interpreted as a big endian integer.
+    /// # Errors
+    /// If the `r` and/or `s` component of the signature is out-of-range when interpreted as a big
+    /// endian integer.
     pub fn from_scalars(r: impl Into<FieldBytes<C>>, s: impl Into<FieldBytes<C>>) -> Result<Self> {
-        let r = ScalarPrimitive::from_slice(&r.into()).map_err(|_| Error::new())?;
-        let s = ScalarPrimitive::from_slice(&s.into()).map_err(|_| Error::new())?;
+        let r = ScalarValue::from_slice(&r.into()).map_err(|_| Error::new())?;
+        let s = ScalarValue::from_slice(&s.into()).map_err(|_| Error::new())?;
 
         if r.is_zero().into() || s.is_zero().into() {
             return Err(Error::new());
@@ -274,10 +261,11 @@ where
 
     /// Serialize this signature as ASN.1 DER.
     #[cfg(feature = "der")]
+    #[allow(clippy::missing_panics_doc, reason = "should not panic in practice")]
     pub fn to_der(&self) -> der::Signature<C>
     where
-        der::MaxSize<C>: ArrayLength<u8>,
-        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArrayLength<u8>,
+        der::MaxSize<C>: ArraySize,
+        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
     {
         let (r, s) = self.split_bytes();
         der::Signature::from_components(&r, &s).expect("DER encoding error")
@@ -290,11 +278,10 @@ where
     }
 }
 
-#[cfg(feature = "arithmetic")]
+#[cfg(feature = "algorithm")]
 impl<C> Signature<C>
 where
-    C: PrimeCurve + CurveArithmetic,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve + CurveArithmetic,
 {
     /// Get the `r` component of this signature
     pub fn r(&self) -> NonZeroScalar<C> {
@@ -311,35 +298,21 @@ where
         (self.r(), self.s())
     }
 
-    /// Normalize signature into "low S" form as described in
-    /// [BIP 0062: Dealing with Malleability][1].
+    /// Normalize signature into "low S" form described in [BIP 0062: Dealing with Malleability][1].
     ///
     /// [1]: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
-    pub fn normalize_s(&self) -> Option<Self> {
-        let s = self.s();
-
-        if s.is_high().into() {
-            let mut result = self.clone();
-            result.s = ScalarPrimitive::from(-s);
-            Some(result)
-        } else {
-            None
-        }
+    #[must_use]
+    pub fn normalize_s(&self) -> Self {
+        let mut result = *self;
+        let s_inv = ScalarValue::from(-self.s());
+        result.s.conditional_assign(&s_inv, self.s.is_high());
+        result
     }
-}
-
-impl<C> Copy for Signature<C>
-where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
-    <SignatureSize<C> as ArrayLength<u8>>::ArrayType: Copy,
-{
 }
 
 impl<C> From<Signature<C>> for SignatureBytes<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn from(signature: Signature<C>) -> SignatureBytes<C> {
         signature.to_bytes()
@@ -348,16 +321,14 @@ where
 
 impl<C> SignatureEncoding for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     type Repr = SignatureBytes<C>;
 }
 
 impl<C> TryFrom<&[u8]> for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     type Error = Error;
 
@@ -368,14 +339,13 @@ where
 
 impl<C> fmt::Debug for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ecdsa::Signature<{:?}>(", C::default())?;
 
         for byte in self.to_bytes() {
-            write!(f, "{:02X}", byte)?;
+            write!(f, "{byte:02X}")?;
         }
 
         write!(f, ")")
@@ -384,22 +354,29 @@ where
 
 impl<C> fmt::Display for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:X}", self)
+        write!(f, "{self:X}")
+    }
+}
+
+impl<C> core::hash::Hash for Signature<C>
+where
+    C: EcdsaCurve,
+{
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.to_bytes().hash(state);
     }
 }
 
 impl<C> fmt::LowerHex for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for byte in self.to_bytes() {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{byte:02x}")?;
         }
         Ok(())
     }
@@ -407,36 +384,25 @@ where
 
 impl<C> fmt::UpperHex for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for byte in self.to_bytes() {
-            write!(f, "{:02X}", byte)?;
+            write!(f, "{byte:02X}")?;
         }
         Ok(())
     }
 }
 
-#[cfg(feature = "arithmetic")]
+#[cfg(feature = "algorithm")]
 impl<C> str::FromStr for Signature<C>
 where
-    C: PrimeCurve + CurveArithmetic,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve + CurveArithmetic,
 {
     type Err = Error;
 
     fn from_str(hex: &str) -> Result<Self> {
-        if hex.as_bytes().len() != C::FieldBytesSize::USIZE * 4 {
-            return Err(Error::new());
-        }
-
-        // This check is mainly to ensure `hex.split_at` below won't panic
-        if !hex
-            .as_bytes()
-            .iter()
-            .all(|&byte| matches!(byte, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z'))
-        {
+        if hex.len() != C::FieldBytesSize::USIZE * 4 {
             return Err(Error::new());
         }
 
@@ -454,20 +420,19 @@ where
     }
 }
 
-/// ECDSA [`ObjectIdentifier`] which identifies the digest used by default
-/// with the `Signer` and `Verifier` traits.
+/// ECDSA [`ObjectIdentifier`] which identifies the digest used by default with the `Signer` and
+/// `Verifier` traits.
 ///
-/// To support non-default digest algorithms, use the [`SignatureWithOid`]
-/// type instead.
-#[cfg(all(feature = "digest", feature = "hazmat"))]
+/// To support non-default digest algorithms, use the [`SignatureWithOid`] type instead.
+#[cfg(feature = "digest")]
 impl<C> AssociatedOid for Signature<C>
 where
-    C: hazmat::DigestPrimitive,
+    C: DigestAlgorithm,
     C::Digest: AssociatedOid,
 {
     const OID: ObjectIdentifier = match ecdsa_oid_for_digest(C::Digest::OID) {
         Some(oid) => oid,
-        None => panic!("no RFC5758 ECDSA OID defined for DigestPrimitive::Digest"),
+        None => panic!("no RFC5758 ECDSA OID defined for DigestAlgorithm::Digest"),
     };
 }
 
@@ -476,7 +441,7 @@ where
 #[cfg(feature = "pkcs8")]
 impl<C> AssociatedAlgorithmIdentifier for Signature<C>
 where
-    C: PrimeCurve,
+    C: EcdsaCurve,
     Self: AssociatedOid,
 {
     type Params = AnyRef<'static>;
@@ -490,8 +455,7 @@ where
 #[cfg(feature = "serde")]
 impl<C> Serialize for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
@@ -504,8 +468,7 @@ where
 #[cfg(feature = "serde")]
 impl<'de, C> Deserialize<'de> for Signature<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
     where
@@ -517,9 +480,15 @@ where
     }
 }
 
-/// An extended [`Signature`] type which is parameterized by an
-/// `ObjectIdentifier` which identifies the ECDSA variant used by a
-/// particular signature.
+impl<C: EcdsaCurve> Zeroize for Signature<C> {
+    fn zeroize(&mut self) {
+        self.r = ScalarValue::ONE;
+        self.s = ScalarValue::ONE;
+    }
+}
+
+/// An extended [`Signature`] type which is parameterized by an `ObjectIdentifier` which identifies
+/// the ECDSA variant used by a particular signature.
 ///
 /// Valid `ObjectIdentifiers` are defined in [RFC5758 § 3.2]:
 ///
@@ -530,8 +499,8 @@ where
 ///
 /// [RFC5758 § 3.2]: https://www.rfc-editor.org/rfc/rfc5758#section-3.2
 #[cfg(feature = "digest")]
-#[derive(Clone, Eq, PartialEq)]
-pub struct SignatureWithOid<C: PrimeCurve> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SignatureWithOid<C: EcdsaCurve> {
     /// Inner signature type.
     signature: Signature<C>,
 
@@ -546,23 +515,19 @@ pub struct SignatureWithOid<C: PrimeCurve> {
 #[cfg(feature = "digest")]
 impl<C> SignatureWithOid<C>
 where
-    C: PrimeCurve,
+    C: EcdsaCurve,
 {
     /// Create a new signature with an explicitly provided OID.
     ///
-    /// OID must begin with `1.2.840.10045.4`, the [RFC5758] OID prefix for
-    /// ECDSA variants.
+    /// OID must begin with `1.2.840.10045.4`, the [RFC5758] OID prefix for ECDSA variants.
     ///
     /// [RFC5758]: https://www.rfc-editor.org/rfc/rfc5758#section-3.2
+    ///
+    /// # Errors
+    /// Returns [`Error`] if `oid` does not start with `1.2.840.10045.4`.
     pub fn new(signature: Signature<C>, oid: ObjectIdentifier) -> Result<Self> {
-        // TODO(tarcieri): use `ObjectIdentifier::starts_with`
-        for (arc1, arc2) in ObjectIdentifier::new_unwrap("1.2.840.10045.4.3")
-            .arcs()
-            .zip(oid.arcs())
-        {
-            if arc1 != arc2 {
-                return Err(Error::new());
-            }
+        if !oid.starts_with(ObjectIdentifier::new_unwrap("1.2.840.10045.4")) {
+            return Err(Error::new());
         }
 
         Ok(Self { signature, oid })
@@ -570,10 +535,13 @@ where
 
     /// Create a new signature, determining the OID from the given digest.
     ///
-    /// Supports SHA-2 family digests as enumerated in [RFC5758 § 3.2], i.e.
-    /// SHA-224, SHA-256, SHA-384, or SHA-512.
+    /// Supports SHA-2 family digests as enumerated in [RFC5758 § 3.2], i.e. SHA-224, SHA-256,
+    /// SHA-384, or SHA-512.
     ///
     /// [RFC5758 § 3.2]: https://www.rfc-editor.org/rfc/rfc5758#section-3.2
+    ///
+    /// # Errors
+    /// Returns [`Error`] if the [`AssociatedOid`] for `D` is not one from the SHA2 family.
     pub fn new_with_digest<D>(signature: Signature<C>) -> Result<Self>
     where
         D: AssociatedOid + Digest,
@@ -583,21 +551,56 @@ where
     }
 
     /// Parse a signature from fixed-with bytes.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if [`Signature`] fails to parse, or if `D` is not a valid digest.
+    /// See [`SignatureWithOid::new_with_digest`] documentation.
     pub fn from_bytes_with_digest<D>(bytes: &SignatureBytes<C>) -> Result<Self>
     where
         D: AssociatedOid + Digest,
-        SignatureSize<C>: ArrayLength<u8>,
     {
         Self::new_with_digest::<D>(Signature::<C>::from_bytes(bytes)?)
     }
 
     /// Parse a signature from a byte slice.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if [`Signature`] fails to parse, or if `D` is not a valid digest.
+    /// See [`SignatureWithOid::new_with_digest`] documentation.
     pub fn from_slice_with_digest<D>(slice: &[u8]) -> Result<Self>
     where
         D: AssociatedOid + Digest,
-        SignatureSize<C>: ArrayLength<u8>,
     {
         Self::new_with_digest::<D>(Signature::<C>::from_slice(slice)?)
+    }
+
+    /// Parse a signature from ASN.1 DER and associate the given digest's OID with it.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if `input` failed to parse as an ASN.1 DER-encoded ECDSA signature,
+    /// or if `D` is not a valid digest.
+    #[cfg(feature = "der")]
+    pub fn from_der_with_digest<D>(der_bytes: &[u8]) -> Result<Self>
+    where
+        D: AssociatedOid + Digest,
+        der::MaxSize<C>: ArraySize,
+        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
+    {
+        Self::new_with_digest::<D>(Signature::<C>::from_der(der_bytes)?)
+    }
+
+    /// Parse a signature from ASN.1 DER and associate the given OID with it.
+    ///
+    /// # Errors
+    /// Returns [`Error`] if `input` failed to parse as an ASN.1 DER-encoded ECDSA signature,
+    /// or if `D` is not a valid digest.
+    #[cfg(feature = "der")]
+    pub fn from_der_with_oid(der_bytes: &[u8], oid: ObjectIdentifier) -> Result<Self>
+    where
+        der::MaxSize<C>: ArraySize,
+        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
+    {
+        Self::new(Signature::<C>::from_der(der_bytes)?, oid)
     }
 
     /// Get the fixed-width ECDSA signature.
@@ -610,28 +613,53 @@ where
         self.oid
     }
 
-    /// Serialize this signature as bytes.
+    /// Serialize this signature as fixed-width bytes.
     pub fn to_bytes(&self) -> SignatureBytes<C>
-    where
-        SignatureSize<C>: ArrayLength<u8>,
-    {
+where {
         self.signature.to_bytes()
+    }
+
+    /// Serialize this signature as ASN.1 DER.
+    ///
+    /// Note that this includes only the `r` and `s` signature components, and not the OID.
+    ///
+    /// See [`der::Signature`] documentation for more information.
+    #[cfg(feature = "der")]
+    pub fn to_der(&self) -> der::Signature<C>
+    where
+        der::MaxSize<C>: ArraySize,
+        <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
+    {
+        self.signature.into()
     }
 }
 
+/// Bind a preferred [`Digest`] algorithm to an elliptic curve type.
+///
+/// Generally there is a preferred variety of the SHA-2 family used with ECDSA
+/// for a particular elliptic curve.
 #[cfg(feature = "digest")]
-impl<C> Copy for SignatureWithOid<C>
+pub trait DigestAlgorithm: EcdsaCurve {
+    /// Preferred digest to use when computing ECDSA signatures for this
+    /// elliptic curve. This is typically a member of the SHA-2 family.
+    type Digest: BlockSizeUser + Digest + FixedOutput;
+}
+
+#[cfg(feature = "digest")]
+impl<C> core::hash::Hash for SignatureWithOid<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
-    <SignatureSize<C> as ArrayLength<u8>>::ArrayType: Copy,
+    C: EcdsaCurve,
 {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.signature.hash(state);
+        self.oid.hash(state);
+    }
 }
 
 #[cfg(feature = "digest")]
 impl<C> From<SignatureWithOid<C>> for Signature<C>
 where
-    C: PrimeCurve,
+    C: EcdsaCurve,
 {
     fn from(sig: SignatureWithOid<C>) -> Signature<C> {
         sig.signature
@@ -641,40 +669,61 @@ where
 #[cfg(feature = "digest")]
 impl<C> From<SignatureWithOid<C>> for SignatureBytes<C>
 where
-    C: PrimeCurve,
-    SignatureSize<C>: ArrayLength<u8>,
+    C: EcdsaCurve,
 {
     fn from(signature: SignatureWithOid<C>) -> SignatureBytes<C> {
         signature.to_bytes()
     }
 }
 
+#[cfg(all(feature = "der", feature = "digest"))]
+impl<C> From<SignatureWithOid<C>> for der::Signature<C>
+where
+    C: EcdsaCurve,
+    der::MaxSize<C>: ArraySize,
+    <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
+{
+    fn from(sig: SignatureWithOid<C>) -> der::Signature<C> {
+        sig.to_der()
+    }
+}
+
+#[cfg(all(feature = "der", feature = "digest"))]
+impl<C> From<&SignatureWithOid<C>> for der::Signature<C>
+where
+    C: EcdsaCurve,
+    der::MaxSize<C>: ArraySize,
+    <FieldBytesSize<C> as Add>::Output: Add<der::MaxOverhead> + ArraySize,
+{
+    fn from(sig: &SignatureWithOid<C>) -> der::Signature<C> {
+        sig.to_der()
+    }
+}
+
 /// NOTE: this implementation assumes the default digest for the given elliptic
-/// curve as defined by [`hazmat::DigestPrimitive`].
+/// curve as defined by [`DigestAlgorithm`].
 ///
 /// When working with alternative digests, you will need to use e.g.
 /// [`SignatureWithOid::new_with_digest`].
-#[cfg(all(feature = "digest", feature = "hazmat"))]
+#[cfg(feature = "digest")]
 impl<C> SignatureEncoding for SignatureWithOid<C>
 where
-    C: hazmat::DigestPrimitive,
+    C: DigestAlgorithm,
     C::Digest: AssociatedOid,
-    SignatureSize<C>: ArrayLength<u8>,
 {
     type Repr = SignatureBytes<C>;
 }
 
 /// NOTE: this implementation assumes the default digest for the given elliptic
-/// curve as defined by [`hazmat::DigestPrimitive`].
+/// curve as defined by [`DigestAlgorithm`].
 ///
 /// When working with alternative digests, you will need to use e.g.
 /// [`SignatureWithOid::new_with_digest`].
-#[cfg(all(feature = "digest", feature = "hazmat"))]
+#[cfg(feature = "digest")]
 impl<C> TryFrom<&[u8]> for SignatureWithOid<C>
 where
-    C: hazmat::DigestPrimitive,
+    C: DigestAlgorithm,
     C::Digest: AssociatedOid,
-    SignatureSize<C>: ArrayLength<u8>,
 {
     type Error = Error;
 
@@ -686,7 +735,7 @@ where
 #[cfg(all(feature = "alloc", feature = "pkcs8"))]
 impl<C> DynAssociatedAlgorithmIdentifier for SignatureWithOid<C>
 where
-    C: PrimeCurve,
+    C: EcdsaCurve,
 {
     fn algorithm_identifier(&self) -> spki::Result<AlgorithmIdentifierOwned> {
         Ok(AlgorithmIdentifierOwned {

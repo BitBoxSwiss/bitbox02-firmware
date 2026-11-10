@@ -7,31 +7,117 @@
 [![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of the [SHA-2 hash function family][1]
-including SHA-224, SHA-256, SHA-384, and SHA-512.
+Pure Rust implementation of the [SHA-2] cryptographic hash algorithms.
 
-[Documentation][docs-link]
+There are 6 standard algorithms specified in the SHA-2 standard: 
+`Sha224`, `Sha256`, `Sha512_224`, `Sha512_256`, `Sha384`, and `Sha512`.
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/hashes/sha2.png" width="480px">
+Algorithmically, there are only 2 core algorithms: SHA-256 and SHA-512.
+All other algorithms are just applications of these with different initial
+hash values, and truncated to different digest bit lengths. The first two
+algorithms in the list are based on SHA-256, while the last four are based
+on SHA-512.
 
-## Minimum Supported Rust Version
+## Examples
 
-Rust **1.41** or higher.
+### One-shot API
 
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
+```rust
+use sha2::{Sha256, Digest};
+use hex_literal::hex;
 
-## SemVer Policy
+let hash = Sha256::digest(b"hello world");
+assert_eq!(hash, hex!("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"));
+```
 
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
+### Incremental API
+
+```rust
+use sha2::{Sha256, Sha512, Digest};
+use hex_literal::hex;
+
+let mut hasher = Sha256::new();
+hasher.update(b"hello ");
+hasher.update(b"world");
+let hash256 = hasher.finalize();
+
+assert_eq!(hash256, hex!("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"));
+
+let mut hasher = Sha512::new();
+hasher.update(b"hello world");
+let hash512 = hasher.finalize();
+
+assert_eq!(hash512, hex!(
+    "309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f"
+    "989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f"
+));
+```
+
+See the [`digest`] crate docs for additional examples.
+
+## Backends
+
+This crate supports a number of different backends.
+
+SHA-256 and SHA-512 backends:
+- `soft`: portable software implementation
+- `loongarch64-asm`: `asm!`-based implementation for LoongArch64 targets
+- `riscv-zknh`: uses the RISC-V `Zknh` scalar crypto extension. Experimental,
+  see the [section below](#about-riscv-zknh) for more information.
+- `wasm32-simd128`: uses the WASM `simd128` extension.
+
+SHA-256 only backends:
+- `aarch64-sha2`: uses the AArch64 `sha2` extension.
+- `x86-sha`: uses the x86 SHA-NI extension.
+
+SHA-512 only backends:
+- `aarch64-sha3`: uses the AArch64 `sha3` extension.
+- `x86-avx2`: uses the x86 AVX2 extension.
+
+By default the following backends are used:
+- `target_arch = "aarch64"`: use `aarch64-sha2` and `aarch64-sha3` when the required
+  target features are detected at runtime; otherwise fall back to `soft`.
+- `any(target_arch = "x86", target_arch = "x86_64")`: use `x86-sha` and `x86-avx` when
+  the required target features are detected at runtime; otherwise fall back to `soft`.
+- `target_arch = "loongarch64"`: use `loongarch64-asm`.
+- `all(target_arch = "wasm32", target_feature = "simd128")`: use `wasm32-simd128`.
+- All other targets: use `soft`.
+
+You can force backend selection using the following configuration flags:
+- `sha2_backend`: select SHA-256 and SHA-512 backends. Supported values: `soft`, `riscv-zknh`.
+- `sha2_256_backend`: select SHA-256 backend. Supported values: `aarch64-sha2`, `soft`,
+  `riscv-zknh`, `x86-sha`.
+- `sha2_512_backend`: select SHA-512 backend. Supported values: `aarch64-sha3`, `soft`,
+  `riscv-zknh`, `x86-avx2`.
+
+They can be enabled using either a `RUSTFLAGS` environment variable
+(e.g. `RUSTFLAGS='--cfg sha2_backend="soft"'`), or by modifying your `.cargo/config.toml` file.
+
+Note that `sha2_backend` has a higher priority than `sha2_256_backend` and `sha2_512_backend`.
+In other words, using `--cfg sha2_backend="soft" --cfg sha2_256_backend="x86_sha"` will result
+in selection of the software backend for SHA-256.
+
+By default `soft` and `riscv-zknh` backends unroll round loops, which results in a better
+performance at the cost of a bigger resulting binary. You can disable unrolling in the backends
+by using `sha2_backend_soft = "compact"` and `sha2_backend_riscv_zknh = "compact"` configuration
+flags respectively.
+
+### About `riscv-zknh`
+
+This is an experimental RISC-V-only backend which requires a Nightly compiler and
+to enable the `Zknh` target feature at compile time. For a more efficient code generation,
+it's recommended to enable the `Zbkb` (or `Zbb`) and `unaligned-scalar-mem` target features
+(see [this LLVM issue][Zicclsm] for more information). For example, you can do it by using
+`RUSTFLAGS="-C target-feature=+zknh,+zbkb,+unaligned-scalar-mem"`.
+
+[Zicclsm]: https://github.com/llvm/llvm-project/issues/110454
 
 ## License
 
-Licensed under either of:
+The crate is licensed under either of:
 
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+* [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+* [MIT license](http://opensource.org/licenses/MIT)
 
 at your option.
 
@@ -48,12 +134,13 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/sha2/badge.svg
 [docs-link]: https://docs.rs/sha2/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260041-hashes
-[build-image]: https://github.com/RustCrypto/hashes/workflows/sha2/badge.svg?branch=master
-[build-link]: https://github.com/RustCrypto/hashes/actions?query=workflow%3Asha2
+[build-image]: https://github.com/RustCrypto/hashes/actions/workflows/sha2.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/hashes/actions/workflows/sha2.yml?query=branch:master
 
 [//]: # (general links)
 
-[1]: https://en.wikipedia.org/wiki/SHA-2
+[SHA-2]: https://en.wikipedia.org/wiki/SHA-2
+[`digest`]: https://docs.rs/digest

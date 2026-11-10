@@ -4,6 +4,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.9.1 (2026-10-06)
+### Changed
+- Replace `Zeroizing`'s derived `Debug` with opaque impl ([#1497])
+
+### Removed
+- Internal use of `optimization_barrier` ([#1535])
+
+### Fixed
+- Avoid double-zeroizing `Vec`'s initialized elements ([#1525])
+- False positive failures in proxy allocator test ([#1538])
+- Potential uninitialized memory read in fallback code used by `optimization_barrier` ([#1551])
+
+[#1497]: https://github.com/RustCrypto/utils/pull/1497
+[#1525]: https://github.com/RustCrypto/utils/pull/1525
+[#1535]: https://github.com/RustCrypto/utils/pull/1535
+[#1538]: https://github.com/RustCrypto/utils/pull/1538
+[#1551]: https://github.com/RustCrypto/utils/pull/1551
+
+## 1.9.0 (2026-06-12)
+### Added
+- `Zeroizing` is now `repr(transparent)` ([#1253])
+- `optimization_barrier` function ([#1261])
+- `Zeroizing` now supports `?Sized` ([#1318])
+- `zeroize_stack` function ([#1331])
+
+### Changed
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#1149])
+- Replace `atomic_fence` with `optimization_barrier` ([#1252])
+- Bump `zeroize_derive` to v1.5 ([#1492])
+- Always enable AVX-512 support ([#1493])
+
+[#1149]: https://github.com/RustCrypto/utils/pull/1149
+[#1252]: https://github.com/RustCrypto/utils/pull/1252
+[#1253]: https://github.com/RustCrypto/utils/pull/1253
+[#1261]: https://github.com/RustCrypto/utils/pull/1261
+[#1318]: https://github.com/RustCrypto/utils/pull/1318
+[#1331]: https://github.com/RustCrypto/utils/pull/1331
+[#1492]: https://github.com/RustCrypto/utils/pull/1492
+[#1493]: https://github.com/RustCrypto/utils/pull/1493
+
+## 1.8.2 (2025-09-29)
+### Changed
+- Switch from `doc_auto_cfg` to `doc_cfg` ([#1228])
+
+[#1228]: https://github.com/RustCrypto/utils/pull/1228
+
+## 1.8.1 (2024-05-25)
+### Changed
+- Feature-gate AVX-512 support under `simd`; restores MSRV 1.60 ([#1073])
+
+[#1073]: https://github.com/RustCrypto/utils/pull/1073
+
+## 1.8.0 (2024-04-24) [YANKED]
+
+NOTE: yanked due concerns over the MSRV bump. See [#1067].
+
+### Added
+- Unsafe `zeroize_flat_type` function ([#1045])
+- `Zeroize` impls for `__m512` types on `x86`/`x86_64` targets ([#1052])
+
+### Changed
+- Bump MSRV to 1.72 ([#1052])
+- Always enable AArch64 support ([#1064])
+
+### Fixed
+- Nightly warnings ([#1055])
+
+[#1045]: https://github.com/RustCrypto/utils/pull/1045
+[#1052]: https://github.com/RustCrypto/utils/pull/1052
+[#1055]: https://github.com/RustCrypto/utils/pull/1055
+[#1064]: https://github.com/RustCrypto/utils/pull/1064
+[#1067]: https://github.com/RustCrypto/utils/pull/1067
+
 ## 1.7.0 (2023-11-16)
 ### Changed
 - Bump MSRV to 1.60 ([#900])
@@ -61,7 +134,7 @@ NOTE: yanked because [#900] bumped MSRV to 1.60, which vioates our MSRV policy.
 
 ## 1.5.4 (2022-03-16)
 ### Added
-- Nightly-only upport for zeroizing ARM64 SIMD registers ([#749])
+- Nightly-only support for zeroizing ARM64 SIMD registers ([#749])
 
 [#749]: https://github.com/RustCrypto/utils/pull/749
 
@@ -121,7 +194,7 @@ if you would like to support older Rust versions.
 ## 1.3.0 (2021-04-19)
 ### Added
 - impl `Zeroize` for `Box<[Z]>`
-- Clear residual space within `Option
+- Clear residual space within `Option`
 
 ### Changed
 - Ensure `Option` is `None` when zeroized
@@ -129,7 +202,7 @@ if you would like to support older Rust versions.
 
 ## 1.2.0 (2020-12-09)
 ### Added
-- `Zeroize` support for x86(_64) SIMD registers
+- `Zeroize` support for x86(-64) SIMD registers
 
 ### Changed
 - Simplify `String::zeroize`
@@ -187,7 +260,7 @@ are deriving `Zeroize`.
 - Bound blanket array impls on `Zeroize` instead of `DefaultIsZeroes`
 - Require `zeroize(drop)` or `zeroize(no_drop)` attributes when deriving
   `Zeroize` .
-- Support stablized 'alloc' crate
+- Support stabilized 'alloc' crate
 
 ## 0.8.0 (2019-05-20)
 - Impl `Drop` by default when deriving `Zeroize`

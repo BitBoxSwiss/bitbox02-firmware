@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### 0.2.2 (2026-08-21)
+### Changed
+- Improved performance of software backend on some targets ([#129])
+
+### Removed
+- `keccak_backend_soft = "compact"` configuration flag and explicit loop unrolling  ([#130])
+
+[#129]: https://github.com/RustCrypto/sponges/pull/129
+[#130]: https://github.com/RustCrypto/sponges/pull/130
+
+## 0.2.1 (2026-08-05)
+### Fixed
+- Warning on softfloat AArch64 targets by not enabling `aarch64_sha3` backend on them ([#126])
+
+[#126]: https://github.com/RustCrypto/sponges/pull/126
+
+## 0.2.0 (2026-03-16)
+### Added
+- `keccak_backend` configuration parameter with `aarch64_sha3`, `simd128`,
+  `simd256`, `simd512`, and `soft` values ([#105], [#106], [#113])
+- `Keccak` struct with a closure-based API for a more efficient access to
+  supported backends ([#113])
+
+### Changed
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#89])
+- Bump `cpufeatures` dependency to v0.3 ([#99])
+- AArch64 ASM backend is re-implemented using intrinsics (note that it's still
+  enabled by default on AArch64 targets behind target feature auto-detection) ([#112])
+
+### Removed
+- `asm`, `simd`, and `no_unroll` crate features in favor of `keccak_backend`
+  and `keccak_backend_soft` configuration parameters ([#105], [#106], [#113])
+- `f1600` and `p1600` functions in favor of the `Keccak` struct ([#113])
+
+### Fixed
+- Use `doc_cfg` in place of removed `doc_auto_cfg` feature ([#91])
+
+[#89]: https://github.com/RustCrypto/sponges/pull/89
+[#91]: https://github.com/RustCrypto/sponges/pull/91
+[#99]: https://github.com/RustCrypto/sponges/pull/99
+[#105]: https://github.com/RustCrypto/sponges/pull/105
+[#106]: https://github.com/RustCrypto/sponges/pull/106
+[#112]: https://github.com/RustCrypto/sponges/pull/112
+[#113]: https://github.com/RustCrypto/sponges/pull/113
+
+## 0.1.6 (2026-02-13)
+### Fixed
+- ARMv8 `asm!` invocation had incorrect operand type ([#103])
+
+[#103]: https://github.com/RustCrypto/sponges/pull/103
+
+## 0.1.5 (2024-01-12)
+### Changed
+- Enable ARMv8 ASM backend for `p1600` ([#68])
+
+[#68]: https://github.com/RustCrypto/sponges/pull/68
+
 ## 0.1.4 (2023-05-04)
 ### Added
 - `keccak_p` fns for `[200, 400, 800, 1600]` ([#55])

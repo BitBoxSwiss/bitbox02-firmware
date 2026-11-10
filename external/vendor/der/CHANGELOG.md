@@ -4,12 +4,265 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.3 (2026-10-25)
+### Added
+- `AsBitStringRef` trait ([#2418])
+
+### Fixed
+- Off-by-one error in max nested message check ([#2424])
+- Input validation in `SetOfRef` ([#2431])
+- Require a `SEQUENCE` in `Document::decode` ([#2442])
+- Order `SET OF` components by their encoded octets ([#2447])
+- Order `UTCTime` in `SET OF` by its encoding ([#2448])
+- `Option::der_cmp(None, None)` now returns `Equal` ([#2449])
+- Infinite recursion in `ValueOrd` for `ContextSpecific` ([#2450])
+- Order `FlagSet` by its `BIT STRING` encoding ([#2451])
+- Avoid panic on truncated binary `REAL` values ([#2483])
+- Stack overflow decoding nested BER indefinite lengths ([#2490])
+- Recursion in `TryFrom<AnyRef<'_>>` impl for `bool` ([#2491])
+
+[#2418]: https://github.com/RustCrypto/formats/pull/2418
+[#2424]: https://github.com/RustCrypto/formats/pull/2424
+[#2431]: https://github.com/RustCrypto/formats/pull/2431
+[#2442]: https://github.com/RustCrypto/formats/pull/2442
+[#2447]: https://github.com/RustCrypto/formats/pull/2447
+[#2448]: https://github.com/RustCrypto/formats/pull/2448
+[#2449]: https://github.com/RustCrypto/formats/pull/2449
+[#2450]: https://github.com/RustCrypto/formats/pull/2450
+[#2451]: https://github.com/RustCrypto/formats/pull/2451
+[#2483]: https://github.com/RustCrypto/formats/pull/2483
+[#2490]: https://github.com/RustCrypto/formats/pull/2490
+[#2491]: https://github.com/RustCrypto/formats/pull/2491
+
+## 0.8.2 (2026-09-05)
+### Added
+- `AsIntRef` and `AsUintRef` traits ([#2415])
+
+### Fixed
+- Return error on nested trailing data ([#2401])
+
+[#2415]: https://github.com/RustCrypto/formats/pull/2415
+[#2401]: https://github.com/RustCrypto/formats/pull/2401
+
+## 0.8.1 (2026-07-08)
+### Added
+- `SetOfRef` struct ([#2247])
+
+### Changed
+- Deprecate `ErrorKind::SetDuplicate` ([#2276])
+- Improve `SetOf*` sorting performance ([#2345])
+- Cap maximum number of nested messages at `64` ([#2379])
+
+### Fixed
+- `SET OF` is not supposed to disallow duplicates ([#2272])
+
+[#2247]: https://github.com/RustCrypto/for dwqmats/pull/2247
+[#2272]: https://github.com/RustCrypto/formats/pull/2272
+[#2276]: https://github.com/RustCrypto/formats/pull/2276
+[#2345]: https://github.com/RustCrypto/formats/pull/2345
+[#2379]: https://github.com/RustCrypto/formats/pull/2379
+
+## 0.8.0 (2026-02-13) [YANKED]
+
+NOTE: this release was yanked to fix a `minimal-versions` check in CI.
+
+### Added
+- Custom error types support to the `Decode` and `DecodeValue` traits ([#1055])
+- `EncodingRules` enum ([#1321])
+- `Decode::from_ber` ([#1389])
+- Documentation for field-level `tag_mode` attribute ([#1401])
+- `Hash` implementation for `AlgorithmIdentifier` ([#1414])
+- `SequenceRef::as_bytes` and `AsRef<[u8]>` impl ([#1454])
+- `Reader::peek_into` ([#1478])
+- `GeneralString` variant to `Tag` ([#1512])
+- Conversions from `OctetString(Ref)` to `Vec`/`Bytes` ([#1540])
+- Custom error types in derive macros ([#1560])
+- Support for tags beyond 30 ([#1651])
+- Const `::new` to `Length`, `BytesRef`, and `AnyRef` ([#1713])
+- Const `GeneralizedTime::from_date_time` ([#1718])
+- `Decode::from_der_partial` ([#1725])
+- Conversions between `BitStringRef`/`OctetStringRef` and `[u8; N]` ([#1731])
+- Add class bits consts for Application and Private tag support ([#1721])
+- conversions between `heapless:Vec<u8>` and `OctetStringRef` ([#1735])
+- `IsConstructed` trait, impl'ed on any `FixedTag` ([#1744])
+- Implement `Hash` for `SetOf` ([#1764])
+- Implement `Uint`/`Int` conversions from native types ([#1762])
+- Support for `APPLICATION`, `CONTEXT-SPECIFIC` and `PRIVATE` tags ([#1819], [#1825], [#1944])
+- Support `Cow<[u8]>` in `derive(Sequence)` ([#1850])
+- `diagnostic::on_unimplemented` attributes ([#1876])
+- `Reader::read_value`, auto-nest `DecodeValue` ([#1877], [#1895], [#1897], [#1901])
+- Indefinite length support for BER ([#1884], [#1885], [#1894], [#1900], [#1902], [#1910])
+- Constructed OctetString support ([#1899], [#1922])
+- string conversions, predicate methods for EncodingRules ([#1903], [#1953])
+- `Any::header` ([#1935])
+- `Tag::RelativeOid` ([#1942])
+- `ber` feature ([#1948], [#1950])
+- Hash derive for `StringOwned` and `Ia5String` ([#1973])
+- Implement `DecodeValue/EncodeValue/Tagged` for `Cow` ([#2093])
+- Add doc examples for `EncodeValue`, `Encode`, `DecodeValue`, `Decode`, `Error`, `ErrorKind`, `Tagged`, `FixedTag`,
+  `IsConstructed`, `Tag`, `Length`, `Header` ([#2075], [#2071], [#2070], [#2064], [#2058], [#2052], [#2053], [#2051])
+- `SequenceRef::new` ([#2224])
+
+### Changed
+- Return `Tag::Integer.length_error()` on empty ints ([#1400])
+- Allow all blanket impls on `?Sized` types ([#1451])
+- Refactor `Tag::peek` ([#1479])
+- Refactor `Header::peek` ([#1480])
+- Use `core::error::Error` ([#1553])
+- Use 2024 edition, bump MSRV to 1.85 ([#1670])
+- Bump `const-oid` to v0.10 ([#1676])
+- Reject zero lengths reads ([#1716])
+- Deprecate `TagNumber::new` ([#1727])
+- Use strict context-specific skipping condition (equal tag numbers only) ([#1740])
+- Const `Any::to_ref`, `BytesOwned::to_ref` ([#1797])
+- Return `ErrorKind::Noncanonical` in `EXPLICIT` when primitive ([#1818])
+- Use `read_nested` to check length of `IMPLICIT` types ([#1739])
+- Simplify `From<&UintRef<'a>>` for `Uint` ([#1840])
+- Make `ObjectIdentifier<MAX_SIZE>` impls generic ([#1851])
+- Extract `reader::position::Position` ([#1880])
+- Make `Reader` cloneable ([#1883])
+- Simplify `Header::peek` and `Tag::peek` ([#1886])
+- Improve constructed bit handling ([#1919])
+- Use fat pointer in `OctetStringRef`, consolidate bytes/string modules, improve internal ref types
+  ([#1920], [#1921], [#1998], [#2040])
+- Change constructor `Header::new`, add `Header::with_length`, tests for constructed octet string ([#1931], [#1930])
+- Simplify `der_cmp` for `Length` ([#1997])
+- Rename variable encoder -> writer and improve example ([#2078])
+- Have `PemReader` decode to `Cow::Owned` ([#2094])
+- Only sort `SET OF` types with `EncodingRules::Der` ([#2219])
+- `SetOf` and `SequenceOf` now require `heapless` feature ([#2220], [#2229])
+
+### Fixed
+- Append in `Encode::encode_to_vec` ([#1760])
+- Derive optional OCTET/BIT STRING on `Option<&[u8]>` ([#1737])
+- X.680 tag order: compare class and number first ([#1790])
+- BMPString compatibility in derive macros ([#1793])
+- `Tag::peek_optional` for 6-byte and 7+ byte tags ([#1804])
+- `Header::peek` for 11-byte tag-lengths ([#1828])
+- Panic in `value_cmp`: add `Iterator::size_hint` ([#1830])
+- Error position tracking improvements ([#1889], [#2080], [#2079])
+- Bound `Decode(Value)::Error` on `core::error::Error` ([#2137])
+- Have `SetOf(Vec)::insert` check for duplicates ([#2217])
+
+### Removed
+- `TagNumber::N0..N30` consts ([#1724])
+- 256MiB limit on `Length` ([#1726])
+- Generic `<T>` from `Reader::finish` ([#1833])
+- Deprecated `SetOf(Vec)::add` methods ([#2232])
+- `SequenceRef` lifetime ([#2224])
+
+[#1055]: https://github.com/RustCrypto/formats/pull/1055
+[#1321]: https://github.com/RustCrypto/formats/pull/1321
+[#1389]: https://github.com/RustCrypto/formats/pull/1389
+[#1400]: https://github.com/RustCrypto/formats/pull/1400
+[#1401]: https://github.com/RustCrypto/formats/pull/1401
+[#1414]: https://github.com/RustCrypto/formats/pull/1414
+[#1451]: https://github.com/RustCrypto/formats/pull/1451
+[#1454]: https://github.com/RustCrypto/formats/pull/1454
+[#1478]: https://github.com/RustCrypto/formats/pull/1478
+[#1479]: https://github.com/RustCrypto/formats/pull/1479
+[#1480]: https://github.com/RustCrypto/formats/pull/1480
+[#1512]: https://github.com/RustCrypto/formats/pull/1512
+[#1540]: https://github.com/RustCrypto/formats/pull/1540
+[#1553]: https://github.com/RustCrypto/formats/pull/1553
+[#1560]: https://github.com/RustCrypto/formats/pull/1560
+[#1651]: https://github.com/RustCrypto/formats/pull/1651
+[#1670]: https://github.com/RustCrypto/formats/pull/1670
+[#1676]: https://github.com/RustCrypto/formats/pull/1676
+[#1713]: https://github.com/RustCrypto/formats/pull/1713
+[#1716]: https://github.com/RustCrypto/formats/pull/1716
+[#1718]: https://github.com/RustCrypto/formats/pull/1718
+[#1721]: https://github.com/RustCrypto/formats/pull/1721
+[#1724]: https://github.com/RustCrypto/formats/pull/1724
+[#1725]: https://github.com/RustCrypto/formats/pull/1725
+[#1726]: https://github.com/RustCrypto/formats/pull/1726
+[#1727]: https://github.com/RustCrypto/formats/pull/1727
+[#1731]: https://github.com/RustCrypto/formats/pull/1731
+[#1735]: https://github.com/RustCrypto/formats/pull/1735
+[#1737]: https://github.com/RustCrypto/formats/pull/1737
+[#1739]: https://github.com/RustCrypto/formats/pull/1739
+[#1760]: https://github.com/RustCrypto/formats/pull/1760
+[#1762]: https://github.com/RustCrypto/formats/pull/1762
+[#1764]: https://github.com/RustCrypto/formats/pull/1764
+[#1740]: https://github.com/RustCrypto/formats/pull/1740
+[#1744]: https://github.com/RustCrypto/formats/pull/1744
+[#1790]: https://github.com/RustCrypto/formats/pull/1790
+[#1793]: https://github.com/RustCrypto/formats/pull/1793
+[#1797]: https://github.com/RustCrypto/formats/pull/1797
+[#1804]: https://github.com/RustCrypto/formats/pull/1804
+[#1818]: https://github.com/RustCrypto/formats/pull/1818
+[#1819]: https://github.com/RustCrypto/formats/pull/1819
+[#1825]: https://github.com/RustCrypto/formats/pull/1825
+[#1828]: https://github.com/RustCrypto/formats/pull/1828
+[#1830]: https://github.com/RustCrypto/formats/pull/1830
+[#1833]: https://github.com/RustCrypto/formats/pull/1833
+[#1840]: https://github.com/RustCrypto/formats/pull/1840
+[#1850]: https://github.com/RustCrypto/formats/pull/1850
+[#1851]: https://github.com/RustCrypto/formats/pull/1851
+[#1876]: https://github.com/RustCrypto/formats/pull/1876
+[#1877]: https://github.com/RustCrypto/formats/pull/1877
+[#1880]: https://github.com/RustCrypto/formats/pull/1880
+[#1883]: https://github.com/RustCrypto/formats/pull/1883
+[#1884]: https://github.com/RustCrypto/formats/pull/1884
+[#1885]: https://github.com/RustCrypto/formats/pull/1885
+[#1886]: https://github.com/RustCrypto/formats/pull/1886
+[#1889]: https://github.com/RustCrypto/formats/pull/1889
+[#1894]: https://github.com/RustCrypto/formats/pull/1894
+[#1895]: https://github.com/RustCrypto/formats/pull/1895
+[#1897]: https://github.com/RustCrypto/formats/pull/1897
+[#1899]: https://github.com/RustCrypto/formats/pull/1899
+[#1900]: https://github.com/RustCrypto/formats/pull/1900
+[#1901]: https://github.com/RustCrypto/formats/pull/1901
+[#1902]: https://github.com/RustCrypto/formats/pull/1902
+[#1903]: https://github.com/RustCrypto/formats/pull/1903
+[#1910]: https://github.com/RustCrypto/formats/pull/1910
+[#1919]: https://github.com/RustCrypto/formats/pull/1919
+[#1920]: https://github.com/RustCrypto/formats/pull/1920
+[#1921]: https://github.com/RustCrypto/formats/pull/1921
+[#1922]: https://github.com/RustCrypto/formats/pull/1922
+[#1930]: https://github.com/RustCrypto/formats/pull/1930
+[#1931]: https://github.com/RustCrypto/formats/pull/1931
+[#1935]: https://github.com/RustCrypto/formats/pull/1935
+[#1942]: https://github.com/RustCrypto/formats/pull/1942
+[#1944]: https://github.com/RustCrypto/formats/pull/1944
+[#1948]: https://github.com/RustCrypto/formats/pull/1948
+[#1950]: https://github.com/RustCrypto/formats/pull/1950
+[#1953]: https://github.com/RustCrypto/formats/pull/1953
+[#1973]: https://github.com/RustCrypto/formats/pull/1973
+[#1997]: https://github.com/RustCrypto/formats/pull/1997
+[#1998]: https://github.com/RustCrypto/formats/pull/1998
+[#2137]: https://github.com/RustCrypto/formats/pull/2137
+[#2040]: https://github.com/RustCrypto/formats/pull/2040
+[#2051]: https://github.com/RustCrypto/formats/pull/2051
+[#2052]: https://github.com/RustCrypto/formats/pull/2052
+[#2053]: https://github.com/RustCrypto/formats/pull/2053
+[#2058]: https://github.com/RustCrypto/formats/pull/2058
+[#2064]: https://github.com/RustCrypto/formats/pull/2064
+[#2070]: https://github.com/RustCrypto/formats/pull/2070
+[#2071]: https://github.com/RustCrypto/formats/pull/2071
+[#2075]: https://github.com/RustCrypto/formats/pull/2075
+[#2078]: https://github.com/RustCrypto/formats/pull/2078
+[#2079]: https://github.com/RustCrypto/formats/pull/2079
+[#2080]: https://github.com/RustCrypto/formats/pull/2080
+[#2093]: https://github.com/RustCrypto/formats/pull/2093
+[#2094]: https://github.com/RustCrypto/formats/pull/2094
+[#2217]: https://github.com/RustCrypto/formats/pull/2217
+[#2219]: https://github.com/RustCrypto/formats/pull/2219
+[#2220]: https://github.com/RustCrypto/formats/pull/2220
+[#2224]: https://github.com/RustCrypto/formats/pull/2224
+[#2229]: https://github.com/RustCrypto/formats/pull/2229
+[#2232]: https://github.com/RustCrypto/formats/pull/2232
+
+## 0.7.10 (2024-04-18)
+### Fixed
+- append in `Encode::encode_to_vec` (backport [#1760])
+
+[#1760]: https://github.com/RustCrypto/formats/pull/1760
+
 ## 0.7.9 (2024-04-01)
 ### Changed
-- ignore RUSTSEC-2023-0071 (backport [#1276])
 - make sure der is comptatible with potential language breaking changed (backport [#1374])
 
-[#1276]: https://github.com/RustCrypto/formats/pull/1276
 [#1374]: https://github.com/RustCrypto/formats/pull/1374
 
 ## 0.7.8 (2023-08-07)

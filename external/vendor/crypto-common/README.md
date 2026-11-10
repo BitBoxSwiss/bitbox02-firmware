@@ -2,22 +2,13 @@
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
+[![Build Status][build-image]][build-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Project Chat][chat-image]][chat-link]
-[![Build Status][build-image]][build-link]
 
 Common traits used by cryptographic algorithms. Users should generally use
 higher-level trait crates instead of this one.
-
-[Documentation][docs-link]
-
-## Minimum Supported Rust Version
-
-Rust **1.41** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
 
 ## SemVer Policy
 
@@ -46,8 +37,8 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/crypto-common/badge.svg
 [docs-link]: https://docs.rs/crypto-common/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260041-hashes
-[build-image]: https://github.com/RustCrypto/traits/workflows/crypto-common/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/traits/actions?query=workflow%3Acrypto-common
+[build-image]: https://github.com/RustCrypto/traits/actions/workflows/crypto-common.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/traits/actions/workflows/crypto-common.yml?query=branch:master

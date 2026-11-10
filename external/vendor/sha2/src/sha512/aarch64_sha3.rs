@@ -1,0 +1,198 @@
+// Implementation adapted from mbedtls.
+use core::arch::aarch64::*;
+
+#[cfg(not(target_arch = "aarch64"))]
+compile_error!("aarch64-sha3 backend can be used only on aarch64 target arches");
+
+#[target_feature(enable = "sha3")]
+pub(super) fn compress(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
+    // Load state into vectors.
+    let [mut ab, mut cd, mut ef, mut gh] = load_state(state);
+
+    // Iterate through the message blocks.
+    for block in blocks {
+        // Keep original state values.
+        let ab_orig = ab;
+        let cd_orig = cd;
+        let ef_orig = ef;
+        let gh_orig = gh;
+
+        // Load the message block into vectors, assuming little endianness.
+        let [
+            mut s0,
+            mut s1,
+            mut s2,
+            mut s3,
+            mut s4,
+            mut s5,
+            mut s6,
+            mut s7,
+        ] = load_block(block);
+
+        // Rounds 0 and 1
+        let mut initial_sum = vaddq_u64(s0, rk(0));
+        let mut sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), gh);
+        let mut intermed = vsha512hq_u64(sum, vextq_u64(ef, gh, 1), vextq_u64(cd, ef, 1));
+        gh = vsha512h2q_u64(intermed, cd, ab);
+        cd = vaddq_u64(cd, intermed);
+
+        // Rounds 2 and 3
+        initial_sum = vaddq_u64(s1, rk(2));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ef);
+        intermed = vsha512hq_u64(sum, vextq_u64(cd, ef, 1), vextq_u64(ab, cd, 1));
+        ef = vsha512h2q_u64(intermed, ab, gh);
+        ab = vaddq_u64(ab, intermed);
+
+        // Rounds 4 and 5
+        initial_sum = vaddq_u64(s2, rk(4));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), cd);
+        intermed = vsha512hq_u64(sum, vextq_u64(ab, cd, 1), vextq_u64(gh, ab, 1));
+        cd = vsha512h2q_u64(intermed, gh, ef);
+        gh = vaddq_u64(gh, intermed);
+
+        // Rounds 6 and 7
+        initial_sum = vaddq_u64(s3, rk(6));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ab);
+        intermed = vsha512hq_u64(sum, vextq_u64(gh, ab, 1), vextq_u64(ef, gh, 1));
+        ab = vsha512h2q_u64(intermed, ef, cd);
+        ef = vaddq_u64(ef, intermed);
+
+        // Rounds 8 and 9
+        initial_sum = vaddq_u64(s4, rk(8));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), gh);
+        intermed = vsha512hq_u64(sum, vextq_u64(ef, gh, 1), vextq_u64(cd, ef, 1));
+        gh = vsha512h2q_u64(intermed, cd, ab);
+        cd = vaddq_u64(cd, intermed);
+
+        // Rounds 10 and 11
+        initial_sum = vaddq_u64(s5, rk(10));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ef);
+        intermed = vsha512hq_u64(sum, vextq_u64(cd, ef, 1), vextq_u64(ab, cd, 1));
+        ef = vsha512h2q_u64(intermed, ab, gh);
+        ab = vaddq_u64(ab, intermed);
+
+        // Rounds 12 and 13
+        initial_sum = vaddq_u64(s6, rk(12));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), cd);
+        intermed = vsha512hq_u64(sum, vextq_u64(ab, cd, 1), vextq_u64(gh, ab, 1));
+        cd = vsha512h2q_u64(intermed, gh, ef);
+        gh = vaddq_u64(gh, intermed);
+
+        // Rounds 14 and 15
+        initial_sum = vaddq_u64(s7, rk(14));
+        sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ab);
+        intermed = vsha512hq_u64(sum, vextq_u64(gh, ab, 1), vextq_u64(ef, gh, 1));
+        ab = vsha512h2q_u64(intermed, ef, cd);
+        ef = vaddq_u64(ef, intermed);
+
+        for t in (16..80).step_by(16) {
+            // Rounds t and t + 1
+            s0 = vsha512su1q_u64(vsha512su0q_u64(s0, s1), s7, vextq_u64(s4, s5, 1));
+            initial_sum = vaddq_u64(s0, rk(t));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), gh);
+            intermed = vsha512hq_u64(sum, vextq_u64(ef, gh, 1), vextq_u64(cd, ef, 1));
+            gh = vsha512h2q_u64(intermed, cd, ab);
+            cd = vaddq_u64(cd, intermed);
+
+            // Rounds t + 2 and t + 3
+            s1 = vsha512su1q_u64(vsha512su0q_u64(s1, s2), s0, vextq_u64(s5, s6, 1));
+            initial_sum = vaddq_u64(s1, rk(t + 2));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ef);
+            intermed = vsha512hq_u64(sum, vextq_u64(cd, ef, 1), vextq_u64(ab, cd, 1));
+            ef = vsha512h2q_u64(intermed, ab, gh);
+            ab = vaddq_u64(ab, intermed);
+
+            // Rounds t + 4 and t + 5
+            s2 = vsha512su1q_u64(vsha512su0q_u64(s2, s3), s1, vextq_u64(s6, s7, 1));
+            initial_sum = vaddq_u64(s2, rk(t + 4));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), cd);
+            intermed = vsha512hq_u64(sum, vextq_u64(ab, cd, 1), vextq_u64(gh, ab, 1));
+            cd = vsha512h2q_u64(intermed, gh, ef);
+            gh = vaddq_u64(gh, intermed);
+
+            // Rounds t + 6 and t + 7
+            s3 = vsha512su1q_u64(vsha512su0q_u64(s3, s4), s2, vextq_u64(s7, s0, 1));
+            initial_sum = vaddq_u64(s3, rk(t + 6));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ab);
+            intermed = vsha512hq_u64(sum, vextq_u64(gh, ab, 1), vextq_u64(ef, gh, 1));
+            ab = vsha512h2q_u64(intermed, ef, cd);
+            ef = vaddq_u64(ef, intermed);
+
+            // Rounds t + 8 and t + 9
+            s4 = vsha512su1q_u64(vsha512su0q_u64(s4, s5), s3, vextq_u64(s0, s1, 1));
+            initial_sum = vaddq_u64(s4, rk(t + 8));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), gh);
+            intermed = vsha512hq_u64(sum, vextq_u64(ef, gh, 1), vextq_u64(cd, ef, 1));
+            gh = vsha512h2q_u64(intermed, cd, ab);
+            cd = vaddq_u64(cd, intermed);
+
+            // Rounds t + 10 and t + 11
+            s5 = vsha512su1q_u64(vsha512su0q_u64(s5, s6), s4, vextq_u64(s1, s2, 1));
+            initial_sum = vaddq_u64(s5, rk(t + 10));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ef);
+            intermed = vsha512hq_u64(sum, vextq_u64(cd, ef, 1), vextq_u64(ab, cd, 1));
+            ef = vsha512h2q_u64(intermed, ab, gh);
+            ab = vaddq_u64(ab, intermed);
+
+            // Rounds t + 12 and t + 13
+            s6 = vsha512su1q_u64(vsha512su0q_u64(s6, s7), s5, vextq_u64(s2, s3, 1));
+            initial_sum = vaddq_u64(s6, rk(t + 12));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), cd);
+            intermed = vsha512hq_u64(sum, vextq_u64(ab, cd, 1), vextq_u64(gh, ab, 1));
+            cd = vsha512h2q_u64(intermed, gh, ef);
+            gh = vaddq_u64(gh, intermed);
+
+            // Rounds t + 14 and t + 15
+            s7 = vsha512su1q_u64(vsha512su0q_u64(s7, s0), s6, vextq_u64(s3, s4, 1));
+            initial_sum = vaddq_u64(s7, rk(t + 14));
+            sum = vaddq_u64(vextq_u64(initial_sum, initial_sum, 1), ab);
+            intermed = vsha512hq_u64(sum, vextq_u64(gh, ab, 1), vextq_u64(ef, gh, 1));
+            ab = vsha512h2q_u64(intermed, ef, cd);
+            ef = vaddq_u64(ef, intermed);
+        }
+
+        // Add the block-specific state to the original state.
+        ab = vaddq_u64(ab, ab_orig);
+        cd = vaddq_u64(cd, cd_orig);
+        ef = vaddq_u64(ef, ef_orig);
+        gh = vaddq_u64(gh, gh_orig);
+    }
+
+    // Store vectors into state.
+    store_state(state, [ab, cd, ef, gh]);
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+fn rk(i: usize) -> uint64x2_t {
+    let chunk = &crate::consts::K64[i..][..2];
+    unsafe { vld1q_u64(chunk.as_ptr()) }
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+fn load_block(block: &[u8; 128]) -> [uint64x2_t; 8] {
+    core::array::from_fn(|i| {
+        let chunk = &block[16 * i..][..16];
+        let b = unsafe { vld1q_u8(chunk.as_ptr()) };
+        vreinterpretq_u64_u8(vrev64q_u8(b))
+    })
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+fn load_state(state: &[u64; 8]) -> [uint64x2_t; 4] {
+    core::array::from_fn(|i| {
+        let chunk = &state[2 * i..][..2];
+        unsafe { vld1q_u64(chunk.as_ptr()) }
+    })
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+fn store_state(state_dst: &mut [u64; 8], state: [uint64x2_t; 4]) {
+    for i in 0..4 {
+        let chunk = &mut state_dst[2 * i..][..2];
+        unsafe { vst1q_u64(chunk.as_mut_ptr(), state[i]) };
+    }
+}

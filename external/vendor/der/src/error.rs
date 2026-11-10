@@ -11,10 +11,28 @@ use crate::asn1::ObjectIdentifier;
 #[cfg(feature = "pem")]
 use crate::pem;
 
+#[cfg(doc)]
+use crate::{Reader, Writer};
+
 /// Result type.
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// Error type.
+///
+/// ## Example
+/// ```
+/// use der::{Decode, ErrorKind, Reader};
+///
+/// struct MyDecodable;
+///
+/// impl<'a> Decode<'a> for MyDecodable {
+///     type Error = der::Error;
+///
+///     fn decode<R: Reader<'a>>(reader: &mut R) -> Result<Self, der::Error> {
+///         Err(reader.error(ErrorKind::OidMalformed))
+///     }
+/// }
+/// ```
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Error {
     /// Kind of error.
@@ -26,16 +44,25 @@ pub struct Error {
 
 impl Error {
     /// Create a new [`Error`].
-    pub fn new(kind: ErrorKind, position: Length) -> Error {
+    #[must_use]
+    pub const fn new(kind: ErrorKind, position: Length) -> Error {
         Error {
             kind,
             position: Some(position),
+        }
+    }
+    /// Create a new [`Error`], without known position.
+    pub(crate) const fn from_kind(kind: ErrorKind) -> Error {
+        Error {
+            kind,
+            position: None,
         }
     }
 
     /// Create a new [`ErrorKind::Incomplete`] for the given length.
     ///
     /// Computes the expected len as being one greater than `actual_len`.
+    #[must_use]
     pub fn incomplete(actual_len: Length) -> Self {
         match actual_len + Length::ONE {
             Ok(expected_len) => ErrorKind::Incomplete {
@@ -48,11 +75,13 @@ impl Error {
     }
 
     /// Get the [`ErrorKind`] which occurred.
+    #[must_use]
     pub fn kind(self) -> ErrorKind {
         self.kind
     }
 
     /// Get the position inside of the message where the error occurred.
+    #[must_use]
     pub fn position(self) -> Option<Length> {
         self.position
     }
@@ -70,15 +99,14 @@ impl Error {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for Error {}
+impl core::error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
 
         if let Some(pos) = self.position {
-            write!(f, " at DER byte {}", pos)?;
+            write!(f, " at DER byte {pos}")?;
         }
 
         Ok(())
@@ -87,10 +115,7 @@ impl fmt::Display for Error {
 
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Error {
-        Error {
-            kind,
-            position: None,
-        }
+        Error::from_kind(kind)
     }
 }
 
@@ -159,14 +184,26 @@ impl From<time::error::ComponentRange> for Error {
 }
 
 /// Error type.
+///
+/// # Example
+/// ```
+/// use der::{asn1::OctetStringRef, Decode, ErrorKind};
+///
+/// let err = <&OctetStringRef>::from_der(&[0x04, 0x80, 0x00]).unwrap_err();
+///
+/// assert_eq!(err.kind(), ErrorKind::IndefiniteLength);
+/// ```
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ErrorKind {
     /// Date-and-time related errors.
     DateTime,
 
+    /// Invalid encoding rules.
+    EncodingRules,
+
     /// This error indicates a previous DER parsing operation resulted in
-    /// an error and tainted the state of a `Decoder` or `Encoder`.
+    /// an error and tainted the state of a [`Reader`] or [`Writer`].
     ///
     /// Once this occurs, the overall operation has failed and cannot be
     /// subsequently resumed.
@@ -195,7 +232,7 @@ pub enum ErrorKind {
     #[cfg(feature = "std")]
     Io(std::io::ErrorKind),
 
-    /// Indefinite length disallowed.
+    /// Indefinite length invalid (disallowed in DER or malformed when decoding BER)
     IndefiniteLength,
 
     /// Incorrect length for a given field.
@@ -203,6 +240,9 @@ pub enum ErrorKind {
         /// Tag of the value being decoded.
         tag: Tag,
     },
+
+    /// Too many nested productions (i.e. TLV-in-TLV) encountered.
+    NestingDepth,
 
     /// Message is not canonically encoded.
     Noncanonical {
@@ -228,6 +268,11 @@ pub enum ErrorKind {
     },
 
     /// `SET` cannot contain duplicates.
+    // TODO(tarcieri): remove this in the next breaking release
+    #[deprecated(
+        since = "0.8.1",
+        note = "per X.680, 27.3 NOTE 3 duplicates are allowed"
+    )]
     SetDuplicate,
 
     /// `SET` ordering error: items not in canonical order.
@@ -300,8 +345,15 @@ pub enum ErrorKind {
 impl ErrorKind {
     /// Annotate an [`ErrorKind`] with context about where it occurred,
     /// returning an error.
+    #[must_use]
     pub fn at(self, position: Length) -> Error {
         Error::new(self, position)
+    }
+
+    /// Convert to an error, omitting position information.
+    #[must_use]
+    pub fn to_error(self) -> Error {
+        Error::from_kind(self)
     }
 }
 
@@ -309,6 +361,7 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorKind::DateTime => write!(f, "date/time error"),
+            ErrorKind::EncodingRules => write!(f, "invalid encoding rules"),
             ErrorKind::Failed => write!(f, "operation failed"),
             #[cfg(feature = "std")]
             ErrorKind::FileNotFound => write!(f, "file not found"),
@@ -317,27 +370,28 @@ impl fmt::Display for ErrorKind {
                 actual_len,
             } => write!(
                 f,
-                "ASN.1 DER message is incomplete: expected {}, actual {}",
-                expected_len, actual_len
+                "ASN.1 DER message is incomplete: expected {expected_len}, actual {actual_len}"
             ),
             #[cfg(feature = "std")]
-            ErrorKind::Io(err) => write!(f, "I/O error: {:?}", err),
-            ErrorKind::IndefiniteLength => write!(f, "indefinite length disallowed"),
-            ErrorKind::Length { tag } => write!(f, "incorrect length for {}", tag),
+            ErrorKind::Io(err) => write!(f, "I/O error: {err:?}"),
+            ErrorKind::IndefiniteLength => write!(f, "indefinite length disallowed/malformed"),
+            ErrorKind::Length { tag } => write!(f, "incorrect length for {tag}"),
+            ErrorKind::NestingDepth => write!(f, "too many nested productions encountered"),
             ErrorKind::Noncanonical { tag } => {
-                write!(f, "ASN.1 {} not canonically encoded as DER", tag)
+                write!(f, "ASN.1 {tag} not canonically encoded as DER")
             }
             ErrorKind::OidMalformed => write!(f, "malformed OID"),
             #[cfg(feature = "oid")]
             ErrorKind::OidUnknown { oid } => {
-                write!(f, "unknown/unsupported OID: {}", oid)
+                write!(f, "unknown/unsupported OID: {oid}")
             }
+            #[allow(deprecated)]
             ErrorKind::SetDuplicate => write!(f, "SET OF contains duplicate"),
             ErrorKind::SetOrdering => write!(f, "SET OF ordering error"),
             ErrorKind::Overflow => write!(f, "integer overflow"),
             ErrorKind::Overlength => write!(f, "ASN.1 DER message is too long"),
             #[cfg(feature = "pem")]
-            ErrorKind::Pem(e) => write!(f, "PEM error: {}", e),
+            ErrorKind::Pem(e) => write!(f, "PEM error: {e}"),
             #[cfg(feature = "std")]
             ErrorKind::PermissionDenied => write!(f, "permission denied"),
             ErrorKind::Reader => write!(f, "reader does not support the requested operation"),
@@ -347,23 +401,22 @@ impl fmt::Display for ErrorKind {
                 write!(f, "unexpected ASN.1 DER tag: ")?;
 
                 if let Some(tag) = expected {
-                    write!(f, "expected {}, ", tag)?;
+                    write!(f, "expected {tag}, ")?;
                 }
 
-                write!(f, "got {}", actual)
+                write!(f, "got {actual}")
             }
             ErrorKind::TagUnknown { byte } => {
-                write!(f, "unknown/unsupported ASN.1 DER tag: 0x{:02x}", byte)
+                write!(f, "unknown/unsupported ASN.1 DER tag: 0x{byte:02x}")
             }
             ErrorKind::TrailingData { decoded, remaining } => {
                 write!(
                     f,
-                    "trailing data at end of DER message: decoded {} bytes, {} bytes remaining",
-                    decoded, remaining
+                    "trailing data at end of DER message: decoded {decoded} bytes, {remaining} bytes remaining"
                 )
             }
-            ErrorKind::Utf8(e) => write!(f, "{}", e),
-            ErrorKind::Value { tag } => write!(f, "malformed ASN.1 DER value for {}", tag),
+            ErrorKind::Utf8(e) => write!(f, "{e}"),
+            ErrorKind::Value { tag } => write!(f, "malformed ASN.1 DER value for {tag}"),
         }
     }
 }

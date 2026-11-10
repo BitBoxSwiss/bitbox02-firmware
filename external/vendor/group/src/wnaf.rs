@@ -255,6 +255,12 @@ pub struct Wnaf<W, B, S> {
     window_size: W,
 }
 
+impl<G: Group> Default for Wnaf<(), Vec<G>, Vec<i64>> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<G: Group> Wnaf<(), Vec<G>, Vec<i64>> {
     /// Construct a new wNAF context without allocating.
     pub fn new() -> Self {
@@ -334,7 +340,7 @@ impl<'a, G: Group> Wnaf<usize, &'a [G], &'a mut Vec<i64>> {
 }
 
 #[cfg(feature = "wnaf-memuse")]
-impl<'a, G: Group> memuse::DynamicUsage for Wnaf<usize, &'a [G], Vec<i64>> {
+impl<G: Group> memuse::DynamicUsage for Wnaf<usize, &[G], Vec<i64>> {
     fn dynamic_usage(&self) -> usize {
         // The heap memory for the window table is counted in the parent `Wnaf`.
         self.scalar.dynamic_usage()
@@ -359,7 +365,7 @@ impl<'a, G: Group> Wnaf<usize, &'a mut Vec<G>, &'a [i64]> {
 }
 
 #[cfg(feature = "wnaf-memuse")]
-impl<'a, G: Group + memuse::DynamicUsage> memuse::DynamicUsage for Wnaf<usize, Vec<G>, &'a [i64]> {
+impl<G: Group + memuse::DynamicUsage> memuse::DynamicUsage for Wnaf<usize, Vec<G>, &[i64]> {
     fn dynamic_usage(&self) -> usize {
         // The heap memory for the scalar representation is counted in the parent `Wnaf`.
         self.base.dynamic_usage()
@@ -426,7 +432,7 @@ impl<F: PrimeField, const WINDOW_SIZE: usize> WnafScalar<F, WINDOW_SIZE> {
 
         WnafScalar {
             wnaf,
-            field: PhantomData::default(),
+            field: PhantomData,
         }
     }
 }

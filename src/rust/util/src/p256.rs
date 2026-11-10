@@ -7,10 +7,10 @@ pub extern "C" fn rust_p256_pubkey(
     private_key: crate::bytes::Bytes,
     mut public_key_out: crate::bytes::BytesMut,
 ) {
-    use p256::elliptic_curve::sec1::ToEncodedPoint;
+    use p256::elliptic_curve::sec1::ToSec1Point;
     let secret_key = p256::SecretKey::from_slice(private_key.as_ref()).unwrap();
     let public_key = secret_key.public_key();
-    let encoded_point = public_key.to_encoded_point(false);
+    let encoded_point = public_key.to_sec1_point(false);
     public_key_out.as_mut()[..32].copy_from_slice(encoded_point.x().unwrap());
     public_key_out.as_mut()[32..].copy_from_slice(encoded_point.y().unwrap());
 }
@@ -27,7 +27,7 @@ pub extern "C" fn rust_p256_sign(
 ) {
     use p256::ecdsa::{Signature, SigningKey, signature::hazmat::PrehashSigner};
     let signing_key = SigningKey::from_slice(private_key.as_ref()).unwrap();
-    let (signature, _): (Signature, _) = signing_key.sign_prehash(msg.as_ref()).unwrap();
+    let signature: Signature = signing_key.sign_prehash(msg.as_ref()).unwrap();
     sig_out.as_mut().copy_from_slice(&signature.to_bytes());
 }
 

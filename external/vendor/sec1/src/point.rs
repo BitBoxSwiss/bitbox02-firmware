@@ -11,56 +11,49 @@ use core::{
     cmp::Ordering,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    ops::Add,
+    ops::{Add, Sub},
     str,
 };
-use generic_array::{
-    typenum::{U1, U24, U28, U32, U48, U66},
-    ArrayLength, GenericArray,
-};
+use hybrid_array::{Array, ArraySize, typenum::U1};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
-
+#[cfg(feature = "ctutils")]
+use ctutils::{Choice, CtAssign, CtAssignSlice, CtEq, CtEqSlice, CtSelect};
 #[cfg(feature = "serde")]
-use serdect::serde::{de, ser, Deserialize, Serialize};
-
-#[cfg(feature = "subtle")]
-use subtle::{Choice, ConditionallySelectable};
-
+use serdect::serde::{Deserialize, Serialize, de, ser};
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
-/// Trait for supported modulus sizes which precomputes the typenums for
-/// various point encodings so they don't need to be included as bounds.
+/// Trait for supported modulus sizes which precomputes the typenums for various point encodings so
+/// they don't need to be included as bounds.
 // TODO(tarcieri): replace this all with const generic expressions.
-pub trait ModulusSize: 'static + ArrayLength<u8> + Copy + Debug {
-    /// Size of a compressed point for the given elliptic curve when encoded
-    /// using the SEC1 `Elliptic-Curve-Point-to-Octet-String` algorithm
-    /// (including leading `0x02` or `0x03` tag byte).
-    type CompressedPointSize: 'static + ArrayLength<u8> + Copy + Debug;
+pub trait ModulusSize: ArraySize + Add<U1, Output = Self::CompressedPointSize> {
+    /// Size of a compressed point for the given elliptic curve when encoded using the SEC1
+    /// `Elliptic-Curve-Point-to-Octet-String` algorithm (including leading `0x02` or `0x03`
+    /// tag byte).
+    type CompressedPointSize: ArraySize + Add<Self, Output = Self::UncompressedPointSize>;
 
-    /// Size of an uncompressed point for the given elliptic curve when encoded
-    /// using the SEC1 `Elliptic-Curve-Point-to-Octet-String` algorithm
-    /// (including leading `0x04` tag byte).
-    type UncompressedPointSize: 'static + ArrayLength<u8> + Copy + Debug;
+    /// Size of an uncompressed point for the given elliptic curve when encoded using the SEC1
+    /// `Elliptic-Curve-Point-to-Octet-String` algorithm (including leading `0x04` tag byte).
+    type UncompressedPointSize: ArraySize;
 
-    /// Size of an untagged point for given elliptic curve, i.e. size of two
-    /// serialized base field elements.
-    type UntaggedPointSize: 'static + ArrayLength<u8> + Copy + Debug;
+    /// Size of an untagged point for given elliptic curve, i.e. size of two serialized base field
+    /// elements when concatenated.
+    type UntaggedPointSize: ArraySize + Sub<Self, Output = Self>;
 }
 
-macro_rules! impl_modulus_size {
-    ($($size:ty),+) => {
-        $(impl ModulusSize for $size {
-            type CompressedPointSize = <$size as Add<U1>>::Output;
-            type UncompressedPointSize = <Self::UntaggedPointSize as Add<U1>>::Output;
-            type UntaggedPointSize = <$size as Add>::Output;
-        })+
-    }
+impl<T> ModulusSize for T
+where
+    T: ArraySize,
+    T: Add<U1, Output: ArraySize>,
+    T: Add<T, Output: ArraySize + Sub<T, Output = T>>,
+    <T as Add<U1>>::Output: Add<T, Output: 'static + ArraySize>,
+{
+    type CompressedPointSize = <T as Add<U1>>::Output;
+    type UncompressedPointSize = <Self::CompressedPointSize as Add<T>>::Output;
+    type UntaggedPointSize = <T as Add<T>>::Output;
 }
-
-impl_modulus_size!(U24, U28, U32, U48, U66);
 
 /// SEC1 encoded curve point.
 ///
@@ -72,7 +65,7 @@ pub struct EncodedPoint<Size>
 where
     Size: ModulusSize,
 {
-    bytes: GenericArray<u8, Size::UncompressedPointSize>,
+    bytes: Array<u8, Size::UncompressedPointSize>,
 }
 
 #[allow(clippy::len_without_is_empty)]
@@ -103,7 +96,7 @@ where
             return Err(Error::PointEncoding);
         }
 
-        let mut bytes = GenericArray::default();
+        let mut bytes = Array::default();
         bytes[..expected_len].copy_from_slice(input);
         Ok(Self { bytes })
     }
@@ -111,16 +104,16 @@ where
     /// Decode elliptic curve point from raw uncompressed coordinates, i.e.
     /// encoded as the concatenated `x || y` coordinates with no leading SEC1
     /// tag byte (which would otherwise be `0x04` for an uncompressed point).
-    pub fn from_untagged_bytes(bytes: &GenericArray<u8, Size::UntaggedPointSize>) -> Self {
-        let (x, y) = bytes.split_at(Size::to_usize());
-        Self::from_affine_coordinates(x.into(), y.into(), false)
+    pub fn from_untagged_bytes(bytes: &Array<u8, Size::UntaggedPointSize>) -> Self {
+        let (x, y) = bytes.split_ref();
+        Self::from_affine_coordinates(x, y, false)
     }
 
     /// Encode an elliptic curve point from big endian serialized coordinates
     /// (with optional point compression)
     pub fn from_affine_coordinates(
-        x: &GenericArray<u8, Size>,
-        y: &GenericArray<u8, Size>,
+        x: &Array<u8, Size>,
+        y: &Array<u8, Size>,
         compress: bool,
     ) -> Self {
         let tag = if compress {
@@ -129,7 +122,7 @@ where
             Tag::Uncompressed
         };
 
-        let mut bytes = GenericArray::default();
+        let mut bytes = Array::default();
         bytes[0] = tag.into();
         bytes[1..(Size::to_usize() + 1)].copy_from_slice(x);
 
@@ -200,19 +193,20 @@ where
             return Coordinates::Identity;
         }
 
-        let (x, y) = self.bytes[1..].split_at(Size::to_usize());
+        let (x_bytes, y_bytes) = self.bytes[1..].split_at(Size::to_usize());
+        let x = x_bytes.try_into().expect("size invariants were violated");
 
         if self.is_compressed() {
             Coordinates::Compressed {
-                x: x.into(),
+                x,
                 y_is_odd: self.tag() as u8 & 1 == 1,
             }
         } else if self.is_compact() {
-            Coordinates::Compact { x: x.into() }
+            Coordinates::Compact { x }
         } else {
             Coordinates::Uncompressed {
-                x: x.into(),
-                y: y.into(),
+                x,
+                y: y_bytes.try_into().expect("size invariants were violated"),
             }
         }
     }
@@ -220,7 +214,7 @@ where
     /// Get the x-coordinate for this [`EncodedPoint`].
     ///
     /// Returns `None` if this point is the identity point.
-    pub fn x(&self) -> Option<&GenericArray<u8, Size>> {
+    pub fn x(&self) -> Option<&Array<u8, Size>> {
         match self.coordinates() {
             Coordinates::Identity => None,
             Coordinates::Compressed { x, .. } => Some(x),
@@ -232,7 +226,7 @@ where
     /// Get the y-coordinate for this [`EncodedPoint`].
     ///
     /// Returns `None` if this point is compressed or the identity point.
-    pub fn y(&self) -> Option<&GenericArray<u8, Size>> {
+    pub fn y(&self) -> Option<&Array<u8, Size>> {
         match self.coordinates() {
             Coordinates::Compressed { .. } | Coordinates::Identity => None,
             Coordinates::Uncompressed { y, .. } => Some(y),
@@ -251,27 +245,10 @@ where
     }
 }
 
-#[cfg(feature = "subtle")]
-impl<Size> ConditionallySelectable for EncodedPoint<Size>
-where
-    Size: ModulusSize,
-    <Size::UncompressedPointSize as ArrayLength<u8>>::ArrayType: Copy,
-{
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let mut bytes = GenericArray::default();
-
-        for (i, byte) in bytes.iter_mut().enumerate() {
-            *byte = u8::conditional_select(&a.bytes[i], &b.bytes[i], choice);
-        }
-
-        Self { bytes }
-    }
-}
-
 impl<Size> Copy for EncodedPoint<Size>
 where
     Size: ModulusSize,
-    <Size::UncompressedPointSize as ArrayLength<u8>>::ArrayType: Copy,
+    <Size::UncompressedPointSize as ArraySize>::ArrayType<u8>: Copy,
 {
 }
 
@@ -333,23 +310,12 @@ where
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl<Size> Zeroize for EncodedPoint<Size>
-where
-    Size: ModulusSize,
-{
-    fn zeroize(&mut self) {
-        self.bytes.zeroize();
-        *self = Self::identity();
-    }
-}
-
 impl<Size> fmt::Display for EncodedPoint<Size>
 where
     Size: ModulusSize,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:X}", self)
+        write!(f, "{self:X}")
     }
 }
 
@@ -382,10 +348,69 @@ where
     type Err = Error;
 
     fn from_str(hex: &str) -> Result<Self> {
-        let mut buf = GenericArray::<u8, Size::UncompressedPointSize>::default();
+        let mut buf = Array::<u8, Size::UncompressedPointSize>::default();
         base16ct::mixed::decode(hex, &mut buf)
             .map_err(|_| Error::PointEncoding)
             .and_then(Self::from_bytes)
+    }
+}
+
+#[cfg(feature = "ctutils")]
+impl<Size> CtAssign for EncodedPoint<Size>
+where
+    Size: ModulusSize,
+{
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        for (i, byte) in self.bytes.iter_mut().enumerate() {
+            byte.ct_assign(&other.bytes[i], choice);
+        }
+    }
+}
+#[cfg(feature = "ctutils")]
+impl<Size: ModulusSize> CtAssignSlice for EncodedPoint<Size> {}
+
+#[cfg(feature = "ctutils")]
+impl<Size> CtEq for EncodedPoint<Size>
+where
+    Size: ModulusSize,
+{
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.bytes.as_slice().ct_eq(other.bytes.as_slice())
+    }
+}
+#[cfg(feature = "ctutils")]
+impl<Size: ModulusSize> CtEqSlice for EncodedPoint<Size> {}
+
+#[cfg(feature = "ctutils")]
+impl<Size> CtSelect for EncodedPoint<Size>
+where
+    Size: ModulusSize,
+{
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
+        let mut bytes = Array::default();
+
+        for (i, byte) in bytes.iter_mut().enumerate() {
+            *byte = self.bytes[i].ct_select(&other.bytes[i], choice);
+        }
+
+        Self { bytes }
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<Size> subtle::ConditionallySelectable for EncodedPoint<Size>
+where
+    Size: ModulusSize,
+    <Size::UncompressedPointSize as ArraySize>::ArrayType<u8>: Copy,
+{
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        let mut bytes = Array::default();
+
+        for (i, byte) in bytes.iter_mut().enumerate() {
+            *byte = u8::conditional_select(&a.bytes[i], &b.bytes[i], choice);
+        }
+
+        Self { bytes }
     }
 }
 
@@ -416,6 +441,17 @@ where
     }
 }
 
+#[cfg(feature = "zeroize")]
+impl<Size> Zeroize for EncodedPoint<Size>
+where
+    Size: ModulusSize,
+{
+    fn zeroize(&mut self) {
+        self.bytes.zeroize();
+        *self = Self::identity();
+    }
+}
+
 /// Enum representing the coordinates of either compressed or uncompressed
 /// SEC1-encoded elliptic curve points.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -426,13 +462,13 @@ pub enum Coordinates<'a, Size: ModulusSize> {
     /// Compact curve point
     Compact {
         /// x-coordinate
-        x: &'a GenericArray<u8, Size>,
+        x: &'a Array<u8, Size>,
     },
 
     /// Compressed curve point
     Compressed {
         /// x-coordinate
-        x: &'a GenericArray<u8, Size>,
+        x: &'a Array<u8, Size>,
 
         /// Is the y-coordinate odd?
         y_is_odd: bool,
@@ -441,14 +477,14 @@ pub enum Coordinates<'a, Size: ModulusSize> {
     /// Uncompressed curve point
     Uncompressed {
         /// x-coordinate
-        x: &'a GenericArray<u8, Size>,
+        x: &'a Array<u8, Size>,
 
         /// y-coordinate
-        y: &'a GenericArray<u8, Size>,
+        y: &'a Array<u8, Size>,
     },
 }
 
-impl<'a, Size: ModulusSize> Coordinates<'a, Size> {
+impl<Size: ModulusSize> Coordinates<'_, Size> {
     /// Get the tag octet needed to encode this set of [`Coordinates`]
     pub fn tag(&self) -> Tag {
         match self {
@@ -552,11 +588,12 @@ impl From<Tag> for u8 {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::{Coordinates, Tag};
     use core::str::FromStr;
-    use generic_array::{typenum::U32, GenericArray};
     use hex_literal::hex;
+    use hybrid_array::typenum::U32;
 
     #[cfg(feature = "alloc")]
     use alloc::string::ToString;
@@ -570,7 +607,9 @@ mod tests {
     const IDENTITY_BYTES: [u8; 1] = [0];
 
     /// Example uncompressed point
-    const UNCOMPRESSED_BYTES: [u8; 65] = hex!("0411111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222");
+    const UNCOMPRESSED_BYTES: [u8; 65] = hex!(
+        "0411111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222"
+    );
 
     /// Example compressed point: `UNCOMPRESSED_BYTES` after point compression
     const COMPRESSED_BYTES: [u8; 33] =
@@ -599,7 +638,7 @@ mod tests {
 
         assert_eq!(
             compressed_even_y.x().unwrap(),
-            &hex!("0100000000000000000000000000000000000000000000000000000000000000").into()
+            &hex!("0100000000000000000000000000000000000000000000000000000000000000")
         );
         assert_eq!(compressed_even_y.y(), None);
 
@@ -624,7 +663,7 @@ mod tests {
 
         assert_eq!(
             compressed_odd_y.x().unwrap(),
-            &hex!("0200000000000000000000000000000000000000000000000000000000000000").into()
+            &hex!("0200000000000000000000000000000000000000000000000000000000000000")
         );
         assert_eq!(compressed_odd_y.y(), None);
     }
@@ -648,11 +687,11 @@ mod tests {
 
         assert_eq!(
             uncompressed_point.x().unwrap(),
-            &hex!("1111111111111111111111111111111111111111111111111111111111111111").into()
+            &hex!("1111111111111111111111111111111111111111111111111111111111111111")
         );
         assert_eq!(
             uncompressed_point.y().unwrap(),
-            &hex!("2222222222222222222222222222222222222222222222222222222222222222").into()
+            &hex!("2222222222222222222222222222222222222222222222222222222222222222")
         );
     }
 
@@ -699,9 +738,10 @@ mod tests {
 
     #[test]
     fn from_untagged_point() {
-        let untagged_bytes = hex!("11111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222");
-        let uncompressed_point =
-            EncodedPoint::from_untagged_bytes(GenericArray::from_slice(&untagged_bytes[..]));
+        let untagged_bytes = hex!(
+            "11111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222"
+        );
+        let uncompressed_point = EncodedPoint::from_untagged_bytes(&untagged_bytes.into());
         assert_eq!(uncompressed_point.as_bytes(), &UNCOMPRESSED_BYTES[..]);
     }
 

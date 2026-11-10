@@ -3,7 +3,7 @@
 // Adapter derived from noise-rust-crypto 0.6.2, originally licensed under the Unlicense.
 // https://github.com/sopium/noise-rust/blob/36bc85bd05db04b0d469843275ccafd848cddb99/noise-rust-crypto/src/lib.rs
 
-use chacha20poly1305::{AeadInPlace, KeyInit};
+use chacha20poly1305::{AeadInOut, KeyInit};
 use noise_protocol::Cipher;
 
 use crate::sensitive::Sensitive;
@@ -27,7 +27,7 @@ impl Cipher for ChaCha20Poly1305 {
         in_out.copy_from_slice(plaintext);
 
         let tag = chacha20poly1305::ChaCha20Poly1305::new(&(**k).into())
-            .encrypt_in_place_detached(&full_nonce.into(), ad, in_out)
+            .encrypt_inout_detached(&full_nonce.into(), ad, in_out.into())
             .unwrap();
 
         tag_out.copy_from_slice(tag.as_ref());
@@ -52,7 +52,7 @@ impl Cipher for ChaCha20Poly1305 {
         let (in_out, tag_out) = in_out[..plaintext_len + 16].split_at_mut(plaintext_len);
 
         let tag = chacha20poly1305::ChaCha20Poly1305::new(&(**k).into())
-            .encrypt_in_place_detached(&full_nonce.into(), ad, in_out)
+            .encrypt_inout_detached(&full_nonce.into(), ad, in_out.into())
             .unwrap();
         tag_out.copy_from_slice(tag.as_ref());
 
@@ -75,7 +75,7 @@ impl Cipher for ChaCha20Poly1305 {
         let tag = &ciphertext[out.len()..];
 
         chacha20poly1305::ChaCha20Poly1305::new(&(**k).into())
-            .decrypt_in_place_detached(&full_nonce.into(), ad, out, tag.into())
+            .decrypt_inout_detached(&full_nonce.into(), ad, out.into(), tag.try_into().unwrap())
             .map_err(|_| ())
     }
 
@@ -95,7 +95,12 @@ impl Cipher for ChaCha20Poly1305 {
         let (in_out, tag) = in_out[..ciphertext_len].split_at_mut(ciphertext_len - 16);
 
         chacha20poly1305::ChaCha20Poly1305::new(&(**k).into())
-            .decrypt_in_place_detached(&full_nonce.into(), ad, in_out, tag.as_ref().into())
+            .decrypt_inout_detached(
+                &full_nonce.into(),
+                ad,
+                in_out.into(),
+                tag.as_ref().try_into().unwrap(),
+            )
             .map_err(|_| ())?;
 
         Ok(in_out.len())

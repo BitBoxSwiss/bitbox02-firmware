@@ -15,8 +15,8 @@ on:
         type: string
 env:
   CARGOFLAGS: "--locked"
-  # RUSTFLAGS replaces .cargo/config.toml, so repeat the required secp256k1 cfg.
-  RUSTFLAGS: "-Dwarnings --cfg=rust_secp_no_symbol_renaming"
+  # RUSTFLAGS replaces .cargo/config.toml, so repeat the secp256k1 and compact SHA-2 cfgs.
+  RUSTFLAGS: '-Dwarnings --cfg=rust_secp_no_symbol_renaming --cfg=sha2_backend="soft" --cfg=sha2_backend_soft="compact"'
   CFLAGS: "-Werror"
 
 jobs:

@@ -1,105 +1,32 @@
-//! An implementation of the [BLAKE2][1] hash functions.
-//!
-//! # Usage
-//!
-//! [`Blake2b512`] and [`Blake2s256`] can be used in the following way:
-//!
-//! ```rust
-//! use blake2::{Blake2b512, Blake2s256, Digest};
-//! use hex_literal::hex;
-//!
-//! // create a Blake2b512 object
-//! let mut hasher = Blake2b512::new();
-//!
-//! // write input message
-//! hasher.update(b"hello world");
-//!
-//! // read hash digest and consume hasher
-//! let res = hasher.finalize();
-//! assert_eq!(res[..], hex!("
-//!     021ced8799296ceca557832ab941a50b4a11f83478cf141f51f933f653ab9fbc
-//!     c05a037cddbed06e309bf334942c4e58cdf1a46e237911ccd7fcf9787cbc7fd0
-//! ")[..]);
-//!
-//! // same example for Blake2s256:
-//! let mut hasher = Blake2s256::new();
-//! hasher.update(b"hello world");
-//! let res = hasher.finalize();
-//! assert_eq!(res[..], hex!("
-//!     9aec6806794561107e594b1f6a8a6b0c92a0cba9acf5e5e93cca06f781813b0b
-//! ")[..]);
-//! ```
-//!
-//! Also see [RustCrypto/hashes](https://github.com/RustCrypto/hashes) readme.
-//!
-//! ## Variable output size
-//!
-//! This implementation supports run and compile time variable sizes.
-//!
-//! Run time variable output example:
-//! ```rust
-//! use blake2::Blake2bVar;
-//! use blake2::digest::{Update, VariableOutput};
-//! use hex_literal::hex;
-//!
-//! let mut hasher = Blake2bVar::new(10).unwrap();
-//! hasher.update(b"my_input");
-//! let mut buf = [0u8; 10];
-//! hasher.finalize_variable(&mut buf).unwrap();
-//! assert_eq!(buf, hex!("2cc55c84e416924e6400"));
-//! ```
-//!
-//! Compile time variable output example:
-//! ```rust
-//! use blake2::{Blake2b, Digest, digest::consts::U10};
-//! use hex_literal::hex;
-//!
-//! type Blake2b80 = Blake2b<U10>;
-//!
-//! let mut hasher = Blake2b80::new();
-//! hasher.update(b"my_input");
-//! let res = hasher.finalize();
-//! assert_eq!(res[..], hex!("2cc55c84e416924e6400")[..]);
-//! ```
-//!
-//! # Acknowledgment
-//! Based on the [blake2-rfc][2] crate.
-//!
-//! [1]: https://en.wikipedia.org/wiki/BLAKE_(hash_function)#BLAKE2
-//! [2]: https://github.com/cesarb/blake2-rfc
-
 #![no_std]
+#![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
 )]
-#![warn(missing_docs, rust_2018_idioms)]
-#![cfg_attr(feature = "simd", feature(platform_intrinsics, repr_simd))]
-#![cfg_attr(feature = "simd", allow(incomplete_features))]
-
-#[cfg(feature = "std")]
-extern crate std;
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub use digest::{self, Digest};
 
-use core::{convert::TryInto, fmt, marker::PhantomData, ops::Div};
+use core::{fmt, marker::PhantomData, ops::Div};
 use digest::{
-    block_buffer::{Lazy, LazyBuffer},
-    consts::{U128, U32, U4, U64},
-    core_api::{
-        AlgorithmName, Block, BlockSizeUser, Buffer, BufferKindUser, CoreWrapper,
-        CtVariableCoreWrapper, OutputSizeUser, RtVariableCoreWrapper, TruncSide, UpdateCore,
-        VariableOutputCore,
+    CustomizedInit, FixedOutput, HashMarker, InvalidOutputSize, MacMarker, Output, Update,
+    array::{Array, ArraySize},
+    block_api::{
+        AlgorithmName, Block, BlockSizeUser, Buffer, BufferKindUser, OutputSizeUser, TruncSide,
+        UpdateCore, VariableOutputCore, VariableOutputCoreCustomized,
     },
-    crypto_common::{InvalidLength, Key, KeyInit, KeySizeUser},
-    generic_array::{ArrayLength, GenericArray},
-    typenum::{IsLessOrEqual, LeEq, NonZero, Unsigned},
-    FixedOutput, HashMarker, InvalidOutputSize, MacMarker, Output, Update,
+    block_buffer::{Lazy, LazyBuffer},
+    common::{InvalidLength, Key, KeyInit, KeySizeUser},
+    consts::{U4, U16, U32, U64, U128},
+    typenum::{IsLessOrEqual, True, Unsigned},
 };
 #[cfg(feature = "reset")]
 use digest::{FixedOutputReset, Reset};
 
-mod as_bytes;
+#[cfg(feature = "zeroize")]
+use digest::zeroize::{Zeroize, ZeroizeOnDrop};
+
 mod consts;
 
 mod simd;
@@ -107,9 +34,8 @@ mod simd;
 #[macro_use]
 mod macros;
 
-use as_bytes::AsBytes;
 use consts::{BLAKE2B_IV, BLAKE2S_IV};
-use simd::{u32x4, u64x4, Vector4};
+use simd::{u32x4, u64x4};
 
 blake2_impl!(
     Blake2bVarCore,
@@ -127,12 +53,30 @@ blake2_impl!(
     "Blake2b instance with a fixed output.",
 );
 
-/// BLAKE2b which allows to choose output size at runtime.
-pub type Blake2bVar = RtVariableCoreWrapper<Blake2bVarCore>;
-/// Core hasher state of BLAKE2b generic over output size.
-pub type Blake2bCore<OutSize> = CtVariableCoreWrapper<Blake2bVarCore, OutSize>;
-/// BLAKE2b generic over output size.
-pub type Blake2b<OutSize> = CoreWrapper<Blake2bCore<OutSize>>;
+digest::buffer_ct_variable!(
+    /// BLAKE2b generic over output size.
+    pub struct Blake2b<OutSize>(Blake2bVarCore);
+    exclude: SerializableState;
+    max_size: U64;
+);
+
+// TODO: impl in the macro
+impl<OutSize> CustomizedInit for Blake2b<OutSize>
+where
+    OutSize: ArraySize + IsLessOrEqual<U64, Output = True>,
+{
+    fn new_customized(customization: &[u8]) -> Self {
+        Self {
+            core: CustomizedInit::new_customized(customization),
+            buffer: Default::default(),
+        }
+    }
+}
+
+/// BLAKE2b-128 hasher state.
+pub type Blake2b128 = Blake2b<U16>;
+/// BLAKE2b-256 hasher state.
+pub type Blake2b256 = Blake2b<U32>;
 /// BLAKE2b-512 hasher state.
 pub type Blake2b512 = Blake2b<U64>;
 
@@ -157,12 +101,28 @@ blake2_impl!(
     "Blake2s instance with a fixed output.",
 );
 
-/// BLAKE2s which allows to choose output size at runtime.
-pub type Blake2sVar = RtVariableCoreWrapper<Blake2sVarCore>;
-/// Core hasher state of BLAKE2s generic over output size.
-pub type Blake2sCore<OutSize> = CtVariableCoreWrapper<Blake2sVarCore, OutSize>;
-/// BLAKE2s generic over output size.
-pub type Blake2s<OutSize> = CoreWrapper<Blake2sCore<OutSize>>;
+digest::buffer_ct_variable!(
+    /// BLAKE2s generic over output size.
+    pub struct Blake2s<OutSize>(Blake2sVarCore);
+    exclude: SerializableState;
+    max_size: U32;
+);
+
+// TODO: impl in the macro
+impl<OutSize> CustomizedInit for Blake2s<OutSize>
+where
+    OutSize: ArraySize + IsLessOrEqual<U32, Output = True>,
+{
+    fn new_customized(customization: &[u8]) -> Self {
+        Self {
+            core: CustomizedInit::new_customized(customization),
+            buffer: Default::default(),
+        }
+    }
+}
+
+/// BLAKE2s-128 hasher state.
+pub type Blake2s128 = Blake2s<U16>;
 /// BLAKE2s-256 hasher state.
 pub type Blake2s256 = Blake2s<U32>;
 

@@ -1,11 +1,12 @@
 //! PEM decoding and encoding tests.
 
 #![cfg(all(feature = "derive", feature = "oid", feature = "pem"))]
+#![allow(missing_docs)]
 
 use der::{
+    Any, Decode, DecodePem, EncodePem, Sequence,
     asn1::{BitString, ObjectIdentifier},
     pem::{LineEnding, PemLabel},
-    Decode, DecodePem, EncodePem, Sequence,
 };
 
 /// Example SPKI document encoded as DER.
@@ -15,14 +16,14 @@ const SPKI_DER: &[u8] = include_bytes!("examples/spki.der");
 const SPKI_PEM: &str = include_str!("examples/spki.pem");
 
 /// X.509 `AlgorithmIdentifier`
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Sequence)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct AlgorithmIdentifier {
     pub algorithm: ObjectIdentifier,
-    // pub parameters: ... (not used in spki.pem)
+    pub parameters: Option<Any>,
 }
 
 /// X.509 `SubjectPublicKeyInfo` (SPKI) in borrowed form
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Sequence)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct SpkiBorrowed<'a> {
     pub algorithm: AlgorithmIdentifier,
     #[asn1(type = "BIT STRING")]
@@ -62,6 +63,20 @@ fn from_pem() {
 #[test]
 fn to_pem() {
     let spki = SpkiBorrowed::from_der(SPKI_DER).unwrap();
-    let pem = spki.to_pem(LineEnding::LF).unwrap();
+    let pem = spki.to_pem(LineEnding::default()).unwrap();
     assert_eq!(&pem, SPKI_PEM);
+}
+
+#[test]
+fn read_zero_slices_from_pem() {
+    let spki = SpkiOwned {
+        algorithm: AlgorithmIdentifier {
+            algorithm: ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11"),
+            parameters: Some(Any::null()),
+        },
+        subject_public_key: BitString::new(0, []).unwrap(),
+    };
+
+    let pem = spki.to_pem(LineEnding::LF).unwrap();
+    SpkiOwned::from_pem(pem).unwrap();
 }

@@ -2,9 +2,9 @@
 
 use super::SecretKey;
 use crate::{
-    pkcs8::{self, der::Decode, AssociatedOid},
+    ALGORITHM_OID, Curve, FieldBytesSize,
+    pkcs8::{AssociatedOid, der::Decode},
     sec1::{ModulusSize, ValidatePublicKey},
-    Curve, FieldBytesSize, ALGORITHM_OID,
 };
 use pkcs8::spki::{AlgorithmIdentifier, AssociatedAlgorithmIdentifier, ObjectIdentifier};
 use sec1::EcPrivateKey;
@@ -13,16 +13,20 @@ use sec1::EcPrivateKey;
 #[cfg(all(feature = "alloc", feature = "arithmetic"))]
 use {
     crate::{
-        sec1::{FromEncodedPoint, ToEncodedPoint},
         AffinePoint, CurveArithmetic,
+        sec1::{FromSec1Point, ToSec1Point},
     },
-    pkcs8::{der, EncodePrivateKey},
+    pkcs8::{
+        EncodePrivateKey,
+        der::{self, Encode, asn1::OctetStringRef},
+    },
+    zeroize::Zeroizing,
 };
 
 // Imports for actual PEM support
 #[cfg(feature = "pem")]
 use {
-    crate::{error::Error, Result},
+    crate::{Result, error::Error},
     core::str::FromStr,
     pkcs8::DecodePrivateKey,
 };
@@ -39,20 +43,19 @@ where
     };
 }
 
-impl<C> TryFrom<pkcs8::PrivateKeyInfo<'_>> for SecretKey<C>
+impl<C> TryFrom<pkcs8::PrivateKeyInfoRef<'_>> for SecretKey<C>
 where
     C: AssociatedOid + Curve + ValidatePublicKey,
     FieldBytesSize<C>: ModulusSize,
 {
     type Error = pkcs8::Error;
 
-    fn try_from(private_key_info: pkcs8::PrivateKeyInfo<'_>) -> pkcs8::Result<Self> {
+    fn try_from(private_key_info: pkcs8::PrivateKeyInfoRef<'_>) -> pkcs8::Result<Self> {
         private_key_info
             .algorithm
             .assert_oids(ALGORITHM_OID, C::OID)?;
 
-        let ec_private_key = EcPrivateKey::from_der(private_key_info.private_key)?;
-        Ok(Self::try_from(ec_private_key)?)
+        Ok(EcPrivateKey::from_der(private_key_info.private_key.as_bytes())?.try_into()?)
     }
 }
 
@@ -60,18 +63,31 @@ where
 impl<C> EncodePrivateKey for SecretKey<C>
 where
     C: AssociatedOid + CurveArithmetic,
-    AffinePoint<C>: FromEncodedPoint<C> + ToEncodedPoint<C>,
+    AffinePoint<C>: FromSec1Point<C> + ToSec1Point<C>,
     FieldBytesSize<C>: ModulusSize,
 {
     fn to_pkcs8_der(&self) -> pkcs8::Result<der::SecretDocument> {
-        // TODO(tarcieri): make `PrivateKeyInfo` generic around `Params`
         let algorithm_identifier = pkcs8::AlgorithmIdentifierRef {
             oid: ALGORITHM_OID,
             parameters: Some((&C::OID).into()),
         };
 
-        let ec_private_key = self.to_sec1_der()?;
-        let pkcs8_key = pkcs8::PrivateKeyInfo::new(algorithm_identifier, &ec_private_key);
+        let private_key_bytes = Zeroizing::new(self.to_bytes());
+        let public_key_bytes = self.public_key().to_sec1_point(false);
+
+        let ec_private_key = Zeroizing::new(
+            EcPrivateKey {
+                private_key: &private_key_bytes,
+                parameters: None,
+                public_key: Some(public_key_bytes.as_bytes()),
+            }
+            .to_der()?,
+        );
+
+        let pkcs8_key = pkcs8::PrivateKeyInfoRef::new(
+            algorithm_identifier,
+            OctetStringRef::new(&ec_private_key)?,
+        );
         Ok(der::SecretDocument::encode_msg(&pkcs8_key)?)
     }
 }

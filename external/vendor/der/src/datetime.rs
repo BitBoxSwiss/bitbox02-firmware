@@ -11,6 +11,7 @@ use core::{fmt, str::FromStr, time::Duration};
 #[cfg(feature = "std")]
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use const_range::const_contains_u8;
 #[cfg(feature = "time")]
 use time::PrimitiveDateTime;
 
@@ -69,18 +70,45 @@ impl DateTime {
     };
 
     /// Create a new [`DateTime`] from the given UTC time components.
+    ///
+    /// # Errors
+    /// Returns [`Error`] with [`ErrorKind::DateTime`] in the event the date is invalid.
+    pub const fn new(
+        year: u16,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minutes: u8,
+        seconds: u8,
+    ) -> Result<Self> {
+        match Self::from_ymd_hms(year, month, day, hour, minutes, seconds) {
+            Some(date) => Ok(date),
+            None => Err(Error::from_kind(ErrorKind::DateTime)),
+        }
+    }
+
+    /// Create a new [`DateTime`] from the given UTC time components.
+    ///
+    /// Returns `None` if the value is outside the supported date range.
     // TODO(tarcieri): checked arithmetic
-    #[allow(clippy::integer_arithmetic)]
-    pub fn new(year: u16, month: u8, day: u8, hour: u8, minutes: u8, seconds: u8) -> Result<Self> {
+    #[allow(clippy::arithmetic_side_effects)]
+    pub(crate) const fn from_ymd_hms(
+        year: u16,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minutes: u8,
+        seconds: u8,
+    ) -> Option<Self> {
         // Basic validation of the components.
         if year < MIN_YEAR
-            || !(1..=12).contains(&month)
-            || !(1..=31).contains(&day)
-            || !(0..=23).contains(&hour)
-            || !(0..=59).contains(&minutes)
-            || !(0..=59).contains(&seconds)
+            || !const_contains_u8(1..=12, month)
+            || !const_contains_u8(1..=31, day)
+            || !const_contains_u8(0..=23, hour)
+            || !const_contains_u8(0..=59, minutes)
+            || !const_contains_u8(0..=59, seconds)
         {
-            return Err(ErrorKind::DateTime.into());
+            return None;
         }
 
         let leap_years =
@@ -102,28 +130,28 @@ impl DateTime {
             10 => (273, 31),
             11 => (304, 30),
             12 => (334, 31),
-            _ => return Err(ErrorKind::DateTime.into()),
+            _ => return None,
         };
 
         if day > mdays || day == 0 {
-            return Err(ErrorKind::DateTime.into());
+            return None;
         }
 
-        ydays += u16::from(day) - 1;
+        ydays += day as u16 - 1;
 
         if is_leap_year && month > 2 {
             ydays += 1;
         }
 
-        let days = u64::from(year - 1970) * 365 + u64::from(leap_years) + u64::from(ydays);
-        let time = u64::from(seconds) + (u64::from(minutes) * 60) + (u64::from(hour) * 3600);
+        let days = ((year - 1970) as u64) * 365 + leap_years as u64 + ydays as u64;
+        let time = seconds as u64 + (minutes as u64 * 60) + (hour as u64 * 3600);
         let unix_duration = Duration::from_secs(time + days * 86400);
 
-        if unix_duration > MAX_UNIX_DURATION {
-            return Err(ErrorKind::DateTime.into());
+        if unix_duration.as_secs() > MAX_UNIX_DURATION.as_secs() {
+            return None;
         }
 
-        Ok(Self {
+        Some(Self {
             year,
             month,
             day,
@@ -136,9 +164,10 @@ impl DateTime {
 
     /// Compute a [`DateTime`] from the given [`Duration`] since the `UNIX_EPOCH`.
     ///
-    /// Returns `None` if the value is outside the supported date range.
+    /// # Errors
+    /// Returns error if the value is outside the supported date range.
     // TODO(tarcieri): checked arithmetic
-    #[allow(clippy::integer_arithmetic)]
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn from_unix_duration(unix_duration: Duration) -> Result<Self> {
         if unix_duration > MAX_UNIX_DURATION {
             return Err(ErrorKind::DateTime.into());
@@ -216,41 +245,51 @@ impl DateTime {
     }
 
     /// Get the year.
+    #[must_use]
     pub fn year(&self) -> u16 {
         self.year
     }
 
     /// Get the month.
+    #[must_use]
     pub fn month(&self) -> u8 {
         self.month
     }
 
     /// Get the day.
+    #[must_use]
     pub fn day(&self) -> u8 {
         self.day
     }
 
     /// Get the hour.
+    #[must_use]
     pub fn hour(&self) -> u8 {
         self.hour
     }
 
     /// Get the minutes.
+    #[must_use]
     pub fn minutes(&self) -> u8 {
         self.minutes
     }
 
     /// Get the seconds.
+    #[must_use]
     pub fn seconds(&self) -> u8 {
         self.seconds
     }
 
     /// Compute [`Duration`] since `UNIX_EPOCH` from the given calendar date.
+    #[must_use]
     pub fn unix_duration(&self) -> Duration {
         self.unix_duration
     }
 
     /// Instantiate from [`SystemTime`].
+    ///
+    /// # Errors
+    /// If a time conversion error occurred.
     #[cfg(feature = "std")]
     pub fn from_system_time(time: SystemTime) -> Result<Self> {
         time.duration_since(UNIX_EPOCH)
@@ -260,6 +299,7 @@ impl DateTime {
 
     /// Convert to [`SystemTime`].
     #[cfg(feature = "std")]
+    #[must_use]
     pub fn to_system_time(&self) -> SystemTime {
         UNIX_EPOCH + self.unix_duration()
     }
@@ -270,10 +310,30 @@ impl FromStr for DateTime {
 
     fn from_str(s: &str) -> Result<Self> {
         match *s.as_bytes() {
-            [year1, year2, year3, year4, b'-', month1, month2, b'-', day1, day2, b'T', hour1, hour2, b':', min1, min2, b':', sec1, sec2, b'Z'] =>
-            {
+            [
+                year1,
+                year2,
+                year3,
+                year4,
+                b'-',
+                month1,
+                month2,
+                b'-',
+                day1,
+                day2,
+                b'T',
+                hour1,
+                hour2,
+                b':',
+                min1,
+                min2,
+                b':',
+                sec1,
+                sec2,
+                b'Z',
+            ] => {
                 let tag = Tag::GeneralizedTime;
-                let year = decode_year(&[year1, year2, year3, year4])?;
+                let year = decode_year([year1, year2, year3, year4])?;
                 let month = decode_decimal(tag, month1, month2).map_err(|_| ErrorKind::DateTime)?;
                 let day = decode_decimal(tag, day1, day2).map_err(|_| ErrorKind::DateTime)?;
                 let hour = decode_decimal(tag, hour1, hour2).map_err(|_| ErrorKind::DateTime)?;
@@ -376,12 +436,12 @@ impl<'a> arbitrary::Arbitrary<'a> for DateTime {
 
 /// Decode 2-digit decimal value
 // TODO(tarcieri): checked arithmetic
-#[allow(clippy::integer_arithmetic)]
+#[allow(clippy::arithmetic_side_effects)]
 pub(crate) fn decode_decimal(tag: Tag, hi: u8, lo: u8) -> Result<u8> {
     if hi.is_ascii_digit() && lo.is_ascii_digit() {
         Ok((hi - b'0') * 10 + (lo - b'0'))
     } else {
-        Err(tag.value_error())
+        Err(tag.value_error().into())
     }
 }
 
@@ -393,7 +453,7 @@ where
     let hi_val = value / 10;
 
     if hi_val >= 10 {
-        return Err(tag.value_error());
+        return Err(tag.value_error().into());
     }
 
     writer.write_byte(b'0'.checked_add(hi_val).ok_or(ErrorKind::Overflow)?)?;
@@ -402,15 +462,26 @@ where
 
 /// Decode 4-digit year.
 // TODO(tarcieri): checked arithmetic
-#[allow(clippy::integer_arithmetic)]
-fn decode_year(year: &[u8; 4]) -> Result<u16> {
+#[allow(clippy::arithmetic_side_effects)]
+fn decode_year(year: [u8; 4]) -> Result<u16> {
     let tag = Tag::GeneralizedTime;
     let hi = decode_decimal(tag, year[0], year[1]).map_err(|_| ErrorKind::DateTime)?;
     let lo = decode_decimal(tag, year[2], year[3]).map_err(|_| ErrorKind::DateTime)?;
     Ok(u16::from(hi) * 100 + u16::from(lo))
 }
 
+mod const_range {
+    use core::ops::RangeInclusive;
+
+    /// const [`RangeInclusive::contains`]
+    #[inline]
+    pub const fn const_contains_u8(range: RangeInclusive<u8>, item: u8) -> bool {
+        item >= *range.start() && item <= *range.end()
+    }
+}
+
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::DateTime;
 
@@ -424,6 +495,29 @@ mod tests {
         assert!(is_date_valid(2000, 2, 29, 0, 0, 0));
         assert!(!is_date_valid(2001, 2, 29, 0, 0, 0));
         assert!(!is_date_valid(2100, 2, 29, 0, 0, 0));
+    }
+
+    #[test]
+    fn invalid_dates() {
+        assert!(!is_date_valid(2, 3, 25, 0, 0, 0));
+
+        assert!(is_date_valid(1970, 1, 26, 0, 0, 0));
+        assert!(!is_date_valid(1969, 1, 26, 0, 0, 0));
+        assert!(!is_date_valid(1968, 1, 26, 0, 0, 0));
+        assert!(!is_date_valid(1600, 1, 26, 0, 0, 0));
+
+        assert!(is_date_valid(2039, 2, 27, 0, 0, 0));
+        assert!(!is_date_valid(2039, 2, 27, 255, 0, 0));
+        assert!(!is_date_valid(2039, 2, 27, 0, 255, 0));
+        assert!(!is_date_valid(2039, 2, 27, 0, 0, 255));
+
+        assert!(is_date_valid(2055, 12, 31, 0, 0, 0));
+        assert!(is_date_valid(2055, 12, 31, 23, 0, 0));
+        assert!(!is_date_valid(2055, 12, 31, 24, 0, 0));
+        assert!(is_date_valid(2055, 12, 31, 0, 59, 0));
+        assert!(!is_date_valid(2055, 12, 31, 0, 60, 0));
+        assert!(is_date_valid(2055, 12, 31, 0, 0, 59));
+        assert!(!is_date_valid(2055, 12, 31, 0, 0, 60));
     }
 
     #[test]
@@ -441,7 +535,7 @@ mod tests {
     #[test]
     fn display() {
         use alloc::string::ToString;
-        let datetime = DateTime::new(2001, 01, 02, 12, 13, 14).unwrap();
+        let datetime = DateTime::new(2001, 1, 2, 12, 13, 14).unwrap();
         assert_eq!(&datetime.to_string(), "2001-01-02T12:13:14Z");
     }
 }

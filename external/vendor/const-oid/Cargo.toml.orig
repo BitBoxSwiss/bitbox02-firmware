@@ -1,6 +1,6 @@
 [package]
 name = "const-oid"
-version = "0.9.6"
+version = "0.10.2"
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
 description = """
@@ -9,21 +9,23 @@ as defined in ITU X.660, with support for BER/DER encoding/decoding as well as
 heapless no_std (i.e. embedded) support
 """
 documentation = "https://docs.rs/const-oid"
-repository = "https://github.com/RustCrypto/formats/tree/master/const-oid"
+homepage = "https://github.com/RustCrypto/formats/tree/master/const-oid"
+repository = "https://github.com/RustCrypto/formats"
 categories = ["cryptography", "data-structures", "encoding", "no-std", "parser-implementations"]
 keywords = ["iso", "iec", "itu", "oid"]
 readme = "README.md"
-edition = "2021"
-rust-version = "1.57"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
-arbitrary = { version = "1.2", optional = true, features = ["derive"] }
+arbitrary = { version = "1.4", optional = true, features = ["derive"] }
 
 [dev-dependencies]
-hex-literal = "0.3"
+hex-literal = "1"
+proptest = "1"
+regex = "1"
 
 [features]
-std = []
 db = []
 
 [package.metadata.docs.rs]

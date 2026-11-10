@@ -4,6 +4,7 @@
 compile_error!("Cardano code is being compiled even though the app-cardano feature is not enabled");
 
 mod address;
+mod blake2b;
 pub mod keypath;
 mod params;
 mod sign_transaction;

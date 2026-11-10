@@ -15,7 +15,8 @@ use pb::cardano_script_config::Config;
 
 use bitcoin::bech32;
 
-use blake2::{Blake2b, Digest, digest::consts::U28};
+use super::blake2b::Blake2b;
+use digest::Update;
 
 use super::params;
 
@@ -304,9 +305,11 @@ pub async fn pubkey_hash_at_keypath(
 ) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
     let xpub = crate::keystore::ed25519::get_xpub_twice(hal, keypath).await?;
     let pubkey_bytes = xpub.pubkey_bytes();
-    let mut hasher = Blake2b::<U28>::new();
+    let mut hasher = Blake2b::new(ADDRESS_HASH_SIZE);
     hasher.update(pubkey_bytes);
-    Ok(hasher.finalize().into())
+    let mut output = [0u8; ADDRESS_HASH_SIZE];
+    hasher.finalize(&mut output);
+    Ok(output)
 }
 
 /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L119-L127

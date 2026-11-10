@@ -12,7 +12,8 @@ use alloc::vec::Vec;
 
 use bitcoin::bech32;
 
-use blake2::{Blake2b, Blake2b256, Digest, digest::consts::U20};
+use super::blake2b::Blake2b;
+use digest::Update;
 
 use crate::hal::Ui;
 use crate::i18n::I18n as _;
@@ -95,10 +96,11 @@ async fn verify_slot(
 /// Format an asset fingerprint according to CIP-14.
 /// https://github.com/cardano-foundation/CIPs/blob/a2ef32d8a2b485fed7f6ffde2781dd58869ff511/CIP-0014/README.md
 fn format_asset(policy_id: &[u8], asset_name: &[u8]) -> String {
-    let mut hasher = Blake2b::<U20>::new();
+    let mut hasher = Blake2b::new(20);
     hasher.update(policy_id);
     hasher.update(asset_name);
-    let hash: [u8; 20] = hasher.finalize().into();
+    let mut hash = [0u8; 20];
+    hasher.finalize(&mut hash);
     bech32::encode::<bech32::Bech32>(bech32::Hrp::parse_unchecked("asset"), &hash).unwrap()
 }
 
@@ -332,10 +334,12 @@ async fn _process(
     hal.ui().status(&status, true).await;
 
     let tx_body_hash: [u8; 32] = {
-        let mut hasher = Blake2b256::new();
+        let mut hasher = Blake2b::new(32);
         cbor::encode_transaction_body(hal, request, cbor::HashedWriter::new(&mut hasher)).await?;
 
-        hasher.finalize().into()
+        let mut output = [0u8; 32];
+        hasher.finalize(&mut output);
+        output
     };
 
     signing_keypaths.sort_unstable();

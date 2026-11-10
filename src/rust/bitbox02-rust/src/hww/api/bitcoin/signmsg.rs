@@ -23,7 +23,7 @@ use bitcoin::consensus::encode::{VarInt, serialize};
 use bitcoin::hashes::Hash as _;
 use util::bip32::HARDENED;
 
-const MAX_MESSAGE_SIZE: usize = 1024;
+pub(super) const MAX_MESSAGE_SIZE: usize = 1024;
 const MAX_KEYPATH_DEPTH: usize = 10;
 const EXTERNAL_SERVICE_PURPOSE_M45: u32 = 45 + HARDENED;
 const EXTERNAL_SERVICE_PURPOSE_M48: u32 = 48 + HARDENED;

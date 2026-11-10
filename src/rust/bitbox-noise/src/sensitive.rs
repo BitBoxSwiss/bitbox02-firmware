@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+
+// Derived from noise-rust-crypto 0.6.2, originally licensed under the Unlicense.
+// https://github.com/sopium/noise-rust/blob/36bc85bd05db04b0d469843275ccafd848cddb99/noise-rust-crypto/src/sensitive.rs
+
 use noise_protocol::U8Array;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -12,6 +17,7 @@ impl<A: U8Array + Zeroize> Sensitive<A> {
 
 impl<A: U8Array + Zeroize> core::ops::Deref for Sensitive<A> {
     type Target = A;
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -23,10 +29,7 @@ impl<A: U8Array + Zeroize> core::ops::DerefMut for Sensitive<A> {
     }
 }
 
-impl<A> U8Array for Sensitive<A>
-where
-    A: Zeroize + U8Array,
-{
+impl<A: U8Array + Zeroize> U8Array for Sensitive<A> {
     fn new() -> Self {
         Sensitive::from(Zeroizing::new(A::new()))
     }

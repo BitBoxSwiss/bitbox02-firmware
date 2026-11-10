@@ -11,11 +11,14 @@
 #[macro_use]
 extern crate std;
 
+mod chacha20poly1305;
 mod noise_xx;
+mod sensitive;
+mod sha256;
 pub mod testing;
 mod x25519;
 
 pub use noise_xx::{Error, HandshakeHash, HandshakeResult, State};
 pub use x25519::{X25519, genkey};
 
-pub use noise_rust_crypto::sensitive::Sensitive;
+pub use sensitive::Sensitive;

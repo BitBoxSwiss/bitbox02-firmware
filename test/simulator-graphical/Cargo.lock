@@ -353,9 +353,11 @@ name = "bitbox-noise"
 version = "0.1.0"
 dependencies = [
  "bitbox-hal",
+ "chacha20poly1305",
  "noise-protocol",
- "noise-rust-crypto",
+ "sha2",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -1929,18 +1931,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2473d39689a839f5a363aaef7d99f76d5611bf352286682b25a6644fec18b1d3"
 dependencies = [
  "arrayvec",
-]
-
-[[package]]
-name = "noise-rust-crypto"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c6159f60beb3bbbcdc266bc789bfc6c37fdad7d7ca7152d3e049ef5af633f0"
-dependencies = [
- "chacha20poly1305",
- "noise-protocol",
- "sha2",
- "zeroize",
 ]
 
 [[package]]

@@ -5,8 +5,10 @@ use alloc::vec::Vec;
 
 use bitbox_hal::Random;
 
+use crate::chacha20poly1305::ChaCha20Poly1305;
+use crate::sensitive::Sensitive;
+use crate::sha256::Sha256;
 use crate::x25519::{PrivateKey, PublicKey, X25519, genkey};
-use noise_rust_crypto::{ChaCha20Poly1305, Sha256, sensitive::Sensitive};
 
 /// Specialization of noise_protocol::HandshakeState, picking the implementations for Diffie
 /// Hellman, Cipher and Hash.
@@ -226,6 +228,8 @@ impl State {
 mod tests {
     use super::*;
     use crate::testing::{MockRandom, make_mock_host};
+    use hex_lit::hex;
+    use noise_protocol::U8Array;
 
     impl HandshakeResult {
         fn response(self) -> Result<Vec<u8>, ()> {
@@ -278,5 +282,69 @@ mod tests {
         assert_eq!(&prefix, b"prefix");
         let decrypted = host_recv.decrypt_vec(encrypted).unwrap();
         assert_eq!(decrypted, b"message from bb02");
+    }
+
+    #[test]
+    fn test_handshake_reference_vector() {
+        // Noise_XX_25519_ChaChaPoly_SHA256 from:
+        // https://github.com/rweather/noise-c/blob/cfe25410979a87391bb9ac8d4d4bef64e9f268c6/tests/vector/noise-c-basic.txt
+        let mut host = HandshakeState::new(
+            noise_protocol::patterns::noise_xx(),
+            true,
+            b"Prologue123",
+            Some(Sensitive::from_slice(&hex!(
+                "e61ef9919cde45dd5f82166404bd08e38bceb5dfdfded0a34c8df7ed542214d1"
+            ))),
+            Some(Sensitive::from_slice(&hex!(
+                "893e28b9dc6ca8d611ab664754b8ceb7bac5117349a4439a6b0569da977c464a"
+            ))),
+            None,
+            None,
+        );
+        assert_eq!(
+            host.write_message_vec(b"Ludwig von Mises").unwrap(),
+            hex!(
+                "ca35def5ae56cec33dc2036731ab14896bc4c75dbb07a61f879f8e3afa4c79444c756477696720766f6e204d69736573"
+            )
+        );
+        assert_eq!(
+            host.read_message_vec(&hex!(
+                "95ebc60d2b1fa672c1f46a8aa265ef51bfe38e7ccb39ec5be34069f14480884381cbad1f276e038c48378ffce2b65285e08d6b68aaa3629a5a8639392490e5b94a6d8798832d5372f220f161d9c2df035528f8982ffe09be9b5c412f8a0db5d21351f20af1370d0bf8ef1a8c59a30e"
+            ))
+            .unwrap(),
+            b"Murray Rothbard"
+        );
+        assert_eq!(
+            host.write_message_vec(b"F. A. Hayek").unwrap(),
+            hex!(
+                "c7195ffacac1307ff99046f219750fc47693e23c3cb08b89c2af808b444850a8589981dfbd651e6ff4724a781cc2aa6158c9fea0d4ec82a286427484c5b8c8123a7a6002b1de9f9775fc97"
+            )
+        );
+        assert!(host.completed());
+        assert_eq!(
+            host.get_hash(),
+            hex!("852a28d2146785c54bd8334f4e460c80d7fe4fd0cc5bc0abef2a24a3c4d44d5f")
+        );
+        let (mut send, mut receive) = host.get_ciphers();
+        assert_eq!(
+            receive
+                .decrypt_vec(&hex!(
+                    "96763ed773f8e47bb3712f0e29b3060ffc956ffc146cee53d5e1df"
+                ))
+                .unwrap(),
+            b"Carl Menger"
+        );
+        assert_eq!(
+            send.encrypt_vec(b"Jean-Baptiste Say"),
+            hex!("3e40f15f6f3a46ae446b253bf8b1d9ffb6ed9b174d272328ff91a7e2e5c79c07f5")
+        );
+        assert_eq!(
+            receive
+                .decrypt_vec(&hex!(
+                    "eb3f3515110702e047a6c9da4478b6ead94873c11c0f2d710ddb3f09fce024b3a58502ae3f"
+                ))
+                .unwrap(),
+            b"Eugen B\xf6hm von Bawerk"
+        );
     }
 }

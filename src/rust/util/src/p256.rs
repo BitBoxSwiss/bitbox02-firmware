@@ -49,6 +49,12 @@ mod tests {
             unsafe { crate::bytes::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
             unsafe { crate::bytes::rust_util_bytes_mut(pubkey.as_mut_ptr(), pubkey.len()) },
         );
+        assert_eq!(
+            pubkey,
+            hex_lit::hex!(
+                "84c23f7b11a2948784e39d85d29c92eaef97925bfbf6a5f5aec0e106011034695e1e439a99c70e6a6913206deac5894031ba0c4fcbb7ba3456f52958f30e27c3"
+            ),
+        );
     }
 
     #[test]

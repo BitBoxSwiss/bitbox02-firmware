@@ -1,36 +1,48 @@
-#[cfg(backtrace)]
+#[cfg(feature = "std")]
 pub(crate) use std::backtrace::Backtrace;
 
-#[cfg(not(backtrace))]
+#[cfg(not(feature = "std"))]
 pub(crate) enum Backtrace {}
 
-#[cfg(backtrace)]
+#[cfg(feature = "std")]
 macro_rules! backtrace {
     () => {
-        Some(Backtrace::capture())
+        Some(std::backtrace::Backtrace::capture())
     };
 }
 
-#[cfg(not(backtrace))]
+#[cfg(not(feature = "std"))]
 macro_rules! backtrace {
     () => {
         None
     };
 }
 
-#[cfg(backtrace)]
+#[cfg(error_generic_member_access)]
 macro_rules! backtrace_if_absent {
     ($err:expr) => {
-        match $err.backtrace() {
+        match $crate::nightly::request_ref_backtrace($err as &dyn core::error::Error) {
             Some(_) => None,
-            None => Some(Backtrace::capture()),
+            None => backtrace!(),
         }
     };
 }
 
-#[cfg(all(feature = "std", not(backtrace)))]
+#[cfg(all(not(error_generic_member_access), feature = "std"))]
+macro_rules! backtrace_if_absent {
+    ($err:expr) => {
+        backtrace!()
+    };
+}
+
+#[cfg(all(not(anyhow_no_core_error), not(feature = "std")))]
 macro_rules! backtrace_if_absent {
     ($err:expr) => {
         None
     };
+}
+
+fn _assert_send_sync() {
+    fn assert<T: Send + Sync>() {}
+    assert::<Backtrace>();
 }

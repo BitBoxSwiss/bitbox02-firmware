@@ -3,8 +3,8 @@ use crate::{Context, Error, StdError};
 use core::convert::Infallible;
 use core::fmt::{self, Debug, Display, Write};
 
-#[cfg(backtrace)]
-use std::backtrace::Backtrace;
+#[cfg(error_generic_member_access)]
+use crate::nightly::{self, Request};
 
 mod ext {
     use super::*;
@@ -15,17 +15,17 @@ mod ext {
             C: Display + Send + Sync + 'static;
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", not(anyhow_no_core_error)))]
     impl<E> StdError for E
     where
-        E: std::error::Error + Send + Sync + 'static,
+        E: crate::StdError + Send + Sync + 'static,
     {
         fn ext_context<C>(self, context: C) -> Error
         where
             C: Display + Send + Sync + 'static,
         {
-            let backtrace = backtrace_if_absent!(self);
-            Error::from_context(context, self, backtrace)
+            let backtrace = backtrace_if_absent!(&self);
+            Error::construct_from_context(context, self, backtrace)
         }
     }
 
@@ -47,7 +47,12 @@ where
     where
         C: Display + Send + Sync + 'static,
     {
-        self.map_err(|error| error.ext_context(context))
+        // Not using map_err to save 2 useless frames off the captured backtrace
+        // in ext_context.
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.ext_context(context)),
+        }
     }
 
     fn with_context<C, F>(self, context: F) -> Result<T, Error>
@@ -55,7 +60,10 @@ where
         C: Display + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
-        self.map_err(|error| error.ext_context(context()))
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.ext_context(context())),
+        }
     }
 }
 
@@ -84,7 +92,12 @@ impl<T> Context<T, Infallible> for Option<T> {
     where
         C: Display + Send + Sync + 'static,
     {
-        self.ok_or_else(|| Error::from_display(context, backtrace!()))
+        // Not using ok_or_else to save 2 useless frames off the captured
+        // backtrace.
+        match self {
+            Some(ok) => Ok(ok),
+            None => Err(Error::construct_from_display(context, backtrace!())),
+        }
     }
 
     fn with_context<C, F>(self, context: F) -> Result<T, Error>
@@ -92,7 +105,10 @@ impl<T> Context<T, Infallible> for Option<T> {
         C: Display + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
-        self.ok_or_else(|| Error::from_display(context(), backtrace!()))
+        match self {
+            Some(ok) => Ok(ok),
+            None => Err(Error::construct_from_display(context(), backtrace!())),
+        }
     }
 }
 
@@ -123,13 +139,13 @@ where
     C: Display,
     E: StdError + 'static,
 {
-    #[cfg(backtrace)]
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.error.backtrace()
-    }
-
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         Some(&self.error)
+    }
+
+    #[cfg(error_generic_member_access)]
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        nightly::provide(&self.error, request);
     }
 }
 
@@ -137,13 +153,13 @@ impl<C> StdError for ContextError<C, Error>
 where
     C: Display,
 {
-    #[cfg(backtrace)]
-    fn backtrace(&self) -> Option<&Backtrace> {
-        Some(self.error.backtrace())
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(unsafe { crate::ErrorImpl::error(self.error.inner.by_ref()) })
     }
 
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        Some(self.error.inner.error())
+    #[cfg(error_generic_member_access)]
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Error::provide(&self.error, request);
     }
 }
 

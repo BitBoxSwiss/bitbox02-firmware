@@ -18,7 +18,7 @@ p256 = { version = "0.13.2", default-features = false, features = ["arithmetic",
 bitcoin = { workspace = true }
 critical-section = { workspace = true }
 zeroize = { workspace = true }
-time = { version = "0.3.44", default-features = false }
+time = { version = "0.3.55", default-features = false }
 
 [dev-dependencies]
 hex_lit = { workspace = true }

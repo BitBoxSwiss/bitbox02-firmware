@@ -1,7 +1,8 @@
+#![allow(clippy::module_name_repetitions)]
+
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -17,7 +18,7 @@ impl Flag {
     }
 
     pub fn get(&self) -> bool {
-        self.atomic.load(SeqCst)
+        self.atomic.load(Ordering::Relaxed)
     }
 }
 
@@ -46,7 +47,7 @@ impl Display for DetectDrop {
 
 impl Drop for DetectDrop {
     fn drop(&mut self) {
-        let already_dropped = self.has_dropped.atomic.swap(true, SeqCst);
+        let already_dropped = self.has_dropped.atomic.swap(true, Ordering::Relaxed);
         assert!(!already_dropped);
     }
 }

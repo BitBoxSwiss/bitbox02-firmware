@@ -35,3 +35,28 @@ pub fn make_mock_host() -> TestHandshakeState {
     let mut random = MockRandom;
     make_host(&mut random)
 }
+
+/// Low-order X25519 public keys and equivalent encodings that yield an all-zero shared secret for
+/// every private key. Such keys are non-contributory: the DH result is predictable without knowing
+/// either party's private key.
+#[cfg(test)]
+pub(crate) fn non_contributory_pubkeys() -> impl Iterator<Item = [u8; 32]> {
+    use hex_lit::hex;
+
+    [
+        hex!("0000000000000000000000000000000000000000000000000000000000000000"),
+        hex!("0100000000000000000000000000000000000000000000000000000000000000"),
+        hex!("e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800"),
+        hex!("5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157"),
+        hex!("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
+        hex!("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
+        hex!("eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
+    ]
+    .into_iter()
+    .flat_map(|pubkey| {
+        // X25519 ignores the high bit of the public key.
+        let mut alias = pubkey;
+        alias[31] |= 0x80;
+        [pubkey, alias]
+    })
+}

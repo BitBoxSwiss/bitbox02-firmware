@@ -133,9 +133,13 @@ impl State {
                     };
                     return Ok(HandshakeResult::Done);
                 }
-                Ok(HandshakeResult::Response(
-                    handshake_state.write_message_vec(&payload)?,
-                ))
+                match handshake_state.write_message_vec(&payload) {
+                    Ok(response) => Ok(HandshakeResult::Response(response)),
+                    Err(err) => {
+                        self.reset();
+                        Err(err.into())
+                    }
+                }
             }
             _ => Err(Error::WrongState),
         }
@@ -227,9 +231,9 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{MockRandom, make_mock_host};
+    use crate::testing::{MockRandom, make_mock_host, non_contributory_pubkeys};
     use hex_lit::hex;
-    use noise_protocol::U8Array;
+    use noise_protocol::{DH, U8Array};
 
     impl HandshakeResult {
         fn response(self) -> Result<Vec<u8>, ()> {
@@ -243,6 +247,81 @@ mod tests {
                 HandshakeResult::Response(_) => Err(()),
                 HandshakeResult::Done => Ok(()),
             }
+        }
+    }
+
+    struct MaliciousX25519;
+
+    impl DH for MaliciousX25519 {
+        type Key = Sensitive<PrivateKey>;
+        type Pubkey = PublicKey;
+        type Output = [u8; 32];
+
+        fn name() -> &'static str {
+            X25519::name()
+        }
+
+        fn genkey() -> Self::Key {
+            unreachable!()
+        }
+
+        // Low-order values stand in for public keys with no corresponding private key.
+        fn pubkey(k: &Self::Key) -> Self::Pubkey {
+            if non_contributory_pubkeys().any(|pubkey| pubkey == **k) {
+                **k
+            } else {
+                X25519::pubkey(k)
+            }
+        }
+
+        fn dh(k: &Self::Key, pk: &Self::Pubkey) -> Result<Self::Output, ()> {
+            if non_contributory_pubkeys().any(|pubkey| pubkey == **k) {
+                Ok([0; 32])
+            } else {
+                X25519::dh(k, pk)
+            }
+        }
+    }
+
+    #[test]
+    fn test_handshake_non_contributory_ephemeral() {
+        for pubkey in non_contributory_pubkeys() {
+            let mut bb02 = State::Nothing;
+            bb02.init(genkey(&mut MockRandom), &mut MockRandom);
+            assert!(
+                matches!(bb02.handshake(&pubkey), Err(Error::Noise)),
+                "{pubkey:02x?}"
+            );
+            assert!(matches!(bb02, State::Nothing));
+        }
+    }
+
+    #[test]
+    fn test_handshake_non_contributory_static() {
+        for pubkey in non_contributory_pubkeys() {
+            let mut host =
+                noise_protocol::HandshakeState::<MaliciousX25519, ChaCha20Poly1305, Sha256>::new(
+                    noise_protocol::patterns::noise_xx(),
+                    true,
+                    b"Noise_XX_25519_ChaChaPoly_SHA256",
+                    Some(Sensitive::from(pubkey.into())),
+                    Some(genkey(&mut MockRandom)),
+                    None,
+                    None,
+                );
+            let mut bb02 = State::Nothing;
+            bb02.init(genkey(&mut MockRandom), &mut MockRandom);
+
+            let msg = host.write_message_vec(b"").unwrap();
+            let response = bb02.handshake(&msg).unwrap().response().unwrap();
+            host.read_message_vec(&response).unwrap();
+            let msg = host.write_message_vec(b"").unwrap();
+            assert!(host.completed());
+            assert!(
+                matches!(bb02.handshake(&msg), Err(Error::Noise)),
+                "{pubkey:02x?}"
+            );
+            assert!(matches!(bb02, State::Nothing));
         }
     }
 
@@ -268,6 +347,19 @@ mod tests {
         };
         bb02.handshake(&host_handshake_2).unwrap().done().unwrap();
 
+        assert_eq!(
+            bb02.remote_static_pubkey().unwrap(),
+            X25519::pubkey(&genkey(&mut MockRandom))
+        );
+        assert_eq!(bb02.get_handshake_hash().unwrap(), host.get_hash());
+        assert!(matches!(
+            bb02.encrypt(b"message", &mut Vec::new()),
+            Err(Error::PairingVerificationRequired)
+        ));
+        assert!(matches!(
+            bb02.decrypt(&[0; 16]),
+            Err(Error::PairingVerificationRequired)
+        ));
         bb02.set_pairing_verified().unwrap();
 
         let (mut host_send, mut host_recv) = host.get_ciphers();

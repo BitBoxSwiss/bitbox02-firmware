@@ -166,9 +166,9 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     #[inline(always)]
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(amount) {
-            let title = crate::i18n::translate_current("Amount");
+            let title = bitbox_i18n::tr!(crate::memory::get_device_language(), "Amount");
             self.review_value(&title, amount, false).await?;
-            let title = crate::i18n::translate_current("Recipient");
+            let title = bitbox_i18n::tr!(crate::memory::get_device_language(), "Recipient");
             return self.review_value(&title, recipient, false).await;
         }
         match crate::ui::confirm_transaction_address(amount, recipient).await {
@@ -185,9 +185,9 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         longtouch: bool,
     ) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(total) || !crate::ui::transaction_fee_fits(fee) {
-            let title = crate::i18n::translate_current("Total");
+            let title = bitbox_i18n::tr!(crate::memory::get_device_language(), "Total");
             self.review_value(&title, total, false).await?;
-            let title = crate::i18n::translate_current("Fee");
+            let title = bitbox_i18n::tr!(crate::memory::get_device_language(), "Fee");
             return self.review_value(&title, fee, longtouch).await;
         }
         match crate::ui::confirm_transaction_fee(total, fee, longtouch).await {
@@ -284,7 +284,8 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
-        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
+        let cancel_confirm_title =
+            bitbox_i18n::tr!(crate::memory::get_device_language(), "Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words,
             title: None,
@@ -301,7 +302,8 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
-        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
+        let cancel_confirm_title =
+            bitbox_i18n::tr!(crate::memory::get_device_language(), "Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words: choices,
             title: Some(title),

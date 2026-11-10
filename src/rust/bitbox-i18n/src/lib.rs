@@ -13,6 +13,56 @@ include!(concat!(env!("OUT_DIR"), "/i18n.rs"));
 const FNV1A64_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV1A64_PRIME: u64 = 0x100000001b3;
 
+/// Rejects messages missing from the English catalog, including constants.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// fn unused<T>() {
+///     const MESSAGE: &str = "not a catalog entry";
+///     bitbox_i18n::tr!(Language::German, MESSAGE);
+/// }
+/// ```
+///
+/// Runtime messages cannot be checked at compile time.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// let message = String::from("Warning");
+/// bitbox_i18n::tr!(Language::German, message.as_str());
+/// ```
+#[macro_export]
+macro_rules! tr {
+    ($language:expr, $msg:expr $(,)?) => {{
+        const _: &str = $crate::checked_message($msg);
+        $crate::translate($language, const { $msg })
+    }};
+}
+
+/// Rejects format patterns missing from the English catalog.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// fn unused<T>() {
+///     bitbox_i18n::format!(Language::German, "not a catalog entry: {}", &["value"]);
+/// }
+/// ```
+#[macro_export]
+macro_rules! format {
+    ($language:expr, $msg:expr, $args:expr $(,)?) => {{
+        const _: &str = $crate::checked_message($msg);
+        $crate::format($language, const { $msg }, $args)
+    }};
+}
+
+#[doc(hidden)]
+pub const fn checked_message(english: &str) -> &str {
+    assert!(
+        is_translatable(english),
+        "i18n: message is not a value in src/i18n/locales/en/firmware.json",
+    );
+    english
+}
+
 pub fn language_from_code(code: &str) -> Option<Language> {
     let code = code.as_bytes();
     if code.len() < 2 {
@@ -149,6 +199,29 @@ mod tests {
         assert_eq!(
             translate(Language::German, "Not translated").as_ref(),
             "Not translated"
+        );
+    }
+
+    #[test]
+    fn test_tr() {
+        const MESSAGE: &str = "Proceed to upgrade?";
+        for (language, expected) in [
+            (Language::English, MESSAGE),
+            (Language::German, "Firmware\naktualisieren?"),
+        ] {
+            assert_eq!(tr!(language, MESSAGE), expected);
+        }
+    }
+
+    #[test]
+    fn test_format_macro() {
+        assert_eq!(
+            format!(
+                Language::German,
+                "Fee is {}%\nof the send amount.\nProceed?",
+                &[&String::from("17.0")],
+            ),
+            "Gebühr: 17.0%\ndes Sendebetrags.\nFortfahren?",
         );
     }
 

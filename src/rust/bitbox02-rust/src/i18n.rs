@@ -9,7 +9,7 @@ use bitbox_hal::memory::Language;
 use crate::hal::{Hal, Memory};
 
 pub use bitbox_i18n::{
-    SUPPORTED_LANGUAGES, format, is_translatable, language_code, language_from_code, translate,
+    SUPPORTED_LANGUAGES, checked_message, format, language_code, language_from_code, translate,
 };
 
 /// Verifying at compile time that the message exists in the English source file.
@@ -17,22 +17,16 @@ pub use bitbox_i18n::{
 #[macro_export]
 macro_rules! tr {
     ($hal:expr, $msg:expr $(,)?) => {{
-        const _: () = ::core::assert!(
-            $crate::i18n::is_translatable($msg),
-            "i18n: message is not a value in src/i18n/locales/en/firmware.json",
-        );
-        $hal.tr($msg)
+        const _: &str = $crate::i18n::checked_message($msg);
+        $hal.tr(const { $msg })
     }};
 }
 
 #[macro_export]
 macro_rules! tr_format {
-    ($hal:expr, $msg:literal, $args:expr $(,)?) => {{
-        const _: () = ::core::assert!(
-            $crate::i18n::is_translatable($msg),
-            "i18n: format pattern is not a value in src/i18n/locales/en/firmware.json",
-        );
-        $hal.tr_format($msg, $args)
+    ($hal:expr, $msg:expr, $args:expr $(,)?) => {{
+        const _: &str = $crate::i18n::checked_message($msg);
+        $hal.tr_format(const { $msg }, $args)
     }};
 }
 

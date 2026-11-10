@@ -68,7 +68,7 @@ pub async fn show_and_confirm_mnemonic(
     words: &[&str],
     language: Language,
 ) -> Result<(), UserAbort> {
-    let body = crate::i18n::format(language, "{} words follow", &[&words.len().to_string()]);
+    let body = bitbox_i18n::format!(language, "{} words follow", &[&words.len().to_string()]);
     hal_ui
         .confirm(&ConfirmParams {
             title: "",
@@ -83,7 +83,7 @@ pub async fn show_and_confirm_mnemonic(
     hal_ui.show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
-    let body = crate::i18n::translate(language, "Please confirm\neach word");
+    let body = bitbox_i18n::tr!(language, "Please confirm\neach word");
     let _ = hal_ui
         .confirm(&ConfirmParams {
             title: "",
@@ -99,7 +99,7 @@ pub async fn show_and_confirm_mnemonic(
         let title = format!("{:02}", word_idx + 1);
         let (correct_idx, choices) = create_random_unique_words(hal_random, word, NUM_RANDOM_WORDS);
         let mut choices: Vec<&str> = choices.iter().map(|c| c.as_ref()).collect();
-        let back_to_words = crate::i18n::translate(language, "Back to\nrecovery words");
+        let back_to_words = bitbox_i18n::tr!(language, "Back to\nrecovery words");
         choices.push(&back_to_words);
         let back_idx = (choices.len() - 1) as u8;
         loop {
@@ -107,7 +107,7 @@ pub async fn show_and_confirm_mnemonic(
                 selected_idx if selected_idx == correct_idx => break,
                 selected_idx if selected_idx == back_idx => hal_ui.show_mnemonic(words).await?,
                 _ => {
-                    let status = crate::i18n::translate(language, "Incorrect word\nTry again");
+                    let status = bitbox_i18n::tr!(language, "Incorrect word\nTry again");
                     hal_ui.status(&status, false).await
                 }
             }
@@ -205,7 +205,7 @@ async fn get_24th_word(
     // Add one more menu entry.
     let none_of_them_idx = {
         choices.push(zeroize::Zeroizing::new(
-            crate::i18n::translate(language, "None of them").into_owned(),
+            bitbox_i18n::tr!(language, "None of them").into_owned(),
         ));
         choices.len() - 1
     };
@@ -213,8 +213,7 @@ async fn get_24th_word(
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
             Err(UserAbort) => return Err(UserAbort),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
-                let body =
-                    crate::i18n::translate(language, "Invalid. Check\nrecovery words.\nRestart?");
+                let body = bitbox_i18n::tr!(language, "Invalid. Check\nrecovery words.\nRestart?");
                 let params = ConfirmParams {
                     title: "",
                     body: &body,
@@ -286,7 +285,7 @@ pub async fn get_with_language(
     hal_ui: &mut impl crate::hal::Ui,
     language: Language,
 ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
-    let how_many_words = crate::i18n::translate(language, "How many words?");
+    let how_many_words = bitbox_i18n::tr!(language, "How many words?");
     let num_words: usize = match hal_ui
         .trinary_choice(&how_many_words, Some("12"), None, Some("24"))
         .await
@@ -296,7 +295,7 @@ pub async fn get_with_language(
         TrinaryChoice::Right => 24,
     };
 
-    let body = crate::i18n::format(language, "Enter {} words", &[&num_words.to_string()]);
+    let body = bitbox_i18n::format!(language, "Enter {} words", &[&num_words.to_string()]);
     hal_ui.status(&body, true).await;
 
     // Provide all bip39 words to restrict the keyboard entry.
@@ -305,7 +304,7 @@ pub async fn get_with_language(
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];
     while word_idx < num_words {
-        let title = crate::i18n::format(
+        let title = bitbox_i18n::format!(
             language,
             "{} of {}",
             &[&(word_idx + 1).to_string(), &num_words.to_string()],
@@ -365,9 +364,9 @@ pub async fn get_with_language(
                     // previous word and we go straight to the cancel action.
                     WordlistEntryAbort::Unspecified if word_idx == 0 => GetWordError::Cancel,
                     WordlistEntryAbort::Unspecified => {
-                        let edit_previous = crate::i18n::translate(language, "Edit previous word");
-                        let cancel_restore = crate::i18n::translate(language, "Cancel restore");
-                        let choose = crate::i18n::translate(language, "Choose");
+                        let edit_previous = bitbox_i18n::tr!(language, "Edit previous word");
+                        let cancel_restore = bitbox_i18n::tr!(language, "Cancel restore");
+                        let choose = bitbox_i18n::tr!(language, "Choose");
                         let choices = [edit_previous.as_ref(), cancel_restore.as_ref()];
                         match hal_ui.menu(&choices, Some(choose.as_ref())).await {
                             Err(UserAbort) => {
@@ -384,8 +383,8 @@ pub async fn get_with_language(
                 match cancel_choice {
                     GetWordError::EditPrevious => word_idx -= 1,
                     GetWordError::Cancel => {
-                        let title = crate::i18n::translate(language, "Restore");
-                        let body = crate::i18n::translate(language, "Cancel restore?");
+                        let title = bitbox_i18n::tr!(language, "Restore");
+                        let body = bitbox_i18n::tr!(language, "Cancel restore?");
                         let params = ConfirmParams {
                             title: &title,
                             body: &body,

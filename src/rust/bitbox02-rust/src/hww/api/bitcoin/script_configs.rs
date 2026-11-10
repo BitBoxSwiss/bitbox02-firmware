@@ -40,7 +40,7 @@ impl ValidatedScriptConfigWithKeypath<'_> {
                 config: ValidatedScriptConfig::SimpleType(_),
             } => {
                 let keypath_account_element = keypath.get(2).ok_or(Error::Generic)?;
-                Ok(crate::i18n::format(
+                Ok(bitbox_i18n::format!(
                     language,
                     "This BitBox (account #{})",
                     &[&(keypath_account_element
@@ -57,7 +57,7 @@ impl ValidatedScriptConfigWithKeypath<'_> {
             | ValidatedScriptConfigWithKeypath {
                 config: ValidatedScriptConfig::Policy { name, .. },
                 ..
-            } => Ok(crate::i18n::format(language, "This BitBox - {}", &[name])),
+            } => Ok(bitbox_i18n::format!(language, "This BitBox - {}", &[name])),
         }
     }
 }

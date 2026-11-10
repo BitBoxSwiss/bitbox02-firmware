@@ -152,9 +152,9 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(from) || !crate::ui::transaction_amount_fits(to) {
             let language = crate::memory::get_device_language();
-            let from_title = crate::i18n::format(language, "{} from", &[title]);
+            let from_title = bitbox_i18n::format!(language, "{} from", &[title]);
             self.review_value(&from_title, from, false).await?;
-            let to_title = crate::i18n::format(language, "{} to", &[title]);
+            let to_title = bitbox_i18n::format!(language, "{} to", &[title]);
             return self.review_value(&to_title, to, false).await;
         }
         match crate::ui::confirm_swap(title, from, to).await {

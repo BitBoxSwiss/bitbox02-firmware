@@ -5,6 +5,7 @@
 
 #include <platform_config.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 void bootloader_jump(void);
 
@@ -14,6 +15,9 @@ void bootloader_jump(void);
 void bootloader_render_default_screen(void);
 
 #if PLATFORM_BITBOX02PLUS
+extern bool bootloader_pairing_request;
+extern uint8_t bootloader_pairing_code_bytes[4];
+
 /**
  * Renders a BLE pairing confirmations screen. Use the `confirmed` argument to display the
  * "user has confirmed on bitbox" version.

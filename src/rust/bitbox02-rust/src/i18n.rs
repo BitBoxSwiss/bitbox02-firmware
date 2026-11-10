@@ -9,7 +9,8 @@ use bitbox_hal::memory::Language;
 use crate::hal::{Hal, Memory};
 
 pub use bitbox_i18n::{
-    SUPPORTED_LANGUAGES, checked_message, format, language_code, language_from_code, translate,
+    SUPPORTED_LANGUAGES, checked_message, format, language_code, language_from_code,
+    placeholder_count, translate,
 };
 
 /// Verifying at compile time that the message exists in the English source file.
@@ -29,9 +30,10 @@ macro_rules! tr {
 macro_rules! tr_format {
     ($hal:expr, $msg:expr, $args:expr $(,)?) => {{
         const _: &str = $crate::i18n::checked_message($msg);
+        let args: &[&str; $crate::i18n::placeholder_count($msg)] = $args;
         #[allow(clippy::disallowed_methods)]
         {
-            $hal.tr_format(const { $msg }, $args)
+            $hal.tr_format(const { $msg }, args)
         }
     }};
 }

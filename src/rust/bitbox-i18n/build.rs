@@ -5,6 +5,10 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[path = "src/placeholders.rs"]
+mod placeholders;
+use placeholders::placeholder_count;
+
 const FNV1A64_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV1A64_PRIME: u64 = 0x100000001b3;
 const SOURCE_LOCALE: &str = "en";
@@ -132,10 +136,6 @@ fn locale_entries(
         }
     }
     by_english.into_iter().collect()
-}
-
-fn placeholder_count(value: &str) -> usize {
-    value.matches("{}").count() + value.matches("{:?}").count()
 }
 
 fn generated_table(locale: &str, entries: &[(String, String)]) -> String {

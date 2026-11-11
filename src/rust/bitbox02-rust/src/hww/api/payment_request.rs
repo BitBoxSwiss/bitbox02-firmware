@@ -27,41 +27,54 @@ const MAX_MEMOS_NUM: usize = 3;
 // UI text limit so every supported device can show them in full.
 const MAX_COIN_PURCHASE_AMOUNT_LEN: usize = 200;
 
+// Only providers whose source transactions are verified by the firmware may be trusted.
+const ALLOWED_SWAPKIT_RECIPIENT_NAMES: &[&str] = &["SWAPKIT (NEAR)"];
+
 struct Identity {
     name: &'static str,
     public_key: &'static [u8],
+    requires_refund: bool,
 }
 
 const IDENTITIES: &[Identity] = &[
     Identity {
         name: "POCKET",
         public_key: &hex!("022902b4ede482a907ce16a1c634145e728f1de4f249043a8be47df27db9320c2c"),
+        requires_refund: false,
     },
     Identity {
         name: "SWAPKIT",
-        public_key: &hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d"),
+        public_key: &hex!("02442ae21ca5da50d367a4b8bbd64ae71377ae2b4c1ceef8f8ebe43280aa158f17"),
+        requires_refund: true,
     },
     #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
     Identity {
         name: "Test Merchant",
         // private_key: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),
+        requires_refund: false,
+    },
+    #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+    Identity {
+        name: "Test Swap",
+        public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),
+        requires_refund: true,
     },
 ];
 
 /// Looks up the signing identity for a payment request recipient name.
 ///
-/// Most recipients must match an entry in `IDENTITIES` exactly. `SWAPKIT` is a
-/// special case: any recipient name containing `swapkit`, in any ASCII case,
-/// is matched to the fixed `SWAPKIT` identity so provider-specific or legacy
-/// naming variants are accepted.
+/// SwapKit provider names must be explicitly allowed. The recipient name is
+/// covered by the payment request signature, so the host cannot change it.
 fn find_identity(name: &str) -> Option<&Identity> {
-    if name.to_ascii_uppercase().contains("SWAPKIT") {
+    if ALLOWED_SWAPKIT_RECIPIENT_NAMES.contains(&name) {
         return IDENTITIES
             .iter()
             .find(|identity| identity.name == "SWAPKIT");
     }
-    IDENTITIES.iter().find(|identity| identity.name == name)
+    IDENTITIES
+        .iter()
+        .find(|identity| identity.name == name && identity.name != "SWAPKIT")
 }
 
 pub(super) fn contains_coin_purchase_memo(payment_request: &pb::BtcPaymentRequestRequest) -> bool {
@@ -184,6 +197,9 @@ pub async fn user_verify(
                     .confirm_swap(&title, displayed_source_amount, &coin_purchase_memo.amount)
                     .await?;
             }
+            Memo {
+                memo: Some(memo::Memo::RefundMemo(_)),
+            } => {}
             _ => return Err(Error::InvalidInput),
         }
     }
@@ -194,7 +210,6 @@ pub async fn user_verify(
 pub enum ValidationError {
     UnknownRecipient,
     InvalidSignature,
-    #[cfg(feature = "app-ethereum")]
     AddressMismatch,
     #[cfg(not(feature = "app-ethereum"))]
     Disabled,
@@ -232,6 +247,12 @@ fn compute_sighash(
             } => {
                 sighash.update(1u32.to_le_bytes());
                 hash_data_lenprefixed(&mut sighash, text_memo.note.as_bytes());
+            }
+            Memo {
+                memo: Some(memo::Memo::RefundMemo(refund_memo)),
+            } => {
+                sighash.update(2u32.to_le_bytes());
+                hash_data_lenprefixed(&mut sighash, refund_memo.address.as_bytes());
             }
             #[cfg(feature = "app-ethereum")]
             Memo {
@@ -327,8 +348,9 @@ fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), Valid
 
 /// Validate a BTC payment request against the parsed BTC output total.
 pub async fn validate_btc(
-    #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
+    hal: &mut impl crate::hal::Hal,
     coin_params: &super::bitcoin::params::Params,
+    source_account: Option<u32>,
     payment_request: &pb::BtcPaymentRequestRequest,
     total_value: u64,
     output_address: &str,
@@ -344,7 +366,42 @@ pub async fn validate_btc(
         &total_value_bytes,
         output_address,
     )
-    .await
+    .await?;
+    for refund in refund_memos(payment_request) {
+        let Some(memo::refund_memo::AddressDerivation::Btc(derivation)) =
+            &refund.address_derivation
+        else {
+            return Err(ValidationError::Other);
+        };
+        let script_config = derivation
+            .script_config
+            .as_ref()
+            .ok_or(ValidationError::Other)?;
+        let source_account = source_account.ok_or(ValidationError::Other)?;
+        if script_config.keypath.get(2) != Some(&source_account) {
+            return Err(ValidationError::Other);
+        }
+        let simple_type = match script_config.script_config.as_ref() {
+            Some(pb::BtcScriptConfig {
+                config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+            }) => pb::btc_script_config::SimpleType::try_from(*simple_type)
+                .map_err(|_| ValidationError::Other)?,
+            _ => return Err(ValidationError::Other),
+        };
+        let derived_address = super::bitcoin::derive_address_simple(
+            hal,
+            coin_params.coin,
+            simple_type,
+            &script_config.keypath,
+            crate::keystore::Compute::Once,
+        )
+        .await
+        .map_err(|_| ValidationError::Other)?;
+        if derived_address != refund.address {
+            return Err(ValidationError::AddressMismatch);
+        }
+    }
+    Ok(())
 }
 
 /// Validate an ETH/EVM payment request against the parsed source-side transaction.
@@ -352,6 +409,7 @@ pub async fn validate_btc(
 pub async fn validate_eth(
     hal: &mut impl crate::hal::Hal,
     coin_params: &super::ethereum::params::Params,
+    source_keypath: &[u32],
     payment_request: &pb::BtcPaymentRequestRequest,
     output_value: &BigUint,
     output_address: &str,
@@ -364,7 +422,42 @@ pub async fn validate_eth(
         &output_value_padded,
         output_address,
     )
-    .await
+    .await?;
+    for refund in refund_memos(payment_request) {
+        let Some(memo::refund_memo::AddressDerivation::Eth(derivation)) =
+            &refund.address_derivation
+        else {
+            return Err(ValidationError::Other);
+        };
+        if derivation.keypath.get(1) != Some(&coin_params.bip44_coin)
+            || derivation.keypath != source_keypath
+        {
+            return Err(ValidationError::Other);
+        }
+        let derived_address = super::ethereum::derive_address(
+            hal,
+            &derivation.keypath,
+            crate::keystore::Compute::Once,
+        )
+        .await
+        .map_err(|_| ValidationError::Other)?;
+        if derived_address != refund.address {
+            return Err(ValidationError::AddressMismatch);
+        }
+    }
+    Ok(())
+}
+
+fn refund_memos(
+    payment_request: &pb::BtcPaymentRequestRequest,
+) -> impl Iterator<Item = &memo::RefundMemo> {
+    payment_request
+        .memos
+        .iter()
+        .filter_map(|memo| match &memo.memo {
+            Some(memo::Memo::RefundMemo(refund)) => Some(refund),
+            _ => None,
+        })
 }
 
 #[cfg(feature = "app-ethereum")]
@@ -403,7 +496,17 @@ async fn validate_common(
     if payment_request.memos.len() > MAX_MEMOS_NUM {
         return Err(ValidationError::Other);
     }
-    if contains_coin_purchase_memo(payment_request) && payment_request.memos.len() != 1 {
+    let num_refunds = refund_memos(payment_request).count();
+    let num_purchases = payment_request
+        .memos
+        .iter()
+        .filter(|memo| matches!(&memo.memo, Some(memo::Memo::CoinPurchaseMemo(_))))
+        .count();
+    if num_refunds > 1
+        || num_purchases > 1
+        || (identity.requires_refund && (num_refunds != 1 || num_purchases != 1))
+        || (num_purchases == 1 && payment_request.memos.len() != 1 + num_refunds)
+    {
         return Err(ValidationError::Other);
     }
     for memo in payment_request.memos.iter() {
@@ -565,21 +668,412 @@ mod tests {
 
     #[test]
     fn test_find_identity() {
-        assert_eq!(find_identity("POCKET").unwrap().name, "POCKET");
+        // Other known recipients retain their own identity and refund policy.
+        for (name, requires_refund) in [
+            ("POCKET", false),
+            ("Test Merchant", false),
+            ("Test Swap", true),
+        ] {
+            let identity = find_identity(name).unwrap();
+            assert_eq!(identity.name, name);
+            assert_eq!(identity.requires_refund, requires_refund);
+        }
 
-        let swapkit_identity = find_identity("SWAPKIT (Provider)").unwrap();
-        assert_eq!(swapkit_identity.name, "SWAPKIT");
+        // Only explicitly approved SwapKit providers use the SwapKit signing key.
+        let identity = find_identity("SWAPKIT (NEAR)").unwrap();
+        assert_eq!(identity.name, "SWAPKIT");
+        assert!(identity.requires_refund);
         assert_eq!(
-            swapkit_identity.public_key,
-            hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d")
+            identity.public_key,
+            hex!("02442ae21ca5da50d367a4b8bbd64ae71377ae2b4c1ceef8f8ebe43280aa158f17")
         );
 
-        assert_eq!(find_identity("SWAPKIT Provider").unwrap().name, "SWAPKIT");
-        assert_eq!(find_identity("swapkit (Provider)").unwrap().name, "SWAPKIT");
-        assert_eq!(find_identity("SWAPKIT").unwrap().name, "SWAPKIT");
-        assert_eq!(find_identity("SwapKit").unwrap().name, "SWAPKIT");
+        // Unsupported SwapKit providers must not resolve to a signing identity.
+        for name in [
+            "SWAPKIT (FLASHNET)",
+            "SWAPKIT (THORCHAIN_STREAMING)",
+            "SWAPKIT (MAYA)",
+        ] {
+            assert!(find_identity(name).is_none(), "{name}");
+        }
 
-        assert!(find_identity("Provider").is_none());
+        // Bare, altered, and unknown names must not resolve to an identity.
+        for name in [
+            "SWAPKIT",
+            "SWAPKIT (NEAR) extra",
+            "swapkit (NEAR)",
+            "SwapKit (NEAR)",
+            "Provider",
+        ] {
+            assert!(find_identity(name).is_none(), "{name}");
+        }
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    fn make_swap_request(refund: memo::RefundMemo) -> pb::BtcPaymentRequestRequest {
+        pb::BtcPaymentRequestRequest {
+            recipient_name: "Test Swap".into(),
+            memos: vec![
+                make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                    Some(dummy_eth_address_derivation(true)),
+                ),
+                Memo {
+                    memo: Some(memo::Memo::RefundMemo(refund)),
+                },
+            ],
+            nonce: vec![],
+            total_amount: 100000,
+            signature: vec![],
+        }
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    fn make_eth_refund() -> memo::RefundMemo {
+        memo::RefundMemo {
+            address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
+            address_derivation: Some(memo::refund_memo::AddressDerivation::Eth(
+                memo::coin_purchase_memo::EthAddressDerivation {
+                    keypath: vec![
+                        44 + util::bip32::HARDENED,
+                        60 + util::bip32::HARDENED,
+                        util::bip32::HARDENED,
+                        0,
+                        0,
+                    ],
+                },
+            )),
+        }
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    #[test]
+    fn test_sighash_refund() {
+        let mut request = make_swap_request(memo::RefundMemo {
+            address: "bc1qaff6ey7a8nztdl8ufluu5eagpwy6sntmaf53pf".into(),
+            address_derivation: None,
+        });
+        let output_address = "bc1qkkweqa5vk942jgevs0x0h8hsmqgfr08n6l7tu9";
+        let value = 100000u64.to_le_bytes();
+        assert_eq!(
+            compute_sighash(0, &request, &value, output_address).unwrap(),
+            hex!("eda7a0a2a0f1e24227e58add144371008744d6fbc14aca0a415f0b1281e10863")
+        );
+        request.memos.swap(0, 1);
+        assert_eq!(
+            compute_sighash(0, &request, &value, output_address).unwrap(),
+            hex!("f71781f2f7ac2a2557ea1b84f93c50291a4facc4d429ac1270923e44cd364754")
+        );
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    #[async_test::test]
+    async fn test_validate_swap_refund_required() {
+        crate::keystore::testing::mock_unlocked();
+        let mut hal = TestingHal::new();
+        let request = make_swap_request(make_eth_refund());
+        let purchase = request.memos[0].clone();
+        let refund = request.memos[1].clone();
+        for recipient in ["Test Swap", "SWAPKIT (NEAR)"] {
+            for memos in [
+                vec![],
+                vec![purchase.clone()],
+                vec![refund.clone()],
+                vec![make_text_memo("Swap")],
+                vec![purchase.clone(), make_text_memo("Refund to our wallet")],
+                vec![purchase.clone(), refund.clone(), refund.clone()],
+                vec![purchase.clone(), purchase.clone(), refund.clone()],
+                vec![purchase.clone(), refund.clone(), make_text_memo("extra")],
+            ] {
+                let mut request = request.clone();
+                request.recipient_name = recipient.into();
+                request.memos = memos;
+                tst_sign_payment_request_btc(pb::BtcCoin::Btc, &mut request, 100000, "deposit");
+                assert!(matches!(
+                    validate_btc(
+                        &mut hal,
+                        params::get(pb::BtcCoin::Btc),
+                        Some(util::bip32::HARDENED),
+                        &request,
+                        100000,
+                        "deposit"
+                    )
+                    .await,
+                    Err(ValidationError::Other)
+                ));
+            }
+        }
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    #[async_test::test]
+    async fn test_validate_btc_refund() {
+        use crate::keystore::testing::mock_unlocked;
+        use pb::btc_script_config::SimpleType;
+        use util::bip32::HARDENED;
+
+        mock_unlocked();
+        let mut hal = TestingHal::new();
+        for (coin, simple_type, purpose, change) in [
+            (pb::BtcCoin::Btc, SimpleType::P2wpkh, 84, 0),
+            (pb::BtcCoin::Btc, SimpleType::P2wpkhP2sh, 49, 0),
+            (pb::BtcCoin::Btc, SimpleType::P2tr, 86, 1),
+            (pb::BtcCoin::Ltc, SimpleType::P2wpkh, 84, 1),
+            (pb::BtcCoin::Ltc, SimpleType::P2wpkhP2sh, 49, 0),
+        ] {
+            let coin_params = params::get(coin);
+            let source_account = 7 + HARDENED;
+            let keypath = vec![
+                purpose + HARDENED,
+                coin_params.bip44_coin,
+                source_account,
+                change,
+                0,
+            ];
+            let address = super::super::bitcoin::derive_address_simple(
+                &mut hal,
+                coin,
+                simple_type,
+                &keypath,
+                crate::keystore::Compute::Once,
+            )
+            .await
+            .unwrap();
+            let refund = memo::RefundMemo {
+                address: address.clone(),
+                address_derivation: Some(memo::refund_memo::AddressDerivation::Btc(
+                    memo::coin_purchase_memo::BtcAddressDerivation {
+                        script_config: Some(pb::BtcScriptConfigWithKeypath {
+                            script_config: Some(pb::BtcScriptConfig {
+                                config: Some(pb::btc_script_config::Config::SimpleType(
+                                    simple_type as _,
+                                )),
+                            }),
+                            keypath,
+                        }),
+                    },
+                )),
+            };
+            let mut request = make_swap_request(refund.clone());
+            tst_sign_payment_request_btc(coin, &mut request, 100000, &address);
+            assert!(
+                validate_btc(
+                    &mut hal,
+                    coin_params,
+                    Some(source_account),
+                    &request,
+                    100000,
+                    &address
+                )
+                .await
+                .is_ok()
+            );
+
+            for account in [None, Some(source_account + 1)] {
+                assert!(matches!(
+                    validate_btc(&mut hal, coin_params, account, &request, 100000, &address).await,
+                    Err(ValidationError::Other)
+                ));
+            }
+
+            request.memos.swap(0, 1);
+            assert!(matches!(
+                validate_btc(
+                    &mut hal,
+                    coin_params,
+                    Some(source_account),
+                    &request,
+                    100000,
+                    &address
+                )
+                .await,
+                Err(ValidationError::InvalidSignature)
+            ));
+            tst_sign_payment_request_btc(coin, &mut request, 100000, &address);
+            assert!(
+                validate_btc(
+                    &mut hal,
+                    coin_params,
+                    Some(source_account),
+                    &request,
+                    100000,
+                    &address
+                )
+                .await
+                .is_ok()
+            );
+
+            let mut attacker_refund = refund.clone();
+            attacker_refund.address = "bc1qaff6ey7a8nztdl8ufluu5eagpwy6sntmaf53pf".into();
+            let mut request = make_swap_request(attacker_refund);
+            tst_sign_payment_request_btc(coin, &mut request, 100000, &address);
+            assert!(matches!(
+                validate_btc(
+                    &mut hal,
+                    coin_params,
+                    Some(source_account),
+                    &request,
+                    100000,
+                    &address
+                )
+                .await,
+                Err(ValidationError::AddressMismatch)
+            ));
+
+            for modification in 0..6 {
+                let mut invalid_refund = refund.clone();
+                let Some(memo::refund_memo::AddressDerivation::Btc(derivation)) =
+                    &mut invalid_refund.address_derivation
+                else {
+                    unreachable!()
+                };
+                let script = derivation.script_config.as_mut().unwrap();
+                match modification {
+                    0 => script.keypath[1] = 1 + HARDENED,
+                    1 => {
+                        script.keypath.pop();
+                    }
+                    2 => script.script_config = None,
+                    3 => {
+                        script.script_config.as_mut().unwrap().config =
+                            Some(pb::btc_script_config::Config::SimpleType(999))
+                    }
+                    4 => invalid_refund.address_derivation = None,
+                    5 => invalid_refund.address_derivation = make_eth_refund().address_derivation,
+                    _ => unreachable!(),
+                }
+                let mut request = make_swap_request(invalid_refund);
+                tst_sign_payment_request_btc(coin, &mut request, 100000, &address);
+                assert!(matches!(
+                    validate_btc(
+                        &mut hal,
+                        coin_params,
+                        Some(source_account),
+                        &request,
+                        100000,
+                        &address
+                    )
+                    .await,
+                    Err(ValidationError::Other)
+                ));
+            }
+        }
+    }
+
+    #[cfg(all(feature = "app-ethereum", feature = "app-litecoin"))]
+    #[async_test::test]
+    async fn test_validate_eth_refund() {
+        use crate::keystore::testing::mock_unlocked;
+        use util::bip32::HARDENED;
+        mock_unlocked();
+        let mut hal = TestingHal::new();
+        let coin_params = &eth_params::Params {
+            coin: Some(pb::EthCoin::Eth),
+            bip44_coin: 60 + util::bip32::HARDENED,
+            chain_id: 1,
+            name: "Ethereum",
+            unit: "ETH",
+        };
+        let source_keypath = [44 + HARDENED, 60 + HARDENED, HARDENED, 0, 0];
+        let value = BigUint::from(100000u64);
+        let value_bytes = serialize_eth_output_value(&value).unwrap();
+        let deposit = "0x1111111111111111111111111111111111111111";
+        let mut request = make_swap_request(make_eth_refund());
+        tst_sign_payment_request_eth(60, &mut request, &value_bytes, deposit);
+        assert!(
+            validate_eth(
+                &mut hal,
+                coin_params,
+                &source_keypath,
+                &request,
+                &value,
+                deposit
+            )
+            .await
+            .is_ok()
+        );
+
+        let mut other_keypath = source_keypath;
+        other_keypath[4] += 1;
+        assert!(matches!(
+            validate_eth(
+                &mut hal,
+                coin_params,
+                &other_keypath,
+                &request,
+                &value,
+                deposit
+            )
+            .await,
+            Err(ValidationError::Other)
+        ));
+
+        let mut changed = request.clone();
+        if let Some(memo::Memo::RefundMemo(refund)) = &mut changed.memos[1].memo {
+            refund.address = deposit.into();
+        }
+        assert!(matches!(
+            validate_eth(
+                &mut hal,
+                coin_params,
+                &source_keypath,
+                &changed,
+                &value,
+                deposit
+            )
+            .await,
+            Err(ValidationError::InvalidSignature)
+        ));
+        tst_sign_payment_request_eth(60, &mut changed, &value_bytes, deposit);
+        assert!(matches!(
+            validate_eth(
+                &mut hal,
+                coin_params,
+                &source_keypath,
+                &changed,
+                &value,
+                deposit
+            )
+            .await,
+            Err(ValidationError::AddressMismatch)
+        ));
+
+        for modification in 0..3 {
+            let mut changed = request.clone();
+            let Some(memo::Memo::RefundMemo(refund)) = &mut changed.memos[1].memo else {
+                unreachable!()
+            };
+            let Some(memo::refund_memo::AddressDerivation::Eth(derivation)) =
+                &mut refund.address_derivation
+            else {
+                unreachable!()
+            };
+            match modification {
+                0 => derivation.keypath[1] = 1 + util::bip32::HARDENED,
+                1 => {
+                    derivation.keypath.pop();
+                }
+                2 => refund.address_derivation = None,
+                _ => unreachable!(),
+            }
+            assert!(matches!(
+                validate_eth(
+                    &mut hal,
+                    coin_params,
+                    &source_keypath,
+                    &changed,
+                    &value,
+                    deposit
+                )
+                .await,
+                Err(ValidationError::Other)
+            ));
+        }
+        let mut hal = TestingHal::new();
+        user_verify(&mut hal, &request, "0.1 ETH").await.unwrap();
+        assert_eq!(hal.ui.screens.len(), 2);
     }
 
     #[test]
@@ -1492,6 +1986,7 @@ mod tests {
             validate_btc(
                 &mut mock_hal,
                 params::get(pb::BtcCoin::Tbtc),
+                None,
                 &payment_request,
                 value + 1,
                 address
@@ -1544,8 +2039,10 @@ mod tests {
     #[async_test::test]
     async fn test_user_verify_recipient_name() {
         for (recipient_name, valid) in [
-            ("SWAPKIT (Provider)", true),
-            ("swapkit (Provider)", true),
+            ("SWAPKIT (NEAR)", true),
+            ("SWAPKIT (THORCHAIN_STREAMING)", false),
+            ("SWAPKIT (FLASHNET)", false),
+            ("swapkit (NEAR)", false),
             ("SWAPKIT\nProvider", false),
             ("SWAPKIT (Prövider)", false),
             ("SWAPKIT\tProvider", false),
@@ -1647,35 +2144,6 @@ mod tests {
         }
     }
 
-    #[async_test::test]
-    async fn test_user_verify_long_recipient_name_scrollable() {
-        let recipient_name = format!("SWAPKIT ({})", "a".repeat(200));
-        let mut mock_hal = TestingHal::new();
-        user_verify(
-            &mut mock_hal,
-            &pb::BtcPaymentRequestRequest {
-                recipient_name: recipient_name.clone(),
-                memos: vec![make_text_memo("Swap memo")],
-                nonce: vec![],
-                total_amount: 1234567890,
-                signature: vec![],
-            },
-            "12.34567890 BTC",
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(
-            mock_hal.ui.screens[1],
-            Screen::Confirm {
-                title: "".into(),
-                body: format!("Memo from: {recipient_name}"),
-                longtouch: false,
-            }
-        );
-        assert!(mock_hal.ui.confirm_scrollable[0]);
-    }
-
     #[cfg(feature = "app-ethereum")]
     #[async_test::test]
     async fn test_user_verify_swap() {
@@ -1684,7 +2152,7 @@ mod tests {
         user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
+                recipient_name: "SWAPKIT (NEAR)".into(),
                 memos: vec![make_coin_purchase_memo(
                     60,
                     "0.25 ETH",
@@ -1704,7 +2172,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
-                    recipient: "SWAPKIT (Provider)".into(),
+                    recipient: "SWAPKIT (NEAR)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
                 Screen::Swap {
@@ -1723,7 +2191,7 @@ mod tests {
         user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
+                recipient_name: "SWAPKIT (NEAR)".into(),
                 memos: vec![make_coin_purchase_memo(
                     60,
                     "12.45678901234 ETH",
@@ -1743,7 +2211,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
-                    recipient: "SWAPKIT (Provider)".into(),
+                    recipient: "SWAPKIT (NEAR)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
                 Screen::Swap {
@@ -1763,7 +2231,7 @@ mod tests {
         user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
+                recipient_name: "SWAPKIT (NEAR)".into(),
                 memos: vec![make_coin_purchase_memo(
                     2,
                     "0.25 LTC",
@@ -1792,7 +2260,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
-                    recipient: "SWAPKIT (Provider)".into(),
+                    recipient: "SWAPKIT (NEAR)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
                 Screen::Swap {
@@ -1809,6 +2277,13 @@ mod tests {
     async fn test_validate_eth() {
         crate::keystore::testing::mock_unlocked();
         let mut mock_hal = TestingHal::new();
+        let source_keypath = [
+            44 + util::bip32::HARDENED,
+            60 + util::bip32::HARDENED,
+            util::bip32::HARDENED,
+            0,
+            0,
+        ];
         let params = eth_params::Params {
             coin: Some(pb::EthCoin::Eth),
             bip44_coin: 60 + util::bip32::HARDENED,
@@ -1842,6 +2317,7 @@ mod tests {
             validate_eth(
                 &mut mock_hal,
                 &params,
+                &source_keypath,
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value),
                 output_address,
@@ -1855,6 +2331,7 @@ mod tests {
             validate_eth(
                 &mut TestingHal::new(),
                 &params,
+                &source_keypath,
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value[..8]),
                 output_address,
@@ -1870,6 +2347,7 @@ mod tests {
             validate_eth(
                 &mut TestingHal::new(),
                 &params,
+                &source_keypath,
                 &payment_request,
                 &BigUint::from_bytes_le(&wrong_output_value),
                 output_address,
@@ -1883,6 +2361,7 @@ mod tests {
             validate_eth(
                 &mut TestingHal::new(),
                 &params,
+                &source_keypath,
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value),
                 "0x1111111111111111111111111111111111111111",
@@ -1902,6 +2381,7 @@ mod tests {
                     name: "Ethereum",
                     unit: "ETH",
                 },
+                &source_keypath,
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value),
                 output_address,
@@ -1916,7 +2396,7 @@ mod tests {
     async fn test_user_verify_swap_invalid() {
         // Display amount must be exactly "<positive-decimal> <unit>".
         let payment_request = pb::BtcPaymentRequestRequest {
-            recipient_name: "SWAPKIT (Provider)".into(),
+            recipient_name: "SWAPKIT (NEAR)".into(),
             memos: vec![make_coin_purchase_memo(
                 60,
                 "foo bar baz",

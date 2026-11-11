@@ -8,6 +8,9 @@ recorded separately.
 
 ### Unreleased
 
+### v9.29.0
+- Require wallet-owned refund addresses for SwapKit
+
 ### v9.28.0
 - Bitcoin security fixes (multisig keypath and previous-transaction hash length validation)
 - API: include the installed stage0 version in the device info response

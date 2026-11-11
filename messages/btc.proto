@@ -267,9 +267,18 @@ message BTCPaymentRequestRequest {
         BtcAddressDerivation btc = 5;
       }
     }
+    message RefundMemo {
+      string address = 1;
+      // Derivation info is not part of the SLIP-24 sighash.
+      oneof address_derivation {
+        CoinPurchaseMemo.EthAddressDerivation eth = 2;
+        CoinPurchaseMemo.BtcAddressDerivation btc = 3;
+      }
+    }
     oneof memo {
       TextMemo text_memo = 1;
       CoinPurchaseMemo coin_purchase_memo = 2;
+      RefundMemo refund_memo = 3;
     }
   }
 

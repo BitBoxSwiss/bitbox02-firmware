@@ -8,10 +8,90 @@ use alloc::borrow::Cow;
 use alloc::string::String;
 use bitbox_hal::memory::Language;
 
+mod placeholders;
+#[doc(hidden)]
+pub use placeholders::placeholder_count;
+
 include!(concat!(env!("OUT_DIR"), "/i18n.rs"));
 
 const FNV1A64_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV1A64_PRIME: u64 = 0x100000001b3;
+
+/// Rejects messages missing from the English catalog, including constants.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// fn unused<T>() {
+///     const MESSAGE: &str = "not a catalog entry";
+///     bitbox_i18n::tr!(Language::German, MESSAGE);
+/// }
+/// ```
+///
+/// Runtime messages cannot be checked at compile time.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// let message = String::from("Warning");
+/// bitbox_i18n::tr!(Language::German, message.as_str());
+/// ```
+#[macro_export]
+macro_rules! tr {
+    ($language:expr, $msg:expr $(,)?) => {{
+        const _: &str = $crate::checked_message($msg);
+        #[allow(clippy::disallowed_methods)]
+        {
+            $crate::translate($language, const { $msg })
+        }
+    }};
+}
+
+/// Rejects missing catalog entries and argument counts that do not match the pattern.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// fn unused<T>() {
+///     bitbox_i18n::format!(Language::German, "not a catalog entry: {}", &["value"]);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// bitbox_i18n::format!(Language::German, "{} words", &[]);
+/// ```
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// bitbox_i18n::format!(Language::German, "{} words", &["12", "24"]);
+/// ```
+///
+/// Arguments must be an array reference so its length can be checked at compile time.
+///
+/// ```compile_fail
+/// use bitbox_hal::memory::Language;
+/// let args: &[&str] = &["12"];
+/// bitbox_i18n::format!(Language::German, "{} words", args);
+/// ```
+#[macro_export]
+macro_rules! format {
+    ($language:expr, $msg:expr, $args:expr $(,)?) => {{
+        const _: &str = $crate::checked_message($msg);
+        let language = $language;
+        let args: &[&str; $crate::placeholder_count($msg)] = $args;
+        #[allow(clippy::disallowed_methods)]
+        {
+            $crate::format(language, const { $msg }, args)
+        }
+    }};
+}
+
+#[doc(hidden)]
+pub const fn checked_message(english: &str) -> &str {
+    assert!(
+        is_translatable(english),
+        "i18n: message is not a value in src/i18n/locales/en/firmware.json",
+    );
+    english
+}
 
 pub fn language_from_code(code: &str) -> Option<Language> {
     let code = code.as_bytes();
@@ -45,6 +125,7 @@ pub fn translate<'a>(language: Language, english: &'a str) -> Cow<'a, str> {
     }
 }
 
+#[allow(clippy::disallowed_methods)]
 pub fn format(language: Language, english: &'static str, args: &[&str]) -> String {
     let translated = translate(language, english);
     format_pattern(&translated, args)
@@ -137,6 +218,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::disallowed_methods)]
     fn test_translate() {
         assert_eq!(
             translate(Language::English, "Proceed to upgrade?").as_ref(),
@@ -153,6 +235,53 @@ mod tests {
     }
 
     #[test]
+    fn test_tr() {
+        const MESSAGE: &str = "Proceed to upgrade?";
+        for (language, expected) in [
+            (Language::English, MESSAGE),
+            (Language::German, "Firmware\naktualisieren?"),
+        ] {
+            assert_eq!(tr!(language, MESSAGE), expected);
+        }
+    }
+
+    #[test]
+    fn test_format_macro() {
+        assert_eq!(
+            format!(
+                Language::German,
+                "Fee is {}%\nof the send amount.\nProceed?",
+                &[&String::from("17.0")],
+            ),
+            "Gebühr: 17.0%\ndes Sendebetrags.\nFortfahren?",
+        );
+        assert_eq!(format!(Language::English, "Warning", &[]), "Warning");
+        const PATTERN: &str = "{} of {}";
+        let args = ["1", "12"];
+        assert_eq!(format!(Language::English, PATTERN, &args), "1 of 12");
+    }
+
+    #[test]
+    fn test_placeholder_count() {
+        for (pattern, expected) in [
+            ("", 0),
+            ("no placeholders", 0),
+            ("{}", 1),
+            ("{:?}", 1),
+            ("{} / {:?} / {}", 3),
+            ("ä {} {{}}", 2),
+            ("{", 0),
+            ("{:?", 0),
+        ] {
+            assert_eq!(placeholder_count(pattern), expected);
+            assert_eq!(
+                placeholder_count(pattern),
+                pattern.matches("{}").count() + pattern.matches("{:?}").count(),
+            );
+        }
+    }
+
+    #[test]
     fn test_generated_table_sorted() {
         assert!(DE_TRANSLATIONS.windows(2).all(|pair| pair[0].0 < pair[1].0));
     }
@@ -165,6 +294,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::disallowed_methods)]
     fn test_format() {
         assert_eq!(
             format(

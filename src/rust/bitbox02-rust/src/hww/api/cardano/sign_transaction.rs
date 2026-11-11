@@ -72,15 +72,10 @@ async fn verify_slot(
     }
     let epoch = SHELLEY_START_EPOCH + (slot - SHELLEY_START_SLOT) / SHELLEY_SLOTS_IN_EPOCH;
     let slot_in_epoch = (slot - SHELLEY_START_SLOT) % SHELLEY_SLOTS_IN_EPOCH;
-    let title = hal.tr(title);
     let body = crate::tr_format!(
         hal,
         "{}\nslot {} in\nepoch {}",
-        &[
-            title.as_ref(),
-            &slot_in_epoch.to_string(),
-            &epoch.to_string(),
-        ],
+        &[title, &slot_in_epoch.to_string(), &epoch.to_string()],
     );
     hal.ui()
         .confirm(&ConfirmParams {
@@ -184,16 +179,12 @@ async fn _process(
                 .await?;
         } else {
             if validity_interval_start_present {
-                verify_slot(
-                    hal,
-                    params,
-                    "Can be mined from",
-                    request.validity_interval_start,
-                )
-                .await?;
+                let title = crate::tr!(hal, "Can be mined from");
+                verify_slot(hal, params, &title, request.validity_interval_start).await?;
             }
             if ttl_present {
-                verify_slot(hal, params, "Can be mined until", request.ttl).await?;
+                let title = crate::tr!(hal, "Can be mined until");
+                verify_slot(hal, params, &title, request.ttl).await?;
             }
         }
     }

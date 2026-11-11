@@ -21,6 +21,7 @@ use crate::workflow::confirm;
 use pb::eth_request::Request;
 use pb::eth_response::Response;
 
+use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -382,11 +383,11 @@ fn encode_value(
     Ok(result)
 }
 
-fn confirm_title(root_object: RootObject) -> &'static str {
+fn confirm_title(hal: &mut impl crate::hal::Hal, root_object: RootObject) -> Cow<'static, str> {
     match root_object {
-        RootObject::Unknown => "Unknown",
-        RootObject::Domain => "Domain",
-        RootObject::Message => "Message",
+        RootObject::Unknown => crate::tr!(hal, "Unknown"),
+        RootObject::Domain => crate::tr!(hal, "Domain"),
+        RootObject::Message => crate::tr!(hal, "Message"),
     }
 }
 
@@ -525,7 +526,7 @@ async fn encode_member<U: sha3::digest::Update>(
             );
             let title = format!(
                 "{}{}",
-                hal.tr(confirm_title(context.root_object)),
+                confirm_title(hal, context.root_object),
                 context.title_suffix.as_deref().unwrap_or("")
             );
             confirm::confirm_value(
@@ -569,7 +570,7 @@ async fn hash_array(
     {
         let title = format!(
             "{}{}",
-            hal.tr(confirm_title(context.root_object)),
+            confirm_title(hal, context.root_object),
             context.title_suffix.as_deref().unwrap_or("")
         );
         let list_description = if array_size == 0 {

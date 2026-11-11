@@ -19,7 +19,7 @@ pub async fn process(
     }
     if hal.memory().is_initialized() {
         let language_name = language_name(current_language, language);
-        let body = crate::i18n::format(
+        let body = bitbox_i18n::format!(
             current_language,
             "Change language\nto {}?",
             &[language_name.as_ref()],
@@ -40,8 +40,8 @@ fn language_name(
     language: Language,
 ) -> alloc::borrow::Cow<'static, str> {
     match language {
-        Language::English => crate::i18n::translate(current_language, "English"),
-        Language::German => crate::i18n::translate(current_language, "German"),
+        Language::English => bitbox_i18n::tr!(current_language, "English"),
+        Language::German => bitbox_i18n::tr!(current_language, "German"),
     }
 }
 

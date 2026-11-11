@@ -1,1 +1,9 @@
 future-size-threshold=4096
+
+disallowed-methods = [
+    { path = "bitbox_i18n::translate", reason = "Use tr!() to check the message at compile time" },
+    { path = "bitbox_i18n::format", reason = "Use bitbox_i18n::format!() to check the message at compile time" },
+    { path = "bitbox02_rust::i18n::I18n::tr", reason = "Use tr!() to check the message at compile time" },
+    { path = "bitbox02_rust::i18n::I18n::tr_format", reason = "Use tr_format!() to check the message at compile time" },
+    { path = "bitbox02::i18n::translate_current", reason = "Use bitbox_i18n::tr!() with the current language" },
+]

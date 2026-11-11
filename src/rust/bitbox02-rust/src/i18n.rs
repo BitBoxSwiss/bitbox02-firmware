@@ -9,30 +9,32 @@ use bitbox_hal::memory::Language;
 use crate::hal::{Hal, Memory};
 
 pub use bitbox_i18n::{
-    SUPPORTED_LANGUAGES, format, is_translatable, language_code, language_from_code, translate,
+    SUPPORTED_LANGUAGES, checked_message, format, language_code, language_from_code,
+    placeholder_count, translate,
 };
 
-/// Verifying at compile time that the literal exists in the English source file.
-/// Prevents literals to drift from the locale file i.e. translations silently falling back to English.
+/// Verifying at compile time that the message exists in the English source file.
+/// Prevents messages from drifting from the locale file and silently falling back to English.
 #[macro_export]
 macro_rules! tr {
-    ($hal:expr, $msg:literal $(,)?) => {{
-        const _: () = ::core::assert!(
-            $crate::i18n::is_translatable($msg),
-            "i18n: string literal is not a value in src/i18n/locales/en/firmware.json",
-        );
-        $hal.tr($msg)
+    ($hal:expr, $msg:expr $(,)?) => {{
+        const _: &str = $crate::i18n::checked_message($msg);
+        #[allow(clippy::disallowed_methods)]
+        {
+            $hal.tr(const { $msg })
+        }
     }};
 }
 
 #[macro_export]
 macro_rules! tr_format {
-    ($hal:expr, $msg:literal, $args:expr $(,)?) => {{
-        const _: () = ::core::assert!(
-            $crate::i18n::is_translatable($msg),
-            "i18n: format pattern is not a value in src/i18n/locales/en/firmware.json",
-        );
-        $hal.tr_format($msg, $args)
+    ($hal:expr, $msg:expr, $args:expr $(,)?) => {{
+        const _: &str = $crate::i18n::checked_message($msg);
+        let args: &[&str; $crate::i18n::placeholder_count($msg)] = $args;
+        #[allow(clippy::disallowed_methods)]
+        {
+            $hal.tr_format(const { $msg }, args)
+        }
     }};
 }
 
@@ -48,11 +50,13 @@ pub trait I18n {
 }
 
 impl<T: Hal> I18n for T {
+    #[allow(clippy::disallowed_methods)]
     fn tr<'a>(&mut self, english: &'a str) -> Cow<'a, str> {
         let language = self.memory().get_device_language();
         translate(language, english)
     }
 
+    #[allow(clippy::disallowed_methods)]
     fn tr_format(&mut self, english: &'static str, args: &[&str]) -> String {
         let language = self.memory().get_device_language();
         format(language, english, args)

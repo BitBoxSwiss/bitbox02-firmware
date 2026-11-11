@@ -279,6 +279,7 @@ if(NOT CMAKE_CROSSCOMPILING)
           --release
           --tests --
             # enabled linters:
+            -D clippy::disallowed_methods
             -W clippy::use_debug
             -W clippy::large_futures
             # disabled linters:

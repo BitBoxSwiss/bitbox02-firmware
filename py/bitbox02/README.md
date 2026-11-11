@@ -68,9 +68,8 @@ Python strings and protobuf objects are not guaranteed to be erased from host me
 It is highly recommended that you use the dockerized setup while developing, guide for setting it up
 can be found in [BUILD.md](../../BUILD.md).
 
-If you intended to develop instead on your local environment be vary that some development procedures
-such as regenerating files have their libraries NOT in requirements.txt as they are not necessary for the bitbox02 
-Python package.
+For local development, run `make bootstrap` from the repository root to install the Python
+dependencies and protobuf generators from [py/requirements.txt](../requirements.txt).
 
 It is highly advisable to use same version that is used in the [Dockerfile](../../Dockerfile) that is used in dockerized
 setup.

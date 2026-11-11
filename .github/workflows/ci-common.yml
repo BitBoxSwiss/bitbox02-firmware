@@ -54,6 +54,11 @@ jobs:
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      - name: Bootstrap
+        run: |
+          make bootstrap
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
       - name: Lint python (black, mypy, pylint)
         run: |
           make -C py clean
@@ -79,10 +84,12 @@ jobs:
           # Unfortunately linting the sources requires running cmake, so we need to do a full checkout
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: Lint src code style (clang-format, rustfmt)
         run: ./.ci/check-style
@@ -104,6 +111,11 @@ jobs:
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      - name: Bootstrap
+        run: |
+          make bootstrap
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
       - name: Check protobuf Rust bindings
         run: ./.ci/check-protobuf
 
@@ -117,10 +129,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: Build unit-tests
         run: make -j$(($(nproc) + 1)) unit-test
@@ -146,16 +160,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Install system dependencies
         run: brew install cbindgen bindgen hidapi
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "21.x"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -177,10 +187,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: Run unit tests under valgrind
         run: make run-valgrind-on-unit-tests SANITIZE=OFF
@@ -239,13 +251,12 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Bootstrap Cargo config
-        run: ./scripts/bootstrap-cargo-config
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: Configure product
         run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }}"
@@ -313,16 +324,12 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Install system dependencies
         run: brew install cbindgen bindgen hidapi
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "21.x"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bootstrap
+        run: make bootstrap
 
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -370,7 +377,6 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          submodules: recursive
 
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
@@ -378,6 +384,7 @@ jobs:
       - name: Build documentation
         run: |
           make bootstrap
+          . .venv/bin/activate
           cmake -S . -B build -DDOC_GRAPHS=NO
           make -C build -j$(($(nproc)+1)) doc
 

@@ -1,37 +1,49 @@
 //! Development-related functionality
 
+#![allow(clippy::missing_errors_doc)]
+
 pub use blobby;
 
 mod fixed;
+#[cfg(feature = "mac")]
 mod mac;
 mod rng;
-mod variable;
 mod xof;
 
 pub use fixed::*;
+#[cfg(feature = "mac")]
 pub use mac::*;
-pub use variable::*;
 pub use xof::*;
+
+/// Test vector for hash functions
+#[derive(Debug, Clone, Copy)]
+pub struct TestVector {
+    /// Input data
+    pub input: &'static [u8],
+    /// Output hash
+    pub output: &'static [u8],
+}
 
 /// Define hash function test
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "dev")))]
 macro_rules! new_test {
-    ($name:ident, $test_name:expr, $hasher:ty, $test_func:ident $(,)?) => {
+    ($name:ident, $hasher:ty, $test_fn:ident $(,)?) => {
         #[test]
         fn $name() {
-            use digest::dev::blobby::Blob2Iterator;
-            let data = include_bytes!(concat!("data/", $test_name, ".blb"));
+            use $crate::dev::TestVector;
 
-            for (i, row) in Blob2Iterator::new(data).unwrap().enumerate() {
-                let [input, output] = row.unwrap();
-                if let Some(desc) = $test_func::<$hasher>(input, output) {
+            $crate::dev::blobby::parse_into_structs!(
+                include_bytes!(concat!("data/", stringify!($name), ".blb"));
+                static TEST_VECTORS: &[TestVector { input, output }];
+            );
+
+            for (i, tv) in TEST_VECTORS.iter().enumerate() {
+                if let Err(reason) = $test_fn::<$hasher>(tv) {
                     panic!(
                         "\n\
-                         Failed test №{}: {}\n\
-                         input:\t{:?}\n\
-                         output:\t{:?}\n",
-                        i, desc, input, output,
+                        Failed test #{i}:\n\
+                        reason:\t{reason}\n\
+                        test vector:\t{tv:?}\n"
                     );
                 }
             }
@@ -39,9 +51,78 @@ macro_rules! new_test {
     };
 }
 
+/// Define hash function serialization test
+#[macro_export]
+macro_rules! hash_serialization_test {
+    ($name:ident, $hasher:ty $(,)?) => {
+        #[test]
+        fn $name() {
+            use digest::{
+                Digest,
+                common::{BlockSizeUser, hazmat::SerializableState},
+                typenum::Unsigned,
+            };
+
+            let mut h = <$hasher>::new();
+
+            h.update(&[0x13; <$hasher as BlockSizeUser>::BlockSize::USIZE + 1]);
+
+            let serialized_state = h.serialize();
+            let expected = include_bytes!(concat!("data/", stringify!($name), ".bin"));
+            assert_eq!(serialized_state.as_slice(), expected);
+
+            let mut h = <$hasher>::deserialize(&serialized_state).unwrap();
+
+            h.update(&[0x13; <$hasher as BlockSizeUser>::BlockSize::USIZE + 1]);
+            let output1 = h.finalize();
+
+            let mut h = <$hasher>::new();
+            h.update(&[0x13; 2 * (<$hasher as BlockSizeUser>::BlockSize::USIZE + 1)]);
+            let output2 = h.finalize();
+
+            assert_eq!(output1, output2);
+        }
+    };
+}
+
+/// Define hash function serialization test
+#[macro_export]
+macro_rules! hash_rt_outsize_serialization_test {
+    ($name:ident, $hasher:ty, $expected_serialized_state:expr) => {
+        #[test]
+        fn $name() {
+            use digest::{
+                Digest, Update, VariableOutput,
+                common::{BlockSizeUser, hazmat::SerializableState},
+                typenum::Unsigned,
+            };
+            const HASH_OUTPUT_SIZE: usize = <$hasher>::MAX_OUTPUT_SIZE - 1;
+
+            let mut h = <$hasher>::new(HASH_OUTPUT_SIZE).unwrap();
+
+            h.update(&[0x13; <$hasher as BlockSizeUser>::BlockSize::USIZE + 1]);
+
+            let serialized_state = h.serialize();
+            assert_eq!(serialized_state.as_slice(), $expected_serialized_state);
+
+            let mut h = <$hasher>::deserialize(&serialized_state).unwrap();
+
+            h.update(&[0x13; <$hasher as BlockSizeUser>::BlockSize::USIZE + 1]);
+            let mut output1 = [0; HASH_OUTPUT_SIZE];
+            h.finalize_variable(&mut output1).unwrap();
+
+            let mut h = <$hasher>::new(HASH_OUTPUT_SIZE).unwrap();
+            h.update(&[0x13; 2 * (<$hasher as BlockSizeUser>::BlockSize::USIZE + 1)]);
+            let mut output2 = [0; HASH_OUTPUT_SIZE];
+            h.finalize_variable(&mut output2).unwrap();
+
+            assert_eq!(output1, output2);
+        }
+    };
+}
+
 /// Define [`Update`][crate::Update] impl benchmark
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "dev")))]
 macro_rules! bench_update {
     (
         $init:expr;

@@ -1,29 +1,11 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
 )]
-#![forbid(unsafe_code)]
-#![warn(
-    clippy::cast_lossless,
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    clippy::checked_conversions,
-    clippy::implicit_saturating_sub,
-    clippy::integer_arithmetic,
-    clippy::mod_module_files,
-    clippy::panic,
-    clippy::panic_in_result_fn,
-    clippy::unwrap_used,
-    missing_docs,
-    rust_2018_idioms,
-    unused_lifetimes,
-    unused_qualifications
-)]
+#![deny(unsafe_code)] // only allowed for casting newtype references
 
 //! # Usage
 //! ## [`Decode`] and [`Encode`] traits
@@ -37,11 +19,10 @@
 //! - [`i8`], [`i16`], [`i32`], [`i64`], [`i128`]: ASN.1 `INTEGER`.
 //! - [`u8`], [`u16`], [`u32`], [`u64`], [`u128`]: ASN.1 `INTEGER`.
 //! - [`f64`]: ASN.1 `REAL` (gated on `real` crate feature)
-//! - [`str`], [`String`][`alloc::string::String`]: ASN.1 `UTF8String`.
-//!   `String` requires `alloc` feature. See also [`Utf8StringRef`].
+//! - [`str`], [`String`][`alloc::string::String`]: ASN.1 `UTF8String`. See also [`Utf8StringRef`].
 //! - [`Option`]: ASN.1 `OPTIONAL`.
 //! - [`SystemTime`][`std::time::SystemTime`]: ASN.1 `GeneralizedTime`. Requires `std` feature.
-//! - [`Vec`][`alloc::vec::Vec`]: ASN.1 `SEQUENCE OF`. Requires `alloc` feature.
+//! - [`Vec`][`alloc::vec::Vec`]: ASN.1 `SEQUENCE OF` (requires `alloc` feature)
 //! - `[T; N]`: ASN.1 `SEQUENCE OF`. See also [`SequenceOf`].
 //!
 //! The following ASN.1 types provided by this crate also impl these traits:
@@ -55,8 +36,8 @@
 //! - [`PrintableStringRef`]: ASN.1 `PrintableString` (ASCII subset).
 //! - [`TeletexStringRef`]: ASN.1 `TeletexString`.
 //! - [`VideotexStringRef`]: ASN.1 `VideotexString`.
-//! - [`SequenceOf`]: ASN.1 `SEQUENCE OF`.
-//! - [`SetOf`], [`SetOfVec`]: ASN.1 `SET OF`.
+//! - [`SequenceOf`] (requires `heapless` feature): ASN.1 `SEQUENCE OF`.
+//! - [`SetOf`] (requires `heapless` feature), [`SetOfVec`] (requires `alloc`): ASN.1 `SET OF`.
 //! - [`UintRef`]: ASN.1 unsigned `INTEGER` with raw access to encoded bytes.
 //! - [`UtcTime`]: ASN.1 `UTCTime`.
 //! - [`Utf8StringRef`]: ASN.1 `UTF8String`.
@@ -94,7 +75,8 @@
 //! // "heapless" usage when the `alloc` feature is disabled.
 //! use der::{
 //!     asn1::{AnyRef, ObjectIdentifier},
-//!     DecodeValue, Decode, SliceReader, Encode, Header, Reader, Sequence
+//!     Decode, DecodeValue, Encode, EncodeValue, Header, Length,
+//!     Reader, Sequence, SliceReader, Writer
 //! };
 //!
 //! /// X.509 `AlgorithmIdentifier`.
@@ -109,43 +91,37 @@
 //! }
 //!
 //! impl<'a> DecodeValue<'a> for AlgorithmIdentifier<'a> {
+//!     type Error = der::Error;
+//!
 //!     fn decode_value<R: Reader<'a>>(reader: &mut R, _header: Header) -> der::Result<Self> {
-//!        // The `der::Decoder::Decode` method can be used to decode any
+//!        // The `der::Decode::decode` method can be used to decode any
 //!        // type which impls the `Decode` trait, which is impl'd for
 //!        // all of the ASN.1 built-in types in the `der` crate.
-//!        //
-//!        // Note that if your struct's fields don't contain an ASN.1
-//!        // built-in type specifically, there are also helper methods
-//!        // for all of the built-in types supported by this library
-//!        // which can be used to select a specific type.
-//!        //
-//!        // For example, another way of decoding this particular field,
-//!        // which contains an ASN.1 `OBJECT IDENTIFIER`, is by calling
-//!        // `decoder.oid()`. Similar methods are defined for other
-//!        // ASN.1 built-in types.
 //!        let algorithm = reader.decode()?;
 //!
 //!        // This field contains an ASN.1 `OPTIONAL` type. The `der` crate
 //!        // maps this directly to Rust's `Option` type and provides
 //!        // impls of the `Decode` and `Encode` traits for `Option`.
-//!        // To explicitly request an `OPTIONAL` type be decoded, use the
-//!        // `decoder.optional()` method.
 //!        let parameters = reader.decode()?;
 //!
-//!        // The value returned from the provided `FnOnce` will be
-//!        // returned from the `any.sequence(...)` call above.
+//!        // The value returned from this `decode_value` will be
+//!        // returned from the `AlgorithmIdentifier::decode` call, unchanged.
 //!        // Note that the entire sequence body *MUST* be consumed
 //!        // or an error will be returned.
 //!        Ok(Self { algorithm, parameters })
 //!     }
 //! }
 //!
-//! impl<'a> ::der::EncodeValue for AlgorithmIdentifier<'a> {
-//!     fn value_len(&self) -> ::der::Result<::der::Length> {
+//! impl<'a> EncodeValue for AlgorithmIdentifier<'a> {
+//!     fn value_len(&self) -> der::Result<Length> {
+//!         // Length of the Value part in Tag-Length-Value structure
+//!         // is calculated for every TLV header in the tree.
+//!         // Therefore, in this example `AlgorithmIdentifier::value_len`
+//!         // will be called once, originating from `Encode::to_der()`.
 //!         self.algorithm.encoded_len()? + self.parameters.encoded_len()?
 //!     }
 //!
-//!     fn encode_value(&self, writer: &mut impl ::der::Writer) -> ::der::Result<()> {
+//!     fn encode_value(&self, writer: &mut impl Writer) -> der::Result<()> {
 //!         self.algorithm.encode(writer)?;
 //!         self.parameters.encode(writer)?;
 //!         Ok(())
@@ -168,15 +144,15 @@
 //! // which impls `Sequence` can be serialized by calling `Encode::to_der()`.
 //! //
 //! // If you would prefer to avoid allocations, you can create a byte array
-//! // as backing storage instead, pass that to `der::Encoder::new`, and then
-//! // encode the `parameters` value using `encoder.encode(parameters)`.
+//! // as backing storage instead, pass that to `der::SliceWriter::new`, and then
+//! // encode the `parameters` value using `writer.encode(parameters)`.
 //! let der_encoded_parameters = parameters.to_der().unwrap();
 //!
 //! let algorithm_identifier = AlgorithmIdentifier {
 //!     // OID for `id-ecPublicKey`, if you're curious
 //!     algorithm: "1.2.840.10045.2.1".parse().unwrap(),
 //!
-//!     // `Any<'a>` impls `TryFrom<&'a [u8]>`, which parses the provided
+//!     // `AnyRef<'a>` impls `TryFrom<&'a [u8]>`, which parses the provided
 //!     // slice as an ASN.1 DER-encoded message.
 //!     parameters: Some(der_encoded_parameters.as_slice().try_into().unwrap())
 //! };
@@ -185,14 +161,14 @@
 //! // allocating a `Vec<u8>` for storage.
 //! //
 //! // As mentioned earlier, if you don't have the `alloc` feature enabled you
-//! // can create a fix-sized array instead, then call `Encoder::new` with a
+//! // can create a fix-sized array instead, then call `SliceWriter::new` with a
 //! // reference to it, then encode the message using
-//! // `encoder.encode(algorithm_identifier)`, then finally `encoder.finish()`
+//! // `writer.encode(algorithm_identifier)`, then finally `writer.finish()`
 //! // to obtain a byte slice containing the encoded message.
 //! let der_encoded_algorithm_identifier = algorithm_identifier.to_der().unwrap();
 //!
-//! // Deserialize the `AlgorithmIdentifier` we just serialized from ASN.1 DER
-//! // using `der::Decode::from_bytes`.
+//! // Deserialize the `AlgorithmIdentifier` bytes we just serialized from ASN.1 DER
+//! // using `der::Decode::from_der`.
 //! let decoded_algorithm_identifier = AlgorithmIdentifier::from_der(
 //!     &der_encoded_algorithm_identifier
 //! ).unwrap();
@@ -288,6 +264,12 @@
 //! # }
 //! ```
 //!
+//! ## Owned vs Borrowed
+//!
+//! This crate exposes owned and borrowed objects for representing the same structure.
+//!
+//! [`RefToOwned`] and [`OwnedToRef`] are provided to convert objects from one to the other.
+//!
 //! # See also
 //! For more information about ASN.1 DER we recommend the following guides:
 //!
@@ -319,6 +301,8 @@
 //! [`UintRef`]: asn1::UintRef
 //! [`UtcTime`]: asn1::UtcTime
 //! [`Utf8StringRef`]: asn1::Utf8StringRef
+//! [`RefToOwned`]: referenced::RefToOwned
+//! [`OwnedToRef`]: referenced::OwnedToRef
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
@@ -330,51 +314,46 @@ extern crate std;
 pub mod asn1;
 pub mod referenced;
 
-pub(crate) mod arrayvec;
-mod bytes_ref;
+mod bytes;
 mod datetime;
 mod decode;
 mod encode;
 mod encode_ref;
+mod encoding_rules;
 mod error;
 mod header;
 mod length;
 mod ord;
 mod reader;
-mod str_ref;
+mod string;
 mod tag;
 mod writer;
 
 #[cfg(feature = "alloc")]
-mod bytes_owned;
-#[cfg(feature = "alloc")]
 mod document;
-#[cfg(feature = "alloc")]
-mod str_owned;
 
 pub use crate::{
+    asn1::bit_string::allowed_len_bit_string::AllowedLenBitString,
     asn1::{AnyRef, Choice, Sequence},
     datetime::DateTime,
     decode::{Decode, DecodeOwned, DecodeValue},
     encode::{Encode, EncodeValue},
     encode_ref::{EncodeRef, EncodeValueRef},
+    encoding_rules::EncodingRules,
     error::{Error, ErrorKind, Result},
     header::Header,
-    length::{IndefiniteLength, Length},
+    length::Length,
     ord::{DerOrd, ValueOrd},
-    reader::{nested::NestedReader, slice::SliceReader, Reader},
-    tag::{Class, FixedTag, Tag, TagMode, TagNumber, Tagged},
-    writer::{slice::SliceWriter, Writer},
+    reader::{Reader, slice::SliceReader},
+    tag::{Class, FixedTag, IsConstructed, Tag, TagMode, TagNumber, Tagged},
+    writer::{Writer, slice::SliceWriter},
 };
 
 #[cfg(feature = "alloc")]
 pub use crate::{asn1::Any, document::Document};
 
-#[cfg(feature = "bigint")]
-pub use crypto_bigint as bigint;
-
 #[cfg(feature = "derive")]
-pub use der_derive::{Choice, Enumerated, Sequence, ValueOrd};
+pub use der_derive::{BitString, Choice, DecodeValue, EncodeValue, Enumerated, Sequence, ValueOrd};
 
 #[cfg(feature = "flagset")]
 pub use flagset;
@@ -397,6 +376,7 @@ pub use zeroize;
 #[cfg(all(feature = "alloc", feature = "zeroize"))]
 pub use crate::document::SecretDocument;
 
-pub(crate) use crate::{arrayvec::ArrayVec, bytes_ref::BytesRef, str_ref::StrRef};
+pub(crate) use crate::{bytes::BytesRef, string::StringRef};
+
 #[cfg(feature = "alloc")]
-pub(crate) use crate::{bytes_owned::BytesOwned, str_owned::StrOwned};
+pub(crate) use crate::{bytes::allocating::BytesOwned, string::allocating::StringOwned};

@@ -1,0 +1,90 @@
+//! `cmov` property-based tests: randomized with shrinking.
+
+use ctutils::{Choice, CtGt, CtLt};
+use proptest::prelude::*;
+
+/// Write the proptests for an integer type.
+macro_rules! int_proptests {
+    ( $($int:ident),+ ) => {
+        $(
+            mod $int {
+                use ctutils::{CtAssign, CtSelect, CtEq, Choice};
+                use proptest::prelude::*;
+
+                proptest! {
+                    #[test]
+                    fn ct_assign(a in any::<$int>(), b in any::<$int>(), byte in any::<u8>()) {
+                        let choice = Choice::from_u8_lsb(byte);
+                        let mut actual = a;
+                        actual.ct_assign(&b, choice);
+
+                        let expected = if byte & 1 == 1 {
+                            b
+                        } else {
+                            a
+                        };
+
+                        prop_assert_eq!(expected, actual);
+                    }
+
+                    #[test]
+                     fn ct_eq(a in any::<$int>(), b in any::<$int>()) {
+                        let actual = a.ct_eq(&b);
+                        prop_assert_eq!(a == b, actual.to_bool());
+                     }
+
+                     #[test]
+                     fn ct_ne(a in any::<$int>(), b in any::<$int>()) {
+                        let actual = a.ct_ne(&b);
+                        prop_assert_eq!(a != b, actual.to_bool());
+                     }
+
+                    #[test]
+                    fn ct_select(a in any::<$int>(), b in any::<$int>(), byte in any::<u8>()) {
+                        let choice = Choice::from_u8_lsb(byte);
+                        let actual = a.ct_select(&b, choice);
+
+                        let expected = if byte & 1 == 1 {
+                            b
+                        } else {
+                            a
+                        };
+
+                        prop_assert_eq!(expected, actual);
+                    }
+                }
+            }
+        )+
+    };
+}
+
+int_proptests!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
+
+proptest::proptest! {
+    #[test]
+    fn from_u32_comparison(x in any::<u32>(), y in any::<u32>()) {
+        prop_assert_eq!(x == y, Choice::from_u32_eq(x, y).to_bool());
+        prop_assert_eq!(x <= y, Choice::from_u32_le(x, y).to_bool());
+        prop_assert_eq!(x < y, Choice::from_u32_lt(x, y).to_bool());
+        prop_assert_eq!(x != 0, Choice::from_u32_nz(x).to_bool());
+    }
+
+    #[test]
+    fn from_u64_comparison(x in any::<u64>(), y in any::<u64>()) {
+        prop_assert_eq!(x == y, Choice::from_u64_eq(x, y).to_bool());
+        prop_assert_eq!(x <= y, Choice::from_u64_le(x, y).to_bool());
+        prop_assert_eq!(x < y, Choice::from_u64_lt(x, y).to_bool());
+        prop_assert_eq!(x != 0, Choice::from_u64_nz(x).to_bool());
+    }
+
+    #[test]
+    fn from_u128_comparison(
+        x in any::<u128>(),
+        y in any::<u128>(),
+    ) {
+        prop_assert_eq!(x < y, Choice::from_u128_lt(x, y).to_bool());
+        prop_assert_eq!(x <= y, Choice::from_u128_le(x, y).to_bool());
+        prop_assert_eq!(x < y, x.ct_lt(&y).to_bool());
+        prop_assert_eq!(x > y, x.ct_gt(&y).to_bool());
+    }
+}

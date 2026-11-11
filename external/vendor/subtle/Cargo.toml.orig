@@ -5,7 +5,8 @@ name = "subtle"
 # - update html_root_url
 # - update README if necessary by semver
 # - if any updates were made to the README, also update the module documentation in src/lib.rs
-version = "2.4.1"
+version = "2.6.1"
+edition = "2018"
 authors = ["Isis Lovecruft <isis@patternsinthevoid.net>",
            "Henry de Valence <hdevalence@hdevalence.ca>"]
 readme = "README.md"
@@ -22,12 +23,15 @@ exclude = [
 ]
 
 [badges]
-travis-ci = { repository = "dalek-cryptography/subtle", branch = "master"}
+travis-ci = { repository = "dalek-cryptography/subtle", branch = "main"}
 
 [dev-dependencies]
-rand = { version = "0.7" }
+rand = { version = "0.8" }
 
 [features]
+const-generics = []
+# DEPRECATED: As of 2.5.1, this feature does nothing.
+core_hint_black_box = []
 default = ["std", "i128"]
 std = []
 i128 = []

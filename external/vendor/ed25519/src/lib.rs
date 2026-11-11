@@ -1,16 +1,9 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![allow(non_snake_case)]
 #![forbid(unsafe_code)]
-#![warn(
-    clippy::unwrap_used,
-    missing_docs,
-    rust_2018_idioms,
-    unused_lifetimes,
-    unused_qualifications
-)]
 
 //! # Using Ed25519 generically over algorithm implementations/providers
 //!
@@ -82,7 +75,7 @@
 //! *NOTE: requires [`ed25519-dalek`] v2 or newer for compatibility with
 //! `ed25519` v2.2+*.
 //!
-//! ```
+//! ```ignore
 //! use ed25519_dalek::{Signer, Verifier, Signature};
 //! #
 //! # pub struct HelloSigner<S>
@@ -154,7 +147,7 @@
 //! instantiate and use the previously defined `HelloSigner` and `HelloVerifier`
 //! types with [`ring-compat`] as the signing/verification provider:
 //!
-//! ```
+//! ```ignore
 //! use ring_compat::signature::{
 //!     ed25519::{Signature, SigningKey, VerifyingKey},
 //!     Signer, Verifier
@@ -199,7 +192,7 @@
 //! # fn format_message(person: &str) -> String {
 //! #     format!("Hello, {}!", person)
 //! # }
-//! use rand_core::{OsRng, RngCore}; // Requires the `std` feature of `rand_core`
+//! use rand_core::{OsRng, Rng}; // Requires the `std` feature of `rand_core`
 //!
 //! /// `HelloSigner` defined above instantiated with *ring* as
 //! /// the signing provider.
@@ -229,7 +222,7 @@
 //!
 //! - [`ed25519-dalek`] - mature pure Rust implementation of Ed25519
 //! - [`ring-compat`] - compatibility wrapper for [*ring*]
-//! - [`yubihsm`] - host-side client library for YubiHSM2 devices from Yubico
+//! - [`yubihsm`] - host-side client library for `YubiHSM2` devices from Yubico
 //!
 //! [`ed25519-dalek`]: https://docs.rs/ed25519-dalek
 //! [`ring-compat`]: https://docs.rs/ring-compat
@@ -267,24 +260,40 @@ mod hex;
 #[cfg(feature = "pkcs8")]
 pub mod pkcs8;
 
-#[cfg(feature = "serde")]
-mod serde;
-
 pub use signature::{self, Error, SignatureEncoding};
 
 #[cfg(feature = "pkcs8")]
-pub use crate::pkcs8::{KeypairBytes, PublicKeyBytes};
+pub use crate::pkcs8::{
+    KeypairBytes, PublicKeyBytes,
+    spki::{
+        AlgorithmIdentifierRef, AssociatedAlgorithmIdentifier,
+        der::{AnyRef, oid::ObjectIdentifier},
+    },
+};
 
 use core::fmt;
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Serialize, de, ser};
+
+#[cfg(all(feature = "alloc", feature = "pkcs8"))]
+use pkcs8::spki::{
+    SignatureBitStringEncoding,
+    der::{self, asn1::BitString},
+};
+
+#[cfg(feature = "zeroize")]
+use zeroize::Zeroize;
+
+#[cfg(feature = "zerocopy")]
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 /// Size of a single component of an Ed25519 signature.
 const COMPONENT_SIZE: usize = 32;
 
-/// Size of an `R` or `s` component of an Ed25519 signature when serialized
-/// as bytes.
+/// Byte representation of an `R` or `s` component of an Ed25519 signature.
 pub type ComponentBytes = [u8; COMPONENT_SIZE];
 
 /// Ed25519 signature serialized as a byte array.
@@ -298,7 +307,11 @@ pub type SignatureBytes = [u8; Signature::BYTE_SIZE];
 ///
 /// Signature verification libraries are expected to reject invalid field
 /// elements at the time a signature is verified.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(FromBytes, IntoBytes, Immutable, KnownLayout, Unaligned)
+)]
 #[repr(C)]
 pub struct Signature {
     R: ComponentBytes,
@@ -310,6 +323,7 @@ impl Signature {
     pub const BYTE_SIZE: usize = COMPONENT_SIZE * 2;
 
     /// Parse an Ed25519 signature from a byte slice.
+    #[must_use]
     pub fn from_bytes(bytes: &SignatureBytes) -> Self {
         let mut R = ComponentBytes::default();
         let mut s = ComponentBytes::default();
@@ -322,15 +336,15 @@ impl Signature {
     }
 
     /// Parse an Ed25519 signature from its `R` and `s` components.
+    #[must_use]
     pub fn from_components(R: ComponentBytes, s: ComponentBytes) -> Self {
         Self { R, s }
     }
 
     /// Parse an Ed25519 signature from a byte slice.
     ///
-    /// # Returns
-    /// - `Ok` on success
-    /// - `Err` if the input byte slice is not 64-bytes
+    /// # Errors
+    /// - Returns [`Error`] if the input byte slice is not 64-bytes.
     pub fn from_slice(bytes: &[u8]) -> signature::Result<Self> {
         SignatureBytes::try_from(bytes)
             .map(Into::into)
@@ -338,16 +352,19 @@ impl Signature {
     }
 
     /// Bytes for the `R` component of a signature.
+    #[must_use]
     pub fn r_bytes(&self) -> &ComponentBytes {
         &self.R
     }
 
     /// Bytes for the `s` component of a signature.
+    #[must_use]
     pub fn s_bytes(&self) -> &ComponentBytes {
         &self.s
     }
 
     /// Return the inner byte array.
+    #[must_use]
     pub fn to_bytes(&self) -> SignatureBytes {
         let mut ret = [0u8; Self::BYTE_SIZE];
         let (R, s) = ret.split_at_mut(COMPONENT_SIZE);
@@ -358,6 +375,7 @@ impl Signature {
 
     /// Convert this signature into a byte vector.
     #[cfg(feature = "alloc")]
+    #[must_use]
     pub fn to_vec(&self) -> Vec<u8> {
         self.to_bytes().to_vec()
     }
@@ -369,6 +387,20 @@ impl SignatureEncoding for Signature {
     fn to_bytes(&self) -> SignatureBytes {
         self.to_bytes()
     }
+}
+
+#[cfg(all(feature = "alloc", feature = "pkcs8"))]
+impl SignatureBitStringEncoding for Signature {
+    fn to_bitstring(&self) -> der::Result<BitString> {
+        BitString::new(0, self.to_vec())
+    }
+}
+
+#[cfg(feature = "pkcs8")]
+impl AssociatedAlgorithmIdentifier for Signature {
+    type Params = AnyRef<'static>;
+
+    const ALGORITHM_IDENTIFIER: AlgorithmIdentifierRef<'static> = pkcs8::ALGORITHM_ID;
 }
 
 impl From<Signature> for SignatureBytes {
@@ -414,6 +446,36 @@ impl fmt::Debug for Signature {
 
 impl fmt::Display for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:X}", self)
+        write!(f, "{self:X}")
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        serdect::array::serialize_hex_upper_or_bin(&self.to_bytes(), serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let mut bytes = [0u8; Signature::BYTE_SIZE];
+        serdect::array::deserialize_hex_or_bin(&mut bytes, deserializer)?;
+        Ok(bytes.into())
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl Zeroize for Signature {
+    fn zeroize(&mut self) {
+        self.R.zeroize();
+        self.s.zeroize();
     }
 }

@@ -1,9 +1,11 @@
+//! Poly1305 integration tests.
+
+use core::iter::repeat_n;
 use hex_literal::hex;
 use poly1305::{
+    Block, KEY_SIZE, Poly1305,
     universal_hash::{KeyInit, UniversalHash},
-    Block, Poly1305, BLOCK_SIZE, KEY_SIZE,
 };
-use std::iter::repeat;
 
 #[test]
 fn test_nacl_vector() {
@@ -23,7 +25,7 @@ fn test_nacl_vector() {
 
     let expected = hex!("f3ffc7703f9400e52a7dfb4b3d3305d9");
 
-    let result1 = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg);
+    let result1 = Poly1305::new(&key.into()).compute_unpadded(&msg);
     assert_eq!(&expected[..], result1.as_slice());
 }
 
@@ -42,8 +44,8 @@ fn donna_self_test1() {
     //         = 3
     let expected = hex!("03000000000000000000000000000000");
 
-    let mut poly = Poly1305::new(key.as_ref().into());
-    poly.update(&[Block::clone_from_slice(msg.as_ref())]);
+    let mut poly = Poly1305::new(&key.into());
+    poly.update(&[msg.into()]);
     assert_eq!(&expected[..], poly.finalize().as_slice());
 }
 
@@ -52,15 +54,15 @@ fn donna_self_test2() {
     let total_key = hex!("01020304050607fffefdfcfbfaf9ffffffffffffffffffffffffffff00000000");
     let total_mac = hex!("64afe2e8d6ad7bbdd287f97c44623d39");
 
-    let mut tpoly = Poly1305::new(total_key.as_ref().into());
+    let mut tpoly = Poly1305::new(&total_key.into());
 
     for i in 0..256 {
         let mut key = [0u8; KEY_SIZE];
-        key.copy_from_slice(&repeat(i as u8).take(KEY_SIZE).collect::<Vec<_>>());
+        key.copy_from_slice(&repeat_n(i as u8, KEY_SIZE).collect::<Vec<_>>());
 
-        let msg: Vec<u8> = repeat(i as u8).take(256).collect();
-        let tag = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg[..i]);
-        tpoly.update(&[tag.into()]);
+        let msg: Vec<u8> = repeat_n(i as u8, 256).collect();
+        let tag = Poly1305::new(&key.into()).compute_unpadded(&msg[..i]);
+        tpoly.update(&[tag]);
     }
 
     assert_eq!(&total_mac[..], tpoly.finalize().as_slice());
@@ -68,18 +70,15 @@ fn donna_self_test2() {
 
 #[test]
 fn test_tls_vectors() {
-    // from http://tools.ietf.org/html/draft-agl-tls-chacha20poly1305-04
+    // from https://datatracker.ietf.org/doc/html/draft-agl-tls-chacha20poly1305-04#section-7
     let key = b"this is 32-byte key for Poly1305";
     let msg = [0u8; 32];
     let expected = hex!("49ec78090e481ec6c26b33b91ccc0307");
 
-    let mut poly = Poly1305::new(key.as_ref().into());
+    let mut poly = Poly1305::new(key.into());
 
-    let blocks = msg
-        .chunks(BLOCK_SIZE)
-        .map(|chunk| Block::clone_from_slice(chunk))
-        .collect::<Vec<_>>();
-    poly.update(&blocks);
+    let blocks = Block::slice_as_chunks(&msg).0;
+    poly.update(blocks);
 
     assert_eq!(&expected[..], poly.finalize().as_slice());
 }
@@ -91,7 +90,7 @@ fn test_rfc7539_vector() {
     let msg = hex!("43727970746f6772617068696320466f72756d2052657365617263682047726f7570");
     let expected = hex!("a8061dc1305136c6c22b8baf0c0127a9");
 
-    let result = Poly1305::new(key.as_ref().into()).compute_unpadded(&msg);
+    let result = Poly1305::new(&key.into()).compute_unpadded(&msg);
     assert_eq!(&expected[..], result.as_slice());
 }
 
@@ -102,7 +101,7 @@ fn padded_input() {
     let msg = hex!("50515253c0c1c2c3c4c5c6c7");
     let expected = hex!("ada56caa480fe6f5067039244a3d76ba");
 
-    let mut poly = Poly1305::new(key.as_ref().into());
+    let mut poly = Poly1305::new(&key.into());
     poly.update_padded(&msg);
     assert_eq!(&expected[..], poly.finalize().as_slice());
 }

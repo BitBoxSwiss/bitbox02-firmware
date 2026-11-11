@@ -10,11 +10,17 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.56"
+edition = "2024"
+rust-version = "1.85"
 name = "chacha20"
-version = "0.9.1"
+version = "0.10.2"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 The ChaCha20 stream cipher (RFC 8439) implemented in pure Rust using traits
 from the RustCrypto `cipher` crate, with optional architecture-specific
@@ -35,33 +41,107 @@ categories = [
     "cryptography",
     "no-std",
 ]
-license = "Apache-2.0 OR MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/stream-ciphers"
-resolver = "1"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
+
+[features]
+default = ["cipher"]
+legacy = ["cipher"]
+rng = ["dep:rand_core"]
+xchacha = ["cipher"]
+
+[lib]
+name = "chacha20"
+path = "src/lib.rs"
+
+[[test]]
+name = "kats"
+path = "tests/kats.rs"
+
+[[test]]
+name = "rng"
+path = "tests/rng.rs"
+
+[[bench]]
+name = "mod"
+path = "benches/mod.rs"
 
 [dependencies.cfg-if]
 version = "1"
 
 [dependencies.cipher]
-version = "0.4.4"
+version = "0.5"
+features = ["stream-wrapper"]
+optional = true
+
+[dependencies.rand_core]
+version = "0.10"
+optional = true
+default-features = false
+
+[dependencies.zeroize]
+version = "1.8.1"
+optional = true
+default-features = false
 
 [dev-dependencies.cipher]
-version = "0.4.4"
+version = "0.5"
 features = ["dev"]
 
 [dev-dependencies.hex-literal]
-version = "0.3.3"
+version = "1"
 
-[features]
-std = ["cipher/std"]
-zeroize = ["cipher/zeroize"]
+[target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies.cpufeatures]
+version = "0.3"
 
-[target."cfg(any(target_arch = \"x86_64\", target_arch = \"x86\"))".dependencies.cpufeatures]
-version = "0.2"
+[lints.clippy]
+borrow_as_ptr = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_saturating_sub = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+needless_range_loop = "allow"
+ptr_as_ptr = "warn"
+redundant_closure_for_method_calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
+trivially_copy_pass_by_ref = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
+
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unreachable_pub = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = [
+    "cfg(chacha20_avx512)",
+    'cfg(chacha20_backend, values("avx2", "avx512", "soft", "sse2"))',
+]

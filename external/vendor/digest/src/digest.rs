@@ -1,8 +1,10 @@
 use super::{FixedOutput, FixedOutputReset, InvalidBufferSize, Reset, Update};
-use crypto_common::{typenum::Unsigned, Output, OutputSizeUser};
+use common::{Output, OutputSizeUser, typenum::Unsigned};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
+#[cfg(feature = "oid")]
+use const_oid::DynAssociatedOid;
 
 /// Marker trait for cryptographic hash functions.
 pub trait HashMarker {}
@@ -112,7 +114,7 @@ impl<D: FixedOutput + Default + Update + HashMarker> Digest for D {
     where
         Self: Reset,
     {
-        Reset::reset(self)
+        Reset::reset(self);
     }
 
     #[inline]
@@ -137,7 +139,6 @@ pub trait DynDigest {
 
     /// Retrieve result and reset hasher instance
     #[cfg(feature = "alloc")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     fn finalize_reset(&mut self) -> Box<[u8]> {
         let mut result = vec![0; self.output_size()];
         self.finalize_into_reset(&mut result).unwrap();
@@ -146,8 +147,8 @@ pub trait DynDigest {
 
     /// Retrieve result and consume boxed hasher instance
     #[cfg(feature = "alloc")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     #[allow(clippy::boxed_local)]
+    #[must_use]
     fn finalize(mut self: Box<Self>) -> Box<[u8]> {
         let mut result = vec![0; self.output_size()];
         self.finalize_into_reset(&mut result).unwrap();
@@ -156,12 +157,14 @@ pub trait DynDigest {
 
     /// Write result into provided array and consume the hasher instance.
     ///
-    /// Returns error if buffer length is not equal to `output_size`.
+    /// # Errors
+    /// If buffer length is not equal to `output_size`.
     fn finalize_into(self, buf: &mut [u8]) -> Result<(), InvalidBufferSize>;
 
     /// Write result into provided array and reset the hasher instance.
     ///
-    /// Returns error if buffer length is not equal to `output_size`.
+    /// # Errors
+    /// If buffer length is not equal to `output_size`.
     fn finalize_into_reset(&mut self, out: &mut [u8]) -> Result<(), InvalidBufferSize>;
 
     /// Reset hasher instance to its initial state.
@@ -172,7 +175,6 @@ pub trait DynDigest {
 
     /// Clone hasher state into a boxed trait object
     #[cfg(feature = "alloc")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     fn box_clone(&self) -> Box<dyn DynDigest>;
 }
 
@@ -196,21 +198,15 @@ impl<D: Update + FixedOutputReset + Reset + Clone + 'static> DynDigest for D {
     }
 
     fn finalize_into(self, buf: &mut [u8]) -> Result<(), InvalidBufferSize> {
-        if buf.len() == self.output_size() {
-            FixedOutput::finalize_into(self, Output::<Self>::from_mut_slice(buf));
-            Ok(())
-        } else {
-            Err(InvalidBufferSize)
-        }
+        buf.try_into()
+            .map_err(|_| InvalidBufferSize)
+            .map(|buf| FixedOutput::finalize_into(self, buf))
     }
 
     fn finalize_into_reset(&mut self, buf: &mut [u8]) -> Result<(), InvalidBufferSize> {
-        if buf.len() == self.output_size() {
-            FixedOutputReset::finalize_into_reset(self, Output::<Self>::from_mut_slice(buf));
-            Ok(())
-        } else {
-            Err(InvalidBufferSize)
-        }
+        let buf = <&mut Output<Self>>::try_from(buf).map_err(|_| InvalidBufferSize)?;
+        FixedOutputReset::finalize_into_reset(self, buf);
+        Ok(())
     }
 
     fn reset(&mut self) {
@@ -228,9 +224,15 @@ impl<D: Update + FixedOutputReset + Reset + Clone + 'static> DynDigest for D {
 }
 
 #[cfg(feature = "alloc")]
-#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 impl Clone for Box<dyn DynDigest> {
     fn clone(&self) -> Self {
         self.box_clone()
     }
 }
+
+/// Convenience wrapper trait around [DynDigest] and [DynAssociatedOid].
+#[cfg(feature = "oid")]
+pub trait DynDigestWithOid: DynDigest + DynAssociatedOid {}
+
+#[cfg(feature = "oid")]
+impl<T: DynDigest + DynAssociatedOid> DynDigestWithOid for T {}

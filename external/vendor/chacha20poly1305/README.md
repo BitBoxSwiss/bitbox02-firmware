@@ -48,8 +48,8 @@ certain 32-bit PowerPC CPUs and some non-ARM microcontrollers).
 
 Licensed under either of:
 
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+ * [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+ * [MIT license](https://opensource.org/licenses/MIT)
 
 at your option.
 
@@ -61,12 +61,12 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/chacha20poly1305
+[crate-image]: https://img.shields.io/crates/v/chacha20poly1305
 [crate-link]: https://crates.io/crates/chacha20poly1305
 [docs-image]: https://docs.rs/chacha20poly1305/badge.svg
 [docs-link]: https://docs.rs/chacha20poly1305/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260038-AEADs
 [downloads-image]: https://img.shields.io/crates/d/chacha20poly1305.svg
@@ -79,5 +79,5 @@ dual licensed as above, without any additional terms or conditions.
 [2]: https://en.wikipedia.org/wiki/Authenticated_encryption
 [3]: https://github.com/RustCrypto/stream-ciphers/tree/master/chacha20
 [4]: https://github.com/RustCrypto/universal-hashes/tree/master/poly1305
-[5]: https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
+[5]: https://web.archive.org/web/20200606025324/https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
 [6]: https://www.mobilecoin.com/

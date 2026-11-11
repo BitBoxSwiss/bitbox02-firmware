@@ -1,51 +1,68 @@
 //! Reader trait.
 
-pub(crate) mod nested;
 #[cfg(feature = "pem")]
 pub(crate) mod pem;
 pub(crate) mod slice;
 
-pub(crate) use nested::NestedReader;
+mod position;
 
 use crate::{
-    asn1::ContextSpecific, Decode, DecodeValue, Encode, Error, ErrorKind, FixedTag, Header, Length,
-    Result, Tag, TagMode, TagNumber,
+    Decode, DecodeValue, Encode, EncodingRules, Error, ErrorKind, FixedTag, Header, Length, Tag,
+    TagMode, TagNumber, asn1::ContextSpecific,
 };
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+#[cfg(feature = "ber")]
+use crate::length::indefinite::read_eoc;
+
+/// Maximum nesting depth for readers and BER indefinite-length scanning.
+pub(crate) const MAX_NESTING_DEPTH: usize = 64;
+
 /// Reader trait which reads DER-encoded input.
-pub trait Reader<'r>: Sized {
+pub trait Reader<'r>: Clone {
+    /// Does this reader support the `read_slice` method? (i.e. can it borrow from his input?)
+    const CAN_READ_SLICE: bool;
+
+    /// Get the [`EncodingRules`] which should be applied when decoding the input.
+    fn encoding_rules(&self) -> EncodingRules;
+
     /// Get the length of the input.
     fn input_len(&self) -> Length;
-
-    /// Peek at the next byte of input without modifying the cursor.
-    fn peek_byte(&self) -> Option<u8>;
-
-    /// Peek forward in the input data, attempting to decode a [`Header`] from
-    /// the data at the current position in the decoder.
-    ///
-    /// Does not modify the decoder's state.
-    fn peek_header(&self) -> Result<Header>;
 
     /// Get the position within the buffer.
     fn position(&self) -> Length;
 
+    /// Read nested data of the given length.
+    ///
+    /// # Errors
+    /// If `f` returns an error.
+    fn read_nested<T, F, E>(&mut self, len: Length, f: F) -> Result<T, E>
+    where
+        E: From<Error>,
+        F: FnOnce(&mut Self) -> Result<T, E>;
+
     /// Attempt to read data borrowed directly from the input as a slice,
     /// updating the internal cursor position.
     ///
-    /// # Returns
-    /// - `Ok(slice)` on success
+    /// # Errors
     /// - `Err(ErrorKind::Incomplete)` if there is not enough data
     /// - `Err(ErrorKind::Reader)` if the reader can't borrow from the input
-    fn read_slice(&mut self, len: Length) -> Result<&'r [u8]>;
+    fn read_slice(&mut self, len: Length) -> Result<&'r [u8], Error>;
 
     /// Attempt to decode an ASN.1 `CONTEXT-SPECIFIC` field with the
     /// provided [`TagNumber`].
-    fn context_specific<T>(&mut self, tag_number: TagNumber, tag_mode: TagMode) -> Result<Option<T>>
+    ///
+    /// # Errors
+    /// If a decoding error occurred.
+    fn context_specific<T>(
+        &mut self,
+        tag_number: TagNumber,
+        tag_mode: TagMode,
+    ) -> Result<Option<T>, T::Error>
     where
-        T: DecodeValue<'r> + FixedTag,
+        T: DecodeValue<'r> + FixedTag + 'r,
     {
         Ok(match tag_mode {
             TagMode::Explicit => ContextSpecific::<T>::decode_explicit(self, tag_number)?,
@@ -55,8 +72,36 @@ pub trait Reader<'r>: Sized {
     }
 
     /// Decode a value which impls the [`Decode`] trait.
-    fn decode<T: Decode<'r>>(&mut self) -> Result<T> {
-        T::decode(self).map_err(|e| e.nested(self.position()))
+    ///
+    /// # Errors
+    /// Returns `T::Error` if a decoding error occurred.
+    fn decode<T: Decode<'r>>(&mut self) -> Result<T, T::Error> {
+        T::decode(self)
+    }
+
+    /// Drain the given amount of data from the reader, discarding it.
+    ///
+    /// # Errors
+    /// If an error occurred reading the given `amount` of data.
+    fn drain(&mut self, mut amount: Length) -> Result<(), Error> {
+        const BUFFER_SIZE: usize = 16;
+        let mut buffer = [0u8; BUFFER_SIZE];
+
+        while amount > Length::ZERO {
+            let amount_usize = usize::try_from(amount)?;
+
+            let nbytes_drained = if amount_usize >= BUFFER_SIZE {
+                self.read_into(&mut buffer)?;
+                Length::try_from(BUFFER_SIZE)?
+            } else {
+                self.read_into(&mut buffer[..amount_usize])?;
+                amount
+            };
+
+            amount = (amount - nbytes_drained)?;
+        }
+
+        Ok(())
     }
 
     /// Return an error with the given [`ErrorKind`], annotating it with
@@ -65,9 +110,12 @@ pub trait Reader<'r>: Sized {
         kind.at(self.position())
     }
 
-    /// Finish decoding, returning the given value if there is no
-    /// remaining data, or an error otherwise
-    fn finish<T>(self, value: T) -> Result<T> {
+    /// Finish decoding, returning `Ok(())` if there is no
+    /// remaining data, or an error otherwise.
+    ///
+    /// # Errors
+    /// If there is trailing data remaining in the reader.
+    fn finish(self) -> Result<(), Error> {
         if !self.is_finished() {
             Err(ErrorKind::TrailingData {
                 decoded: self.position(),
@@ -75,11 +123,11 @@ pub trait Reader<'r>: Sized {
             }
             .at(self.position()))
         } else {
-            Ok(value)
+            Ok(())
         }
     }
 
-    /// Have we read all of the input data?
+    /// Have we read all input data?
     fn is_finished(&self) -> bool {
         self.remaining_len().is_zero()
     }
@@ -93,19 +141,49 @@ pub trait Reader<'r>: Sized {
         self.position()
     }
 
-    /// Peek at the next byte in the decoder and attempt to decode it as a
-    /// [`Tag`] value.
+    /// Peek at the next byte of input without modifying the cursor.
+    fn peek_byte(&self) -> Option<u8> {
+        let mut byte = [0];
+        self.peek_into(&mut byte).ok().map(|_| byte[0])
+    }
+
+    /// Peek at the decoded data without updating the internal state, writing into the provided
+    /// output buffer. Attempts to fill the entire buffer.
+    ///
+    /// # Errors
+    /// If there is not enough data.
+    fn peek_into(&self, buf: &mut [u8]) -> Result<(), Error> {
+        let mut reader = self.clone();
+        reader.read_into(buf)?;
+        Ok(())
+    }
+
+    /// Peek forward in the input data, attempting to decode a [`Header`] from
+    /// the data at the current position in the decoder.
     ///
     /// Does not modify the decoder's state.
-    fn peek_tag(&self) -> Result<Tag> {
-        match self.peek_byte() {
-            Some(byte) => byte.try_into(),
-            None => Err(Error::incomplete(self.input_len())),
-        }
+    ///
+    /// # Errors
+    /// If [`Header::peek`] returns an error.
+    #[deprecated(since = "0.8.0", note = "use `Header::peek` instead")]
+    fn peek_header(&self) -> Result<Header, Error> {
+        Header::peek(self)
+    }
+
+    /// Peek at the next tag in the reader.
+    ///
+    /// # Errors
+    /// If [`Tag::peek`] returns an error.
+    #[deprecated(since = "0.8.0", note = "use `Tag::peek` instead")]
+    fn peek_tag(&self) -> Result<Tag, Error> {
+        Tag::peek(self)
     }
 
     /// Read a single byte.
-    fn read_byte(&mut self) -> Result<u8> {
+    ///
+    /// # Errors
+    /// If the byte could not be read.
+    fn read_byte(&mut self) -> Result<u8, Error> {
         let mut buf = [0];
         self.read_into(&mut buf)?;
         Ok(buf[0])
@@ -114,28 +192,20 @@ pub trait Reader<'r>: Sized {
     /// Attempt to read input data, writing it into the provided buffer, and
     /// returning a slice on success.
     ///
-    /// # Returns
-    /// - `Ok(slice)` if there is sufficient data
-    /// - `Err(ErrorKind::Incomplete)` if there is not enough data
-    fn read_into<'o>(&mut self, buf: &'o mut [u8]) -> Result<&'o [u8]> {
+    /// # Errors
+    /// - `ErrorKind::Incomplete` if there is not enough data
+    fn read_into<'o>(&mut self, buf: &'o mut [u8]) -> Result<&'o [u8], Error> {
         let input = self.read_slice(buf.len().try_into()?)?;
         buf.copy_from_slice(input);
         Ok(buf)
     }
 
-    /// Read nested data of the given length.
-    fn read_nested<'n, T, F>(&'n mut self, len: Length, f: F) -> Result<T>
-    where
-        F: FnOnce(&mut NestedReader<'n, Self>) -> Result<T>,
-    {
-        let mut reader = NestedReader::new(self, len)?;
-        let ret = f(&mut reader)?;
-        reader.finish(ret)
-    }
-
     /// Read a byte vector of the given length.
+    ///
+    /// # Errors
+    /// If a read error occurred.
     #[cfg(feature = "alloc")]
-    fn read_vec(&mut self, len: Length) -> Result<Vec<u8>> {
+    fn read_vec(&mut self, len: Length) -> Result<Vec<u8>, Error> {
         let mut bytes = vec![0u8; usize::try_from(len)?];
         self.read_into(&mut bytes)?;
         Ok(bytes)
@@ -149,19 +219,50 @@ pub trait Reader<'r>: Sized {
 
     /// Read an ASN.1 `SEQUENCE`, creating a nested [`Reader`] for the body and
     /// calling the provided closure with it.
-    fn sequence<'n, F, T>(&'n mut self, f: F) -> Result<T>
+    ///
+    /// # Errors
+    /// If `f` returns an error, or if a decoding error occurred.
+    fn sequence<F, T, E>(&mut self, f: F) -> Result<T, E>
     where
-        F: FnOnce(&mut NestedReader<'n, Self>) -> Result<T>,
+        F: FnOnce(&mut Self) -> Result<T, E>,
+        E: From<Error>,
     {
         let header = Header::decode(self)?;
-        header.tag.assert_eq(Tag::Sequence)?;
-        self.read_nested(header.length, f)
+        header.tag().assert_eq(Tag::Sequence)?;
+        read_value(self, header, |r, _| f(r))
     }
 
-    /// Obtain a slice of bytes contain a complete TLV production suitable for parsing later.
-    fn tlv_bytes(&mut self) -> Result<&'r [u8]> {
-        let header = self.peek_header()?;
+    /// Obtain a slice of bytes containing a complete TLV production suitable for parsing later.
+    ///
+    /// # Errors
+    /// If a decoding error occurred, or a length calculation overflowed.
+    fn tlv_bytes(&mut self) -> Result<&'r [u8], Error> {
+        let header = Header::peek(self)?;
         let header_len = header.encoded_len()?;
-        self.read_slice((header_len + header.length)?)
+        self.read_slice((header_len + header.length())?)
     }
+}
+
+/// Read a value (i.e. the "V" part of a "TLV" field) using the provided header.
+///
+/// This calls the provided function `f` with a nested reader created using
+/// [`Reader::read_nested`].
+pub(crate) fn read_value<'r, R, T, F, E>(reader: &mut R, header: Header, f: F) -> Result<T, E>
+where
+    R: Reader<'r>,
+    E: From<Error>,
+    F: FnOnce(&mut R, Header) -> Result<T, E>,
+{
+    #[cfg(feature = "ber")]
+    let header = header.with_length(header.length().sans_eoc());
+
+    let ret = reader.read_nested(header.length(), |r| f(r, header))?;
+
+    // Consume EOC marker if the length is indefinite.
+    #[cfg(feature = "ber")]
+    if header.length().is_indefinite() {
+        read_eoc(reader)?;
+    }
+
+    Ok(ret)
 }

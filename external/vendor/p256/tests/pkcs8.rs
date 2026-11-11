@@ -1,10 +1,10 @@
 //! PKCS#8 tests
 
-#![cfg(feature = "pkcs8")]
+#![cfg(all(feature = "pkcs8", feature = "arithmetic"))]
 
 use hex_literal::hex;
 use p256::{
-    elliptic_curve::sec1::ToEncodedPoint,
+    elliptic_curve::sec1::ToSec1Point,
     pkcs8::{DecodePrivateKey, DecodePublicKey},
 };
 
@@ -35,9 +35,11 @@ fn decode_pkcs8_private_key_from_der() {
 #[test]
 fn decode_pkcs8_public_key_from_der() {
     let public_key = p256::PublicKey::from_public_key_der(&PKCS8_PUBLIC_KEY_DER[..]).unwrap();
-    let expected_sec1_point = hex!("041CACFFB55F2F2CEFD89D89EB374B2681152452802DEEA09916068137D839CF7FC481A44492304D7EF66AC117BEFE83A8D08F155F2B52F9F618DD447029048E0F");
+    let expected_sec1_point = hex!(
+        "041CACFFB55F2F2CEFD89D89EB374B2681152452802DEEA09916068137D839CF7FC481A44492304D7EF66AC117BEFE83A8D08F155F2B52F9F618DD447029048E0F"
+    );
     assert_eq!(
-        public_key.to_encoded_point(false).as_bytes(),
+        public_key.to_sec1_point(false).as_bytes(),
         &expected_sec1_point[..]
     );
 }

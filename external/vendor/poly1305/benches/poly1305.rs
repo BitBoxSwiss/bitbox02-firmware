@@ -1,10 +1,12 @@
+//! Poly1305 benchmarks.
+
 #![feature(test)]
 
 extern crate test;
 
 use poly1305::{
-    universal_hash::{KeyInit, UniversalHash},
     Poly1305,
+    universal_hash::{KeyInit, UniversalHash},
 };
 use test::Bencher;
 
@@ -26,7 +28,7 @@ macro_rules! bench {
     };
 }
 
-bench!(bench1_10, 10);
-bench!(bench2_100, 100);
-bench!(bench3_1000, 1000);
-bench!(bench3_10000, 10000);
+bench!(bench_poly1305_1_10, 10);
+bench!(bench_poly1305_2_100, 100);
+bench!(bench_poly1305_3_1000, 1000);
+bench!(bench_poly1305_4_10000, 10000);

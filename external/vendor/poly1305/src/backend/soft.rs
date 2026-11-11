@@ -13,9 +13,9 @@
 // https://github.com/floodyberry/poly1305-donna
 
 use universal_hash::{
+    UhfBackend, UhfClosure,
+    common::{BlockSizeUser, ParBlocksSizeUser},
     consts::{U1, U16},
-    crypto_common::{BlockSizeUser, ParBlocksSizeUser},
-    UhfBackend, UniversalHash,
 };
 
 use crate::{Block, Key, Tag};
@@ -32,7 +32,7 @@ impl State {
     pub(crate) fn new(key: &Key) -> State {
         let mut poly = State::default();
 
-        // r &= 0xffffffc0ffffffc0ffffffc0fffffff
+        // r &= 0x0ffffffc_0ffffffc_0ffffffc_0fffffff
         poly.r[0] = (u32::from_le_bytes(key[0..4].try_into().unwrap())) & 0x3ff_ffff;
         poly.r[1] = (u32::from_le_bytes(key[3..7].try_into().unwrap()) >> 2) & 0x3ff_ff03;
         poly.r[2] = (u32::from_le_bytes(key[6..10].try_into().unwrap()) >> 4) & 0x3ff_c0ff;
@@ -139,8 +139,13 @@ impl State {
         self.h[4] = h4;
     }
 
+    #[allow(unused, reason = "this method is used by some targets")]
+    pub(crate) fn update_with_backend(&mut self, f: impl UhfClosure<BlockSize = U16>) {
+        f.call(self);
+    }
+
     /// Finalize output producing a [`Tag`]
-    pub(crate) fn finalize_mut(&mut self) -> Tag {
+    pub(crate) fn finalize(&mut self) -> Tag {
         // fully carry h
         let mut h0 = self.h[0];
         let mut h1 = self.h[1];
@@ -232,16 +237,6 @@ impl State {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl Drop for State {
-    fn drop(&mut self) {
-        use zeroize::Zeroize;
-        self.r.zeroize();
-        self.h.zeroize();
-        self.pad.zeroize();
-    }
-}
-
 impl BlockSizeUser for State {
     type BlockSize = U16;
 }
@@ -253,19 +248,5 @@ impl ParBlocksSizeUser for State {
 impl UhfBackend for State {
     fn proc_block(&mut self, block: &Block) {
         self.compute_block(block, false);
-    }
-}
-
-impl UniversalHash for State {
-    fn update_with_backend(
-        &mut self,
-        f: impl universal_hash::UhfClosure<BlockSize = Self::BlockSize>,
-    ) {
-        f.call(self);
-    }
-
-    /// Finalize output producing a [`Tag`]
-    fn finalize(mut self) -> Tag {
-        self.finalize_mut()
     }
 }

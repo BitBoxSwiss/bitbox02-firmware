@@ -7,28 +7,41 @@
 [![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
-Pure Rust implementation of the [SHA-3 (Keccak) hash function][1].
+Implementation of the [SHA-3] family of cryptographic hash algorithms.
 
-[Documentation][docs-link]
+There are 4 standard fixed-size algorithms specified in the SHA-3 standard:
+`SHA3-224`, `SHA3-256`, `SHA3-384`, `SHA3-512`.
 
-## Minimum Supported Rust Version
+`SHAKE128` and `SHAKE256` extendable output functions (XOF) are defined in the [`shake`] crate
 
-Rust **1.41** or higher.
+Additionally, this crate supports:
+- `Keccak224`, `Keccak256`, `Keccak384`, `Keccak512`: NIST submission without padding changes
+- `Keccak256Full`: CryptoNight variant of SHA-3
 
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
+## Examples
 
-## SemVer Policy
+Output size of SHA3-256 is fixed, so its functionality is usually
+accessed via the `Digest` trait:
 
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
+```rust
+use hex_literal::hex;
+use sha3::{Digest, Sha3_256};
+
+let mut hasher = Sha3_256::new();
+hasher.update(b"abc");
+let hash = hasher.finalize();
+
+assert_eq!(hash, hex!("3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"));
+```
+
+See the [`digest`] crate docs for additional examples.
 
 ## License
 
-Licensed under either of:
+The crate is licensed under either of:
 
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+* [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+* [MIT license](http://opensource.org/licenses/MIT)
 
 at your option.
 
@@ -45,12 +58,14 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/sha3/badge.svg
 [docs-link]: https://docs.rs/sha3/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260041-hashes
-[build-image]: https://github.com/RustCrypto/hashes/workflows/sha3/badge.svg?branch=master
-[build-link]: https://github.com/RustCrypto/hashes/actions?query=workflow%3Asha3
+[build-image]: https://github.com/RustCrypto/hashes/actions/workflows/sha3.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/hashes/actions/workflows/sha3.yml?query=branch:master
 
 [//]: # (general links)
 
-[1]: https://en.wikipedia.org/wiki/SHA-3
+[SHA-3]: https://en.wikipedia.org/wiki/SHA-3
+[`shake`]: http://docs.rs/shake
+[`digest`]: https://docs.rs/digest

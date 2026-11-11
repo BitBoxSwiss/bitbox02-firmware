@@ -13,7 +13,7 @@ fn sha256_result(data: &[u8]) -> [u8; 32] {
 
 fn hmac_sha256_result(key: &[u8], data: &[u8]) -> [u8; 32] {
     // Reuse the SHA-256 backend above to avoid linking a second implementation into factory setup.
-    use hmac::{Hmac, Mac};
+    use hmac::{Hmac, KeyInit, Mac};
 
     let mut engine = Hmac::<Sha256>::new_from_slice(key).unwrap();
     engine.update(data);

@@ -67,8 +67,10 @@ macro_rules! __expand_check_macro {
 #[cfg(any(target_os = "linux", target_os = "android"))]
 __expand_check_macro! {
     ("aes",    AES),    // Enable AES support.
+    ("dit",    DIT),    // Enable DIT support.
     ("sha2",   SHA2),   // Enable SHA1 and SHA256 support.
     ("sha3",   SHA3),   // Enable SHA512 and SHA3 support.
+    ("sm4",    SM4),    // Enable SM3 and SM4 support.
 }
 
 /// Linux hardware capabilities mapped to target features.
@@ -83,8 +85,10 @@ pub mod hwcaps {
     use libc::c_ulong;
 
     pub const AES: c_ulong = libc::HWCAP_AES | libc::HWCAP_PMULL;
+    pub const DIT: c_ulong = libc::HWCAP_DIT;
     pub const SHA2: c_ulong = libc::HWCAP_SHA2;
     pub const SHA3: c_ulong = libc::HWCAP_SHA3 | libc::HWCAP_SHA512;
+    pub const SM4: c_ulong = libc::HWCAP_SM3 | libc::HWCAP_SM4;
 }
 
 // Apple OS (macOS, iOS, watchOS, and tvOS) `check!` macro.
@@ -105,6 +109,12 @@ macro_rules! check {
     ("aes") => {
         true
     };
+    ("dit") => {
+        // https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms#Enable-DIT-for-constant-time-cryptographic-operations
+        unsafe {
+            $crate::aarch64::sysctlbyname(b"hw.optional.arm.FEAT_DIT\0")
+        }
+    };
     ("sha2") => {
         true
     };
@@ -115,10 +125,19 @@ macro_rules! check {
                 && $crate::aarch64::sysctlbyname(b"hw.optional.armv8_2_sha3\0")
         }
     };
+    ("sm4") => {
+        false
+    };
 }
 
 /// Apple helper function for calling `sysctlbyname`.
+///
+/// <https://developer.apple.com/documentation/kernel/1387446-sysctlbyname>
+///
+/// # Panics
+/// If `name` is not NUL terminated
 #[cfg(target_vendor = "apple")]
+#[must_use]
 pub unsafe fn sysctlbyname(name: &[u8]) -> bool {
     assert_eq!(
         name.last().cloned(),
@@ -128,15 +147,25 @@ pub unsafe fn sysctlbyname(name: &[u8]) -> bool {
     );
 
     let mut value: u32 = 0;
-    let mut size = core::mem::size_of::<u32>();
+    let mut size = size_of::<u32>();
 
-    let rc = libc::sysctlbyname(
-        name.as_ptr() as *const i8,
-        &mut value as *mut _ as *mut libc::c_void,
-        &mut size,
-        core::ptr::null_mut(),
-        0,
-    );
+    // SAFETY:
+    // - `name` is being cast from a valid byte slice we asserted was NUL terminated above.
+    // - `value` is a properly-aligned, writable integer.
+    // - `size` is initialized to the size of `value` (4-bytes).
+    // - The last two arguments,`newp` and `newlen`, are for setting system parameters, which we
+    //   aren't doing here (and requires root privileges). The docs say the following:
+    //   - `newp`: "Specify NULL if you don’t want to set the attribute’s value"
+    //   - `newlen`: "Specify 0 if you don’t want to set the attribute’s value"
+    let rc = unsafe {
+        libc::sysctlbyname(
+            name.as_ptr().cast::<i8>(),
+            (&raw mut value).cast::<libc::c_void>(),
+            &raw mut size,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
 
     assert_eq!(size, 4, "unexpected sysctlbyname(3) result size");
     assert_eq!(rc, 0, "sysctlbyname returned error code: {}", rc);

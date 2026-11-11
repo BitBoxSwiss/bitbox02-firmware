@@ -86,7 +86,7 @@ impl BatchInverter {
             let tmp = *scratch * acc;
             let skip = p.is_zero();
             acc = F::conditional_select(&(acc * *p), &acc, skip);
-            *p = F::conditional_select(&tmp, &p, skip);
+            *p = F::conditional_select(&tmp, p, skip);
         }
 
         allinv
@@ -123,7 +123,7 @@ impl BatchInverter {
             let p = (element)(item);
             let skip = p.is_zero();
             acc = F::conditional_select(&(acc * *p), &acc, skip);
-            *p = F::conditional_select(&tmp, &p, skip);
+            *p = F::conditional_select(&tmp, p, skip);
         }
 
         allinv

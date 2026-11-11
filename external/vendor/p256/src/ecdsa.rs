@@ -16,44 +16,49 @@
 //!
 //! ## Signing/Verification Example
 //!
-//! This example requires the `ecdsa` Cargo feature is enabled:
-//!
-//! ```
-//! # #[cfg(feature = "ecdsa")]
-//! # {
+#![cfg_attr(all(feature = "ecdsa", feature = "getrandom"), doc = "```")]
+#![cfg_attr(not(all(feature = "ecdsa", feature = "getrandom")), doc = "```ignore")]
+//! # fn main() -> Result<(), Box<dyn core::error::Error>> {
+//! // NOTE: requires the `ecdsa` and `getrandom` crate features are enabled
 //! use p256::{
 //!     ecdsa::{SigningKey, Signature, signature::Signer},
+//!     elliptic_curve::Generate,
+//!     SecretKey,
 //! };
-//! use rand_core::OsRng; // requires 'getrandom' feature
 //!
 //! // Signing
-//! let signing_key = SigningKey::random(&mut OsRng); // Serialize with `::to_bytes()`
+//! let signing_key = SigningKey::generate(); // Serialize with `::to_bytes()`
+//! let verifying_key_bytes = signing_key.verifying_key().to_sec1_point(false); // 65-bytes
+//!
 //! let message = b"ECDSA proves knowledge of a secret number in the context of a single message";
 //! let signature: Signature = signing_key.sign(message);
 //!
 //! // Verification
-//! use p256::ecdsa::{VerifyingKey, signature::Verifier};
+//! use p256::{Sec1Point, ecdsa::{VerifyingKey, signature::Verifier}};
 //!
-//! let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
-//! assert!(verifying_key.verify(message, &signature).is_ok());
+//! let verifying_key = VerifyingKey::from_sec1_bytes(verifying_key_bytes.as_ref())?;
+//! verifying_key.verify(message, &signature)?;
+//! # Ok(())
 //! # }
 //! ```
 
-pub use ecdsa_core::signature::{self, Error};
+pub use ecdsa_core::{
+    RecoveryId,
+    signature::{self, Error},
+};
 
 use super::NistP256;
-
-#[cfg(feature = "ecdsa")]
-use {
-    crate::{AffinePoint, Scalar},
-    ecdsa_core::hazmat::{SignPrimitive, VerifyPrimitive},
-};
+use ecdsa_core::EcdsaCurve;
 
 /// ECDSA/P-256 signature (fixed-size)
 pub type Signature = ecdsa_core::Signature<NistP256>;
 
 /// ECDSA/P-256 signature (ASN.1 DER encoded)
 pub type DerSignature = ecdsa_core::der::Signature<NistP256>;
+
+impl EcdsaCurve for NistP256 {
+    const NORMALIZE_S: bool = false;
+}
 
 /// ECDSA/P-256 signing key
 #[cfg(feature = "ecdsa")]
@@ -64,32 +69,20 @@ pub type SigningKey = ecdsa_core::SigningKey<NistP256>;
 pub type VerifyingKey = ecdsa_core::VerifyingKey<NistP256>;
 
 #[cfg(feature = "sha256")]
-impl ecdsa_core::hazmat::DigestPrimitive for NistP256 {
+impl ecdsa_core::DigestAlgorithm for NistP256 {
     type Digest = sha2::Sha256;
 }
-
-#[cfg(feature = "ecdsa")]
-impl SignPrimitive<NistP256> for Scalar {}
-
-#[cfg(feature = "ecdsa")]
-impl VerifyPrimitive<NistP256> for AffinePoint {}
-
 #[cfg(all(test, feature = "ecdsa"))]
 mod tests {
     use crate::{
+        AffinePoint, Sec1Point,
         ecdsa::{
-            signature::hazmat::{PrehashSigner, PrehashVerifier},
-            signature::Signer,
             Signature, SigningKey, VerifyingKey,
+            signature::Signer,
+            signature::hazmat::{PrehashSigner, PrehashVerifier},
         },
-        test_vectors::ecdsa::ECDSA_TEST_VECTORS,
-        AffinePoint, BlindedScalar, EncodedPoint, Scalar,
     };
-    use ecdsa_core::hazmat::SignPrimitive;
-    use elliptic_curve::{
-        generic_array::GenericArray, group::ff::PrimeField, rand_core::OsRng,
-        sec1::FromEncodedPoint,
-    };
+    use elliptic_curve::sec1::FromSec1Point;
     use hex_literal::hex;
     use sha2::Digest;
 
@@ -140,25 +133,17 @@ mod tests {
         // (P-256, SHA-384, from `SigGen.txt` in `186-4ecdsatestvectors.zip`)
         // <https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/digital-signatures>
         let verifier = VerifyingKey::from_affine(
-            AffinePoint::from_encoded_point(&EncodedPoint::from_affine_coordinates(
-                GenericArray::from_slice(&hex!(
-                    "e0e7b99bc62d8dd67883e39ed9fa0657789c5ff556cc1fd8dd1e2a55e9e3f243"
-                )),
-                GenericArray::from_slice(&hex!(
-                    "63fbfd0232b95578075c903a4dbf85ad58f8350516e1ec89b0ee1f5e1362da69"
-                )),
+            AffinePoint::from_sec1_point(&Sec1Point::from_affine_coordinates(
+                &hex!("e0e7b99bc62d8dd67883e39ed9fa0657789c5ff556cc1fd8dd1e2a55e9e3f243").into(),
+                &hex!("63fbfd0232b95578075c903a4dbf85ad58f8350516e1ec89b0ee1f5e1362da69").into(),
                 false,
             ))
             .unwrap(),
         )
         .unwrap();
         let signature = Signature::from_scalars(
-            GenericArray::clone_from_slice(&hex!(
-                "f5087878e212b703578f5c66f434883f3ef414dc23e2e8d8ab6a8d159ed5ad83"
-            )),
-            GenericArray::clone_from_slice(&hex!(
-                "306b4c6c20213707982dffbb30fba99b96e792163dd59dbe606e734328dd7c8a"
-            )),
+            hex!("f5087878e212b703578f5c66f434883f3ef414dc23e2e8d8ab6a8d159ed5ad83"),
+            hex!("306b4c6c20213707982dffbb30fba99b96e792163dd59dbe606e734328dd7c8a"),
         )
         .unwrap();
         let result = verifier.verify_prehash(
@@ -168,26 +153,13 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn scalar_blinding() {
-        let vector = &ECDSA_TEST_VECTORS[0];
-        let d = Scalar::from_repr(GenericArray::clone_from_slice(vector.d)).unwrap();
-        let k = Scalar::from_repr(GenericArray::clone_from_slice(vector.k)).unwrap();
-        let k_blinded = BlindedScalar::new(k, &mut OsRng);
-        let z = GenericArray::clone_from_slice(vector.m);
-        let sig = d.try_sign_prehashed(k_blinded, &z).unwrap().0;
-
-        assert_eq!(vector.r, sig.r().to_bytes().as_slice());
-        assert_eq!(vector.s, sig.s().to_bytes().as_slice());
-    }
-
     mod sign {
-        use crate::{test_vectors::ecdsa::ECDSA_TEST_VECTORS, NistP256};
+        use crate::{NistP256, test_vectors::ecdsa::ECDSA_TEST_VECTORS};
         ecdsa_core::new_signing_test!(NistP256, ECDSA_TEST_VECTORS);
     }
 
     mod verify {
-        use crate::{test_vectors::ecdsa::ECDSA_TEST_VECTORS, NistP256};
+        use crate::{NistP256, test_vectors::ecdsa::ECDSA_TEST_VECTORS};
         ecdsa_core::new_verification_test!(NistP256, ECDSA_TEST_VECTORS);
     }
 

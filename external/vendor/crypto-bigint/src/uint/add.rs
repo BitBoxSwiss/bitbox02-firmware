@@ -1,18 +1,26 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, CtChoice, Limb, Uint, Wrapping, Zero};
-use core::ops::{Add, AddAssign};
-use subtle::CtOption;
+use crate::{
+    Add, AddAssign, Checked, CheckedAdd, CtOption, Limb, Uint, Wrapping, WrappingAdd, word,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `a + b + carry`, returning the result along with the new carry.
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
+    #[must_use]
+    pub const fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
+        self.carrying_add(rhs, carry)
+    }
+
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
+    #[must_use]
+    pub const fn carrying_add(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 
         while i < LIMBS {
-            let (w, c) = self.limbs[i].adc(rhs.limbs[i], carry);
+            let (w, c) = self.limbs[i].carrying_add(rhs.limbs[i], carry);
             limbs[i] = w;
             carry = c;
             i += 1;
@@ -22,67 +30,66 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating addition, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
-        let (res, overflow) = self.adc(rhs, Limb::ZERO);
-        Self::ct_select(&res, &Self::MAX, CtChoice::from_lsb(overflow.0))
+        let (res, overflow) = self.carrying_add(rhs, Limb::ZERO);
+        Self::select(&res, &Self::MAX, word::choice_from_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[inline]
+    #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
-        self.adc(rhs, Limb::ZERO).0
+        self.carrying_add(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping addition, returning the truthy value as the second element of the tuple
-    /// if an overflow has occurred.
-    pub(crate) const fn conditional_wrapping_add(
-        &self,
-        rhs: &Self,
-        choice: CtChoice,
-    ) -> (Self, CtChoice) {
-        let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
-        let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
-        (sum, CtChoice::from_lsb(carry.0))
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[inline]
+    pub(crate) const fn overflowing_add_limb(&self, mut carry: Limb) -> (Self, Limb) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+
+        while i < LIMBS {
+            (limbs[i], carry) = self.limbs[i].overflowing_add(carry);
+            i += 1;
+        }
+
+        (Self { limbs }, carry)
+    }
+
+    /// Computes `self + rhs`, discarding overflow.
+    #[inline]
+    pub(crate) const fn wrapping_add_limb(&self, rhs: Limb) -> Self {
+        self.overflowing_add_limb(rhs).0
     }
 }
 
-impl<const LIMBS: usize> CheckedAdd<&Uint<LIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize> Add for Uint<LIMBS> {
     type Output = Self;
 
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+    fn add(self, rhs: Self) -> Self {
+        self.add(&rhs)
     }
 }
 
-impl<const LIMBS: usize> Add for Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize> Add<&Uint<LIMBS>> for Uint<LIMBS> {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
+    fn add(self, rhs: &Self) -> Self {
+        self.checked_add(rhs)
+            .expect("attempted to add with overflow")
     }
 }
 
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
+impl<const LIMBS: usize> AddAssign for Uint<LIMBS> {
+    fn add_assign(&mut self, other: Self) {
+        *self += &other;
     }
 }
 
-impl<const LIMBS: usize> Add<Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
+impl<const LIMBS: usize> AddAssign<&Uint<LIMBS>> for Uint<LIMBS> {
+    fn add_assign(&mut self, other: &Self) {
+        *self = *self + other;
     }
 }
 
@@ -98,50 +105,6 @@ impl<const LIMBS: usize> AddAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIM
     }
 }
 
-impl<const LIMBS: usize> Add for Checked<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Checked<Uint<LIMBS>> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
-        )
-    }
-}
-
-impl<const LIMBS: usize> Add<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Checked<Uint<LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
-        )
-    }
-}
-
-impl<const LIMBS: usize> Add<Checked<Uint<LIMBS>>> for &Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn add(self, rhs: Checked<Uint<LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
-        )
-    }
-}
-
-impl<const LIMBS: usize> Add<&Checked<Uint<LIMBS>>> for &Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Checked<Uint<LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
-        )
-    }
-}
-
 impl<const LIMBS: usize> AddAssign for Checked<Uint<LIMBS>> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
@@ -154,20 +117,33 @@ impl<const LIMBS: usize> AddAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
     }
 }
 
+impl<const LIMBS: usize> CheckedAdd for Uint<LIMBS> {
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+        let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
+        CtOption::new(result, carry.is_zero())
+    }
+}
+
+impl<const LIMBS: usize> WrappingAdd for Uint<LIMBS> {
+    fn wrapping_add(&self, v: &Self) -> Self {
+        self.wrapping_add(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{CheckedAdd, Limb, U128};
 
     #[test]
-    fn adc_no_carry() {
-        let (res, carry) = U128::ZERO.adc(&U128::ONE, Limb::ZERO);
+    fn carrying_add_no_carry() {
+        let (res, carry) = U128::ZERO.carrying_add(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ONE);
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn adc_with_carry() {
-        let (res, carry) = U128::MAX.adc(&U128::ONE, Limb::ZERO);
+    fn carrying_add_with_carry() {
+        let (res, carry) = U128::MAX.carrying_add(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ZERO);
         assert_eq!(carry, Limb::ONE);
     }
@@ -202,5 +178,22 @@ mod tests {
     fn checked_add_overflow() {
         let result = U128::MAX.checked_add(&U128::ONE);
         assert!(!bool::from(result.is_some()));
+    }
+
+    #[test]
+    fn overflowing_add_limb() {
+        let result = U128::ZERO.overflowing_add_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::ZERO.overflowing_add_limb(Limb::ONE);
+        assert_eq!(result, (U128::ONE, Limb::ZERO));
+        let result = U128::MAX.overflowing_add_limb(Limb::ZERO);
+        assert_eq!(result, (U128::MAX, Limb::ZERO));
+        let result = U128::MAX.overflowing_add_limb(Limb::ONE);
+        assert_eq!(result, (U128::ZERO, Limb::ONE));
+
+        assert_eq!(U128::ZERO.wrapping_add_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::ZERO.wrapping_add_limb(Limb::ONE), U128::ONE);
+        assert_eq!(U128::MAX.wrapping_add_limb(Limb::ZERO), U128::MAX);
+        assert_eq!(U128::MAX.wrapping_add_limb(Limb::ONE), U128::ZERO);
     }
 }

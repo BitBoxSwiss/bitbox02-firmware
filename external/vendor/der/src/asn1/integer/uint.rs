@@ -2,8 +2,8 @@
 
 use super::value_cmp;
 use crate::{
-    ord::OrdIsValueOrd, AnyRef, BytesRef, DecodeValue, EncodeValue, Error, ErrorKind, FixedTag,
-    Header, Length, Reader, Result, Tag, ValueOrd, Writer,
+    AnyRef, BytesRef, DecodeValue, EncodeValue, Error, ErrorKind, FixedTag, Header, Length, Reader,
+    Result, Tag, ValueOrd, Writer, asn1::integer::AsUintRef, ord::OrdIsValueOrd,
 };
 use core::cmp::Ordering;
 
@@ -14,25 +14,32 @@ macro_rules! impl_encoding_traits {
     ($($uint:ty),+) => {
         $(
             impl<'a> DecodeValue<'a> for $uint {
+                type Error = $crate::Error;
+
                 fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
                     // Integers always encodes as a signed value, unsigned gets a leading 0x00 that
                     // needs to be stripped off. We need to provide room for it.
                     const UNSIGNED_HEADROOM: usize = 1;
 
                     let mut buf = [0u8; (Self::BITS as usize / 8) + UNSIGNED_HEADROOM];
-                    let max_length = u32::from(header.length) as usize;
+                    let max_length = u32::from(header.length()) as usize;
+
+                    if max_length == 0 {
+                        return Err(reader.error(Tag::Integer.length_error()));
+                    }
 
                     if max_length > buf.len() {
-                        return Err(Self::TAG.non_canonical_error());
+                        return Err(reader.error(Self::TAG.non_canonical_error()));
                     }
 
                     let bytes = reader.read_into(&mut buf[..max_length])?;
-
-                    let result = Self::from_be_bytes(decode_to_array(bytes)?);
+                    let result = Self::from_be_bytes(
+                        decode_to_array(bytes).map_err(|err| reader.error(err.kind()))?
+                    );
 
                     // Ensure we compute the same encoded length as the original any value
-                    if header.length != result.value_len()? {
-                        return Err(Self::TAG.non_canonical_error());
+                    if header.length() != result.value_len()? {
+                        return Err(reader.error(Self::TAG.non_canonical_error()));
                     }
 
                     Ok(result)
@@ -82,11 +89,14 @@ impl_encoding_traits!(u8, u16, u32, u64, u128);
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct UintRef<'a> {
     /// Inner value
-    inner: BytesRef<'a>,
+    inner: &'a BytesRef,
 }
 
 impl<'a> UintRef<'a> {
     /// Create a new [`UintRef`] from a byte slice.
+    ///
+    /// # Errors
+    /// Returns [`Error`] in the event `bytes` is too long.
     pub fn new(bytes: &'a [u8]) -> Result<Self> {
         let inner = BytesRef::new(strip_leading_zeroes(bytes))
             .map_err(|_| ErrorKind::Length { tag: Self::TAG })?;
@@ -96,16 +106,19 @@ impl<'a> UintRef<'a> {
 
     /// Borrow the inner byte slice which contains the least significant bytes
     /// of a big endian integer value with all leading zeros stripped.
+    #[must_use]
     pub fn as_bytes(&self) -> &'a [u8] {
         self.inner.as_slice()
     }
 
     /// Get the length of this [`UintRef`] in bytes.
+    #[must_use]
     pub fn len(&self) -> Length {
         self.inner.len()
     }
 
     /// Is the inner byte slice empty?
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
@@ -114,20 +127,22 @@ impl<'a> UintRef<'a> {
 impl_any_conversions!(UintRef<'a>, 'a);
 
 impl<'a> DecodeValue<'a> for UintRef<'a> {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        let bytes = BytesRef::decode_value(reader, header)?.as_slice();
-        let result = Self::new(decode_to_slice(bytes)?)?;
+        let bytes = <&'a BytesRef>::decode_value(reader, header)?.as_slice();
+        let result = Self::new(decode_to_slice(bytes).map_err(|err| reader.error(err.kind()))?)?;
 
         // Ensure we compute the same encoded length as the original any value.
-        if result.value_len()? != header.length {
-            return Err(Self::TAG.non_canonical_error());
+        if result.value_len()? != header.length() {
+            return Err(reader.error(Self::TAG.non_canonical_error()));
         }
 
         Ok(result)
     }
 }
 
-impl<'a> EncodeValue for UintRef<'a> {
+impl EncodeValue for UintRef<'_> {
     fn value_len(&self) -> Result<Length> {
         encoded_len(self.inner.as_slice())
     }
@@ -148,21 +163,29 @@ impl<'a> From<&UintRef<'a>> for UintRef<'a> {
     }
 }
 
-impl<'a> FixedTag for UintRef<'a> {
+impl FixedTag for UintRef<'_> {
     const TAG: Tag = Tag::Integer;
 }
 
-impl<'a> OrdIsValueOrd for UintRef<'a> {}
+impl OrdIsValueOrd for UintRef<'_> {}
+
+impl AsUintRef for UintRef<'_> {
+    fn as_uint_ref<'a>(&'a self) -> UintRef<'a> {
+        *self
+    }
+}
 
 #[cfg(feature = "alloc")]
 mod allocating {
-    use super::{decode_to_slice, encoded_len, strip_leading_zeroes, UintRef};
+    use super::{UintRef, decode_to_slice, encoded_len, strip_leading_zeroes};
     use crate::{
+        BytesOwned, DecodeValue, EncodeValue, Error, ErrorKind, FixedTag, Header, Length, Reader,
+        Result, Tag, Writer,
+        asn1::integer::AsUintRef,
         ord::OrdIsValueOrd,
         referenced::{OwnedToRef, RefToOwned},
-        BytesOwned, DecodeValue, EncodeValue, ErrorKind, FixedTag, Header, Length, Reader, Result,
-        Tag, Writer,
     };
+    use alloc::borrow::ToOwned;
 
     /// Unsigned arbitrary precision ASN.1 `INTEGER` type.
     ///
@@ -179,6 +202,9 @@ mod allocating {
 
     impl Uint {
         /// Create a new [`Uint`] from a byte slice.
+        ///
+        /// # Errors
+        /// If `bytes` is too long.
         pub fn new(bytes: &[u8]) -> Result<Self> {
             let inner = BytesOwned::new(strip_leading_zeroes(bytes))
                 .map_err(|_| ErrorKind::Length { tag: Self::TAG })?;
@@ -188,16 +214,19 @@ mod allocating {
 
         /// Borrow the inner byte slice which contains the least significant bytes
         /// of a big endian integer value with all leading zeros stripped.
+        #[must_use]
         pub fn as_bytes(&self) -> &[u8] {
             self.inner.as_slice()
         }
 
         /// Get the length of this [`Uint`] in bytes.
+        #[must_use]
         pub fn len(&self) -> Length {
             self.inner.len()
         }
 
         /// Is the inner byte slice empty?
+        #[must_use]
         pub fn is_empty(&self) -> bool {
             self.inner.is_empty()
         }
@@ -206,13 +235,15 @@ mod allocating {
     impl_any_conversions!(Uint);
 
     impl<'a> DecodeValue<'a> for Uint {
+        type Error = Error;
+
         fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-            let bytes = BytesOwned::decode_value(reader, header)?;
+            let bytes = BytesOwned::decode_value_parts(reader, header, Self::TAG)?;
             let result = Self::new(decode_to_slice(bytes.as_slice())?)?;
 
             // Ensure we compute the same encoded length as the original any value.
-            if result.value_len()? != header.length {
-                return Err(Self::TAG.non_canonical_error());
+            if result.value_len()? != header.length() {
+                return Err(reader.error(Self::TAG.non_canonical_error()));
             }
 
             Ok(result)
@@ -236,8 +267,9 @@ mod allocating {
 
     impl<'a> From<&UintRef<'a>> for Uint {
         fn from(value: &UintRef<'a>) -> Uint {
-            let inner = BytesOwned::new(value.as_bytes()).expect("Invalid Uint");
-            Uint { inner }
+            Uint {
+                inner: value.inner.into(),
+            }
         }
     }
 
@@ -250,7 +282,7 @@ mod allocating {
     impl<'a> RefToOwned<'a> for UintRef<'a> {
         type Owned = Uint;
         fn ref_to_owned(&self) -> Self::Owned {
-            let inner = self.inner.ref_to_owned();
+            let inner = self.inner.to_owned();
 
             Uint { inner }
         }
@@ -259,9 +291,55 @@ mod allocating {
     impl OwnedToRef for Uint {
         type Borrowed<'a> = UintRef<'a>;
         fn owned_to_ref(&self) -> Self::Borrowed<'_> {
-            let inner = self.inner.owned_to_ref();
+            let inner = self.inner.as_ref();
 
             UintRef { inner }
+        }
+    }
+
+    impl AsUintRef for Uint {
+        fn as_uint_ref<'a>(&'a self) -> UintRef<'a> {
+            let inner = self.inner.as_ref();
+
+            UintRef { inner }
+        }
+    }
+
+    macro_rules! impl_from_traits {
+        ($($uint:ty),+) => {
+            $(
+                impl TryFrom<$uint> for Uint {
+                    type Error = $crate::Error;
+
+                    fn try_from(value: $uint) -> $crate::Result<Self> {
+                        let mut buf  = [0u8; 17];
+                        let buf = $crate::encode::encode_value_to_slice(&mut buf, &value)?;
+                        Uint::new(buf)
+                    }
+                }
+            )+
+        };
+    }
+
+    impl_from_traits!(u8, u16, u32, u64, u128);
+
+    #[cfg(test)]
+    #[allow(clippy::unwrap_used)]
+    mod tests {
+        use super::Uint;
+
+        #[test]
+        fn from_uint() {
+            assert_eq!(Uint::try_from(u8::MIN).unwrap().as_bytes(), &[0]);
+            assert_eq!(Uint::try_from(u8::MAX).unwrap().as_bytes(), &[0xFF]);
+            assert_eq!(Uint::try_from(u16::MIN).unwrap().as_bytes(), &[0]);
+            assert_eq!(Uint::try_from(u16::MAX).unwrap().as_bytes(), &[0xFF; 2]);
+            assert_eq!(Uint::try_from(u32::MIN).unwrap().as_bytes(), &[0]);
+            assert_eq!(Uint::try_from(u32::MAX).unwrap().as_bytes(), &[0xFF; 4]);
+            assert_eq!(Uint::try_from(u64::MIN).unwrap().as_bytes(), &[0]);
+            assert_eq!(Uint::try_from(u64::MAX).unwrap().as_bytes(), &[0xFF; 8]);
+            assert_eq!(Uint::try_from(u128::MIN).unwrap().as_bytes(), &[0]);
+            assert_eq!(Uint::try_from(u128::MAX).unwrap().as_bytes(), &[0xFF; 16]);
         }
     }
 }
@@ -278,11 +356,11 @@ pub(crate) fn decode_to_slice(bytes: &[u8]) -> Result<&[u8]> {
     // integer (since we're decoding an unsigned integer).
     // We expect all such cases to have a leading `0x00` byte.
     match bytes {
-        [] => Err(Tag::Integer.non_canonical_error()),
+        [] => Err(Tag::Integer.non_canonical_error().into()),
         [0] => Ok(bytes),
-        [0, byte, ..] if *byte < 0x80 => Err(Tag::Integer.non_canonical_error()),
+        [0, byte, ..] if *byte < 0x80 => Err(Tag::Integer.non_canonical_error().into()),
         [0, rest @ ..] => Ok(rest),
-        [byte, ..] if *byte >= 0x80 => Err(Tag::Integer.value_error()),
+        [byte, ..] if *byte >= 0x80 => Err(Tag::Integer.value_error().into()),
         _ => Ok(bytes),
     }
 }
@@ -304,17 +382,17 @@ pub(super) fn decode_to_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N]> {
 }
 
 /// Encode the given big endian bytes representing an integer as ASN.1 DER.
-pub(crate) fn encode_bytes<W>(encoder: &mut W, bytes: &[u8]) -> Result<()>
+pub(crate) fn encode_bytes<W>(writer: &mut W, bytes: &[u8]) -> Result<()>
 where
     W: Writer + ?Sized,
 {
     let bytes = strip_leading_zeroes(bytes);
 
     if needs_leading_zero(bytes) {
-        encoder.write_byte(0)?;
+        writer.write_byte(0)?;
     }
 
-    encoder.write(bytes)
+    writer.write(bytes)
 }
 
 /// Get the encoded length for the given unsigned integer serialized as bytes.
@@ -343,9 +421,10 @@ fn needs_leading_zero(bytes: &[u8]) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{decode_to_array, UintRef};
-    use crate::{asn1::integer::tests::*, AnyRef, Decode, Encode, ErrorKind, SliceWriter, Tag};
+    use super::{UintRef, decode_to_array};
+    use crate::{AnyRef, Decode, Encode, ErrorKind, SliceWriter, Tag, asn1::integer::tests::*};
 
     #[test]
     fn decode_to_array_no_leading_zero() {
@@ -409,10 +488,10 @@ mod tests {
             let uint = UintRef::from_der(example).unwrap();
 
             let mut buf = [0u8; 128];
-            let mut encoder = SliceWriter::new(&mut buf);
-            uint.encode(&mut encoder).unwrap();
+            let mut writer = SliceWriter::new(&mut buf);
+            uint.encode(&mut writer).unwrap();
 
-            let result = encoder.finish().unwrap();
+            let result = writer.finish().unwrap();
             assert_eq!(example, result);
         }
     }

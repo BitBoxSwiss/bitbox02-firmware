@@ -15,8 +15,8 @@ use alloc::boxed::Box;
 use core::convert::TryInto;
 
 use core::ops::{Deref, DerefMut};
-use digest::{Digest, core_api::BlockSizeUser, typenum::U64};
-use hmac::{Mac, SimpleHmac};
+use digest::{Digest, block_api::BlockSizeUser, typenum::U64};
+use hmac::{KeyInit, Mac, SimpleHmac};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use curve25519_dalek::{

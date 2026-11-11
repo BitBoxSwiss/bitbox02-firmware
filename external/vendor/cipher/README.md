@@ -7,19 +7,10 @@
 [![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 
-Traits which define the functionality of [block ciphers] and [stream ciphers].
+Traits which define the functionality of [block ciphers], [block modes] and [stream ciphers].
 
-See [RustCrypto/block-ciphers] and [RustCrypto/stream-ciphers] for algorithm
-implementations which use these traits.
-
-[Documentation][docs-link]
-
-## Minimum Supported Rust Version
-
-Rust **1.56** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
+See [RustCrypto/block-ciphers] and [RustCrypto/stream-ciphers] for algorithm implementations which
+use these traits.
 
 ## SemVer Policy
 
@@ -48,15 +39,16 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/cipher/badge.svg
 [docs-link]: https://docs.rs/cipher/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260050-traits
-[build-image]: https://github.com/RustCrypto/traits/workflows/cipher/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/traits/actions?query=workflow:cipher
+[build-image]: https://github.com/RustCrypto/traits/actions/workflows/cipher.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/traits/actions/workflows/cipher.yml?query=branch:master
 
 [//]: # (general links)
 
 [block ciphers]: https://en.wikipedia.org/wiki/Block_cipher
+[block modes]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation
 [stream ciphers]: https://en.wikipedia.org/wiki/Stream_cipher
 [RustCrypto/block-ciphers]: https://github.com/RustCrypto/block-ciphers
 [RustCrypto/stream-ciphers]: https://github.com/RustCrypto/stream-ciphers

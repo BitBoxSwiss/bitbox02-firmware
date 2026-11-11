@@ -1,13 +1,15 @@
 use crate::chain::Chain;
 use crate::error::ErrorImpl;
+use crate::ptr::Ref;
 use core::fmt::{self, Debug, Write};
 
-impl ErrorImpl<()> {
-    pub(crate) fn display(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.error())?;
+impl ErrorImpl {
+    pub(crate) unsafe fn display(this: Ref<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", unsafe { Self::error(this) })?;
 
         if f.alternate() {
-            for cause in self.chain().skip(1) {
+            let chain = unsafe { Self::chain(this) };
+            for cause in chain.skip(1) {
                 write!(f, ": {}", cause)?;
             }
         }
@@ -15,8 +17,8 @@ impl ErrorImpl<()> {
         Ok(())
     }
 
-    pub(crate) fn debug(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let error = self.error();
+    pub(crate) unsafe fn debug(this: Ref<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        let error = unsafe { Self::error(this) };
 
         if f.alternate() {
             return Debug::fmt(error, f);
@@ -38,11 +40,12 @@ impl ErrorImpl<()> {
             }
         }
 
-        #[cfg(backtrace)]
+        #[cfg(feature = "std")]
         {
+            use alloc::string::ToString;
             use std::backtrace::BacktraceStatus;
 
-            let backtrace = self.backtrace();
+            let backtrace = unsafe { Self::backtrace(this) };
             if let BacktraceStatus::Captured = backtrace.status() {
                 let mut backtrace = backtrace.to_string();
                 write!(f, "\n\n")?;
@@ -100,6 +103,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::String;
 
     #[test]
     fn one_digit() {

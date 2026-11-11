@@ -1,5 +1,5 @@
 
-# curve25519-dalek [![](https://buildstats.info/crate/curve25519-dalek)](https://crates.io/crates/curve25519-dalek) [![](https://img.shields.io/docsrs/curve25519-dalek)](https://docs.rs/curve25519-dalek) [![CI](https://github.com/dalek-cryptography/curve25519-dalek/actions/workflows/curve25519-dalek.yml/badge.svg?branch=main)](https://github.com/dalek-cryptography/curve25519-dalek/actions/workflows/curve25519-dalek.yml)
+# curve25519-dalek [![](https://img.shields.io/crates/v/curve25519-dalek)](https://crates.io/crates/curve25519-dalek) [![](https://img.shields.io/docsrs/curve25519-dalek)](https://docs.rs/curve25519-dalek) [![CI](https://github.com/dalek-cryptography/curve25519-dalek/actions/workflows/curve25519-dalek.yml/badge.svg?branch=main)](https://github.com/dalek-cryptography/curve25519-dalek/actions/workflows/curve25519-dalek.yml)
 
 <p align="center">
 <img
@@ -30,32 +30,31 @@ cofactor-related abstraction mismatches.
 
 # Use
 
-## Stable
-
 To import `curve25519-dalek`, add the following to the dependencies section of
 your project's `Cargo.toml`:
 ```toml
-curve25519-dalek = "4"
+curve25519-dalek = "5.0.0"
 ```
 
 If opting into [SemVer-exempted features](#public-api-semver-exemptions) a range
 can be used to scope the tested compatible version range e.g.:
 ```toml
-curve25519-dalek = ">= 4.0, < 4.2"
+curve25519-dalek = ">= 5.0, < 5.2"
 ```
 
 ## Feature Flags
 
 | Feature            | Default? | Description |
 | :---               |  :---:   | :---        |
-| `alloc`            |    ✓     | Enables Edwards and Ristretto multiscalar multiplication, batch scalar inversion, and batch Ristretto double-and-compress. Also enables `zeroize`. |
+| `alloc`            |    ✓     | Enables Edwards and Ristretto multiscalar multiplication, batch scalar inversion, and batch Ristretto double-and-compress. |
 | `zeroize`          |    ✓     | Enables [`Zeroize`][zeroize-trait] for all scalar and curve point types. |
-| `precomputed-tables` |    ✓     | Includes precomputed basepoint multiplication tables. This speeds up `EdwardsPoint::mul_base` and `RistrettoPoint::mul_base` by ~4x, at the cost of ~30KB added to the code size. |
+| `precomputed-tables` |    ✓     | Includes precomputed basepoint multiplication tables. This speeds up `EdwardsPoint::mul_base` and `RistrettoPoint::mul_base` by ~4x, at the cost of ~400KB added to the code size. |
 | `rand_core`        |          | Enables `Scalar::random` and `RistrettoPoint::random`. This is an optional dependency whose version is not subject to SemVer. See [below](#public-api-semver-exemptions) for more details. |
-| `digest`           |          | Enables `RistrettoPoint::{from_hash, hash_from_bytes}` and `Scalar::{from_hash, hash_from_bytes}`. This is an optional dependency whose version is not subject to SemVer. See [below](#public-api-semver-exemptions) for more details. |
+| `digest`           |          | Enables `RistrettoPoint::{from_hash, hash_from_bytes}` and `Scalar::{from_hash, hash_from_bytes}`. Also enables hash-to-curve methods `EdwardsPoint::{encode_to_curve, hash_to_curve}`. This is an optional dependency whose version is not subject to SemVer. See [below](#public-api-semver-exemptions) for more details. |
 | `serde`            |          | Enables `serde` serialization/deserialization for all the point and scalar types. |
 | `legacy_compatibility`|       | Enables `Scalar::from_bits`, which allows the user to build unreduced scalars whose arithmetic is broken. Do not use this unless you know what you're doing. |
-| `group`            |          | Enables external `group` and `ff` crate traits |
+| `group`            |          | Enables external `group` and `ff` crate traits. |
+| `lizard`           |          | Enables the [Lizard](src/lizard/README.md) bytestring-to-point injection for `RistrettoPoint`. Specifically enables the methods `lizard_encode` and `lizard_decode`. |
 
 To disable the default features when using `curve25519-dalek` as a dependency,
 add `default-features = false` to the dependency in your `Cargo.toml`. To
@@ -65,40 +64,31 @@ disable it when running `cargo`, add the `--no-default-features` CLI flag.
 
 Breaking changes for each major version release can be found in
 [`CHANGELOG.md`](CHANGELOG.md), under the "Breaking changes" subheader. The
-latest breaking changes in high level are below:
+important latest breaking changes are below:
 
-### Breaking changes in 4.0.0
+### Important Breaking Changes in 5.0.0
 
-* Update the MSRV from 1.41 to 1.60
-* Provide SemVer policy
-* Make `digest` and `rand_core` optional features
-* Remove `std` and `nightly` features
-* Replace backend selection - See [CHANGELOG.md](CHANGELOG.md) and [backends](#backends)
-* Replace methods `Scalar::{zero, one}` with constants `Scalar::{ZERO, ONE}`
-* `Scalar::from_canonical_bytes` now returns `CtOption`
-* `Scalar::is_canonical` now returns `Choice`
-* Remove `Scalar::from_bytes_clamped` and `Scalar::reduce`
-* Deprecate and feature-gate `Scalar::from_bits` behind `legacy_compatibility`
-* Deprecate `EdwardsPoint::hash_from_bytes` and rename it
-  `EdwardsPoint::nonspec_map_to_curve`
-* Require including a new trait, `use curve25519_dalek::traits::BasepointTable`
-  whenever using `EdwardsBasepointTable` or `RistrettoBasepointTable`
-
-This release also does a lot of dependency updates and relaxations to unblock upstream build issues.
+* Update edition to 2024
+* Update the MSRV from 1.60 to 1.85
+* Remove deprecated functions `FieldElement::as_bytes()` and `EdwardsPoint::nonspec_map_to_curve()` ([#778](https://github.com/dalek-cryptography/curve25519-dalek/pull/778))
+* Remove `group-bits` feature due to soundness issues with underlying trait ([#909](https://github.com/dalek-cryptography/curve25519-dalek/pull/909))
+* Rename `Scalar::batch_invert` -> `Scalar::invert_batch` for consistency. Also make it no-alloc. ([#789](https://github.com/dalek-cryptography/curve25519-dalek/pull/789))
+* Remove deprecated functions `FieldElement::as_bytes()` and `EdwardsPoint::nonspec_map_to_curve()`
 
 # Backends
 
 Curve arithmetic is implemented and used by one of the following backends:
 
-| Backend  | Selection | Implementation                                                | Bits / Word sizes |
-| :---     | :---      | :---                                                          | :---              |
-| `serial` | Automatic | An optimized, non-parllel implementation                      | `32` and `64`     |
-| `fiat`   | Manual    | Formally verified field arithmetic from [fiat-crypto]         | `32` and `64`     |
-| `simd`   | Automatic | Intel AVX2 / AVX512 IFMA accelerated backend                  | `64` only         |
+| Backend           | Selection | Implementation                                           | Bits / Word sizes |
+| :---              | :---      | :---                                                     | :---              |
+| `serial`          | Automatic | An optimized, non-parllel implementation                 | `32` and `64`     |
+| `fiat`            | Manual    | Formally verified field arithmetic from [fiat-crypto]    | `32` and `64`     |
+| `simd`            | Automatic | Intel AVX2 accelerated backend                           | `64` only         |
+| `avx512`          | Automatic | Intel AVX512 IFMA accelerated backend                    | `64` only         |
 
 At runtime, `curve25519-dalek` selects an arithmetic backend from the set of backends it was compiled to support. For Intel x86-64 targets, unless otherwise specified, it will build itself with `simd` support, and default to `serial` at runtime if the appropriate CPU features aren't detected. See [SIMD backend] for more details.
 
-In the future, `simd` backend may be extended to cover more instruction sets. This change will be non-breaking as this is considered as implementation detail.
+In the future, `simd` backend may be extended to cover more instruction sets. This change will be non-breaking as this is considered an implementation detail.
 
 ## Manual Backend Override
 
@@ -148,16 +138,14 @@ $ cargo build --target i686-unknown-linux-gnu
 
 ## SIMD backend
 
-The specific SIMD backend (AVX512 / AVX2 / `serial` default) is selected automatically at runtime, depending on the currently available CPU features, and whether Rust nightly is being used for compilation. The precise conditions are specified below.
+When the `simd` backend is selected, the AVX2 or `serial` implementation is selected automatically at runtime, depending on the currently available CPU features. Similarly, when the `avx512` backend is selected, the AVX512 implementation is selected automatically at runtime if available, or else selection falls through to the aforementioned `simd` backend logic.
 
 For a given CPU feature, you can also specify an appropriate `-C target_feature` to build a binary which assumes the required SIMD instructions are always available. Don't do this if you don't have a good reason.
 
 | Backend | `RUSTFLAGS`                               | Requires nightly? |
 | :---    | :---                                      | :---              |
-| avx2    | `-C target_feature=+avx2`                 | no                |
-| avx512  | `-C target_feature=+avx512ifma,+avx512vl` | yes               |
-
-If compiled on a non-nightly compiler, `curve25519-dalek` will not include AVX512 code, and therefore will never select it at runtime.
+| AVX2    | `-C target_feature=+avx2`                 | no                |
+| AVX512  | `-C target_feature=+avx512ifma,+avx512vl` | yes if `<= 1.89`  |
 
 # Documentation
 
@@ -187,6 +175,7 @@ for MSRV and public API.
 
 | Releases | MSRV   |
 | :---     |:-------|
+| 5.x      | 1.85.0 |
 | 4.x      | 1.60.0 |
 | 3.x      | 1.41.0 |
 
@@ -199,6 +188,7 @@ _some_ version bump. Below are the specific policies:
 
 | Releases | Public API Component(s)                         | Policy              |
 | :---     | :---                                            | :---                |
+| 5.x      | Dependencies `group`, `digest` and `rand_core`  | Minor SemVer bump   |
 | 4.x      | Dependencies `group`, `digest` and `rand_core`  | Minor SemVer bump   |
 
 # Safety
@@ -239,6 +229,17 @@ intrinsics.  These are marked `unsafe` only because invoking them on an
 inappropriate CPU would cause `SIGILL`, but the entire backend is only
 invoked when the appropriate CPU features are detected at runtime, or
 when the whole program is compiled with the appropriate `target_feature`s.
+
+## Formal Verification
+
+<a href="https://verilib.org/cert/5132">
+  <img
+   alt="the word 'certified', next to a checkmark"
+   width="100px"
+   src="https://verilib.org/assets/img/Badge%20-%20Wide-4x.png"/>
+</a>
+
+A large chunk of `curve25519-dalek` has been formally verified with [Verus](https://verus-lang.github.io/verus/guide/). Specifically, the 280 Rust functions in version 4.1.3 of `curve25519-dalek` that are used directly or indirectly by the Signal Messenger app. For more details on what was verified and with which assumptions, see the VeriLib page [here](https://verilib.org/cert/5132).
 
 # Performance
 

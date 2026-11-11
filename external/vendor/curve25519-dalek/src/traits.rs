@@ -15,7 +15,7 @@
 
 use core::borrow::Borrow;
 
-use crate::scalar::{clamp_integer, Scalar};
+use crate::scalar::{Scalar, clamp_integer};
 use subtle::ConstantTimeEq;
 
 // ------------------------------------------------------------------------
@@ -90,7 +90,7 @@ pub trait MultiscalarMul {
     /// # Examples
     ///
     /// The trait bound aims for maximum flexibility: the inputs must be
-    /// convertable to iterators (`I: IntoIter`), and the iterator's items
+    /// convertible to iterators (`I: IntoIter`), and the iterator's items
     /// must be `Borrow<Scalar>` (or `Borrow<Point>`), to allow
     /// iterators returning either `Scalar`s or `&Scalar`s.
     ///
@@ -211,7 +211,7 @@ pub trait VartimeMultiscalarMul {
     /// # Examples
     ///
     /// The trait bound aims for maximum flexibility: the inputs must be
-    /// convertable to iterators (`I: IntoIter`), and the iterator's items
+    /// convertible to iterators (`I: IntoIter`), and the iterator's items
     /// must be `Borrow<Scalar>` (or `Borrow<Point>`), to allow
     /// iterators returning either `Scalar`s or `&Scalar`s.
     ///
@@ -285,7 +285,7 @@ pub trait VartimeMultiscalarMul {
 ///   to be composed into the input iterators.
 ///
 /// All methods require that the lengths of the input iterators be
-/// known and matching, as if they were `ExactSizeIterator`s.  (It
+/// known, as if they were `ExactSizeIterator`s.  (It
 /// does not require `ExactSizeIterator` only because that trait is
 /// broken).
 pub trait VartimePrecomputedMultiscalarMul: Sized {
@@ -299,6 +299,12 @@ pub trait VartimePrecomputedMultiscalarMul: Sized {
         I: IntoIterator,
         I::Item: Borrow<Self::Point>;
 
+    /// Return the number of static points in the precomputation.
+    fn len(&self) -> usize;
+
+    /// Determine if the precomputation is empty.
+    fn is_empty(&self) -> bool;
+
     /// Given `static_scalars`, an iterator of public scalars
     /// \\(b_i\\), compute
     /// $$
@@ -306,11 +312,13 @@ pub trait VartimePrecomputedMultiscalarMul: Sized {
     /// $$
     /// where the \\(B_j\\) are the points that were supplied to `new`.
     ///
-    /// It is an error to call this function with iterators of
-    /// inconsistent lengths.
+    /// It is valid for \\(b_i\\) to have a shorter length than \\(B_j\\).
+    /// In this case, any "unused" points are ignored in the computation.
+    /// It is an error to call this function if \\(b_i\\) has a longer
+    /// length than \\(B_j\\).
     ///
     /// The trait bound aims for maximum flexibility: the input must
-    /// be convertable to iterators (`I: IntoIter`), and the
+    /// be convertible to iterators (`I: IntoIter`), and the
     /// iterator's items must be `Borrow<Scalar>`, to allow iterators
     /// returning either `Scalar`s or `&Scalar`s.
     fn vartime_multiscalar_mul<I>(&self, static_scalars: I) -> Self::Point
@@ -337,11 +345,14 @@ pub trait VartimePrecomputedMultiscalarMul: Sized {
     /// $$
     /// where the \\(B_j\\) are the points that were supplied to `new`.
     ///
-    /// It is an error to call this function with iterators of
-    /// inconsistent lengths.
+    /// It is valid for \\(b_i\\) to have a shorter length than \\(B_j\\).
+    /// In this case, any "unused" points are ignored in the computation.
+    /// It is an error to call this function if \\(b_i\\) has a longer
+    /// length than \\(B_j\\), or if \\(a_i\\) and \\(A_i\\) do not have
+    /// the same length.
     ///
     /// The trait bound aims for maximum flexibility: the inputs must be
-    /// convertable to iterators (`I: IntoIter`), and the iterator's items
+    /// convertible to iterators (`I: IntoIter`), and the iterator's items
     /// must be `Borrow<Scalar>` (or `Borrow<Point>`), to allow
     /// iterators returning either `Scalar`s or `&Scalar`s.
     fn vartime_mixed_multiscalar_mul<I, J, K>(
@@ -378,8 +389,11 @@ pub trait VartimePrecomputedMultiscalarMul: Sized {
     ///
     /// If any of the dynamic points were `None`, return `None`.
     ///
-    /// It is an error to call this function with iterators of
-    /// inconsistent lengths.
+    /// It is valid for \\(b_i\\) to have a shorter length than \\(B_j\\).
+    /// In this case, any "unused" points are ignored in the computation.
+    /// It is an error to call this function if \\(b_i\\) has a longer
+    /// length than \\(B_j\\), or if \\(a_i\\) and \\(A_i\\) do not have
+    /// the same length.
     ///
     /// This function is particularly useful when verifying statements
     /// involving compressed points.  Accepting `Option<Point>` allows

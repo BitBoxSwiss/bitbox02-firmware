@@ -7,7 +7,7 @@ use super::pb;
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
 use crate::keystore::ed25519;
-use chacha20poly1305::aead::{AeadInPlace, KeyInit};
+use chacha20poly1305::aead::{AeadInOut, KeyInit};
 use ed25519_dalek::VerifyingKey;
 use hkdf::Hkdf;
 use pb::response::Response;
@@ -547,7 +547,12 @@ fn hpke_open(
     plaintext.copy_from_slice(&ciphertext[..plaintext_len]);
     let tag = &ciphertext[plaintext_len..];
     chacha20poly1305::ChaCha20Poly1305::new((&*key).into())
-        .decrypt_in_place_detached((&*nonce).into(), b"", &mut *plaintext, tag.into())
+        .decrypt_inout_detached(
+            (&*nonce).into(),
+            b"",
+            plaintext.as_mut_slice().into(),
+            tag.try_into().unwrap(),
+        )
         .map_err(|_| Error::InvalidInput)?;
     Ok(plaintext)
 }

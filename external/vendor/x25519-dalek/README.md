@@ -51,11 +51,12 @@ loudly meows `bob_public` back to Alice.  Alice now computes her
 shared secret with Bob by doing:
 
 ```rust
-# use rand_core::OsRng;
+# use getrandom::{SysRng, rand_core::UnwrapErr};
 # use x25519_dalek::{EphemeralSecret, PublicKey};
-# let alice_secret = EphemeralSecret::random_from_rng(OsRng);
+# let mut rng = UnwrapErr(SysRng);
+# let alice_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let alice_public = PublicKey::from(&alice_secret);
-# let bob_secret = EphemeralSecret::random_from_rng(OsRng);
+# let bob_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let bob_public = PublicKey::from(&bob_secret);
 let alice_shared_secret = alice_secret.diffie_hellman(&bob_public);
 ```
@@ -63,11 +64,12 @@ let alice_shared_secret = alice_secret.diffie_hellman(&bob_public);
 Similarly, Bob computes a shared secret by doing:
 
 ```rust
-# use rand_core::OsRng;
+# use getrandom::{SysRng, rand_core::UnwrapErr};
 # use x25519_dalek::{EphemeralSecret, PublicKey};
-# let alice_secret = EphemeralSecret::random_from_rng(OsRng);
+# let mut rng = UnwrapErr(SysRng);
+# let alice_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let alice_public = PublicKey::from(&alice_secret);
-# let bob_secret = EphemeralSecret::random_from_rng(OsRng);
+# let bob_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let bob_public = PublicKey::from(&bob_secret);
 let bob_shared_secret = bob_secret.diffie_hellman(&alice_public);
 ```
@@ -75,11 +77,12 @@ let bob_shared_secret = bob_secret.diffie_hellman(&alice_public);
 These secrets are the same:
 
 ```rust
-# use rand_core::OsRng;
+# use getrandom::{SysRng, rand_core::UnwrapErr};
 # use x25519_dalek::{EphemeralSecret, PublicKey};
-# let alice_secret = EphemeralSecret::random_from_rng(OsRng);
+# let mut rng = UnwrapErr(SysRng);
+# let alice_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let alice_public = PublicKey::from(&alice_secret);
-# let bob_secret = EphemeralSecret::random_from_rng(OsRng);
+# let bob_secret = EphemeralSecret::random_from_rng(&mut rng);
 # let bob_public = PublicKey::from(&bob_secret);
 # let alice_shared_secret = alice_secret.diffie_hellman(&bob_public);
 # let bob_shared_secret = bob_secret.diffie_hellman(&alice_public);
@@ -94,18 +97,43 @@ This example used the ephemeral DH API, which ensures that secret keys
 cannot be reused; Alice and Bob could instead use the static DH API
 and load a long-term secret key.
 
-# Installation
+# Use
 
-To install, add the following to your project's `Cargo.toml`:
+To import `x25519-dalek`, add the following to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-x25519-dalek = "2"
+x25519-dalek = "3.0.0"
 ```
+
+# Feature Flags
+
+This crate is `#[no_std]` compatible with `default-features = false`.
+
+| Feature              | Default? | Description |
+| :---                 | :---     | :---        |
+| `zeroize`            | ✓        | Implements `Zeroize` and `ZeroizeOnDrop` for `EphemeralSecret`, `ReusableSecret`, and `StaticSecret` |
+| `precomputed-tables` | ✓        | Includes precomputed basepoint multiplication tables. This speeds up `PublicKey::from` by ~3x, at the cost of ~400KB added to the code size. |
+| `getrandom`          |          | Exposes the `random()` constructor for `EphemeralSecret`, `ReusableSecret`, and `StaticSecret` |
+| `reusable_secrets`   |          | Exposes the `ReusableSecret` struct |
+| `static_secrets`     |          | Exposes the `StaticSecret` struct |
+| `serde`              |          | Enables `serde` serialization/deserialization for `PublicKey` and `StaticSecret` |
+
+# Major Changes
+
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes made in past versions of this crate.
+
+## Important Breaking Changes in 3.0.0
+
+* Update edition to 2024
+* Update the MSRV from 1.60 to 1.85
+* Remove `Zeroize` impl for `x25519::{EphemeralSecret, ReusableSecret, SharedSecret, StaticSecret}` to prevent misuse. These are now only zeroized on drop. ([#782](https://github.com/dalek-cryptography/curve25519-dalek/pull/782))
+* Remove `alloc` feature flag, which was doing nothing ([#857](https://github.com/dalek-cryptography/curve25519-dalek/pull/857))
+* Remove deprecated functions `{Ephemeral,Reusable,Static}Secret::new()` ([#778](https://github.com/dalek-cryptography/curve25519-dalek/pull/778))
 
 # MSRV
 
-Current MSRV is 1.60.
+Current MSRV is 1.85.
 
 # Documentation
 

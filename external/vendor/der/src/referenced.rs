@@ -1,6 +1,13 @@
 //! A module for working with referenced data.
 
 /// A trait for borrowing data from an owned struct
+///
+/// This converts an object owning the data to one that will borrowing the content.
+/// The newly created object lifetime will be tied to the object owning the data.
+///
+/// This is similar to [`alloc::borrow::Borrow`] or [`core::convert::AsRef`] but this returns
+/// an owned structure that references directly the backing slices instead of borrowing
+/// the whole structure.
 pub trait OwnedToRef {
     /// The resulting type referencing back to Self
     type Borrowed<'a>
@@ -13,7 +20,10 @@ pub trait OwnedToRef {
 
 /// A trait for cloning a referenced structure and getting owned objects
 ///
-/// This is the pendant to [`OwnedToRef`]
+/// This is the pendant to [`OwnedToRef`].
+///
+/// This converts an object borrowing data to one that will copy the data over and
+/// own the content.
 pub trait RefToOwned<'a> {
     /// The resulting type after obtaining ownership.
     type Owned: OwnedToRef<Borrowed<'a> = Self>
@@ -28,8 +38,12 @@ impl<T> OwnedToRef for Option<T>
 where
     T: OwnedToRef,
 {
-    type Borrowed<'a> = Option<T::Borrowed<'a>> where T: 'a;
+    type Borrowed<'a>
+        = Option<T::Borrowed<'a>>
+    where
+        T: 'a;
 
+    #[allow(clippy::redundant_closure_for_method_calls, reason = "MSRV")]
     fn owned_to_ref(&self) -> Self::Borrowed<'_> {
         self.as_ref().map(|o| o.owned_to_ref())
     }
@@ -41,6 +55,8 @@ where
     T::Owned: OwnedToRef,
 {
     type Owned = Option<T::Owned>;
+
+    #[allow(clippy::redundant_closure_for_method_calls, reason = "MSRV")]
     fn ref_to_owned(&self) -> Self::Owned {
         self.as_ref().map(|o| o.ref_to_owned())
     }

@@ -1,28 +1,12 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-#![forbid(unsafe_code)]
-#![warn(
-    clippy::cast_lossless,
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    clippy::checked_conversions,
-    clippy::implicit_saturating_sub,
-    clippy::mod_module_files,
-    clippy::panic,
-    clippy::panic_in_result_fn,
-    clippy::unwrap_used,
-    missing_docs,
-    rust_2018_idioms,
-    unused_lifetimes,
-    unused_qualifications
-)]
+#![deny(unsafe_code)] // Only allowed for newtype casts.
+#![warn(clippy::panic, clippy::panic_in_result_fn)]
 
 //! ## Usage
 //!
@@ -58,9 +42,8 @@
 //! When the `serde` feature of this crate is enabled, `Serialize` and
 //! `Deserialize` impls are provided for the following types:
 //!
-//! - [`JwkEcKey`]
 //! - [`PublicKey`]
-//! - [`ScalarPrimitive`]
+//! - [`ScalarValue`]
 //!
 //! Please see type-specific documentation for more information.
 //!
@@ -78,52 +61,48 @@
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
-#[cfg(feature = "std")]
-extern crate std;
-
-pub mod point;
-pub mod scalar;
 
 #[cfg(feature = "dev")]
 pub mod dev;
 #[cfg(feature = "ecdh")]
 pub mod ecdh;
-#[cfg(feature = "hash2curve")]
-pub mod hash2curve;
+pub mod field;
+#[cfg(feature = "arithmetic")]
+pub mod hazmat;
 #[cfg(feature = "arithmetic")]
 pub mod ops;
+pub mod point;
+pub mod scalar;
 #[cfg(feature = "sec1")]
 pub mod sec1;
-#[cfg(feature = "arithmetic")]
-pub mod weierstrass;
-
-mod error;
-mod field;
-mod secret_key;
 
 #[cfg(feature = "arithmetic")]
 mod arithmetic;
+mod error;
+mod macros;
 #[cfg(feature = "arithmetic")]
 mod public_key;
-
-#[cfg(feature = "jwk")]
-mod jwk;
-
-#[cfg(feature = "voprf")]
-mod voprf;
+mod secret_key;
 
 pub use crate::{
     error::{Error, Result},
-    field::{FieldBytes, FieldBytesEncoding, FieldBytesSize},
-    scalar::ScalarPrimitive,
+    field::{FieldBytes, FieldBytesSize},
+    scalar::ScalarValue,
     secret_key::SecretKey,
 };
-pub use crypto_bigint as bigint;
-pub use generic_array::{self, typenum::consts};
+pub use array;
+pub use array::typenum::consts;
+pub use bigint::{self, ByteOrder, ctutils};
+pub use common;
+pub use common::Generate;
 pub use rand_core;
 pub use subtle;
 pub use zeroize;
 
+#[cfg(any(feature = "pkcs8", feature = "sec1"))]
+pub use crate::error::{DecodeError, DecodeResult};
+#[cfg(feature = "pkcs8")]
+pub use pkcs8;
 #[cfg(feature = "arithmetic")]
 pub use {
     crate::{
@@ -133,63 +112,61 @@ pub use {
         scalar::{NonZeroScalar, Scalar},
     },
     ff::{self, Field, PrimeField},
-    group::{self, Group},
+    group::{self, Curve as CurveGroup, CurveAffine, Group},
 };
 
-#[cfg(feature = "jwk")]
-pub use crate::jwk::{JwkEcKey, JwkParameters};
-
-#[cfg(feature = "pkcs8")]
-pub use pkcs8;
-
-#[cfg(feature = "voprf")]
-pub use crate::voprf::VoprfParameters;
-
+use array::{ArraySize, sizes::U1};
+use bigint::Odd;
 use core::{
     fmt::Debug,
     ops::{Add, ShrAssign},
 };
-use generic_array::ArrayLength;
 
-/// Algorithm [`ObjectIdentifier`][`pkcs8::ObjectIdentifier`] for elliptic
-/// curve public key cryptography (`id-ecPublicKey`).
+/// Algorithm [`ObjectIdentifier`][`pkcs8::ObjectIdentifier`] for elliptic curve public key
+/// cryptography (`id-ecPublicKey`).
 ///
-/// <http://oid-info.com/get/1.2.840.10045.2.1>
+/// <https://oid-base.com/get/1.2.840.10045.2.1>
 #[cfg(feature = "pkcs8")]
 pub const ALGORITHM_OID: pkcs8::ObjectIdentifier =
     pkcs8::ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
 
 /// Elliptic curve.
 ///
-/// This trait is intended to be impl'd by a ZST which represents a concrete
-/// elliptic curve.
+/// This trait is intended to be impl'd by a ZST which represents a concrete elliptic curve.
 ///
-/// Other traits in this crate which are bounded by [`Curve`] are intended to
-/// be impl'd by these ZSTs, facilitating types which are generic over elliptic
-/// curves (e.g. [`SecretKey`]).
+/// Other traits in this crate which are bounded by [`Curve`] are intended to be impl'd by these
+/// ZSTs, facilitating types which are generic over elliptic curves (e.g. [`SecretKey`]).
 pub trait Curve: 'static + Copy + Clone + Debug + Default + Eq + Ord + Send + Sync {
-    /// Size of a serialized field element in bytes.
+    /// Size of a serialized field element in bytes (base field or scalar).
     ///
-    /// This is typically the same as `Self::Uint::ByteSize` but for curves
-    /// with an unusual field modulus (e.g. P-224, P-521) it may be different.
-    type FieldBytesSize: ArrayLength<u8> + Add + Eq;
+    /// This currently assumes that the base and scalar fields have the same-sized modulus in bytes,
+    /// though that isn't strictly true and will eventually need to be fixed.
+    ///
+    /// This is typically the same as `Self::Uint::ByteSize` but for curves with an unusual field
+    /// modulus (e.g. P-224, P-521) it may be different.
+    ///
+    /// The bounds cover common sizes for tables based on precomputed scalars, and is also useful
+    /// for serialized point sizes for e.g. SEC1 where relevant.
+    type FieldBytesSize: ArraySize<ArrayType<u8>: Copy>
+        + Add<Output: Add<U1, Output: ArraySize<ArrayType<u8>: Copy>>>
+        + Add<U1, Output: ArraySize<ArrayType<u8>: Copy>>
+        + Eq;
 
     /// Integer type used to represent field elements of this elliptic curve.
     type Uint: bigint::ArrayEncoding
-        + bigint::AddMod<Output = Self::Uint>
         + bigint::Encoding
-        + bigint::Integer
-        + bigint::NegMod<Output = Self::Uint>
+        + bigint::FixedInteger
         + bigint::Random
         + bigint::RandomMod
-        + bigint::SubMod<Output = Self::Uint>
+        + bigint::Unsigned
         + zeroize::Zeroize
-        + FieldBytesEncoding<Self>
         + ShrAssign<usize>;
 
-    /// Order of this elliptic curve, i.e. number of elements in the scalar
-    /// field.
-    const ORDER: Self::Uint;
+    /// Order of this curve's prime order subgroup, i.e. number of elements in the scalar field.
+    const ORDER: Odd<Self::Uint>;
+
+    /// Endianness used for serializing field elements of this curve.
+    const FIELD_ENDIANNESS: ByteOrder = ByteOrder::BigEndian;
 }
 
 /// Marker trait for elliptic curves with prime order.

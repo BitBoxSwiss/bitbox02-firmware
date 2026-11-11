@@ -1,11 +1,12 @@
 //! PKCS#8 tests
 
 #![cfg(all(feature = "dev", feature = "pkcs8"))]
+#![allow(clippy::unwrap_used)]
 
 use elliptic_curve::{
     dev::{PublicKey, SecretKey},
     pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey},
-    sec1::ToEncodedPoint,
+    sec1::ToSec1Point,
 };
 use hex_literal::hex;
 use pkcs8::der;
@@ -22,26 +23,45 @@ const EXAMPLE_SCALAR: [u8; 32] =
     hex!("AABBCCDDEEFF0000000000000000000000000000000000000000000000000001");
 
 /// Example PKCS#8 private key
-fn example_private_key() -> der::SecretDocument {
+fn example_private_key_der() -> der::SecretDocument {
     SecretKey::from_slice(&EXAMPLE_SCALAR)
         .unwrap()
         .to_pkcs8_der()
         .unwrap()
 }
 
+#[cfg(feature = "pem")]
+/// Example PKCS#8 private key
+fn example_private_key_pem() -> impl AsRef<str> {
+    SecretKey::from_slice(&EXAMPLE_SCALAR)
+        .unwrap()
+        .to_pkcs8_pem(Default::default())
+        .unwrap()
+}
+
 #[test]
 fn decode_pkcs8_private_key_from_der() {
-    dbg!(example_private_key().as_bytes());
-    let secret_key = SecretKey::from_pkcs8_der(example_private_key().as_bytes()).unwrap();
+    dbg!(example_private_key_der().as_bytes());
+    let secret_key = SecretKey::from_pkcs8_der(example_private_key_der().as_bytes()).unwrap();
+    assert_eq!(secret_key.to_bytes().as_slice(), &EXAMPLE_SCALAR);
+}
+
+#[cfg(feature = "pem")]
+#[test]
+fn decode_pkcs8_private_key_from_pem() {
+    dbg!(example_private_key_pem().as_ref());
+    let secret_key = SecretKey::from_pem(example_private_key_pem().as_ref()).unwrap();
     assert_eq!(secret_key.to_bytes().as_slice(), &EXAMPLE_SCALAR);
 }
 
 #[test]
 fn decode_pkcs8_public_key_from_der() {
     let public_key = PublicKey::from_public_key_der(&PKCS8_PUBLIC_KEY_DER[..]).unwrap();
-    let expected_sec1_point = hex!("041CACFFB55F2F2CEFD89D89EB374B2681152452802DEEA09916068137D839CF7FC481A44492304D7EF66AC117BEFE83A8D08F155F2B52F9F618DD447029048E0F");
+    let expected_sec1_point = hex!(
+        "041CACFFB55F2F2CEFD89D89EB374B2681152452802DEEA09916068137D839CF7FC481A44492304D7EF66AC117BEFE83A8D08F155F2B52F9F618DD447029048E0F"
+    );
     assert_eq!(
-        public_key.to_encoded_point(false).as_bytes(),
+        public_key.to_sec1_point(false).as_bytes(),
         &expected_sec1_point[..]
     );
 }

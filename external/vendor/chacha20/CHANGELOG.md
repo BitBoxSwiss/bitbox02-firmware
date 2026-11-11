@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.2 (2026-08-27)
+### Fixed
+- Use of SSE4.1 intrinsic in SSE2 backend of RNG and legacy (64-bit counter) variants ([#580])
+
+[#580]: https://github.com/RustCrypto/stream-ciphers/pull/580
+
+## 0.10.1 (2026-06-24)
+### Added
+- `ChaCha20LegacyCore` type and `Nonce` type alias ([#570])
+
+[#570]: https://github.com/RustCrypto/stream-ciphers/pull/570
+
+## 0.10.0 (2026-02-07)
+### Added
+- `rand_core` v0.10 support ([#333], [#513])
+- 64-bit counter support ([#439])
+- `{get,set}_block_pos` inherent methods ([#516])
+- AVX-512 backend - requires `--cfg chacha20_avx512` to enable ([#477])
+- Inherent methods for RNG state (de)serialization ([#541])
+
+### Changed
+- Bump `cipher` from `0.4` to `0.5` - replaces `generic-array` with `hybrid-array` ([#338], [#521])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#397])
+- Relax MSRV policy and allow MSRV bumps in patch releases
+- Bump `cpufeatures` to v0.3 ([#530])
+- `--cfg chacha20_backend="..."` replaces previous `chacha20_force*` ([#520])
+  - `chacha20_force_avx2` => `chacha20_backend="avx2"`
+  - `chacha20_force_avx512` => `chacha20_backend="avx512"`
+  - `chacha20_force_soft` => `chacha20_backend="soft"`
+  - `chacha20_force_sse2` => `chacha20_backend="sse2"`
+
+### Removed
+- `chacha20_force_neon` cfg attribute - now on-by-default for supported targets ([#361])
+- `std` feature ([#397])
+- `Clone` impls ([#462])
+
+[#333]: https://github.com/RustCrypto/stream-ciphers/pull/333
+[#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
+[#361]: https://github.com/RustCrypto/stream-ciphers/pull/361
+[#397]: https://github.com/RustCrypto/stream-ciphers/pull/397
+[#439]: https://github.com/RustCrypto/stream-ciphers/pull/439
+[#462]: https://github.com/RustCrypto/stream-ciphers/pull/462
+[#477]: https://github.com/RustCrypto/stream-ciphers/pull/477
+[#513]: https://github.com/RustCrypto/stream-ciphers/pull/513
+[#516]: https://github.com/RustCrypto/stream-ciphers/pull/516
+[#520]: https://github.com/RustCrypto/stream-ciphers/pull/520
+[#521]: https://github.com/RustCrypto/stream-ciphers/pull/521
+[#530]: https://github.com/RustCrypto/stream-ciphers/pull/530
+[#541]: https://github.com/RustCrypto/stream-ciphers/pull/541
+
 ## 0.9.1 (2023-04-01)
 ### Added
 - NEON support via `chacha20_force_neon` cfg attribute ([#310], [#317])

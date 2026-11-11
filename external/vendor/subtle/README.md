@@ -7,7 +7,7 @@ instead of `bool` which are intended to execute in constant-time.  The `Choice`
 type is a wrapper around a `u8` that holds a `0` or `1`.
 
 ```toml
-subtle = "2.4"
+subtle = "2.6"
 ```
 
 This crate represents a “best-effort” attempt, since side-channels
@@ -25,6 +25,9 @@ really a boolean `i1` rather than an `i8` byte value. In an attempt to
 prevent this refinement, the crate tries to hide the value of a `Choice`'s
 inner `u8` by passing it through a volatile read. For more information, see
 the _About_ section below.
+
+Rust versions from 1.51 or higher have const generics support. You may enable
+`const-generics` feautre to have `subtle` traits implemented for arrays `[T; N]`.
 
 Versions prior to `2.2` recommended use of the `nightly` feature to enable an
 optimization barrier; this is not required in versions `2.2` and above.
@@ -48,10 +51,12 @@ Minimum supported Rust version can be changed in the future, but it will be done
 
 This library aims to be the Rust equivalent of Go’s `crypto/subtle` module.
 
-The optimization barrier in `impl From<u8> for Choice` was based on Tim
-Maclean's [work on `rust-timing-shield`][rust-timing-shield], which attempts to
-provide a more comprehensive approach for preventing software side-channels in
-Rust code.
+Old versions of the optimization barrier in `impl From<u8> for Choice` were
+based on Tim Maclean's [work on `rust-timing-shield`][rust-timing-shield],
+which attempts to provide a more comprehensive approach for preventing
+software side-channels in Rust code.
+From version `2.2`, it was based on Diane Hosfelt and Amber Sprenkels' work on
+"Secret Types in Rust".
 
 `subtle` is authored by isis agora lovecruft and Henry de Valence.
 

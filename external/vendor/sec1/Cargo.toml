@@ -10,16 +10,22 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.65"
+edition = "2024"
+rust-version = "1.85"
 name = "sec1"
-version = "0.7.3"
+version = "0.8.1"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
-Pure Rust implementation of SEC1: Elliptic Curve Cryptography encoding formats
-including ASN.1 DER-serialized private keys as well as the
-Elliptic-Curve-Point-to-Octet-String encoding
+Pure Rust implementation of SEC1: Elliptic Curve Cryptography encoding formats including ASN.1 DER
+encoded private keys as well as the Elliptic-Curve-Point-to-Octet-String encoding
 """
+homepage = "https://github.com/RustCrypto/formats/tree/master/sec1"
 readme = "README.md"
 keywords = [
     "crypto",
@@ -35,37 +41,76 @@ categories = [
     "parser-implementations",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/formats/tree/master/sec1"
+repository = "https://github.com/RustCrypto/formats"
+resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
+
+[features]
+alloc = [
+    "der?/alloc",
+    "zeroize?/alloc",
+]
+default = [
+    "der",
+    "point",
+]
+der = [
+    "dep:der",
+    "zeroize",
+]
+pem = [
+    "alloc",
+    "der/pem",
+]
+point = [
+    "dep:base16ct",
+    "dep:hybrid-array",
+]
+serde = ["dep:serdect"]
+std = [
+    "alloc",
+    "der?/std",
+]
+zeroize = [
+    "dep:zeroize",
+    "der?/zeroize",
 ]
 
+[lib]
+name = "sec1"
+path = "src/lib.rs"
+
+[[test]]
+name = "private_key"
+path = "tests/private_key.rs"
+
+[[test]]
+name = "traits"
+path = "tests/traits.rs"
+
 [dependencies.base16ct]
-version = "0.2"
+version = "1"
 optional = true
 default-features = false
 
+[dependencies.ctutils]
+version = "0.4"
+optional = true
+
 [dependencies.der]
-version = "0.7"
+version = "0.8"
 features = ["oid"]
 optional = true
 
-[dependencies.generic-array]
-version = "0.14.7"
-optional = true
-default-features = false
-
-[dependencies.pkcs8]
-version = "0.10"
+[dependencies.hybrid-array]
+version = "0.4.6"
 optional = true
 default-features = false
 
 [dependencies.serdect]
-version = "0.2"
+version = "0.4"
 features = ["alloc"]
 optional = true
 default-features = false
@@ -81,40 +126,7 @@ optional = true
 default-features = false
 
 [dev-dependencies.hex-literal]
-version = "0.4"
+version = "1"
 
 [dev-dependencies.tempfile]
 version = "3"
-
-[features]
-alloc = [
-    "der?/alloc",
-    "pkcs8?/alloc",
-    "zeroize?/alloc",
-]
-default = [
-    "der",
-    "point",
-]
-der = [
-    "dep:der",
-    "zeroize",
-]
-pem = [
-    "alloc",
-    "der/pem",
-    "pkcs8/pem",
-]
-point = [
-    "dep:base16ct",
-    "dep:generic-array",
-]
-serde = ["dep:serdect"]
-std = [
-    "alloc",
-    "der?/std",
-]
-zeroize = [
-    "dep:zeroize",
-    "der?/zeroize",
-]

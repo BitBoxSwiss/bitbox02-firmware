@@ -1,137 +1,174 @@
 //! Slice reader.
 
-use crate::{BytesRef, Decode, Error, ErrorKind, Header, Length, Reader, Result, Tag};
+use super::position::Position;
+use crate::{BytesRef, Decode, EncodingRules, Error, ErrorKind, Length, Reader};
 
 /// [`Reader`] which consumes an input byte slice.
 #[derive(Clone, Debug)]
 pub struct SliceReader<'a> {
     /// Byte slice being decoded.
-    bytes: BytesRef<'a>,
+    bytes: &'a BytesRef,
+
+    /// Encoding rules to apply when decoding the input.
+    encoding_rules: EncodingRules,
 
     /// Did the decoding operation fail?
     failed: bool,
 
     /// Position within the decoded slice.
-    position: Length,
+    position: Position,
 }
 
 impl<'a> SliceReader<'a> {
     /// Create a new slice reader for the given byte slice.
-    pub fn new(bytes: &'a [u8]) -> Result<Self> {
+    ///
+    /// # Errors
+    /// If `bytes` is too long.
+    pub fn new(bytes: &'a [u8]) -> Result<Self, Error> {
+        Self::new_with_encoding_rules(bytes, EncodingRules::default())
+    }
+
+    /// Create a new slice reader with the given encoding rules.
+    ///
+    /// # Errors
+    /// If `bytes` is too long.
+    pub fn new_with_encoding_rules(
+        bytes: &'a [u8],
+        encoding_rules: EncodingRules,
+    ) -> Result<Self, Error> {
         Ok(Self {
             bytes: BytesRef::new(bytes)?,
+            encoding_rules,
             failed: false,
-            position: Length::ZERO,
+            position: Position::new(bytes.len().try_into()?),
         })
     }
 
-    /// Return an error with the given [`ErrorKind`], annotating it with
-    /// context about where the error occurred.
+    /// Return an error with the given [`ErrorKind`], annotating it with context about where the
+    /// error occurred.
     pub fn error(&mut self, kind: ErrorKind) -> Error {
         self.failed = true;
-        kind.at(self.position)
-    }
-
-    /// Return an error for an invalid value with the given tag.
-    pub fn value_error(&mut self, tag: Tag) -> Error {
-        self.error(tag.value_error().kind())
+        self.position.error(kind)
     }
 
     /// Did the decoding operation fail due to an error?
+    #[must_use]
     pub fn is_failed(&self) -> bool {
         self.failed
     }
 
-    /// Obtain the remaining bytes in this slice reader from the current cursor
-    /// position.
-    fn remaining(&self) -> Result<&'a [u8]> {
+    /// Obtain the remaining bytes in this slice reader from the current cursor position.
+    pub(crate) fn remaining(&self) -> Result<&'a [u8], Error> {
         if self.is_failed() {
-            Err(ErrorKind::Failed.at(self.position))
+            Err(ErrorKind::Failed.at(self.position.current()))
         } else {
             self.bytes
                 .as_slice()
-                .get(self.position.try_into()?..)
+                .get(self.position.current().try_into()?..)
                 .ok_or_else(|| Error::incomplete(self.input_len()))
         }
     }
 }
 
 impl<'a> Reader<'a> for SliceReader<'a> {
+    const CAN_READ_SLICE: bool = true;
+
+    fn encoding_rules(&self) -> EncodingRules {
+        self.encoding_rules
+    }
+
     fn input_len(&self) -> Length {
         self.bytes.len()
     }
 
-    fn peek_byte(&self) -> Option<u8> {
-        self.remaining()
-            .ok()
-            .and_then(|bytes| bytes.first().cloned())
-    }
-
-    fn peek_header(&self) -> Result<Header> {
-        Header::decode(&mut self.clone())
-    }
-
     fn position(&self) -> Length {
-        self.position
+        self.position.current()
     }
 
-    fn read_slice(&mut self, len: Length) -> Result<&'a [u8]> {
+    /// Read nested data of the given length.
+    #[inline]
+    fn read_nested<T, F, E>(&mut self, len: Length, f: F) -> Result<T, E>
+    where
+        F: FnOnce(&mut Self) -> Result<T, E>,
+        E: From<Error>,
+    {
+        // Slice `self.bytes` as a secondary check we don't read past end-of-slice
+        let bytes = self.bytes;
+        let prefix_len = (self.position.current() + len)?;
+        self.bytes = self.bytes.prefix(prefix_len)?;
+
+        let resumption = self.position.split_nested(len)?;
+        let ret = f(self);
+        let finished = self.is_finished();
+        let decoded = self.position.current();
+        let remaining = self.remaining_len();
+
+        self.bytes = bytes;
+        self.position.resume_nested(resumption);
+
+        if ret.is_ok() && !finished {
+            self.failed = true;
+            return Err(self
+                .error(ErrorKind::TrailingData { decoded, remaining })
+                .into());
+        };
+
+        ret
+    }
+
+    fn read_slice(&mut self, len: Length) -> Result<&'a [u8], Error> {
         if self.is_failed() {
             return Err(self.error(ErrorKind::Failed));
         }
 
         match self.remaining()?.get(..len.try_into()?) {
             Some(result) => {
-                self.position = (self.position + len)?;
+                self.position.advance(len)?;
                 Ok(result)
             }
             None => Err(self.error(ErrorKind::Incomplete {
-                expected_len: (self.position + len)?,
+                expected_len: (self.position.current() + len)?,
                 actual_len: self.input_len(),
             })),
         }
     }
 
-    fn decode<T: Decode<'a>>(&mut self) -> Result<T> {
+    fn decode<T: Decode<'a>>(&mut self) -> Result<T, T::Error> {
         if self.is_failed() {
-            return Err(self.error(ErrorKind::Failed));
+            return Err(self.error(ErrorKind::Failed).into());
         }
 
-        T::decode(self).map_err(|e| {
+        T::decode(self).inspect_err(|_| {
             self.failed = true;
-            e.nested(self.position)
         })
     }
 
     fn error(&mut self, kind: ErrorKind) -> Error {
-        self.failed = true;
-        kind.at(self.position)
+        self.error(kind)
     }
 
-    fn finish<T>(self, value: T) -> Result<T> {
+    fn finish(mut self) -> Result<(), Error> {
         if self.is_failed() {
-            Err(ErrorKind::Failed.at(self.position))
+            Err(ErrorKind::Failed.at(self.position.current()))
         } else if !self.is_finished() {
-            Err(ErrorKind::TrailingData {
-                decoded: self.position,
-                remaining: self.remaining_len(),
-            }
-            .at(self.position))
+            let decoded = self.position.current();
+            let remaining = self.remaining_len();
+            Err(self.error(ErrorKind::TrailingData { decoded, remaining }))
         } else {
-            Ok(value)
+            Ok(())
         }
     }
 
     fn remaining_len(&self) -> Length {
-        debug_assert!(self.position <= self.input_len());
-        self.input_len().saturating_sub(self.position)
+        self.position.remaining_len()
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic, reason = "tests")]
 mod tests {
     use super::SliceReader;
-    use crate::{Decode, ErrorKind, Length, Reader, Tag};
+    use crate::{Decode, Error, ErrorKind, Length, Reader};
     use hex_literal::hex;
 
     // INTEGER: 42
@@ -181,34 +218,37 @@ mod tests {
         let x = i8::decode(&mut reader).unwrap();
         assert_eq!(42i8, x);
 
-        let err = reader.finish(x).err().unwrap();
+        let err = reader.finish().err().unwrap();
         assert_eq!(Some(Length::from(3u8)), err.position());
 
         assert_eq!(
             ErrorKind::TrailingData {
                 decoded: 3u8.into(),
-                remaining: 1u8.into()
+                remaining: 1u8.into(),
             },
             err.kind()
         );
     }
 
     #[test]
-    fn peek_tag() {
-        let reader = SliceReader::new(EXAMPLE_MSG).unwrap();
-        assert_eq!(reader.position(), Length::ZERO);
-        assert_eq!(reader.peek_tag().unwrap(), Tag::Integer);
-        assert_eq!(reader.position(), Length::ZERO); // Position unchanged
-    }
+    fn nested_trailing_data() {
+        let der = hex!("0102");
+        let mut reader = SliceReader::new(&der).unwrap();
 
-    #[test]
-    fn peek_header() {
-        let reader = SliceReader::new(EXAMPLE_MSG).unwrap();
-        assert_eq!(reader.position(), Length::ZERO);
+        let err: Error = reader
+            .read_nested(2u8.into(), |reader| {
+                reader.read_slice(1u8.into())?;
+                Ok(())
+            })
+            .expect_err("read_nested should return Err when the callback did not consume the complete contents of the nested value");
 
-        let header = reader.peek_header().unwrap();
-        assert_eq!(header.tag, Tag::Integer);
-        assert_eq!(header.length, Length::ONE);
-        assert_eq!(reader.position(), Length::ZERO); // Position unchanged
+        assert_eq!(Length::ONE, err.position().unwrap());
+        assert_eq!(
+            ErrorKind::TrailingData {
+                decoded: 1u8.into(),
+                remaining: 1u8.into(),
+            },
+            err.kind()
+        );
     }
 }

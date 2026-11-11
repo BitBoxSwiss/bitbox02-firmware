@@ -14,38 +14,51 @@ use core::fmt::Debug;
 #[cfg(feature = "pkcs8")]
 use ed25519::pkcs8;
 
-#[cfg(any(test, feature = "rand_core"))]
-use rand_core::CryptoRngCore;
+#[cfg(feature = "rand_core")]
+use rand_core::CryptoRng;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+#[cfg(feature = "digest")]
+use curve25519_dalek::digest::{
+    common::{InvalidKey, Key, KeySizeUser, TryKeyInit},
+    typenum::U32,
+};
+
+#[cfg(all(feature = "digest", feature = "rand_core"))]
+use curve25519_dalek::digest::common::Generate;
 
 use sha2::Sha512;
 use subtle::{Choice, ConstantTimeEq};
 
 use curve25519_dalek::{
-    digest::{generic_array::typenum::U64, Digest},
+    digest::{Digest, array::typenum::U64},
     edwards::{CompressedEdwardsY, EdwardsPoint},
     scalar::Scalar,
 };
 
-use ed25519::signature::{KeypairRef, Signer, Verifier};
+use ed25519::signature::{KeypairRef, MultipartSigner, MultipartVerifier, Signer, Verifier};
 
 #[cfg(feature = "digest")]
 use crate::context::Context;
+#[cfg(feature = "digest")]
+use curve25519_dalek::digest::Update;
 #[cfg(feature = "digest")]
 use signature::DigestSigner;
 
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "hazmat")]
+use crate::verifying::StreamVerifier;
 use crate::{
+    Signature,
     constants::{KEYPAIR_LENGTH, SECRET_KEY_LENGTH},
     errors::{InternalError, SignatureError},
     hazmat::ExpandedSecretKey,
     signature::InternalSignature,
     verifying::VerifyingKey,
-    Signature,
 };
 
 /// ed25519 secret key as defined in [RFC8032 § 5.1.5]:
@@ -131,7 +144,7 @@ impl SigningKey {
     /// # Returns
     ///
     /// A `Result` whose okay value is an EdDSA [`SigningKey`] or whose error value
-    /// is an `SignatureError` describing the error that occurred.
+    /// is a `SignatureError` describing the error that occurred.
     #[inline]
     pub fn from_keypair_bytes(bytes: &[u8; 64]) -> Result<SigningKey, SignatureError> {
         let (secret_key, verifying_key) = bytes.split_at(SECRET_KEY_LENGTH);
@@ -185,25 +198,19 @@ impl SigningKey {
     #[cfg_attr(feature = "rand_core", doc = "```")]
     #[cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
     /// # fn main() {
-    /// use rand::rngs::OsRng;
+    /// use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
     /// use ed25519_dalek::{Signature, SigningKey};
     ///
-    /// let mut csprng = OsRng;
+    /// let mut csprng = UnwrapErr(SysRng);
     /// let signing_key: SigningKey = SigningKey::generate(&mut csprng);
     /// # }
     /// ```
     ///
     /// # Input
     ///
-    /// A CSPRNG with a `fill_bytes()` method, e.g. `rand_os::OsRng`.
-    ///
-    /// The caller must also supply a hash function which implements the
-    /// `Digest` and `Default` traits, and which returns 512 bits of output.
-    /// The standard hash function used for most ed25519 libraries is SHA-512,
-    /// which is available with `use sha2::Sha512` as in the example above.
-    /// Other suitable hash functions include Keccak-512 and Blake2b-512.
-    #[cfg(any(test, feature = "rand_core"))]
-    pub fn generate<R: CryptoRngCore + ?Sized>(csprng: &mut R) -> SigningKey {
+    /// A CSPRNG with a `fill_bytes()` method, e.g. `rand_os::SysRng`.
+    #[cfg(feature = "rand_core")]
+    pub fn generate<R: CryptoRng + ?Sized>(csprng: &mut R) -> SigningKey {
         let mut secret = SecretKey::default();
         csprng.fill_bytes(&mut secret);
         Self::from_bytes(&secret)
@@ -243,10 +250,10 @@ impl SigningKey {
     /// use ed25519_dalek::SigningKey;
     /// use ed25519_dalek::Signature;
     /// use sha2::Sha512;
-    /// use rand::rngs::OsRng;
+    /// use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
     ///
     /// # fn main() {
-    /// let mut csprng = OsRng;
+    /// let mut csprng = UnwrapErr(SysRng);
     /// let signing_key: SigningKey = SigningKey::generate(&mut csprng);
     /// let message: &[u8] = b"All I want is to pet all of the dogs.";
     ///
@@ -288,10 +295,10 @@ impl SigningKey {
     /// # use ed25519_dalek::Signature;
     /// # use ed25519_dalek::SignatureError;
     /// # use sha2::Sha512;
-    /// # use rand::rngs::OsRng;
+    /// # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
     /// #
     /// # fn do_test() -> Result<Signature, SignatureError> {
-    /// # let mut csprng = OsRng;
+    /// # let mut csprng = UnwrapErr(SysRng);
     /// # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
     /// # let message: &[u8] = b"All I want is to pet all of the dogs.";
     /// # let mut prehashed: Sha512 = Sha512::new();
@@ -367,10 +374,10 @@ impl SigningKey {
     /// use ed25519_dalek::Signature;
     /// use ed25519_dalek::SignatureError;
     /// use sha2::Sha512;
-    /// use rand::rngs::OsRng;
+    /// use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
     ///
     /// # fn do_test() -> Result<(), SignatureError> {
-    /// let mut csprng = OsRng;
+    /// let mut csprng = UnwrapErr(SysRng);
     /// let signing_key: SigningKey = SigningKey::generate(&mut csprng);
     /// let message: &[u8] = b"All I want is to pet all of the dogs.";
     ///
@@ -483,6 +490,17 @@ impl SigningKey {
         self.verifying_key.verify_strict(message, signature)
     }
 
+    /// Constructs stream verifier with candidate `signature`.
+    ///
+    /// See [`VerifyingKey::verify_stream()`] for more details.
+    #[cfg(feature = "hazmat")]
+    pub fn verify_stream(
+        &self,
+        signature: &ed25519::Signature,
+    ) -> Result<StreamVerifier, SignatureError> {
+        self.verifying_key.verify_stream(signature)
+    }
+
     /// Convert this signing key into a byte representation of an unreduced, unclamped Curve25519
     /// scalar. This is NOT the same thing as `self.to_scalar().to_bytes()`, since `to_scalar()`
     /// performs a clamping step, which changes the value of the resulting scalar.
@@ -536,6 +554,29 @@ impl SigningKey {
     }
 }
 
+#[cfg(feature = "digest")]
+impl KeySizeUser for SigningKey {
+    type KeySize = U32;
+}
+
+#[cfg(feature = "digest")]
+impl TryKeyInit for SigningKey {
+    fn new(key: &Key<Self>) -> Result<Self, InvalidKey> {
+        Ok(Self::from_bytes(key.as_ref()))
+    }
+}
+
+#[cfg(all(feature = "digest", feature = "rand_core"))]
+impl Generate for SigningKey {
+    fn try_generate_from_rng<R: rand_core::TryCryptoRng + ?Sized>(
+        rng: &mut R,
+    ) -> Result<Self, R::Error> {
+        let mut secret = SecretKey::default();
+        rng.try_fill_bytes(&mut secret)?;
+        Ok(Self::from_bytes(&secret))
+    }
+}
+
 impl AsRef<VerifyingKey> for SigningKey {
     fn as_ref(&self) -> &VerifyingKey {
         &self.verifying_key
@@ -543,7 +584,7 @@ impl AsRef<VerifyingKey> for SigningKey {
 }
 
 impl Debug for SigningKey {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("SigningKey")
             .field("verifying_key", &self.verifying_key)
             .finish_non_exhaustive() // avoids printing `secret_key`
@@ -557,6 +598,12 @@ impl KeypairRef for SigningKey {
 impl Signer<Signature> for SigningKey {
     /// Sign a message with this signing key's secret key.
     fn try_sign(&self, message: &[u8]) -> Result<Signature, SignatureError> {
+        self.try_multipart_sign(&[message])
+    }
+}
+
+impl MultipartSigner<Signature> for SigningKey {
+    fn try_multipart_sign(&self, message: &[&[u8]]) -> Result<Signature, SignatureError> {
         let expanded: ExpandedSecretKey = (&self.secret_key).into();
         Ok(expanded.raw_sign::<Sha512>(message, &self.verifying_key))
     }
@@ -572,10 +619,15 @@ impl Signer<Signature> for SigningKey {
 #[cfg(feature = "digest")]
 impl<D> DigestSigner<D, Signature> for SigningKey
 where
-    D: Digest<OutputSize = U64>,
+    D: Digest<OutputSize = U64> + Update,
 {
-    fn try_sign_digest(&self, msg_digest: D) -> Result<Signature, SignatureError> {
-        self.sign_prehashed(msg_digest, None)
+    fn try_sign_digest<F: Fn(&mut D) -> Result<(), SignatureError>>(
+        &self,
+        f: F,
+    ) -> Result<Signature, SignatureError> {
+        let mut digest = D::new();
+        f(&mut digest)?;
+        self.sign_prehashed(digest, None)
     }
 }
 
@@ -590,10 +642,15 @@ where
 #[cfg(feature = "digest")]
 impl<D> DigestSigner<D, Signature> for Context<'_, '_, SigningKey>
 where
-    D: Digest<OutputSize = U64>,
+    D: Digest<OutputSize = U64> + Update,
 {
-    fn try_sign_digest(&self, msg_digest: D) -> Result<Signature, SignatureError> {
-        self.key().sign_prehashed(msg_digest, Some(self.value()))
+    fn try_sign_digest<F: Fn(&mut D) -> Result<(), SignatureError>>(
+        &self,
+        f: F,
+    ) -> Result<Signature, SignatureError> {
+        let mut digest = D::new();
+        f(&mut digest)?;
+        self.key().sign_prehashed(digest, Some(self.value()))
     }
 }
 
@@ -601,6 +658,16 @@ impl Verifier<Signature> for SigningKey {
     /// Verify a signature on a message with this signing key's public key.
     fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
         self.verifying_key.verify(message, signature)
+    }
+}
+
+impl MultipartVerifier<Signature> for SigningKey {
+    fn multipart_verify(
+        &self,
+        message: &[&[u8]],
+        signature: &Signature,
+    ) -> Result<(), SignatureError> {
+        self.verifying_key.multipart_verify(message, signature)
     }
 }
 
@@ -684,15 +751,23 @@ impl TryFrom<&pkcs8::KeypairBytes> for SigningKey {
         // Validate the public key in the PKCS#8 document if present
         if let Some(public_bytes) = &pkcs8_key.public_key {
             let expected_verifying_key = VerifyingKey::from_bytes(public_bytes.as_ref())
-                .map_err(|_| pkcs8::Error::KeyMalformed)?;
+                .map_err(|_| pkcs8::Error::KeyMalformed(pkcs8::KeyError::Invalid))?;
 
             if signing_key.verifying_key() != expected_verifying_key {
-                return Err(pkcs8::Error::KeyMalformed);
+                return Err(pkcs8::Error::KeyMalformed(pkcs8::KeyError::Invalid));
             }
         }
 
         Ok(signing_key)
     }
+}
+
+#[cfg(feature = "pkcs8")]
+impl pkcs8::spki::SignatureAlgorithmIdentifier for SigningKey {
+    type Params = pkcs8::spki::der::AnyRef<'static>;
+
+    const SIGNATURE_ALGORITHM_IDENTIFIER: pkcs8::spki::AlgorithmIdentifier<Self::Params> =
+        <Signature as pkcs8::spki::AssociatedAlgorithmIdentifier>::ALGORITHM_IDENTIFIER;
 }
 
 #[cfg(feature = "pkcs8")]
@@ -713,10 +788,10 @@ impl From<&SigningKey> for pkcs8::KeypairBytes {
 }
 
 #[cfg(feature = "pkcs8")]
-impl TryFrom<pkcs8::PrivateKeyInfo<'_>> for SigningKey {
+impl TryFrom<pkcs8::PrivateKeyInfoRef<'_>> for SigningKey {
     type Error = pkcs8::Error;
 
-    fn try_from(private_key: pkcs8::PrivateKeyInfo<'_>) -> pkcs8::Result<Self> {
+    fn try_from(private_key: pkcs8::PrivateKeyInfoRef<'_>) -> pkcs8::Result<Self> {
         pkcs8::KeypairBytes::try_from(private_key)?.try_into()
     }
 }
@@ -742,8 +817,8 @@ impl<'d> Deserialize<'d> for SigningKey {
         impl<'de> serde::de::Visitor<'de> for SigningKeyVisitor {
             type Value = SigningKey;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                write!(formatter, concat!("An ed25519 signing (private) key"))
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(formatter, "An ed25519 signing (private) key")
             }
 
             fn visit_bytes<E: serde::de::Error>(self, bytes: &[u8]) -> Result<Self::Value, E> {
@@ -774,7 +849,7 @@ impl<'d> Deserialize<'d> for SigningKey {
                     ));
                 }
 
-                SigningKey::try_from(bytes).map_err(serde::de::Error::custom)
+                Ok(SigningKey::from(bytes))
             }
         }
 
@@ -806,19 +881,45 @@ impl ExpandedSecretKey {
     /// This definition is loose in its parameters so that end-users of the `hazmat` module can
     /// change how the `ExpandedSecretKey` is calculated and which hash function to use.
     #[allow(non_snake_case)]
+    #[allow(clippy::unwrap_used)]
     #[inline(always)]
     pub(crate) fn raw_sign<CtxDigest>(
         &self,
-        message: &[u8],
+        message: &[&[u8]],
         verifying_key: &VerifyingKey,
     ) -> Signature
     where
         CtxDigest: Digest<OutputSize = U64>,
     {
+        // OK unwrap, update can't fail.
+        self.raw_sign_byupdate(
+            |h: &mut CtxDigest| {
+                message.iter().for_each(|slice| h.update(slice));
+                Ok(())
+            },
+            verifying_key,
+        )
+        .unwrap()
+    }
+
+    /// Sign a message provided in parts. The `msg_update` closure will be called twice to hash the
+    /// message parts. This closure MUST leave its hasher in the same state (i.e., must hash the
+    /// same values) after both calls. Otherwise it will produce an invalid signature.
+    #[allow(non_snake_case)]
+    #[inline(always)]
+    pub(crate) fn raw_sign_byupdate<CtxDigest, F>(
+        &self,
+        msg_update: F,
+        verifying_key: &VerifyingKey,
+    ) -> Result<Signature, SignatureError>
+    where
+        CtxDigest: Digest<OutputSize = U64>,
+        F: Fn(&mut CtxDigest) -> Result<(), SignatureError>,
+    {
         let mut h = CtxDigest::new();
 
         h.update(self.hash_prefix);
-        h.update(message);
+        msg_update(&mut h)?;
 
         let r = Scalar::from_hash(h);
         let R: CompressedEdwardsY = EdwardsPoint::mul_base(&r).compress();
@@ -826,12 +927,12 @@ impl ExpandedSecretKey {
         h = CtxDigest::new();
         h.update(R.as_bytes());
         h.update(verifying_key.as_bytes());
-        h.update(message);
+        msg_update(&mut h)?;
 
         let k = Scalar::from_hash(h);
         let s: Scalar = (k * self.scalar) + r;
 
-        InternalSignature { R, s }.into()
+        Ok(InternalSignature { R, s }.into())
     }
 
     /// The prehashed signing function for Ed25519 (i.e., Ed25519ph). `CtxDigest` is the digest

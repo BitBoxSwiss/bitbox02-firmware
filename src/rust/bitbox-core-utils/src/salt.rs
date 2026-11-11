@@ -24,7 +24,7 @@ pub fn hash_data(
     hasher.update(purpose.as_bytes());
     hasher.update(data);
 
-    FixedOutput::finalize_into(hasher, result.as_mut_slice().into());
+    FixedOutput::finalize_into(hasher, (&mut **result).into());
     Ok(result)
 }
 

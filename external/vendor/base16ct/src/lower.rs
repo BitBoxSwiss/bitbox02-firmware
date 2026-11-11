@@ -1,6 +1,6 @@
-use crate::{decode_inner, encoded_len, Error};
+use crate::{Error, decode_inner, encoded_len};
 #[cfg(feature = "alloc")]
-use crate::{decoded_len, String, Vec};
+use crate::{String, Vec, decoded_len};
 
 /// Decode a lower Base16 (hex) string into the provided destination buffer.
 pub fn decode(src: impl AsRef<[u8]>, dst: &mut [u8]) -> Result<&[u8], Error> {

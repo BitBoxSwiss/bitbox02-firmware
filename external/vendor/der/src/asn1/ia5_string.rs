@@ -1,6 +1,6 @@
 //! ASN.1 `IA5String` support.
 
-use crate::{asn1::AnyRef, FixedTag, Result, StrRef, Tag};
+use crate::{FixedTag, Result, StringRef, Tag, asn1::AnyRef};
 use core::{fmt, ops::Deref};
 
 macro_rules! impl_ia5_string {
@@ -37,11 +37,14 @@ macro_rules! impl_ia5_string {
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Ia5StringRef<'a> {
     /// Inner value
-    inner: StrRef<'a>,
+    inner: &'a StringRef,
 }
 
 impl<'a> Ia5StringRef<'a> {
     /// Create a new `IA5String`.
+    ///
+    /// # Errors
+    /// In the event characters are outside `IA5String`'s allowed set.
     pub fn new<T>(input: &'a T) -> Result<Self>
     where
         T: AsRef<[u8]> + ?Sized,
@@ -50,22 +53,28 @@ impl<'a> Ia5StringRef<'a> {
 
         // Validate all characters are within IA5String's allowed set
         if input.iter().any(|&c| c > 0x7F) {
-            return Err(Self::TAG.value_error());
+            return Err(Self::TAG.value_error().into());
         }
 
-        StrRef::from_bytes(input)
+        StringRef::from_bytes(input)
             .map(|inner| Self { inner })
-            .map_err(|_| Self::TAG.value_error())
+            .map_err(|_| Self::TAG.value_error().into())
+    }
+
+    /// Borrow the inner `str`.
+    #[must_use]
+    pub fn as_str(&self) -> &'a str {
+        self.inner.as_str()
     }
 }
 
 impl_ia5_string!(Ia5StringRef<'a>, 'a);
 
 impl<'a> Deref for Ia5StringRef<'a> {
-    type Target = StrRef<'a>;
+    type Target = StringRef;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        self.inner
     }
 }
 
@@ -77,7 +86,7 @@ impl<'a> From<&Ia5StringRef<'a>> for Ia5StringRef<'a> {
 
 impl<'a> From<Ia5StringRef<'a>> for AnyRef<'a> {
     fn from(internationalized_string: Ia5StringRef<'a>) -> AnyRef<'a> {
-        AnyRef::from_tag_and_value(Tag::Ia5String, internationalized_string.inner.into())
+        AnyRef::from_tag_and_value(Tag::Ia5String, internationalized_string.inner.as_ref())
     }
 }
 
@@ -88,11 +97,11 @@ pub use self::allocation::Ia5String;
 mod allocation {
     use super::Ia5StringRef;
     use crate::{
+        Error, FixedTag, Result, StringOwned, Tag,
         asn1::AnyRef,
         referenced::{OwnedToRef, RefToOwned},
-        Error, FixedTag, Result, StrOwned, Tag,
     };
-    use alloc::string::String;
+    use alloc::{borrow::ToOwned, string::String};
     use core::{fmt, ops::Deref};
 
     /// ASN.1 `IA5String` type.
@@ -105,14 +114,17 @@ mod allocation {
     /// For UTF-8, use [`String`][`alloc::string::String`].
     ///
     /// [International Alphabet No. 5 (IA5)]: https://en.wikipedia.org/wiki/T.50_%28standard%29
-    #[derive(Clone, Eq, PartialEq, PartialOrd, Ord)]
+    #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct Ia5String {
         /// Inner value
-        inner: StrOwned,
+        inner: StringOwned,
     }
 
     impl Ia5String {
         /// Create a new `IA5String`.
+        ///
+        /// # Errors
+        /// If characters are out of range.
         pub fn new<T>(input: &T) -> Result<Self>
         where
             T: AsRef<[u8]> + ?Sized,
@@ -120,16 +132,16 @@ mod allocation {
             let input = input.as_ref();
             Ia5StringRef::new(input)?;
 
-            StrOwned::from_bytes(input)
+            StringOwned::from_bytes(input)
                 .map(|inner| Self { inner })
-                .map_err(|_| Self::TAG.value_error())
+                .map_err(|_| Self::TAG.value_error().into())
         }
     }
 
     impl_ia5_string!(Ia5String);
 
     impl Deref for Ia5String {
-        type Target = StrOwned;
+        type Target = StringOwned;
 
         fn deref(&self) -> &Self::Target {
             &self.inner
@@ -137,15 +149,22 @@ mod allocation {
     }
 
     impl<'a> From<Ia5StringRef<'a>> for Ia5String {
-        fn from(international_string: Ia5StringRef<'a>) -> Ia5String {
-            let inner = international_string.inner.into();
-            Self { inner }
+        fn from(ia5_string: Ia5StringRef<'a>) -> Ia5String {
+            Self {
+                inner: ia5_string.inner.to_owned(),
+            }
         }
     }
 
     impl<'a> From<&'a Ia5String> for AnyRef<'a> {
-        fn from(international_string: &'a Ia5String) -> AnyRef<'a> {
-            AnyRef::from_tag_and_value(Tag::Ia5String, (&international_string.inner).into())
+        fn from(ia5_string: &'a Ia5String) -> AnyRef<'a> {
+            AnyRef::from_tag_and_value(Tag::Ia5String, ia5_string.inner.as_ref())
+        }
+    }
+
+    impl<'a> From<&'a Ia5String> for Ia5StringRef<'a> {
+        fn from(ia5_string: &'a Ia5String) -> Ia5StringRef<'a> {
+            ia5_string.owned_to_ref()
         }
     }
 
@@ -153,7 +172,7 @@ mod allocation {
         type Owned = Ia5String;
         fn ref_to_owned(&self) -> Self::Owned {
             Ia5String {
-                inner: self.inner.ref_to_owned(),
+                inner: self.inner.to_owned(),
             }
         }
     }
@@ -162,7 +181,7 @@ mod allocation {
         type Borrowed<'a> = Ia5StringRef<'a>;
         fn owned_to_ref(&self) -> Self::Borrowed<'_> {
             Ia5StringRef {
-                inner: self.inner.owned_to_ref(),
+                inner: self.inner.as_ref(),
             }
         }
     }
@@ -173,14 +192,15 @@ mod allocation {
         fn try_from(input: String) -> Result<Self> {
             Ia5StringRef::new(&input)?;
 
-            StrOwned::new(input)
+            StringOwned::new(input)
                 .map(|inner| Self { inner })
-                .map_err(|_| Self::TAG.value_error())
+                .map_err(|_| Self::TAG.value_error().into())
         }
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::Ia5StringRef;
     use crate::Decode;

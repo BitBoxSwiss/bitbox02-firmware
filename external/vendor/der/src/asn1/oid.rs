@@ -1,28 +1,33 @@
 //! ASN.1 `OBJECT IDENTIFIER`
 
 use crate::{
-    asn1::AnyRef, ord::OrdIsValueOrd, DecodeValue, EncodeValue, Error, FixedTag, Header, Length,
-    Reader, Result, Tag, Tagged, Writer,
+    DecodeValue, EncodeValue, Error, FixedTag, Header, Length, Reader, Result, Tag, Tagged, Writer,
+    asn1::AnyRef, ord::OrdIsValueOrd,
 };
-use const_oid::ObjectIdentifier;
+use const_oid::{ObjectIdentifier, ObjectIdentifierRef};
 
 #[cfg(feature = "alloc")]
 use super::Any;
 
-impl<'a> DecodeValue<'a> for ObjectIdentifier {
+impl<'a, const MAX_SIZE: usize> DecodeValue<'a> for ObjectIdentifier<MAX_SIZE> {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        let mut buf = [0u8; ObjectIdentifier::MAX_SIZE];
+        let mut buf = [0u8; MAX_SIZE];
         let slice = buf
-            .get_mut(..header.length.try_into()?)
-            .ok_or_else(|| Self::TAG.length_error())?;
+            .get_mut(..header.length().try_into()?)
+            .ok_or_else(|| reader.error(Self::TAG.length_error()))?;
 
         let actual_len = reader.read_into(slice)?.len();
-        debug_assert_eq!(actual_len, header.length.try_into()?);
-        Ok(Self::from_bytes(slice)?)
+        debug_assert_eq!(actual_len, header.length().try_into()?);
+
+        ObjectIdentifierRef::from_bytes(slice)
+            .and_then(TryInto::try_into)
+            .map_err(|oid_err| reader.error(Error::from(oid_err).kind()))
     }
 }
 
-impl EncodeValue for ObjectIdentifier {
+impl<const MAX_SIZE: usize> EncodeValue for ObjectIdentifier<MAX_SIZE> {
     fn value_len(&self) -> Result<Length> {
         Length::try_from(self.as_bytes().len())
     }
@@ -32,14 +37,14 @@ impl EncodeValue for ObjectIdentifier {
     }
 }
 
-impl FixedTag for ObjectIdentifier {
+impl<const MAX_SIZE: usize> FixedTag for ObjectIdentifier<MAX_SIZE> {
     const TAG: Tag = Tag::ObjectIdentifier;
 }
 
-impl OrdIsValueOrd for ObjectIdentifier {}
+impl<const MAX_SIZE: usize> OrdIsValueOrd for ObjectIdentifier<MAX_SIZE> {}
 
-impl<'a> From<&'a ObjectIdentifier> for AnyRef<'a> {
-    fn from(oid: &'a ObjectIdentifier) -> AnyRef<'a> {
+impl<'a, const MAX_SIZE: usize> From<&'a ObjectIdentifier<MAX_SIZE>> for AnyRef<'a> {
+    fn from(oid: &'a ObjectIdentifier<MAX_SIZE>) -> AnyRef<'a> {
         // Note: ensuring an infallible conversion is possible relies on the
         // invariant that `const_oid::MAX_LEN <= Length::max()`.
         //
@@ -54,22 +59,23 @@ impl<'a> From<&'a ObjectIdentifier> for AnyRef<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl From<ObjectIdentifier> for Any {
-    fn from(oid: ObjectIdentifier) -> Any {
+impl<const MAX_SIZE: usize> From<ObjectIdentifier<MAX_SIZE>> for Any {
+    fn from(oid: ObjectIdentifier<MAX_SIZE>) -> Any {
         AnyRef::from(&oid).into()
     }
 }
 
-impl TryFrom<AnyRef<'_>> for ObjectIdentifier {
+impl<const MAX_SIZE: usize> TryFrom<AnyRef<'_>> for ObjectIdentifier<MAX_SIZE> {
     type Error = Error;
 
-    fn try_from(any: AnyRef<'_>) -> Result<ObjectIdentifier> {
+    fn try_from(any: AnyRef<'_>) -> Result<ObjectIdentifier<MAX_SIZE>> {
         any.tag().assert_eq(Tag::ObjectIdentifier)?;
-        Ok(ObjectIdentifier::from_bytes(any.value())?)
+        Ok(ObjectIdentifierRef::from_bytes(any.value())?.try_into()?)
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::ObjectIdentifier;
     use crate::{Decode, Encode, Length};

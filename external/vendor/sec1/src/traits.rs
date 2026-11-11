@@ -4,21 +4,12 @@ use crate::Result;
 
 #[cfg(feature = "alloc")]
 use der::SecretDocument;
-
-#[cfg(feature = "pem")]
-use {crate::LineEnding, alloc::string::String, der::pem::PemLabel};
-
-#[cfg(feature = "pkcs8")]
-use {
-    crate::{EcPrivateKey, ALGORITHM_OID},
-    der::Decode,
-};
-
 #[cfg(feature = "std")]
 use std::path::Path;
-
 #[cfg(feature = "pem")]
-use zeroize::Zeroizing;
+use {crate::EcPrivateKey, zeroize::Zeroizing};
+#[cfg(feature = "pem")]
+use {crate::LineEnding, alloc::string::String, der::pem::PemLabel};
 
 /// Parse an [`EcPrivateKey`] from a SEC1-encoded document.
 pub trait DecodeEcPrivateKey: Sized {
@@ -77,46 +68,10 @@ pub trait EncodeEcPrivateKey {
         Ok(self.to_sec1_der()?.write_der_file(path)?)
     }
 
-    /// Write ASN.1 DER-encoded SEC1 private key to the given path.
+    /// Write ASN.1 PEM-encoded SEC1 private key to the given path.
     #[cfg(all(feature = "pem", feature = "std"))]
     fn write_sec1_pem_file(&self, path: impl AsRef<Path>, line_ending: LineEnding) -> Result<()> {
         let doc = self.to_sec1_der()?;
         Ok(doc.write_pem_file(path, EcPrivateKey::PEM_LABEL, line_ending)?)
-    }
-}
-
-#[cfg(feature = "pkcs8")]
-impl<T> DecodeEcPrivateKey for T
-where
-    T: for<'a> TryFrom<pkcs8::PrivateKeyInfo<'a>, Error = pkcs8::Error>,
-{
-    fn from_sec1_der(private_key: &[u8]) -> Result<Self> {
-        let params_oid = EcPrivateKey::from_der(private_key)?
-            .parameters
-            .and_then(|params| params.named_curve());
-
-        let algorithm = pkcs8::AlgorithmIdentifierRef {
-            oid: ALGORITHM_OID,
-            parameters: params_oid.as_ref().map(Into::into),
-        };
-
-        Ok(Self::try_from(pkcs8::PrivateKeyInfo {
-            algorithm,
-            private_key,
-            public_key: None,
-        })?)
-    }
-}
-
-#[cfg(all(feature = "alloc", feature = "pkcs8"))]
-impl<T: pkcs8::EncodePrivateKey> EncodeEcPrivateKey for T {
-    fn to_sec1_der(&self) -> Result<SecretDocument> {
-        let doc = self.to_pkcs8_der()?;
-        let pkcs8_key = pkcs8::PrivateKeyInfo::from_der(doc.as_bytes())?;
-        pkcs8_key.algorithm.assert_algorithm_oid(ALGORITHM_OID)?;
-
-        let mut pkcs1_key = EcPrivateKey::from_der(pkcs8_key.private_key)?;
-        pkcs1_key.parameters = Some(pkcs8_key.algorithm.parameters_oid()?.into());
-        pkcs1_key.try_into()
     }
 }

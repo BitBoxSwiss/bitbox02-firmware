@@ -1,11 +1,15 @@
 //! Random blinding support for [`Scalar`]
 
 use super::Scalar;
-use crate::{ops::Invert, CurveArithmetic};
-use group::ff::Field;
-use rand_core::CryptoRngCore;
+use crate::{CurveArithmetic, ops::Invert};
+use common::Generate;
+use core::fmt;
+use rand_core::{CryptoRng, TryCryptoRng};
 use subtle::CtOption;
 use zeroize::Zeroize;
+
+#[cfg(feature = "getrandom")]
+use common::getrandom::{self, SysRng, rand_core::UnwrapErr};
 
 /// Scalar blinded with a randomly generated masking value.
 ///
@@ -26,16 +30,47 @@ where
     mask: Scalar<C>,
 }
 
+impl<C: CurveArithmetic> fmt::Debug for BlindedScalar<C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BlindedScalar").finish_non_exhaustive()
+    }
+}
+
 impl<C> BlindedScalar<C>
 where
     C: CurveArithmetic,
 {
-    /// Create a new [`BlindedScalar`] from a scalar and a [`CryptoRngCore`].
-    pub fn new(scalar: Scalar<C>, rng: &mut impl CryptoRngCore) -> Self {
-        Self {
-            scalar,
-            mask: Scalar::<C>::random(rng),
-        }
+    /// Create a new [`BlindedScalar`] using the system's ambient secure RNG.
+    #[cfg(feature = "getrandom")]
+    pub fn new(scalar: Scalar<C>) -> Self {
+        Self::new_from_rng(scalar, &mut UnwrapErr(SysRng))
+    }
+
+    /// Create a new [`BlindedScalar`] using the system's ambient secure RNG.
+    ///
+    /// # Errors
+    /// Returns [`getrandom::Error`] if there is an internal failure in the system's secure RNG.
+    #[cfg(feature = "getrandom")]
+    pub fn try_new(scalar: Scalar<C>) -> Result<Self, getrandom::Error> {
+        Self::try_new_from_rng(scalar, &mut SysRng)
+    }
+
+    /// Create a new [`BlindedScalar`] from a scalar and a [`CryptoRng`].
+    pub fn new_from_rng<R: CryptoRng + ?Sized>(scalar: Scalar<C>, rng: &mut R) -> Self {
+        let Ok(ret) = Self::try_new_from_rng(scalar, rng);
+        ret
+    }
+
+    /// Create a new [`BlindedScalar`] from a scalar and a [`CryptoRng`].
+    ///
+    /// # Errors
+    /// Returns `R::Error` in the event of an RNG failure.
+    pub fn try_new_from_rng<R>(scalar: Scalar<C>, rng: &mut R) -> Result<Self, R::Error>
+    where
+        R: TryCryptoRng + ?Sized,
+    {
+        let mask = Scalar::<C>::try_generate_from_rng(rng)?;
+        Ok(Self { scalar, mask })
     }
 }
 

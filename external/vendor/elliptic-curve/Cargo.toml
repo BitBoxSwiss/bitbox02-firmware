@@ -10,16 +10,22 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.65"
+edition = "2024"
+rust-version = "1.87"
 name = "elliptic-curve"
-version = "0.13.8"
+version = "0.14.3"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
-General purpose Elliptic Curve Cryptography (ECC) support, including types
-and traits for representing various elliptic curve forms, scalars, points,
-and public/secret keys composed thereof.
+General purpose Elliptic Curve Cryptography (ECC) support, including traits and generic types for
+representing various elliptic curve forms, scalars, points, and public/secret keys composed thereof.
 """
+documentation = "https://docs.rs/elliptic-curve"
 readme = "README.md"
 keywords = [
     "crypto",
@@ -32,140 +38,27 @@ categories = [
     "no-std",
 ]
 license = "Apache-2.0 OR MIT"
-repository = "https://github.com/RustCrypto/traits/tree/master/elliptic-curve"
+repository = "https://github.com/RustCrypto/traits"
 
 [package.metadata.docs.rs]
 features = [
-    "bits",
     "ecdh",
-    "hash2curve",
-    "jwk",
     "pem",
+    "serde",
     "std",
-    "voprf",
 ]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
-
-[dependencies.base16ct]
-version = "0.2"
-
-[dependencies.base64ct]
-version = "1"
-features = ["alloc"]
-optional = true
-default-features = false
-
-[dependencies.crypto-bigint]
-version = "0.5"
-features = [
-    "rand_core",
-    "generic-array",
-    "zeroize",
-]
-default-features = false
-
-[dependencies.digest]
-version = "0.10"
-optional = true
-
-[dependencies.ff]
-version = "0.13"
-optional = true
-default-features = false
-
-[dependencies.generic-array]
-version = "0.14.6"
-features = ["zeroize"]
-default-features = false
-
-[dependencies.group]
-version = "0.13"
-optional = true
-default-features = false
-
-[dependencies.hex-literal]
-version = "0.4"
-optional = true
-
-[dependencies.hkdf]
-version = "0.12.1"
-optional = true
-default-features = false
-
-[dependencies.pem-rfc7468]
-version = "0.7"
-features = ["alloc"]
-optional = true
-
-[dependencies.pkcs8]
-version = "0.10.2"
-optional = true
-default-features = false
-
-[dependencies.rand_core]
-version = "0.6.4"
-default-features = false
-
-[dependencies.sec1]
-version = "0.7.1"
-features = [
-    "subtle",
-    "zeroize",
-]
-optional = true
-
-[dependencies.serde_json]
-version = "1.0.47"
-features = ["alloc"]
-optional = true
-default-features = false
-
-[dependencies.serdect]
-version = "0.2"
-features = ["alloc"]
-optional = true
-default-features = false
-
-[dependencies.subtle]
-version = "2"
-default-features = false
-
-[dependencies.tap]
-version = "1.0.1"
-optional = true
-default-features = false
-
-[dependencies.zeroize]
-version = "1.7"
-default-features = false
-
-[dev-dependencies.hex-literal]
-version = "0.4"
-
-[dev-dependencies.sha2]
-version = "0.10"
-
-[dev-dependencies.sha3]
-version = "0.10"
 
 [features]
 alloc = [
     "base16ct/alloc",
     "ff?/alloc",
     "group?/alloc",
+    "array/alloc",
     "pkcs8?/alloc",
     "sec1?/alloc",
     "zeroize/alloc",
 ]
 arithmetic = ["group"]
-bits = [
-    "arithmetic",
-    "ff/bits",
-    "dep:tap",
-]
 default = ["arithmetic"]
 dev = [
     "arithmetic",
@@ -178,27 +71,20 @@ ecdh = [
     "digest",
     "dep:hkdf",
 ]
+getrandom = [
+    "arithmetic",
+    "bigint/getrandom",
+    "common/getrandom",
+]
 group = [
     "dep:group",
     "ff",
-]
-hash2curve = [
-    "arithmetic",
-    "digest",
-]
-hazmat = []
-jwk = [
-    "dep:base64ct",
-    "dep:serde_json",
-    "alloc",
-    "serde",
-    "zeroize/alloc",
 ]
 pem = [
     "dep:pem-rfc7468",
     "alloc",
     "arithmetic",
-    "pkcs8",
+    "pkcs8/pem",
     "sec1/pem",
 ]
 pkcs8 = [
@@ -213,8 +99,145 @@ serde = [
 ]
 std = [
     "alloc",
-    "rand_core/std",
     "pkcs8?/std",
     "sec1?/std",
 ]
-voprf = ["digest"]
+
+[lib]
+name = "elliptic_curve"
+path = "src/lib.rs"
+
+[[test]]
+name = "pkcs8"
+path = "tests/pkcs8.rs"
+
+[[test]]
+name = "secret_key"
+path = "tests/secret_key.rs"
+
+[dependencies.array]
+version = "0.4.13"
+features = ["zeroize"]
+default-features = false
+package = "hybrid-array"
+
+[dependencies.base16ct]
+version = "1"
+
+[dependencies.bigint]
+version = "0.7.8"
+features = [
+    "hybrid-array",
+    "rand_core",
+    "subtle",
+    "zeroize",
+]
+default-features = false
+package = "crypto-bigint"
+
+[dependencies.common]
+version = "0.2"
+features = ["rand_core"]
+package = "crypto-common"
+
+[dependencies.digest]
+version = "0.11"
+optional = true
+
+[dependencies.ff]
+version = "0.14"
+optional = true
+default-features = false
+
+[dependencies.group]
+version = "0.14"
+optional = true
+default-features = false
+
+[dependencies.hex-literal]
+version = "1"
+optional = true
+
+[dependencies.hkdf]
+version = "0.13"
+optional = true
+default-features = false
+
+[dependencies.pem-rfc7468]
+version = "1"
+features = ["alloc"]
+optional = true
+
+[dependencies.pkcs8]
+version = "0.11"
+optional = true
+default-features = false
+
+[dependencies.rand_core]
+version = "0.10"
+default-features = false
+
+[dependencies.sec1]
+version = "0.8"
+features = [
+    "ctutils",
+    "subtle",
+    "zeroize",
+]
+optional = true
+
+[dependencies.serdect]
+version = "0.4"
+features = ["alloc"]
+optional = true
+default-features = false
+
+[dependencies.subtle]
+version = "2.6"
+default-features = false
+
+[dependencies.zeroize]
+version = "1.7"
+default-features = false
+
+[dev-dependencies.hex-literal]
+version = "1"
+
+[lints.clippy]
+borrow_as_ptr = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_saturating_sub = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+needless_range_loop = "allow"
+ptr_as_ptr = "warn"
+redundant_closure_for_method_calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
+trivially_copy_pass_by_ref = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
+
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"

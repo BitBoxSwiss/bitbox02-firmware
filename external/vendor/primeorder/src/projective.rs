@@ -2,35 +2,47 @@
 
 #![allow(clippy::needless_range_loop, clippy::op_ref)]
 
-use crate::{point_arithmetic::PointArithmetic, AffinePoint, Field, PrimeCurveParams};
-use core::{
-    borrow::Borrow,
-    iter::Sum,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+use crate::{
+    AffinePoint, ArraySize, Field, LookupTable, MulBackend, PrimeCurveParams, Radix16Decomposition,
+    Radix16Digits, point_arithmetic::PointArithmetic,
 };
+use core::{array, borrow::Borrow, iter::Sum, iter::zip};
 use elliptic_curve::{
-    bigint::{ArrayEncoding, Integer},
-    generic_array::ArrayLength,
+    BatchNormalize, CurveGroup, Error, Generate, PublicKey, Result, Scalar,
+    array::{sizes::U5, typenum::Unsigned},
+    ctutils,
     group::{
-        self,
+        Group, GroupEncoding,
         cofactor::CofactorGroup,
         prime::{PrimeCurve, PrimeGroup},
-        Group, GroupEncoding,
     },
-    ops::{BatchInvert, Invert, LinearCombination, MulByGenerator},
-    point::Double,
-    rand_core::RngCore,
-    sec1::{
-        CompressedPoint, EncodedPoint, FromEncodedPoint, ModulusSize, ToEncodedPoint,
-        UncompressedPointSize,
+    ops::{
+        Add, AddAssign, BatchInvert, Double, LinearCombination, Mul, MulAssign,
+        MulByGeneratorVartime, MulVartime, Neg, Sub, SubAssign,
     },
+    point::NonIdentity,
+    rand_core::{TryCryptoRng, TryRng},
+    sec1::{CompressedPoint, FromSec1Point, Sec1Point, ToSec1Point},
     subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption},
     zeroize::DefaultIsZeroes,
-    BatchNormalize, Error, FieldBytes, FieldBytesSize, PublicKey, Result, Scalar,
 };
+use wnaf::WnafGroup;
 
+use crate::array::Array;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Serialize, de, ser};
+
+/// Default w-NAF window size to use.
+// TODO(tarcieri): per-curve customization?
+type DefaultWnafWindowSize = U5;
+
+/// `WnafBase` generic around an elliptic curve `C` using default window size for this curve.
+pub(crate) type WnafBase<C> = wnaf::WnafBase<ProjectivePoint<C>, DefaultWnafWindowSize>;
+
+/// `WnafScalar` generic around an elliptic curve `C` using default window size for this curve.
+pub(crate) type WnafScalar<C> = wnaf::WnafScalar<Scalar<C>, DefaultWnafWindowSize>;
 
 /// Point on a Weierstrass curve in projective coordinates.
 #[derive(Clone, Copy, Debug)]
@@ -74,6 +86,7 @@ where
     }
 
     /// Returns `-self`.
+    #[must_use]
     pub fn neg(&self) -> Self {
         Self {
             x: self.x,
@@ -83,94 +96,51 @@ where
     }
 
     /// Returns `self + other`.
+    #[inline]
+    #[must_use]
     pub fn add(&self, other: &Self) -> Self {
-        C::PointArithmetic::add(self, other)
+        let mut lhs = *self;
+        C::PointArithmetic::add_assign(&mut lhs, other);
+        lhs
     }
 
     /// Returns `self + other`.
+    #[inline]
+    #[must_use]
     fn add_mixed(&self, other: &AffinePoint<C>) -> Self {
-        C::PointArithmetic::add_mixed(self, other)
+        let mut lhs = *self;
+        C::PointArithmetic::add_assign_mixed(&mut lhs, other);
+        lhs
     }
 
     /// Returns `self - other`.
+    #[inline]
+    #[must_use]
     pub fn sub(&self, other: &Self) -> Self {
         self.add(&other.neg())
     }
 
     /// Returns `self - other`.
+    #[inline]
+    #[must_use]
     fn sub_mixed(&self, other: &AffinePoint<C>) -> Self {
-        self.add_mixed(&other.neg())
+        self.add_mixed(&-other)
     }
 
     /// Returns `[k] self`.
-    fn mul(&self, k: &Scalar<C>) -> Self
-    where
-        Self: Double,
-    {
-        let k = Into::<C::Uint>::into(*k).to_le_byte_array();
-
-        let mut pc = [Self::default(); 16];
-        pc[0] = Self::IDENTITY;
-        pc[1] = *self;
-
-        for i in 2..16 {
-            pc[i] = if i % 2 == 0 {
-                Double::double(&pc[i / 2])
-            } else {
-                pc[i - 1].add(self)
-            };
-        }
-
-        let mut q = Self::IDENTITY;
-        let mut pos = C::Uint::BITS - 4;
-
-        loop {
-            let slot = (k[pos >> 3] >> (pos & 7)) & 0xf;
-
-            let mut t = ProjectivePoint::IDENTITY;
-
-            for i in 1..16 {
-                t.conditional_assign(
-                    &pc[i],
-                    Choice::from(((slot as usize ^ i).wrapping_sub(1) >> 8) as u8 & 1),
-                );
-            }
-
-            q = q.add(&t);
-
-            if pos == 0 {
-                break;
-            }
-
-            q = Double::double(&Double::double(&Double::double(&Double::double(&q))));
-            pos -= 4;
-        }
-
-        q
-    }
-}
-
-impl<C> CofactorGroup for ProjectivePoint<C>
-where
-    Self: Double,
-    C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
-{
-    type Subgroup = Self;
-
-    fn clear_cofactor(&self) -> Self::Subgroup {
-        *self
+    #[inline]
+    #[must_use]
+    pub fn mul(&self, k: &Scalar<C>) -> Self {
+        let table = LookupTable::new(*self);
+        let digits = Radix16Decomposition::new(k);
+        lincomb::<C>(&[table], &[digits])
     }
 
-    fn into_subgroup(self) -> CtOption<Self> {
-        CtOption::new(self, 1.into())
-    }
-
-    fn is_torsion_free(&self) -> Choice {
-        1.into()
+    /// Returns `[k] self` computed in variable time.
+    #[inline]
+    #[must_use]
+    pub fn mul_vartime(&self, k: &Scalar<C>) -> Self {
+        WnafBase::<C>::new(self) * WnafScalar::<C>::new(k)
     }
 }
 
@@ -193,7 +163,28 @@ where
     C: PrimeCurveParams,
 {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.to_affine().ct_eq(&other.to_affine())
+        let x_eq = (self.x * other.z).ct_eq(&(other.x * self.z));
+        let y_eq = (self.y * other.z).ct_eq(&(other.y * self.z));
+
+        x_eq & y_eq
+    }
+}
+
+impl<C> ctutils::CtEq for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn ct_eq(&self, other: &Self) -> ctutils::Choice {
+        ConstantTimeEq::ct_eq(self, other).into()
+    }
+}
+
+impl<C> ctutils::CtSelect for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn ct_select(&self, other: &Self, choice: ctutils::Choice) -> Self {
+        ConditionallySelectable::conditional_select(self, other, choice.into())
     }
 }
 
@@ -209,8 +200,16 @@ where
 impl<C> DefaultIsZeroes for ProjectivePoint<C> where C: PrimeCurveParams {}
 
 impl<C: PrimeCurveParams> Double for ProjectivePoint<C> {
+    #[inline]
     fn double(&self) -> Self {
-        C::PointArithmetic::double(self)
+        let mut ret = *self;
+        C::PointArithmetic::double_in_place(&mut ret);
+        ret
+    }
+
+    #[inline]
+    fn double_in_place(&mut self) {
+        C::PointArithmetic::double_in_place(self);
     }
 }
 
@@ -239,6 +238,15 @@ where
     }
 }
 
+impl<C> From<NonIdentity<ProjectivePoint<C>>> for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn from(p: NonIdentity<ProjectivePoint<C>>) -> Self {
+        p.to_point()
+    }
+}
+
 impl<C> From<PublicKey<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
@@ -257,27 +265,78 @@ where
     }
 }
 
-impl<C> FromEncodedPoint<C> for ProjectivePoint<C>
+impl<C> FromSec1Point<C> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
 {
-    fn from_encoded_point(p: &EncodedPoint<C>) -> CtOption<Self> {
-        AffinePoint::<C>::from_encoded_point(p).map(Self::from)
+    fn from_sec1_point(p: &Sec1Point<C>) -> ctutils::CtOption<Self> {
+        AffinePoint::<C>::from_sec1_point(p).map(Self::from)
+    }
+}
+
+impl<C> Generate for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn try_generate_from_rng<R: TryCryptoRng + ?Sized>(
+        rng: &mut R,
+    ) -> core::result::Result<Self, R::Error> {
+        AffinePoint::try_generate_from_rng(rng).map(Self::from)
+    }
+}
+
+//
+// `group` trait impls
+//
+
+/// Prime order elliptic curves have a cofactor of 1.
+impl<C> CofactorGroup for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    type Subgroup = ProjectivePoint<C>;
+
+    fn clear_cofactor(&self) -> Self::Subgroup {
+        *self
+    }
+
+    fn into_subgroup(self) -> CtOption<Self::Subgroup> {
+        CtOption::new(self, Choice::from(1))
+    }
+
+    fn is_torsion_free(&self) -> Choice {
+        Choice::from(1)
+    }
+}
+
+impl<C> CurveGroup for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    type Affine = AffinePoint<C>;
+
+    fn to_affine(&self) -> AffinePoint<C> {
+        ProjectivePoint::to_affine(self)
+    }
+
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn batch_normalize(projective: &[Self], affine: &mut [Self::Affine]) {
+        assert_eq!(projective.len(), affine.len());
+        let mut zs = vec![C::FieldElement::ZERO; projective.len()];
+        let mut scratch = vec![C::FieldElement::ZERO; projective.len()];
+        batch_normalize_generic(projective, &mut zs, &mut scratch, affine);
     }
 }
 
 impl<C> Group for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
 {
     type Scalar = Scalar<C>;
 
-    fn random(mut rng: impl RngCore) -> Self {
-        Self::GENERATOR * <Scalar<C> as Field>::random(&mut rng)
+    fn try_random<R: TryRng + ?Sized>(rng: &mut R) -> core::result::Result<Self, R::Error> {
+        AffinePoint::try_random(rng).map(Self::from)
     }
 
     fn identity() -> Self {
@@ -292,19 +351,20 @@ where
         self.ct_eq(&Self::IDENTITY)
     }
 
-    #[must_use]
+    #[inline]
     fn double(&self) -> Self {
         Double::double(self)
+    }
+
+    #[inline]
+    fn mul_by_generator(scalar: &Self::Scalar) -> Self {
+        C::Backend::mul_by_generator(scalar)
     }
 }
 
 impl<C> GroupEncoding for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
     type Repr = CompressedPoint<C>;
 
@@ -322,40 +382,51 @@ where
     }
 }
 
-impl<C> group::Curve for ProjectivePoint<C>
+impl<C> PrimeCurve for ProjectivePoint<C> where C: PrimeCurveParams {}
+impl<C> PrimeGroup for ProjectivePoint<C> where C: PrimeCurveParams {}
+
+impl<C> WnafGroup for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
 {
-    type AffineRepr = AffinePoint<C>;
-
-    fn to_affine(&self) -> AffinePoint<C> {
-        ProjectivePoint::to_affine(self)
+    fn recommended_wnaf_for_num_scalars(_num_scalars: usize) -> usize {
+        5 // TODO(tarcieri): better estimate based on `num_scalars`, curve-specific config
     }
-
-    // TODO(tarcieri): re-enable when we can add `Invert` bounds on `FieldElement`
-    // #[cfg(feature = "alloc")]
-    // #[inline]
-    // fn batch_normalize(projective: &[Self], affine: &mut [Self::AffineRepr]) {
-    //     assert_eq!(projective.len(), affine.len());
-    //     let mut zs = vec![C::FieldElement::ONE; projective.len()];
-    //     batch_normalize_generic(projective, zs.as_mut_slice(), affine);
-    // }
 }
+
+//
+// Batch trait impls
+//
 
 impl<const N: usize, C> BatchNormalize<[ProjectivePoint<C>; N]> for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
-    C::FieldElement: Invert<Output = CtOption<C::FieldElement>>,
 {
-    type Output = [Self::AffineRepr; N];
+    type Output = [<Self as CurveGroup>::Affine; N];
 
     #[inline]
-    fn batch_normalize(points: &[Self; N]) -> [Self::AffineRepr; N] {
-        let mut zs = [C::FieldElement::ONE; N];
+    fn batch_normalize(points: &[Self; N]) -> [<Self as CurveGroup>::Affine; N] {
+        let mut zs = [C::FieldElement::ZERO; N];
+        let mut scratch = [C::FieldElement::ZERO; N];
         let mut affine_points = [C::AffinePoint::IDENTITY; N];
-        batch_normalize_generic(points, &mut zs, &mut affine_points);
+        batch_normalize_generic(points, &mut zs, &mut scratch, &mut affine_points);
+        affine_points
+    }
+}
+
+impl<C, U> BatchNormalize<Array<ProjectivePoint<C>, U>> for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+    U: ArraySize,
+{
+    type Output = Array<AffinePoint<C>, U>;
+
+    #[inline]
+    fn batch_normalize(points: &Array<Self, U>) -> Array<AffinePoint<C>, U> {
+        let mut zs = Array::<C::FieldElement, U>::default();
+        let mut scratch = Array::<C::FieldElement, U>::default();
+        let mut affine_points = Array::<AffinePoint<C>, U>::default();
+        batch_normalize_generic(points, &mut zs, &mut scratch, &mut affine_points);
         affine_points
     }
 }
@@ -363,94 +434,126 @@ where
 #[cfg(feature = "alloc")]
 impl<C> BatchNormalize<[ProjectivePoint<C>]> for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
-    C::FieldElement: Invert<Output = CtOption<C::FieldElement>>,
 {
-    type Output = Vec<Self::AffineRepr>;
+    type Output = Vec<<Self as CurveGroup>::Affine>;
 
     #[inline]
-    fn batch_normalize(points: &[Self]) -> Vec<Self::AffineRepr> {
-        let mut zs = vec![C::FieldElement::ONE; points.len()];
+    fn batch_normalize(points: &[Self]) -> Vec<<Self as CurveGroup>::Affine> {
+        let mut zs = vec![C::FieldElement::ZERO; points.len()];
+        let mut scratch = vec![C::FieldElement::ZERO; points.len()];
         let mut affine_points = vec![AffinePoint::IDENTITY; points.len()];
-        batch_normalize_generic(points, zs.as_mut_slice(), &mut affine_points);
+        batch_normalize_generic(points, &mut zs, &mut scratch, &mut affine_points);
         affine_points
     }
 }
 
 /// Generic implementation of batch normalization.
-fn batch_normalize_generic<C, P, Z, O>(points: &P, zs: &mut Z, out: &mut O)
-where
+fn batch_normalize_generic<C>(
+    points: &[ProjectivePoint<C>],
+    zs: &mut [C::FieldElement],
+    scratch: &mut [C::FieldElement],
+    out: &mut [AffinePoint<C>],
+) where
     C: PrimeCurveParams,
-    C::FieldElement: BatchInvert<Z>,
-    C::ProjectivePoint: Double,
-    P: AsRef<[ProjectivePoint<C>]> + ?Sized,
-    Z: AsMut<[C::FieldElement]> + ?Sized,
-    O: AsMut<[AffinePoint<C>]> + ?Sized,
 {
-    let points = points.as_ref();
-    let out = out.as_mut();
+    debug_assert_eq!(points.len(), zs.len());
+    debug_assert_eq!(points.len(), scratch.len());
+    debug_assert_eq!(points.len(), out.len());
 
-    for i in 0..points.len() {
-        // Even a single zero value will fail inversion for the entire batch.
-        // Put a dummy value (above `FieldElement::ONE`) so inversion succeeds
-        // and treat that case specially later-on.
-        zs.as_mut()[i].conditional_assign(&points[i].z, !points[i].z.ct_eq(&C::FieldElement::ZERO));
+    for (z, point) in zs.iter_mut().zip(points) {
+        *z = point.z;
     }
 
-    // This is safe to unwrap since we assured that all elements are non-zero
-    let zs_inverses = <C::FieldElement as BatchInvert<Z>>::batch_invert(zs).unwrap();
+    // Zero `zs` (identity) are handled explicitly below, so the `Choice` here is informational only
+    let _ = C::FieldElement::batch_invert_in_place(zs, scratch);
 
     for i in 0..out.len() {
-        // If the `z` coordinate is non-zero, we can use it to invert;
-        // otherwise it defaults to the `IDENTITY` value.
         out[i] = C::AffinePoint::conditional_select(
-            &points[i].to_affine_internal(zs_inverses.as_ref()[i]),
+            &points[i].to_affine_internal(zs[i]),
             &C::AffinePoint::IDENTITY,
             points[i].z.ct_eq(&C::FieldElement::ZERO),
         );
     }
 }
 
-impl<C> LinearCombination for ProjectivePoint<C>
+impl<C> LinearCombination<[(Self, Scalar<C>)]> for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
 {
-}
+    #[cfg(feature = "alloc")]
+    fn lincomb(points_and_scalars: &[(Self, Scalar<C>)]) -> Self {
+        let tables: Vec<_> = points_and_scalars
+            .iter()
+            .map(|(point, _)| LookupTable::new(*point))
+            .collect();
+        let digits: Vec<_> = points_and_scalars
+            .iter()
+            .map(|(_, scalar)| Radix16Decomposition::new(scalar))
+            .collect();
 
-impl<C> MulByGenerator for ProjectivePoint<C>
-where
-    Self: Double,
-    C: PrimeCurveParams,
-{
-    fn mul_by_generator(scalar: &Self::Scalar) -> Self {
-        // TODO(tarcieri): precomputed basepoint tables
-        Self::generator() * scalar
+        lincomb::<C>(&tables, &digits)
+    }
+
+    #[cfg(feature = "alloc")]
+    fn lincomb_vartime(points_and_scalars: &[(Self, Scalar<C>)]) -> Self {
+        let bases: Vec<_> = points_and_scalars
+            .iter()
+            .map(|(point, _)| WnafBase::<C>::new(point))
+            .collect();
+        let scalars: Vec<_> = points_and_scalars
+            .iter()
+            .map(|(_, scalar)| WnafScalar::<C>::new(scalar))
+            .collect();
+
+        WnafBase::multiscalar_mul(bases.iter().zip(scalars.iter()))
     }
 }
 
-impl<C> PrimeGroup for ProjectivePoint<C>
+impl<C, const N: usize> LinearCombination<[(Self, Scalar<C>); N]> for ProjectivePoint<C>
 where
-    Self: Double,
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
+    fn lincomb(points_and_scalars: &[(Self, Scalar<C>); N]) -> Self {
+        let tables: [_; N] = array::from_fn(|index| LookupTable::new(points_and_scalars[index].0));
+        let digits: [_; N] =
+            array::from_fn(|index| Radix16Decomposition::new(&points_and_scalars[index].1));
+
+        lincomb::<C>(&tables, &digits)
+    }
+
+    fn lincomb_vartime(points_and_scalars: &[(Self, Scalar<C>); N]) -> Self {
+        let bases = points_and_scalars.map(|(point, _)| WnafBase::<C>::new(&point));
+        let scalars = points_and_scalars.map(|(_, scalar)| WnafScalar::<C>::new(&scalar));
+        WnafBase::multiscalar_mul(bases.iter().zip(scalars.iter()))
+    }
 }
 
-impl<C> PrimeCurve for ProjectivePoint<C>
-where
-    Self: Double,
-    C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
-{
-    type Affine = AffinePoint<C>;
+fn lincomb<C: PrimeCurveParams>(
+    tables: &[LookupTable<ProjectivePoint<C>>],
+    digits: &[Radix16Decomposition<Radix16Digits<C>>],
+) -> ProjectivePoint<C> {
+    debug_assert_eq!(tables.len(), digits.len());
+    debug_assert!(!digits.is_empty());
+
+    let d = Radix16Digits::<C>::USIZE;
+    let mut q = ProjectivePoint::IDENTITY;
+
+    for (table, digit) in zip(tables, digits) {
+        q = q.add(&table.select(digit[d - 1]));
+    }
+
+    for i in (0..d - 1).rev() {
+        for _ in 0..4 {
+            q.double_in_place();
+        }
+
+        for (table, digit) in zip(tables, digits) {
+            q = q.add(&table.select(digit[i]));
+        }
+    }
+
+    q
 }
 
 impl<C> PartialEq for ProjectivePoint<C>
@@ -462,15 +565,24 @@ where
     }
 }
 
-impl<C> ToEncodedPoint<C> for ProjectivePoint<C>
+impl<C> ToSec1Point<C> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
-    fn to_encoded_point(&self, compress: bool) -> EncodedPoint<C> {
-        self.to_affine().to_encoded_point(compress)
+    fn to_sec1_point(&self, compress: bool) -> Sec1Point<C> {
+        self.to_affine().to_sec1_point(compress)
+    }
+}
+
+/// The constant-time alternative is available at [`NonIdentity::new()`].
+impl<C> TryFrom<ProjectivePoint<C>> for NonIdentity<ProjectivePoint<C>>
+where
+    C: PrimeCurveParams,
+{
+    type Error = Error;
+
+    fn try_from(point: ProjectivePoint<C>) -> Result<Self> {
+        NonIdentity::new(point).into_option().ok_or(Error)
     }
 }
 
@@ -481,7 +593,7 @@ where
     type Error = Error;
 
     fn try_from(point: ProjectivePoint<C>) -> Result<PublicKey<C>> {
-        AffinePoint::<C>::from(point).try_into()
+        PublicKey::try_from(&point)
     }
 }
 
@@ -497,7 +609,7 @@ where
 }
 
 //
-// Arithmetic trait impls
+// `core::ops` trait impls
 //
 
 impl<C> Add<ProjectivePoint<C>> for ProjectivePoint<C>
@@ -537,8 +649,9 @@ impl<C> AddAssign<ProjectivePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn add_assign(&mut self, rhs: ProjectivePoint<C>) {
-        *self = ProjectivePoint::add(self, &rhs);
+        C::PointArithmetic::add_assign(self, &rhs);
     }
 }
 
@@ -546,8 +659,9 @@ impl<C> AddAssign<&ProjectivePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn add_assign(&mut self, rhs: &ProjectivePoint<C>) {
-        *self = ProjectivePoint::add(self, rhs);
+        C::PointArithmetic::add_assign(self, rhs);
     }
 }
 
@@ -588,8 +702,9 @@ impl<C> AddAssign<AffinePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn add_assign(&mut self, rhs: AffinePoint<C>) {
-        *self = ProjectivePoint::add_mixed(self, &rhs);
+        C::PointArithmetic::add_assign_mixed(self, &rhs);
     }
 }
 
@@ -597,8 +712,9 @@ impl<C> AddAssign<&AffinePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn add_assign(&mut self, rhs: &AffinePoint<C>) {
-        *self = ProjectivePoint::add_mixed(self, rhs);
+        C::PointArithmetic::add_assign_mixed(self, rhs);
     }
 }
 
@@ -606,6 +722,7 @@ impl<C> Sum for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(ProjectivePoint::IDENTITY, |a, b| a + b)
     }
@@ -615,6 +732,7 @@ impl<'a, C> Sum<&'a ProjectivePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sum<I: Iterator<Item = &'a ProjectivePoint<C>>>(iter: I) -> Self {
         iter.cloned().sum()
     }
@@ -657,8 +775,9 @@ impl<C> SubAssign<ProjectivePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sub_assign(&mut self, rhs: ProjectivePoint<C>) {
-        *self = ProjectivePoint::sub(self, &rhs);
+        C::PointArithmetic::add_assign(self, &-rhs);
     }
 }
 
@@ -666,8 +785,9 @@ impl<C> SubAssign<&ProjectivePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sub_assign(&mut self, rhs: &ProjectivePoint<C>) {
-        *self = ProjectivePoint::sub(self, rhs);
+        *self -= *rhs;
     }
 }
 
@@ -708,8 +828,9 @@ impl<C> SubAssign<AffinePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sub_assign(&mut self, rhs: AffinePoint<C>) {
-        *self = ProjectivePoint::sub_mixed(self, &rhs);
+        C::PointArithmetic::add_assign_mixed(self, &-rhs);
     }
 }
 
@@ -717,8 +838,9 @@ impl<C> SubAssign<&AffinePoint<C>> for ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
+    #[inline]
     fn sub_assign(&mut self, rhs: &AffinePoint<C>) {
-        *self = ProjectivePoint::sub_mixed(self, rhs);
+        *self -= *rhs;
     }
 }
 
@@ -730,8 +852,23 @@ where
 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, scalar: S) -> Self {
         ProjectivePoint::mul(&self, scalar.borrow())
+    }
+}
+
+impl<C, S> Mul<S> for &ProjectivePoint<C>
+where
+    Self: Double,
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+{
+    type Output = ProjectivePoint<C>;
+
+    #[inline]
+    fn mul(self, scalar: S) -> ProjectivePoint<C> {
+        ProjectivePoint::mul(self, scalar.borrow())
     }
 }
 
@@ -742,8 +879,63 @@ where
 {
     type Output = ProjectivePoint<C>;
 
+    #[inline]
     fn mul(self, scalar: &Scalar<C>) -> ProjectivePoint<C> {
         ProjectivePoint::mul(self, scalar)
+    }
+}
+
+impl<C, S> MulVartime<S> for ProjectivePoint<C>
+where
+    Self: Double,
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+{
+    #[inline]
+    fn mul_vartime(self, scalar: S) -> Self {
+        ProjectivePoint::mul_vartime(&self, scalar.borrow())
+    }
+}
+
+impl<C, S> MulVartime<S> for &ProjectivePoint<C>
+where
+    Self: Double,
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+{
+    #[inline]
+    fn mul_vartime(self, scalar: S) -> ProjectivePoint<C> {
+        ProjectivePoint::mul_vartime(self, scalar.borrow())
+    }
+}
+
+impl<C> MulVartime<&Scalar<C>> for &ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+    ProjectivePoint<C>: Double,
+{
+    #[inline]
+    fn mul_vartime(self, scalar: &Scalar<C>) -> ProjectivePoint<C> {
+        ProjectivePoint::mul_vartime(self, scalar)
+    }
+}
+
+impl<C> MulByGeneratorVartime for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    #[inline]
+    fn mul_by_generator_vartime(scalar: &Scalar<C>) -> Self {
+        C::Backend::mul_by_generator_vartime(scalar)
+    }
+
+    #[inline]
+    fn mul_by_generator_and_mul_add_vartime(
+        a: &Self::Scalar,
+        b_scalar: &Self::Scalar,
+        b_point: &Self,
+    ) -> Self {
+        C::Backend::mul_by_generator_and_mul_add_vartime(a, b_scalar, b_point)
     }
 }
 
@@ -753,6 +945,7 @@ where
     C: PrimeCurveParams,
     S: Borrow<Scalar<C>>,
 {
+    #[inline]
     fn mul_assign(&mut self, scalar: S) {
         *self = ProjectivePoint::mul(self, scalar.borrow());
     }
@@ -769,7 +962,7 @@ where
     }
 }
 
-impl<'a, C> Neg for &'a ProjectivePoint<C>
+impl<C> Neg for &ProjectivePoint<C>
 where
     C: PrimeCurveParams,
 {
@@ -777,5 +970,35 @@ where
 
     fn neg(self) -> ProjectivePoint<C> {
         ProjectivePoint::neg(self)
+    }
+}
+
+//
+// serde support
+//
+
+#[cfg(feature = "serde")]
+impl<C> Serialize for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        self.to_affine().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C> Deserialize<'de> for ProjectivePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        AffinePoint::<C>::deserialize(deserializer).map(Self::from)
     }
 }

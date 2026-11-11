@@ -24,17 +24,18 @@
 //! [`diffie_hellman`] function.
 //!
 //! [AKE]: https://en.wikipedia.org/wiki/Authenticated_Key_Exchange
-//! [SIGMA]: https://webee.technion.ac.il/~hugo/sigma-pdf.pdf
+//! [SIGMA]: https://www.iacr.org/cryptodb/archive/2003/CRYPTO/1495/1495.pdf
+
+pub use hkdf::hmac::EagerHash;
 
 use crate::{
-    point::AffineCoordinates, AffinePoint, Curve, CurveArithmetic, FieldBytes, NonZeroScalar,
-    ProjectivePoint, PublicKey,
+    AffinePoint, Curve, CurveArithmetic, CurveGroup, FieldBytes, NonZeroScalar, ProjectivePoint,
+    PublicKey, point::AffineCoordinates,
 };
-use core::borrow::Borrow;
-use digest::{crypto_common::BlockSizeUser, Digest};
-use group::Curve as _;
-use hkdf::{hmac::SimpleHmac, Hkdf};
-use rand_core::CryptoRngCore;
+use common::Generate;
+use core::{borrow::Borrow, fmt};
+use hkdf::Hkdf;
+use rand_core::{CryptoRng, TryCryptoRng};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Low-level Elliptic Curve Diffie-Hellman (ECDH) function.
@@ -71,16 +72,15 @@ where
 
 /// Ephemeral Diffie-Hellman Secret.
 ///
-/// These are ephemeral "secret key" values which are deliberately designed
-/// to avoid being persisted.
+/// These are ephemeral "secret key" values which are deliberately designed to avoid persistence.
 ///
 /// To perform an ephemeral Diffie-Hellman exchange, do the following:
 ///
-/// - Have each participant generate an [`EphemeralSecret`] value
+/// - Have each participant generate an [`EphemeralSecret`] value using the [`Generate`] trait
 /// - Compute the [`PublicKey`] for that value
 /// - Have each peer provide their [`PublicKey`] to their counterpart
 /// - Use [`EphemeralSecret`] and the other participant's [`PublicKey`]
-///   to compute a [`SharedSecret`] value.
+///   to compute a [`SharedSecret`] value using the [`EphemeralSecret::diffie_hellman`] function
 ///
 /// # ⚠️ SECURITY WARNING ⚠️
 ///
@@ -97,17 +97,27 @@ where
     scalar: NonZeroScalar<C>,
 }
 
+impl<C: CurveArithmetic> fmt::Debug for EphemeralSecret<C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EphemeralSecret").finish_non_exhaustive()
+    }
+}
+
+impl<C> Generate for EphemeralSecret<C>
+where
+    C: CurveArithmetic,
+{
+    fn try_generate_from_rng<R: TryCryptoRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Self {
+            scalar: NonZeroScalar::try_generate_from_rng(rng)?,
+        })
+    }
+}
+
 impl<C> EphemeralSecret<C>
 where
     C: CurveArithmetic,
 {
-    /// Generate a cryptographically random [`EphemeralSecret`].
-    pub fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Self {
-            scalar: NonZeroScalar::random(rng),
-        }
-    }
-
     /// Get the public key associated with this ephemeral secret.
     ///
     /// The `compress` flag enables point compression.
@@ -119,6 +129,14 @@ where
     /// public key of the other participant in the exchange.
     pub fn diffie_hellman(&self, public_key: &PublicKey<C>) -> SharedSecret<C> {
         diffie_hellman(self.scalar, public_key.as_affine())
+    }
+
+    /// DEPRECATED: Generate a cryptographically random [`EphemeralSecret`].
+    ///
+    /// Use the [`Generate`] trait instead.
+    #[deprecated(since = "0.14.0", note = "use the `Generate` trait instead")]
+    pub fn random<R: CryptoRng + ?Sized>(rng: &mut R) -> Self {
+        Self::generate_from_rng(rng)
     }
 }
 
@@ -136,7 +154,7 @@ where
     C: CurveArithmetic,
 {
     fn zeroize(&mut self) {
-        self.scalar.zeroize()
+        self.scalar.zeroize();
     }
 }
 
@@ -155,6 +173,12 @@ where
 pub struct SharedSecret<C: Curve> {
     /// Computed secret value
     secret_bytes: FieldBytes<C>,
+}
+
+impl<C: Curve> fmt::Debug for SharedSecret<C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedSecret").finish_non_exhaustive()
+    }
 }
 
 impl<C: Curve> SharedSecret<C> {
@@ -189,9 +213,9 @@ impl<C: Curve> SharedSecret<C> {
     /// material.
     ///
     /// [HKDF]: https://en.wikipedia.org/wiki/HKDF
-    pub fn extract<D>(&self, salt: Option<&[u8]>) -> Hkdf<D, SimpleHmac<D>>
+    pub fn extract<D>(&self, salt: Option<&[u8]>) -> Hkdf<D>
     where
-        D: BlockSizeUser + Clone + Digest,
+        D: EagerHash,
     {
         Hkdf::new(salt, &self.secret_bytes)
     }
@@ -231,6 +255,6 @@ impl<C: Curve> ZeroizeOnDrop for SharedSecret<C> {}
 
 impl<C: Curve> Drop for SharedSecret<C> {
     fn drop(&mut self) {
-        self.secret_bytes.zeroize()
+        self.secret_bytes.zeroize();
     }
 }

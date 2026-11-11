@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.1 (2026-06-11)
+### Fixed
+- Exception safety bug ([#1487])
+
+[#1487]: https://github.com/RustCrypto/utils/pull/1487
+
+## 0.12.0 (2026-02-24)
+### Added
+- `BlockSizes` trait implemented for sizes bigger than `U0` and smaller than `U256` ([#1455])
+
+### Changed
+- Block sizes used by `BlockBuffer` and `ReadBuffer` are now bound by `BlockSizes` ([#1455])
+
+[#1455]: https://github.com/RustCrypto/utils/pull/1455
+
+## 0.11.0 (2025-11-07)
+### Added
+- `ReadBuffer` type ([#823])
+- Optional implementation of the `Zeroize` trait ([#963])
+- Generic `serialize` and `deserialize` methods ([#1200])
+- `ReadBuffer::{read_cached, write_block, reset}` methods ([#1201])
+
+### Changed
+- Block sizes must be bigger than 0 and smaller than 256.
+  This is enforced using compile-time monomorphization errors. ([#1115])
+- Size of `EagerBuffer` is equal to buffer size, while previously it was equal
+  to buffer size plus one byte ([#823])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#1149])
+
+### Removed
+- `EagerBuffer::set_data` method. Use the `ReadBuffer` type instead. ([#823])
+
+[#823]: https://github.com/RustCrypto/utils/pull/823
+[#963]: https://github.com/RustCrypto/utils/pull/963
+[#1115]: https://github.com/RustCrypto/utils/pull/1115
+[#1115]: https://github.com/RustCrypto/utils/pull/1116
+[#1149]: https://github.com/RustCrypto/utils/pull/1149
+[#1200]: https://github.com/RustCrypto/utils/pull/1200
+[#1201]: https://github.com/RustCrypto/utils/pull/1201
+
 ## 0.10.3 (2022-09-04)
 ### Added
 - `try_new` method ([#799])

@@ -1,14 +1,14 @@
 //! Autodetection support for AVX2 CPU intrinsics on x86 CPUs, with fallback
 //! to the "soft" backend when it's unavailable.
 
-use universal_hash::{consts::U16, crypto_common::BlockSizeUser, UniversalHash};
+use universal_hash::{UhfClosure, consts::U16};
 
-use crate::{backend, Block, Key, Tag};
+use crate::{Block, Key, Tag, backend};
 use core::mem::ManuallyDrop;
 
 cpufeatures::new!(avx2_cpuid, "avx2");
 
-pub struct State {
+pub(crate) struct State {
     inner: Inner,
     token: avx2_cpuid::InitToken,
 }
@@ -16,10 +16,6 @@ pub struct State {
 union Inner {
     avx2: ManuallyDrop<backend::avx2::State>,
     soft: ManuallyDrop<backend::soft::State>,
-}
-
-impl BlockSizeUser for State {
-    type BlockSize = U16;
 }
 
 impl State {
@@ -50,13 +46,8 @@ impl State {
             unsafe { (*self.inner.soft).compute_block(block, partial) }
         }
     }
-}
 
-impl UniversalHash for State {
-    fn update_with_backend(
-        &mut self,
-        f: impl universal_hash::UhfClosure<BlockSize = Self::BlockSize>,
-    ) {
+    pub(crate) fn update_with_backend(&mut self, f: impl UhfClosure<BlockSize = U16>) {
         if self.token.get() {
             unsafe { f.call(&mut *self.inner.avx2) }
         } else {
@@ -64,13 +55,11 @@ impl UniversalHash for State {
         }
     }
 
-    /// Finalize output producing a [`Tag`]
-    #[inline]
-    fn finalize(mut self) -> Tag {
+    pub(crate) fn finalize(&mut self) -> Tag {
         if self.token.get() {
             unsafe { (*self.inner.avx2).finalize() }
         } else {
-            unsafe { (*self.inner.soft).finalize_mut() }
+            unsafe { (*self.inner.soft).finalize() }
         }
     }
 }
@@ -91,15 +80,5 @@ impl Clone for State {
             inner,
             token: self.token,
         }
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Drop for State {
-    fn drop(&mut self) {
-        use zeroize::Zeroize;
-        const SIZE: usize = core::mem::size_of::<State>();
-        let state = unsafe { &mut *(self as *mut State as *mut [u8; SIZE]) };
-        state.zeroize();
     }
 }

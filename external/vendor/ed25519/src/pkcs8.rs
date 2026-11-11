@@ -3,9 +3,9 @@
 //! Implements Ed25519 PKCS#8 private keys as described in RFC8410 Section 7:
 //! <https://datatracker.ietf.org/doc/html/rfc8410#section-7>
 //!
-//! ## SemVer Notes
+//! ## `SemVer` Notes
 //!
-//! The `pkcs8` module of this crate is exempted from SemVer as it uses a
+//! The `pkcs8` module of this crate is exempted from `SemVer` as it uses a
 //! pre-1.0 dependency (the `pkcs8` crate).
 //!
 //! However, breaking changes to this module will be accompanied by a minor
@@ -15,25 +15,29 @@
 //! breaking changes when using this module.
 
 pub use pkcs8::{
-    spki, DecodePrivateKey, DecodePublicKey, Error, ObjectIdentifier, PrivateKeyInfo, Result,
+    DecodePrivateKey, DecodePublicKey, Error, KeyError, ObjectIdentifier, PrivateKeyInfoRef,
+    Result, spki,
 };
 
 #[cfg(feature = "alloc")]
-pub use pkcs8::{spki::EncodePublicKey, EncodePrivateKey};
+pub use pkcs8::{EncodePrivateKey, spki::EncodePublicKey};
 
 #[cfg(feature = "alloc")]
-pub use pkcs8::der::{asn1::BitStringRef, Document, SecretDocument};
+pub use pkcs8::der::{
+    Document, SecretDocument,
+    asn1::{BitStringRef, OctetStringRef},
+};
 
 use core::fmt;
 
 #[cfg(feature = "pem")]
-use {
-    alloc::string::{String, ToString},
-    core::str,
-};
+use core::str;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
+
+#[cfg(feature = "zerocopy")]
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 /// Algorithm [`ObjectIdentifier`] for the Ed25519 digital signature algorithm
 /// (`id-Ed25519`).
@@ -82,7 +86,10 @@ impl KeypairBytes {
     const BYTE_SIZE: usize = 64;
 
     /// Parse raw keypair from a 64-byte input.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc, reason = "MSRV TODO")]
     pub fn from_bytes(bytes: &[u8; Self::BYTE_SIZE]) -> Self {
+        // TODO(tarcieri): use `as_chunks` when MSRV is 1.88
         let (sk, pk) = bytes.split_at(Self::BYTE_SIZE / 2);
 
         Self {
@@ -96,9 +103,9 @@ impl KeypairBytes {
     /// Serialize as a 64-byte keypair.
     ///
     /// # Returns
-    ///
     /// - `Some(bytes)` if the `public_key` is present.
     /// - `None` if the `public_key` is absent (i.e. `None`).
+    #[must_use]
     pub fn to_bytes(&self) -> Option<[u8; Self::BYTE_SIZE]> {
         if let Some(public_key) = &self.public_key {
             let mut result = [0u8; Self::BYTE_SIZE];
@@ -115,7 +122,7 @@ impl KeypairBytes {
 impl Drop for KeypairBytes {
     fn drop(&mut self) {
         #[cfg(feature = "zeroize")]
-        self.secret_key.zeroize()
+        self.secret_key.zeroize();
     }
 }
 
@@ -128,10 +135,14 @@ impl EncodePrivateKey for KeypairBytes {
         private_key[1] = 0x20;
         private_key[2..].copy_from_slice(&self.secret_key);
 
-        let private_key_info = PrivateKeyInfo {
+        let private_key_info = PrivateKeyInfoRef {
             algorithm: ALGORITHM_ID,
-            private_key: &private_key,
-            public_key: self.public_key.as_ref().map(|pk| pk.0.as_slice()),
+            private_key: OctetStringRef::new(&private_key)?,
+            public_key: self
+                .public_key
+                .as_ref()
+                .map(|pk| BitStringRef::new(0, &pk.0))
+                .transpose()?,
         };
 
         let result = SecretDocument::encode_msg(&private_key_info)?;
@@ -143,10 +154,10 @@ impl EncodePrivateKey for KeypairBytes {
     }
 }
 
-impl TryFrom<PrivateKeyInfo<'_>> for KeypairBytes {
+impl TryFrom<PrivateKeyInfoRef<'_>> for KeypairBytes {
     type Error = Error;
 
-    fn try_from(private_key: PrivateKeyInfo<'_>) -> Result<Self> {
+    fn try_from(private_key: PrivateKeyInfoRef<'_>) -> Result<Self> {
         private_key.algorithm.assert_algorithm_oid(ALGORITHM_OID)?;
 
         if private_key.algorithm.parameters.is_some() {
@@ -161,14 +172,15 @@ impl TryFrom<PrivateKeyInfo<'_>> for KeypairBytes {
         //
         // - 0x04: OCTET STRING tag
         // - 0x20: 32-byte length
-        let secret_key = match private_key.private_key {
-            [0x04, 0x20, rest @ ..] => rest.try_into().map_err(|_| Error::KeyMalformed),
-            _ => Err(Error::KeyMalformed),
+        let secret_key = match private_key.private_key.as_bytes() {
+            [0x04, 0x20, rest @ ..] => rest.try_into().map_err(|_| KeyError::Invalid),
+            _ => Err(KeyError::Invalid),
         }?;
 
         let public_key = private_key
             .public_key
-            .map(|bytes| bytes.try_into().map_err(|_| Error::KeyMalformed))
+            .and_then(|bs| bs.as_bytes())
+            .map(|bytes| bytes.try_into().map_err(|_| KeyError::Invalid))
             .transpose()?
             .map(PublicKeyBytes);
 
@@ -220,7 +232,12 @@ impl str::FromStr for KeypairBytes {
 ///
 /// Note that this type operates on raw bytes and performs no validation that
 /// public keys represent valid compressed Ed25519 y-coordinates.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable,)
+)]
+#[repr(transparent)]
 pub struct PublicKeyBytes(pub [u8; Self::BYTE_SIZE]);
 
 impl PublicKeyBytes {
@@ -228,6 +245,7 @@ impl PublicKeyBytes {
     const BYTE_SIZE: usize = 32;
 
     /// Returns the raw bytes of the public key.
+    #[must_use]
     pub fn to_bytes(&self) -> [u8; Self::BYTE_SIZE] {
         self.0
     }
@@ -298,7 +316,7 @@ impl fmt::Debug for PublicKeyBytes {
         f.write_str("PublicKeyBytes(")?;
 
         for &byte in self.as_ref() {
-            write!(f, "{:02X}", byte)?;
+            write!(f, "{byte:02X}")?;
         }
 
         f.write_str(")")
@@ -315,10 +333,13 @@ impl str::FromStr for PublicKeyBytes {
 }
 
 #[cfg(feature = "pem")]
-impl ToString for PublicKeyBytes {
-    fn to_string(&self) -> String {
-        self.to_public_key_pem(Default::default())
-            .expect("PEM serialization error")
+impl fmt::Display for PublicKeyBytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(
+            &self
+                .to_public_key_pem(Default::default())
+                .expect("PEM serialization error"),
+        )
     }
 }
 
@@ -342,8 +363,10 @@ mod tests {
         };
 
         assert_eq!(
-            valid_keypair.to_bytes().unwrap(),
-            hex!("D4EE72DBF913584AD5B6D8F1F769F8AD3AFE7C28CBF1D4FBE097A88F4475584219BF44096984CDFE8541BAC167DC3B96C85086AA30B6B6CB0C5C38AD703166E1")
+            valid_keypair.to_bytes().expect("to_bytes"),
+            hex!(
+                "D4EE72DBF913584AD5B6D8F1F769F8AD3AFE7C28CBF1D4FBE097A88F4475584219BF44096984CDFE8541BAC167DC3B96C85086AA30B6B6CB0C5C38AD703166E1"
+            )
         );
 
         let invalid_keypair = KeypairBytes {

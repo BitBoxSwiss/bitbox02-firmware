@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.1 (2026-02-27)
+### Changed
+- Replaced `subtle` with `ctutils` ([#2324])
+
+[#2324]: https://github.com/RustCrypto/traits/pull/2324
+
+## 0.6.0 (2026-02-27)
+### Changed
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#1759])
+- Replaced `generic-array` with `hybrid-array` ([#1385])
+- Bump `crypto-common` dependency to v0.2 ([#1385])
+- Re-export of `crypto-common` moved to `universal_hash::common` ([#2237])
+
+[#1385]: https://github.com/RustCrypto/traits/pull/1385
+[#1759]: https://github.com/RustCrypto/traits/pull/1759
+[#2237]: https://github.com/RustCrypto/traits/pull/2237
+
 ## 0.5.1 (2023-05-19)
 ### Changed
 - Loosen `subtle` version requirement to `^2.4` ([#1260])
@@ -25,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rust 2021 edition; MSRV 1.56 ([#1051])
 
 ### Removed
-- `Ouput` replaced by `Block` ([#1051])
+- `Output` replaced by `Block` ([#1051])
 - `UniversalHash::reset` replaced with `Reset` trait from `crypto-common` ([#1051])
 
 [#1051]: https://github.com/RustCrypto/traits/pull/1051

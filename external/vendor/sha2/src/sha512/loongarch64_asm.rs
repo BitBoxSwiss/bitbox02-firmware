@@ -1,5 +1,8 @@
 //! LoongArch64 assembly backend
 
+#[cfg(not(target_arch = "loongarch64"))]
+compile_error!("loongarch-asm backend can be used only on loongarch64 target arches");
+
 macro_rules! c {
     ($($l:expr)*) => {
         concat!($($l ,)*)
@@ -77,7 +80,7 @@ macro_rules! roundtail {
     };
 }
 
-pub fn compress(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
+pub(super) fn compress(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
     if blocks.is_empty() {
         return;
     }

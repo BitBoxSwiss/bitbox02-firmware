@@ -4,18 +4,13 @@
 #![no_std]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/inout/0.1.3"
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-#![allow(clippy::needless_lifetimes)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![warn(missing_docs, rust_2018_idioms)]
-
-#[cfg(feature = "std")]
-extern crate std;
+#![allow(missing_debug_implementations)] // TODO(tarcieri): add missing `Debug` impls
+#![allow(clippy::undocumented_unsafe_blocks)] // TODO(tarcieri): document all unsafe blocks
 
 #[cfg(feature = "block-padding")]
-#[cfg_attr(docsrs, doc(cfg(feature = "block-padding")))]
 pub use block_padding;
 
 mod errors;

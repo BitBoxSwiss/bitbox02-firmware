@@ -10,22 +10,24 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2024"
+rust-version = "1.85"
 name = "sha3"
-version = "0.10.8"
+version = "0.12.0"
 authors = ["RustCrypto Developers"]
-description = """
-Pure Rust implementation of SHA-3, a family of Keccak-based hash functions
-including the SHAKE family of eXtendable-Output Functions (XOFs), as well as
-the accelerated variant TurboSHAKE
-"""
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Implementation of the SHA-3 family of cryptographic hash algorithms"
 documentation = "https://docs.rs/sha3"
 readme = "README.md"
 keywords = [
-    "crypto",
-    "sha3",
     "keccak",
     "hash",
+    "xof",
     "digest",
 ]
 categories = [
@@ -35,22 +37,51 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/hashes"
 
-[dependencies.digest]
-version = "0.10.4"
-
-[dependencies.keccak]
-version = "0.1.4"
-
-[dev-dependencies.digest]
-version = "0.10.4"
-features = ["dev"]
-
-[dev-dependencies.hex-literal]
-version = "0.2.2"
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
-asm = ["keccak/asm"]
-default = ["std"]
+alloc = ["digest/alloc"]
+default = [
+    "alloc",
+    "oid",
+]
 oid = ["digest/oid"]
-reset = []
-std = ["digest/std"]
+zeroize = [
+    "digest/zeroize",
+    "sponge-cursor/zeroize",
+]
+
+[lib]
+name = "sha3"
+path = "src/lib.rs"
+
+[[test]]
+name = "mod"
+path = "tests/mod.rs"
+
+[[test]]
+name = "serialization"
+path = "tests/serialization.rs"
+
+[[bench]]
+name = "mod"
+path = "benches/mod.rs"
+
+[dependencies.digest]
+version = "0.11"
+default-features = false
+
+[dependencies.keccak]
+version = "0.2"
+
+[dependencies.sponge-cursor]
+version = "0.1"
+
+[dev-dependencies.digest]
+version = "0.11"
+features = ["dev"]
+default-features = false
+
+[dev-dependencies.hex-literal]
+version = "1"

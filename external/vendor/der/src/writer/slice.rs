@@ -1,8 +1,8 @@
 //! Slice writer.
 
 use crate::{
-    asn1::*, Encode, EncodeValue, ErrorKind, Header, Length, Result, Tag, TagMode, TagNumber,
-    Tagged, Writer,
+    Encode, EncodeValue, ErrorKind, Header, Length, Result, Tag, TagMode, TagNumber, Tagged,
+    Writer, asn1::*,
 };
 
 /// [`Writer`] which encodes DER into a mutable output byte slice.
@@ -19,7 +19,7 @@ pub struct SliceWriter<'a> {
 }
 
 impl<'a> SliceWriter<'a> {
-    /// Create a new encoder with the given byte slice as a backing buffer.
+    /// Create a new writer with the given byte slice as a backing buffer.
     pub fn new(bytes: &'a mut [u8]) -> Self {
         Self {
             bytes,
@@ -29,9 +29,12 @@ impl<'a> SliceWriter<'a> {
     }
 
     /// Encode a value which impls the [`Encode`] trait.
+    ///
+    /// # Errors
+    /// Returns an error if encoding failed.
     pub fn encode<T: Encode>(&mut self, encodable: &T) -> Result<()> {
         if self.is_failed() {
-            self.error(ErrorKind::Failed)?
+            self.error(ErrorKind::Failed)?;
         }
 
         encodable.encode(self).map_err(|e| {
@@ -42,18 +45,25 @@ impl<'a> SliceWriter<'a> {
 
     /// Return an error with the given [`ErrorKind`], annotating it with
     /// context about where the error occurred.
+    ///
+    /// # Errors
+    /// This function is designed to generate errors.
     pub fn error<T>(&mut self, kind: ErrorKind) -> Result<T> {
         self.failed = true;
         Err(kind.at(self.position))
     }
 
     /// Did the decoding operation fail due to an error?
+    #[must_use]
     pub fn is_failed(&self) -> bool {
         self.failed
     }
 
     /// Finish encoding to the buffer, returning a slice containing the data
     /// written to the buffer.
+    ///
+    /// # Errors
+    /// If we're overlength, or writing already failed.
     pub fn finish(self) -> Result<&'a [u8]> {
         let position = self.position;
 
@@ -67,6 +77,9 @@ impl<'a> SliceWriter<'a> {
     }
 
     /// Encode a `CONTEXT-SPECIFIC` field with the provided tag number and mode.
+    ///
+    /// # Errors
+    /// If an encoding error occurred.
     pub fn context_specific<T>(
         &mut self,
         tag_number: TagNumber,
@@ -88,16 +101,19 @@ impl<'a> SliceWriter<'a> {
     ///
     /// Spawns a nested slice writer which is expected to be exactly the
     /// specified length upon completion.
+    ///
+    /// # Errors
+    /// If an encoding error occurred.
     pub fn sequence<F>(&mut self, length: Length, f: F) -> Result<()>
     where
         F: FnOnce(&mut SliceWriter<'_>) -> Result<()>,
     {
-        Header::new(Tag::Sequence, length).and_then(|header| header.encode(self))?;
+        Header::new(Tag::Sequence, length).encode(self)?;
 
-        let mut nested_encoder = SliceWriter::new(self.reserve(length)?);
-        f(&mut nested_encoder)?;
+        let mut nested_writer = SliceWriter::new(self.reserve(length)?);
+        f(&mut nested_writer)?;
 
-        if nested_encoder.finish()?.len() == usize::try_from(length)? {
+        if nested_writer.finish()?.len() == usize::try_from(length)? {
             Ok(())
         } else {
             self.error(ErrorKind::Length { tag: Tag::Sequence })
@@ -126,7 +142,7 @@ impl<'a> SliceWriter<'a> {
     }
 }
 
-impl<'a> Writer for SliceWriter<'a> {
+impl Writer for SliceWriter<'_> {
     fn write(&mut self, slice: &[u8]) -> Result<()> {
         self.reserve(slice.len())?.copy_from_slice(slice);
         Ok(())
@@ -134,6 +150,7 @@ impl<'a> Writer for SliceWriter<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::SliceWriter;
     use crate::{Encode, ErrorKind, Length};

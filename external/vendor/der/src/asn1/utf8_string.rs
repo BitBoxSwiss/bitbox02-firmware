@@ -1,8 +1,8 @@
 //! ASN.1 `UTF8String` support.
 
 use crate::{
-    asn1::AnyRef, ord::OrdIsValueOrd, EncodeValue, Error, FixedTag, Length, Result, StrRef, Tag,
-    Writer,
+    EncodeValue, Error, FixedTag, Length, Result, StringRef, Tag, Writer, asn1::AnyRef,
+    ord::OrdIsValueOrd,
 };
 use core::{fmt, ops::Deref, str};
 
@@ -29,26 +29,35 @@ use {
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Utf8StringRef<'a> {
     /// Inner value
-    inner: StrRef<'a>,
+    inner: &'a StringRef,
 }
 
 impl<'a> Utf8StringRef<'a> {
     /// Create a new ASN.1 `UTF8String`.
+    ///
+    /// # Errors
+    /// If `input` contains invalid characters.
     pub fn new<T>(input: &'a T) -> Result<Self>
     where
         T: AsRef<[u8]> + ?Sized,
     {
-        StrRef::from_bytes(input.as_ref()).map(|inner| Self { inner })
+        StringRef::from_bytes(input.as_ref()).map(|inner| Self { inner })
+    }
+
+    /// Borrow the inner `str`.
+    #[must_use]
+    pub fn as_str(&self) -> &'a str {
+        self.inner.as_str()
     }
 }
 
 impl_string_type!(Utf8StringRef<'a>, 'a);
 
 impl<'a> Deref for Utf8StringRef<'a> {
-    type Target = StrRef<'a>;
+    type Target = StringRef;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        self.inner
     }
 }
 
@@ -64,11 +73,19 @@ impl<'a> From<&Utf8StringRef<'a>> for Utf8StringRef<'a> {
 
 impl<'a> From<Utf8StringRef<'a>> for AnyRef<'a> {
     fn from(utf_string: Utf8StringRef<'a>) -> AnyRef<'a> {
-        AnyRef::from_tag_and_value(Tag::Utf8String, utf_string.inner.into())
+        AnyRef::from_tag_and_value(Tag::Utf8String, utf_string.inner.as_ref())
     }
 }
 
-impl<'a> fmt::Debug for Utf8StringRef<'a> {
+impl<'a> TryFrom<&'a str> for Utf8StringRef<'a> {
+    type Error = Error;
+
+    fn try_from(s: &'a str) -> Result<Self> {
+        Self::new(s)
+    }
+}
+
+impl fmt::Debug for Utf8StringRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Utf8String({:?})", self.as_str())
     }
@@ -115,9 +132,20 @@ impl<'a> TryFrom<AnyRef<'a>> for String {
 }
 
 #[cfg(feature = "alloc")]
+impl<'a> TryFrom<&'a String> for Utf8StringRef<'a> {
+    type Error = Error;
+
+    fn try_from(s: &'a String) -> Result<Self> {
+        Self::new(s.as_str())
+    }
+}
+
+#[cfg(feature = "alloc")]
 impl<'a> DecodeValue<'a> for String {
+    type Error = Error;
+
     fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> Result<Self> {
-        Ok(String::from_utf8(reader.read_vec(header.length)?)?)
+        Ok(String::from_utf8(reader.read_vec(header.length())?)?)
     }
 }
 
@@ -141,6 +169,7 @@ impl FixedTag for String {
 impl OrdIsValueOrd for String {}
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::Utf8StringRef;
     use crate::Decode;

@@ -10,11 +10,9 @@ impl fmt::Display for InvalidPrkLength {
     }
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl ::std::error::Error for InvalidPrkLength {}
+impl core::error::Error for InvalidPrkLength {}
 
-/// Structure for InvalidLength, used for output error handling.
+/// Structure for `InvalidLength`, used for output error handling.
 #[derive(Copy, Clone, Debug)]
 pub struct InvalidLength;
 
@@ -24,6 +22,4 @@ impl fmt::Display for InvalidLength {
     }
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl ::std::error::Error for InvalidLength {}
+impl core::error::Error for InvalidLength {}

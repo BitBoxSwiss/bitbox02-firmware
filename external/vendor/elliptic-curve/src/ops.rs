@@ -1,176 +1,74 @@
 //! Traits for arithmetic operations on elliptic curve field elements.
 
-pub use core::ops::{Add, AddAssign, Mul, Neg, Shr, ShrAssign, Sub, SubAssign};
+pub use bigint::{Invert, Reduce, modular::Retrieve};
+pub use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Shr, ShrAssign, Sub, SubAssign};
 
-use crypto_bigint::Integer;
+use crate::CurveGroup;
+use ff::{BatchInverter, Field};
 use group::Group;
-use subtle::{Choice, ConditionallySelectable, CtOption};
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
-/// Perform an inversion on a field element (i.e. base field element or scalar)
-pub trait Invert {
-    /// Field element type
-    type Output;
-
-    /// Invert a field element.
-    fn invert(&self) -> Self::Output;
-
-    /// Invert a field element in variable time.
-    ///
-    /// ⚠️ WARNING!
-    ///
-    /// This method should not be used with secret values, as its variable-time
-    /// operation can potentially leak secrets through sidechannels.
-    fn invert_vartime(&self) -> Self::Output {
-        // Fall back on constant-time implementation by default.
-        self.invert()
-    }
-}
-
-/// Perform a batched inversion on a sequence of field elements (i.e. base field elements or scalars)
-/// at an amortized cost that should be practically as efficient as a single inversion.
-pub trait BatchInvert<FieldElements: ?Sized>: Invert + Sized {
-    /// The output of batch inversion. A container of field elements.
-    type Output: AsRef<[Self]>;
-
-    /// Invert a batch of field elements.
-    fn batch_invert(
-        field_elements: &FieldElements,
-    ) -> CtOption<<Self as BatchInvert<FieldElements>>::Output>;
-}
-
-impl<const N: usize, T> BatchInvert<[T; N]> for T
-where
-    T: Invert<Output = CtOption<Self>>
-        + Mul<Self, Output = Self>
-        + Copy
-        + Default
-        + ConditionallySelectable,
-{
-    type Output = [Self; N];
-
-    fn batch_invert(field_elements: &[Self; N]) -> CtOption<[Self; N]> {
-        let mut field_elements_multiples = [Self::default(); N];
-        let mut field_elements_multiples_inverses = [Self::default(); N];
-        let mut field_elements_inverses = [Self::default(); N];
-
-        let inversion_succeeded = invert_batch_internal(
-            field_elements,
-            &mut field_elements_multiples,
-            &mut field_elements_multiples_inverses,
-            &mut field_elements_inverses,
-        );
-
-        CtOption::new(field_elements_inverses, inversion_succeeded)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl<T> BatchInvert<[T]> for T
-where
-    T: Invert<Output = CtOption<Self>>
-        + Mul<Self, Output = Self>
-        + Copy
-        + Default
-        + ConditionallySelectable,
-{
-    type Output = Vec<Self>;
-
-    fn batch_invert(field_elements: &[Self]) -> CtOption<Vec<Self>> {
-        let mut field_elements_multiples: Vec<Self> = vec![Self::default(); field_elements.len()];
-        let mut field_elements_multiples_inverses: Vec<Self> =
-            vec![Self::default(); field_elements.len()];
-        let mut field_elements_inverses: Vec<Self> = vec![Self::default(); field_elements.len()];
-
-        let inversion_succeeded = invert_batch_internal(
-            field_elements,
-            field_elements_multiples.as_mut(),
-            field_elements_multiples_inverses.as_mut(),
-            field_elements_inverses.as_mut(),
-        );
-
-        CtOption::new(
-            field_elements_inverses.into_iter().collect(),
-            inversion_succeeded,
-        )
-    }
-}
-
-/// Implements "Montgomery's trick", a trick for computing many modular inverses at once.
+/// Perform a batched inversion on a slice of field elements (i.e. base field elements or scalars)
+/// at an amortized cost that should be practically as efficient as a single inversion, writing
+/// the field element inversions into `element`, and utilizing `scratch` as temporary storage.
 ///
-/// "Montgomery's trick" works by reducing the problem of computing `n` inverses
-/// to computing a single inversion, plus some storage and `O(n)` extra multiplications.
+/// Note: the [`ff`] crate also provides [`ff::BatchInvert`], however that trait has a hard
+/// requirement on `alloc` whereas this one is always available, even in `no_alloc` contexts.
 ///
-/// See: https://iacr.org/archive/pkc2004/29470042/29470042.pdf section 2.2.
-fn invert_batch_internal<
-    T: Invert<Output = CtOption<T>> + Mul<T, Output = T> + Default + ConditionallySelectable,
->(
-    field_elements: &[T],
-    field_elements_multiples: &mut [T],
-    field_elements_multiples_inverses: &mut [T],
-    field_elements_inverses: &mut [T],
-) -> Choice {
-    let batch_size = field_elements.len();
-    if batch_size == 0
-        || batch_size != field_elements_multiples.len()
-        || batch_size != field_elements_multiples_inverses.len()
-    {
-        return Choice::from(0);
+/// # Panics
+/// If `elements` and `scratch` are not the same length.
+pub trait BatchInvert: Field {
+    /// Inverts each field element in `elements` (when non-zero). Zero-valued elements are
+    /// left as zero.
+    ///
+    /// `scratch_space` is a slice of field elements that can be freely overwritten.
+    ///
+    /// Returns the inverse of the product of all non-zero field elements.
+    ///
+    /// # Panics
+    /// If `elements.len() != scratch_space.len()`.
+    fn batch_invert_in_place(elements: &mut [Self], scratch_space: &mut [Self]) -> Self {
+        BatchInverter::invert_with_external_scratch(elements, scratch_space)
     }
 
-    field_elements_multiples[0] = field_elements[0];
-    for i in 1..batch_size {
-        // $ a_n = a_{n-1}*x_n $
-        field_elements_multiples[i] = field_elements_multiples[i - 1] * field_elements[i];
+    /// Variable-time batch inversion.
+    ///
+    /// <div class="warning">
+    /// <b>Security Warning</b>
+    ///
+    /// This should NOT be used on secret values!
+    ///
+    /// </div>
+    fn batch_invert_in_place_vartime(elements: &mut [Self], scratch_space: &mut [Self]) -> Self {
+        // Call the constant-time implementation by default
+        Self::batch_invert_in_place(elements, scratch_space)
     }
+}
 
-    field_elements_multiples[batch_size - 1]
-        .invert()
-        .map(|multiple_of_inverses_of_all_field_elements| {
-            field_elements_multiples_inverses[batch_size - 1] =
-                multiple_of_inverses_of_all_field_elements;
-            for i in (1..batch_size).rev() {
-                // $ a_{n-1} = {a_n}^{-1}*x_n $
-                field_elements_multiples_inverses[i - 1] =
-                    field_elements_multiples_inverses[i] * field_elements[i];
-            }
+/// Perform a doubling (i.e. `self + self`).
+pub trait Double: Sized {
+    /// Double this value, returning the doubled result.
+    #[must_use]
+    fn double(&self) -> Self;
 
-            field_elements_inverses[0] = field_elements_multiples_inverses[0];
-            for i in 1..batch_size {
-                // $ {x_n}^{-1} = a_{n}^{-1}*a_{n-1} $
-                field_elements_inverses[i] =
-                    field_elements_multiples_inverses[i] * field_elements_multiples[i - 1];
-            }
-        })
-        .is_some()
+    /// Double this value in-place, assigning `self + self` to `self`.
+    #[inline]
+    fn double_in_place(&mut self) {
+        *self = self.double();
+    }
 }
 
 /// Linear combination.
 ///
-/// This trait enables crates to provide an optimized implementation of
-/// linear combinations (e.g. Shamir's Trick), or otherwise provides a default
-/// non-optimized implementation.
-// TODO(tarcieri): replace this with a trait from the `group` crate? (see zkcrypto/group#25)
-pub trait LinearCombination: Group {
-    /// Calculates `x * k + y * l`.
-    fn lincomb(x: &Self, k: &Self::Scalar, y: &Self, l: &Self::Scalar) -> Self {
-        (*x * k) + (*y * l)
-    }
-}
-
-/// Linear combination (extended version).
+/// This trait enables optimized implementations of linear combinations (e.g. Shamir's Trick).
 ///
-/// This trait enables providing an optimized implementation of
-/// linear combinations (e.g. Shamir's Trick).
-// TODO(tarcieri): replace the current `LinearCombination` with this in the next release
-pub trait LinearCombinationExt<PointsAndScalars>: group::Curve
+/// It's generic around `PointsAndScalars` to allow overlapping impls. For example, const generic
+/// impls can use the input size to determine the size needed to store temporary variables.
+pub trait LinearCombination<PointsAndScalars>: CurveGroup
 where
     PointsAndScalars: AsRef<[(Self, Self::Scalar)]> + ?Sized,
 {
     /// Calculates `x1 * k1 + ... + xn * kn`.
-    fn lincomb_ext(points_and_scalars: &PointsAndScalars) -> Self {
+    fn lincomb(points_and_scalars: &PointsAndScalars) -> Self {
         points_and_scalars
             .as_ref()
             .iter()
@@ -178,38 +76,56 @@ where
             .map(|(point, scalar)| point * scalar)
             .sum()
     }
-}
 
-/// Blanket impl of the legacy [`LinearCombination`] trait for types which impl the new
-/// [`LinearCombinationExt`] trait for 2-element arrays.
-impl<P: LinearCombinationExt<[(P, Self::Scalar); 2]>> LinearCombination for P {
-    fn lincomb(x: &Self, k: &Self::Scalar, y: &Self, l: &Self::Scalar) -> Self {
-        Self::lincomb_ext(&[(*x, *k), (*y, *l)])
+    /// Calculates `x1 * k1 + ... + xn * kn`.
+    ///
+    /// This is equivalent to [`LinearCombination::lincomb`] except
+    /// that it may leak the value of the points and/or scalars due to
+    /// variable-time behavior.
+    fn lincomb_vartime(points_and_scalars: &PointsAndScalars) -> Self {
+        Self::lincomb(points_and_scalars)
     }
 }
 
-/// Multiplication by the generator.
+/// Variable-time equivalent of the [`Mul`] trait.
 ///
-/// May use optimizations (e.g. precomputed tables) when available.
-// TODO(tarcieri): replace this with `Group::mul_by_generator``? (see zkcrypto/group#44)
-pub trait MulByGenerator: Group {
-    /// Multiply by the generator of the prime-order subgroup.
-    #[must_use]
-    fn mul_by_generator(scalar: &Self::Scalar) -> Self {
-        Self::generator() * scalar
-    }
+/// Should always compute the same results as [`Mul`], but may provide a faster implementation.
+///
+/// <div class="warning">
+/// <b>Security Warning</b>
+///
+/// Variable-time operations should only be used on non-secret values, and may potentially leak
+/// secret values!
+///
+/// </div>
+pub trait MulVartime<Rhs = Self>: Mul<Rhs> {
+    /// Multiply `self` by `rhs` in variable-time.
+    fn mul_vartime(self, rhs: Rhs) -> <Self as Mul<Rhs>>::Output;
 }
 
-/// Modular reduction.
-pub trait Reduce<Uint: Integer>: Sized {
-    /// Bytes used as input to [`Reduce::reduce_bytes`].
-    type Bytes: AsRef<[u8]>;
+/// Variable-time multiplication by the generator of the curve group.
+///
+/// <div class="warning">
+/// <b>Security Warning</b>
+///
+/// Variable-time operations should only be used on non-secret values, and may potentially leak
+/// secret values!
+/// </div>
+pub trait MulByGeneratorVartime: Group + for<'a> MulVartime<&'a Self::Scalar> {
+    /// Multiply by the generator of the prime-order subgroup.
+    ///
+    /// Variable-time equivalent of [`Group::mul_by_generator`].
+    fn mul_by_generator_vartime(scalar: &Self::Scalar) -> Self {
+        Self::generator().mul_vartime(scalar)
+    }
 
-    /// Perform a modular reduction, returning a field element.
-    fn reduce(n: Uint) -> Self;
-
-    /// Interpret the given bytes as an integer and perform a modular reduction.
-    fn reduce_bytes(bytes: &Self::Bytes) -> Self;
+    /// Multiply `a` by the generator of the prime-order subgroup, adding the result to the point
+    /// `P` multiplied by the scalar `b`, i.e. compute `aG + bP`.
+    ///
+    /// This operation is the core of many signature verification algorithms.
+    fn mul_by_generator_and_mul_add_vartime(a: &Self::Scalar, b: &Self::Scalar, p: &Self) -> Self {
+        Self::mul_by_generator_vartime(a) + p.mul_vartime(b)
+    }
 }
 
 /// Modular reduction to a non-zero output.
@@ -219,11 +135,7 @@ pub trait Reduce<Uint: Integer>: Sized {
 ///
 /// End users should use the [`Reduce`] impl on
 /// [`NonZeroScalar`][`crate::NonZeroScalar`] instead.
-pub trait ReduceNonZero<Uint: Integer>: Reduce<Uint> + Sized {
+pub trait ReduceNonZero<T>: Reduce<T> {
     /// Perform a modular reduction, returning a field element.
-    fn reduce_nonzero(n: Uint) -> Self;
-
-    /// Interpret the given bytes as an integer and perform a modular reduction
-    /// to a non-zero output.
-    fn reduce_nonzero_bytes(bytes: &Self::Bytes) -> Self;
+    fn reduce_nonzero(n: &T) -> Self;
 }

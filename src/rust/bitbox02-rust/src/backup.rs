@@ -10,7 +10,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
@@ -58,7 +58,7 @@ fn padded_seed(seed: &[u8]) -> Zeroizing<[u8; 32]> {
 pub fn id(seed: &[u8]) -> String {
     let mut mac = Hmac::<Sha256>::new_from_slice(b"backup").unwrap();
     mac.update(padded_seed(seed).as_ref());
-    hex::encode(mac.finalize_reset().into_bytes())
+    hex::encode(mac.finalize().into_bytes())
 }
 
 /// Replaces characters that cannot be displayed safely in legacy backup names with `?`.

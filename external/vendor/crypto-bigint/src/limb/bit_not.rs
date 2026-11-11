@@ -5,6 +5,8 @@ use core::ops::Not;
 
 impl Limb {
     /// Calculates `!a`.
+    #[inline(always)]
+    #[must_use]
     pub const fn not(self) -> Self {
         Limb(!self.0)
     }

@@ -1,13 +1,12 @@
-//! [`Uint`] bitwise and operations.
+//! [`Uint`] bitwise AND operations.
 
 use super::Uint;
-use crate::{Limb, Wrapping};
-use core::ops::{BitAnd, BitAndAssign};
-use subtle::{Choice, CtOption};
+use crate::{BitAnd, BitAndAssign, CtOption, Limb};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub const fn bitand(&self, rhs: &Self) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -20,18 +19,34 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self { limbs }
     }
 
+    /// Perform bitwise `AND` between `self` and the given [`Limb`], performing the `AND` operation
+    /// on every limb of `self`.
+    #[must_use]
+    pub const fn bitand_limb(&self, rhs: Limb) -> Self {
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+
+        while i < LIMBS {
+            limbs[i] = self.limbs[i].bitand(rhs);
+            i += 1;
+        }
+
+        Self { limbs }
+    }
+
     /// Perform wrapping bitwise `AND`.
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub const fn wrapping_and(&self, rhs: &Self) -> Self {
         self.bitand(rhs)
     }
 
     /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
-    pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.bitand(rhs);
-        CtOption::new(result, Choice::from(1))
+    #[must_use]
+    pub const fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitand(rhs))
     }
 }
 
@@ -76,52 +91,6 @@ impl<const LIMBS: usize> BitAndAssign for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> BitAndAssign<&Uint<LIMBS>> for Uint<LIMBS> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: &Self) {
-        *self = *self & other;
-    }
-}
-
-impl<const LIMBS: usize> BitAnd for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn bitand(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn bitand(self, rhs: Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<&Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn bitand(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAndAssign for Wrapping<Uint<LIMBS>> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: Self) {
-        *self = *self & other;
-    }
-}
-
-impl<const LIMBS: usize> BitAndAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: &Self) {
         *self = *self & other;

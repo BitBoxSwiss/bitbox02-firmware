@@ -10,11 +10,17 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.56"
+edition = "2024"
+rust-version = "1.85"
 name = "aead"
-version = "0.5.2"
+version = "0.6.1"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Traits for Authenticated Encryption with Associated Data (AEAD) algorithms,
 such as AES-GCM as ChaCha20Poly1305, which provide a high-level API
@@ -34,10 +40,27 @@ repository = "https://github.com/RustCrypto/traits"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
+
+[features]
+alloc = []
+default = ["rand_core"]
+dev = [
+    "blobby",
+    "alloc",
 ]
+getrandom = [
+    "common/getrandom",
+    "rand_core",
+]
+rand_core = ["common/rand_core"]
+
+[lib]
+name = "aead"
+path = "src/lib.rs"
+
+[[test]]
+name = "dummy"
+path = "tests/dummy.rs"
 
 [dependencies.arrayvec]
 version = "0.7"
@@ -45,37 +68,56 @@ optional = true
 default-features = false
 
 [dependencies.blobby]
-version = "0.3"
+version = "0.4"
 optional = true
 
 [dependencies.bytes]
-version = "1"
+version = "1.11.1"
 optional = true
 default-features = false
 
-[dependencies.crypto-common]
-version = "0.1.4"
+[dependencies.common]
+version = "0.2"
+package = "crypto-common"
 
-[dependencies.generic-array]
-version = "0.14"
-default-features = false
+[dependencies.inout]
+version = "0.2.2"
 
-[dependencies.heapless]
-version = "0.7"
-optional = true
-default-features = false
+[lints.clippy]
+borrow_as_ptr = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_saturating_sub = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+needless_range_loop = "allow"
+ptr_as_ptr = "warn"
+redundant_closure_for_method_calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+std_instead_of_alloc = "warn"
+std_instead_of_core = "warn"
+trivially_copy_pass_by_ref = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
 
-[features]
-alloc = []
-default = ["rand_core"]
-dev = ["blobby"]
-getrandom = [
-    "crypto-common/getrandom",
-    "rand_core",
-]
-rand_core = ["crypto-common/rand_core"]
-std = [
-    "alloc",
-    "crypto-common/std",
-]
-stream = []
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"

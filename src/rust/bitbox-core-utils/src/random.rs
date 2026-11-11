@@ -27,7 +27,7 @@ pub fn random_32_bytes_with_mixin(
     let mut result = Box::new(zeroize::Zeroizing::new([0u8; 32]));
     let mut hasher = sha2::Sha256::new();
     hasher.update(mixed.as_slice());
-    FixedOutput::finalize_into(hasher, result.as_mut_slice().into());
+    FixedOutput::finalize_into(hasher, (&mut **result).into());
     result
 }
 

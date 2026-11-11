@@ -8,7 +8,8 @@
 use bitbox_hal::Random;
 use core::ops::Deref;
 use noise_protocol::U8Array;
-use noise_rust_crypto::sensitive::Sensitive;
+
+use crate::sensitive::Sensitive;
 
 pub struct X25519;
 

@@ -1,11 +1,15 @@
 //! Elliptic curve arithmetic traits.
 
 use crate::{
-    ops::{Invert, LinearCombination, MulByGenerator, Reduce, ShrAssign},
-    point::AffineCoordinates,
+    Curve, CurveAffine, CurveGroup, Error, FieldBytes, Group, NonZeroScalar, PrimeCurve,
+    ScalarValue,
+    ctutils::{CtEq, CtSelect},
+    ops::{Invert, LinearCombination, Mul, MulByGeneratorVartime, MulVartime, Reduce},
+    point::{AffineCoordinates, NonIdentity},
     scalar::{FromUintUnchecked, IsHigh},
-    Curve, FieldBytes, PrimeCurve, ScalarPrimitive,
 };
+use bigint::modular::Retrieve;
+use common::Generate;
 use core::fmt::Debug;
 use subtle::{ConditionallySelectable, ConstantTimeEq, CtOption};
 use zeroize::DefaultIsZeroes;
@@ -18,14 +22,22 @@ pub trait CurveArithmetic: Curve {
         + Copy
         + ConditionallySelectable
         + ConstantTimeEq
+        + CtEq
+        + CtSelect
+        + CurveAffine<Curve = Self::ProjectivePoint, Scalar = Self::Scalar>
         + Debug
         + Default
         + DefaultIsZeroes
         + Eq
+        + From<NonIdentity<Self::AffinePoint>>
+        + Generate
+        + MulVartime<Self::Scalar>
+        + for<'a> MulVartime<&'a Self::Scalar>
         + PartialEq
         + Sized
         + Send
-        + Sync;
+        + Sync
+        + TryInto<NonIdentity<Self::AffinePoint>, Error = Error>;
 
     /// Elliptic curve point in projective coordinates.
     ///
@@ -40,14 +52,22 @@ pub trait CurveArithmetic: Curve {
     /// - [`Sync`]
     type ProjectivePoint: ConditionallySelectable
         + ConstantTimeEq
+        + CtEq
+        + CtSelect
         + Default
         + DefaultIsZeroes
         + From<Self::AffinePoint>
+        + From<NonIdentity<Self::ProjectivePoint>>
+        + Generate
         + Into<Self::AffinePoint>
-        + LinearCombination
-        + MulByGenerator
-        + group::Curve<AffineRepr = Self::AffinePoint>
-        + group::Group<Scalar = Self::Scalar>;
+        + LinearCombination<[(Self::ProjectivePoint, Self::Scalar)]>
+        + LinearCombination<[(Self::ProjectivePoint, Self::Scalar); 2]>
+        + MulByGeneratorVartime
+        + MulVartime<Self::Scalar>
+        + for<'a> MulVartime<&'a Self::Scalar>
+        + TryInto<NonIdentity<Self::ProjectivePoint>, Error = Error>
+        + CurveGroup<Affine = Self::AffinePoint>
+        + Group<Scalar = Self::Scalar>;
 
     /// Scalar field modulo this curve's order.
     ///
@@ -62,18 +82,31 @@ pub trait CurveArithmetic: Curve {
     /// - [`Send`]
     /// - [`Sync`]
     type Scalar: AsRef<Self::Scalar>
+        + CtEq
+        + CtSelect
         + DefaultIsZeroes
-        + From<ScalarPrimitive<Self>>
+        + From<NonZeroScalar<Self>>
+        + From<ScalarValue<Self>>
         + FromUintUnchecked<Uint = Self::Uint>
+        + Generate
         + Into<FieldBytes<Self>>
-        + Into<ScalarPrimitive<Self>>
+        + Into<ScalarValue<Self>>
         + Into<Self::Uint>
         + Invert<Output = CtOption<Self::Scalar>>
         + IsHigh
+        + Mul<Self::AffinePoint, Output = Self::ProjectivePoint>
+        + MulVartime<Self::AffinePoint>
+        + for<'a> Mul<&'a Self::AffinePoint, Output = Self::ProjectivePoint>
+        + for<'a> MulVartime<&'a Self::AffinePoint>
+        + Mul<Self::ProjectivePoint, Output = Self::ProjectivePoint>
+        + MulVartime<Self::ProjectivePoint>
+        + for<'a> Mul<&'a Self::ProjectivePoint, Output = Self::ProjectivePoint>
+        + for<'a> MulVartime<&'a Self::ProjectivePoint>
         + PartialOrd
-        + Reduce<Self::Uint, Bytes = FieldBytes<Self>>
-        + ShrAssign<usize>
-        + ff::Field
+        + Reduce<Self::Uint>
+        + Reduce<FieldBytes<Self>>
+        + Retrieve<Output = Self::Uint>
+        + TryInto<NonZeroScalar<Self>, Error = Error>
         + ff::PrimeField<Repr = FieldBytes<Self>>;
 }
 

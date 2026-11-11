@@ -2,6 +2,21 @@
 
 Entries are listed in reverse chronological order.
 
+## 2.5.0
+
+* Add constant-timedness note to the documentation for `CtOption::unwrap_or_else`.
+* Add `CtOption::expect`.
+* Add `ConstantTimeEq::ct_ne` with default implementation.
+* Add new `core_hint_black_box` feature from Diane Hosfelt and Amber
+  Sprenkels which utilises the original `black_box` functionality from
+  when subtle was first written, which has now found it's way into the
+  Rust standard library.
+* Add new `const-generics` feature from @survived which adds support
+  for subtle traits for generic arrays `[T; N]`.
+* Add new feature for supporting `core::cmp::Ordering` for types which
+  implement subtle traits, patch from @tarcieri.
+* Update `rand` dependency to 0.8.
+
 ## 2.4.1
 
 * Fix a bug in how the README was included in the documentation builds

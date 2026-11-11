@@ -1,361 +1,338 @@
-//! [`Uint`] addition operations.
+//! [`Uint`] multiplication operations.
 
-use crate::{Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping, Zero};
-use core::ops::{Mul, MulAssign};
-use subtle::CtOption;
+use crate::{
+    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, ConcatenatingSquare, CtOption, Limb,
+    Mul, MulAssign, Uint, Wrapping, WrappingMul,
+};
+
+pub(crate) mod karatsuba;
+pub(crate) mod schoolbook;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub fn mul<const HLIMBS: usize>(
+    #[inline]
+    #[must_use]
+    pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
-        rhs: &Uint<HLIMBS>,
-    ) -> <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> Uint<WIDE_LIMBS>
     where
-        Uint<HLIMBS>: ConcatMixed<Self>,
+        Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        let (lo, hi) = self.mul_wide(rhs);
-        hi.concat_mixed(&lo)
+        let (lo, hi) = self.widening_mul(rhs);
+        Uint::concat_mixed(&lo, &hi)
     }
 
-    /// Compute "wide" multiplication, with a product twice the size of the input.
-    ///
-    /// Returns a tuple containing the `(lo, hi)` components of the product.
-    ///
-    /// # Ordering note
-    ///
-    /// Releases of `crypto-bigint` prior to v0.3 used `(hi, lo)` ordering
-    /// instead. This has been changed for better consistency with the rest of
-    /// the APIs in this crate.
-    ///
-    /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
-    pub const fn mul_wide<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
-        let mut i = 0;
-        let mut lo = Self::ZERO;
-        let mut hi = Uint::<HLIMBS>::ZERO;
-
-        // Schoolbook multiplication.
-        // TODO(tarcieri): use Karatsuba for better performance?
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
-
-            while j < HLIMBS {
-                let k = i + j;
-
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if i + j >= LIMBS {
-                hi.limbs[i + j - LIMBS] = carry;
-            } else {
-                lo.limbs[i + j] = carry;
-            }
-            i += 1;
-        }
-
-        (lo, hi)
+    /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
+    /// correspond to the sizes of the operands.
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
+    #[must_use]
+    pub const fn split_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
+        self.widening_mul(rhs)
     }
 
-    /// Perform saturating multiplication, returning `MAX` on overflow.
-    pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
-        let (res, overflow) = self.mul_wide(rhs);
-        Self::ct_select(&res, &Self::MAX, overflow.ct_is_nonzero())
+    /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
+    /// correspond to the sizes of the operands.
+    #[inline(always)]
+    #[must_use]
+    pub const fn widening_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
+        karatsuba::widening_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref())
     }
 
     /// Perform wrapping multiplication, discarding overflow.
-    pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.mul_wide(rhs).0
+    #[inline]
+    #[must_use]
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
+    }
+
+    /// Perform saturating multiplication, returning `MAX` on overflow.
+    #[must_use]
+    pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        let (lo, overflow) = self.overflowing_mul(rhs);
+        Self::select(&lo, &Self::MAX, overflow)
+    }
+
+    /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
+    #[must_use]
+    pub const fn checked_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> CtOption<Uint<LIMBS>> {
+        let (lo, overflow) = self.overflowing_mul(rhs);
+        CtOption::new(lo, overflow.not())
+    }
+
+    /// Perform overflowing multiplication, returning the wrapped result and a `Choice`
+    /// indicating whether overflow occurred.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn overflowing_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<LIMBS>, Choice) {
+        let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        let overflow = self
+            .as_uint_ref()
+            .check_mul_overflow(rhs.as_uint_ref(), carry.is_nonzero());
+        (lo, overflow)
+    }
+
+    /// Perform multiplication by a Limb, returning the wrapped result and a Limb overflow.
+    #[inline]
+    pub(crate) const fn overflowing_mul_limb(&self, rhs: Limb) -> (Self, Limb) {
+        let mut ret = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+        let mut carry = Limb::ZERO;
+        while i < LIMBS {
+            (ret[i], carry) = self.limbs[i].carrying_mul_add(rhs, Limb::ZERO, carry);
+            i += 1;
+        }
+        (Uint::new(ret), carry)
+    }
+
+    /// Perform wrapping multiplication by a Limb, discarding overflow.
+    #[inline]
+    pub(crate) const fn wrapping_mul_limb(&self, rhs: Limb) -> Self {
+        self.overflowing_mul_limb(rhs).0
+    }
+}
+
+/// Squaring operations
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Square self, returning a "wide" result in two parts as (lo, hi).
+    #[inline(always)]
+    #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `widening_square` instead")]
+    pub const fn square_wide(&self) -> (Self, Self) {
+        self.widening_square()
+    }
+
+    /// Square self, returning a "wide" result in two parts as `(lo, hi)`.
+    #[inline(always)]
+    #[must_use]
+    pub const fn widening_square(&self) -> (Self, Self) {
+        karatsuba::widening_square_fixed(self.as_uint_ref())
     }
 
     /// Square self, returning a concatenated "wide" result.
-    pub fn square(&self) -> <Self as Concat>::Output
+    #[inline]
+    #[must_use]
+    pub const fn concatenating_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
-        Self: Concat,
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        let (lo, hi) = self.square_wide();
-        hi.concat(&lo)
+        let (lo, hi) = self.widening_square();
+        Uint::concat_mixed(&lo, &hi)
     }
 
-    /// Square self, returning a "wide" result in two parts as (lo, hi).
-    pub const fn square_wide(&self) -> (Self, Self) {
-        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
-        //
-        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
-        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-        let mut lo = Self::ZERO;
-        let mut hi = Self::ZERO;
+    /// Square self, checking that the result fits in the original [`Uint`] size.
+    #[must_use]
+    pub const fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
+        let (lo, overflow) = self.overflowing_square();
+        CtOption::new(lo, overflow.not())
+    }
 
-        // Schoolbook multiplication, but only considering half of the multiplication grid
-        let mut i = 1;
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
+    /// Perform wrapping square, discarding overflow.
+    #[inline]
+    #[must_use]
+    pub const fn wrapping_square(&self) -> Uint<LIMBS> {
+        karatsuba::wrapping_square_fixed(self.as_uint_ref()).0
+    }
 
-            while j < i {
-                let k = i + j;
+    /// Perform saturating squaring, returning `MAX` on overflow.
+    #[must_use]
+    pub const fn saturating_square(&self) -> Self {
+        let (lo, overflow) = self.overflowing_square();
+        Self::select(&lo, &Self::MAX, overflow)
+    }
 
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], self.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], self.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if (2 * i) < LIMBS {
-                lo.limbs[2 * i] = carry;
-            } else {
-                hi.limbs[2 * i - LIMBS] = carry;
-            }
-
-            i += 1;
-        }
-
-        // Double the current result, this accounts for the other half of the multiplication grid.
-        // TODO: The top word is empty so we can also use a special purpose shl.
-        (lo, hi) = Self::shl_vartime_wide((lo, hi), 1);
-
-        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-        let mut carry = Limb::ZERO;
-        let mut i = 0;
-        while i < LIMBS {
-            if (i * 2) < LIMBS {
-                let (n, c) = lo.limbs[i * 2].mac(self.limbs[i], self.limbs[i], carry);
-                lo.limbs[i * 2] = n;
-                carry = c;
-            } else {
-                let (n, c) = hi.limbs[i * 2 - LIMBS].mac(self.limbs[i], self.limbs[i], carry);
-                hi.limbs[i * 2 - LIMBS] = n;
-                carry = c;
-            }
-
-            if (i * 2 + 1) < LIMBS {
-                let n = lo.limbs[i * 2 + 1].0 as WideWord + carry.0 as WideWord;
-                lo.limbs[i * 2 + 1] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
-            } else {
-                let n = hi.limbs[i * 2 + 1 - LIMBS].0 as WideWord + carry.0 as WideWord;
-                hi.limbs[i * 2 + 1 - LIMBS] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
-            }
-
-            i += 1;
-        }
-
-        (lo, hi)
+    /// Perform overflowing squaring, returning the wrapped result and a `Choice`
+    /// indicating whether overflow occurred.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn overflowing_square(&self) -> (Uint<LIMBS>, Choice) {
+        let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
+        let overflow = self.as_uint_ref().check_square_overflow(carry.is_nonzero());
+        (lo, overflow)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint<LIMBS> {
-    type Output = Self;
-
-    fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(rhs);
-        CtOption::new(lo, hi.is_zero())
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = Self;
-
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
+    /// Square self, returning a concatenated "wide" result.
+    #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_square` instead")]
+    pub const fn square(&self) -> Uint<WIDE_LIMBS> {
+        let (lo, hi) = self.widening_square();
+        lo.concat(&hi)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
+        self.checked_mul(rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
+    fn mul(self, rhs: Uint<RHS_LIMBS>) -> Self {
+        self.mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
+    fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        (&self).mul(rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Wrapping<Uint<HLIMBS>>) {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn mul(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
+        self.mul(&rhs)
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn mul_assign(&mut self, rhs: Uint<RHS_LIMBS>) {
+        *self = self.mul(&rhs);
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn mul_assign(&mut self, rhs: &Uint<RHS_LIMBS>) {
+        *self = self.mul(rhs);
+    }
+}
+
+impl<const LIMBS: usize> MulAssign<Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: Wrapping<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Wrapping<Uint<HLIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Wrapping<Uint<HLIMBS>>) {
+impl<const LIMBS: usize> MulAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: &Wrapping<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for &Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>>
-    for &Checked<Uint<LIMBS>>
-{
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Checked<Uint<HLIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Checked<Uint<HLIMBS>>) {
+impl<const LIMBS: usize> MulAssign<Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: Checked<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Checked<Uint<HLIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Checked<Uint<HLIMBS>>) {
+impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: &Checked<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
+    ConcatenatingMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
+    Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = Uint<WIDE_LIMBS>;
 
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, &other)
+    #[inline]
+    fn concatenating_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
+        self.concatenating_mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
+    ConcatenatingMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
+    Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = Uint<WIDE_LIMBS>;
 
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, other)
+    #[inline]
+    fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
+        self.concatenating_mul(rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for &Uint<LIMBS>
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> ConcatenatingSquare for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
+    type Output = Uint<WIDE_LIMBS>;
 
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, &other)
+    #[inline]
+    fn concatenating_square(&self) -> Self::Output {
+        self.concatenating_square()
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for &Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
-
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, other)
+impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(v)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U128, U192, U256, U64};
+    use crate::{ConcatenatingMul, ConcatenatingSquare, Limb, U64, U128, U192, U256, Uint};
 
     #[test]
-    fn mul_wide_zero_and_one() {
-        assert_eq!(U64::ZERO.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ZERO.mul_wide(&U64::ONE), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ONE, U64::ZERO));
+    fn widening_mul_zero_and_one() {
+        assert_eq!(U64::ZERO.widening_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ZERO.widening_mul(&U64::ONE), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.widening_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.widening_mul(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
     #[test]
-    fn mul_wide_lo_only() {
+    fn widening_mul_lo_only() {
         let primes: &[u32] = &[3, 5, 17, 257, 65537];
 
         for &a_int in primes {
             for &b_int in primes {
-                let (lo, hi) = U64::from_u32(a_int).mul_wide(&U64::from_u32(b_int));
-                let expected = U64::from_u64(a_int as u64 * b_int as u64);
+                let (lo, hi) = U64::from_u32(a_int).widening_mul(&U64::from_u32(b_int));
+                let expected = U64::from_u64(u64::from(a_int) * u64::from(b_int));
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
+                assert_eq!(lo, U64::from_u32(a_int).wrapping_mul(&U64::from_u32(b_int)));
             }
         }
     }
 
     #[test]
     fn mul_concat_even() {
-        assert_eq!(U64::ZERO * U64::MAX, U128::ZERO);
-        assert_eq!(U64::MAX * U64::ZERO, U128::ZERO);
+        assert_eq!(U64::ZERO.concatenating_mul(&U64::MAX), U128::ZERO);
+        assert_eq!(U64::MAX.concatenating_mul(&U64::ZERO), U128::ZERO);
         assert_eq!(
-            U64::MAX * U64::MAX,
+            U64::MAX.concatenating_mul(&U64::MAX),
             U128::from_u128(0xfffffffffffffffe_0000000000000001)
         );
         assert_eq!(
-            U64::ONE * U64::MAX,
+            U64::ONE.concatenating_mul(&U64::MAX),
             U128::from_u128(0x0000000000000000_ffffffffffffffff)
         );
     }
@@ -364,8 +341,28 @@ mod tests {
     fn mul_concat_mixed() {
         let a = U64::from_u64(0x0011223344556677);
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a * b, U192::from(&a).saturating_mul(&b));
-        assert_eq!(b * a, U192::from(&b).saturating_mul(&a));
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(a.concatenating_mul(&b), expected);
+        assert_eq!(ConcatenatingMul::concatenating_mul(&a, &b), expected);
+        assert_eq!(b.concatenating_mul(&a), expected);
+        assert_eq!(ConcatenatingMul::concatenating_mul(&b, &a), expected);
+    }
+
+    #[test]
+    fn wrapping_mul_even() {
+        assert_eq!(U64::ZERO.wrapping_mul(&U64::MAX), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::ZERO), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::MAX), U64::ONE);
+        assert_eq!(U64::ONE.wrapping_mul(&U64::MAX), U64::MAX);
+    }
+
+    #[test]
+    fn wrapping_mul_mixed() {
+        let a = U64::from_u64(0x0011223344556677);
+        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(b.wrapping_mul(&a), expected.resize());
+        assert_eq!(a.wrapping_mul(&b), expected.resize());
     }
 
     #[test]
@@ -375,11 +372,12 @@ mod tests {
             n.checked_mul(&n).unwrap(),
             U64::from_u64(0xffff_fffe_0000_0001)
         );
+        assert_eq!(U64::ZERO.checked_mul(&U64::ZERO).unwrap(), U64::ZERO);
     }
 
     #[test]
     fn checked_mul_overflow() {
-        let n = U64::from_u64(0xffff_ffff_ffff_ffff);
+        let n = U64::MAX;
         assert!(bool::from(n.checked_mul(&n).is_none()));
     }
 
@@ -397,18 +395,131 @@ mod tests {
     }
 
     #[test]
-    fn square() {
+    fn concatenating_square() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        let (hi, lo) = n.square().split();
+        let (lo, hi) = n.concatenating_square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
+        let check = ConcatenatingSquare::concatenating_square(&n).split();
+        assert_eq!(check, (lo, hi));
     }
 
     #[test]
-    fn square_larger() {
+    fn concatenating_square_larger() {
         let n = U256::MAX;
-        let (hi, lo) = n.square().split();
+        let (lo, hi) = n.concatenating_square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
+    }
+
+    #[test]
+    fn checked_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.checked_square();
+        assert!(n2.is_some().to_bool());
+        let n4 = n2.unwrap().checked_square();
+        assert!(n4.is_none().to_bool());
+        let z = U256::ZERO.checked_square();
+        assert!(z.is_some().to_bool());
+        let m = U256::MAX.checked_square();
+        assert!(m.is_none().to_bool());
+    }
+
+    #[test]
+    fn wrapping_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.wrapping_square();
+        assert_eq!(n2, U256::from_u128(u128::MAX).wrapping_add(&U256::ONE));
+        let n4 = n2.wrapping_square();
+        assert_eq!(n4, U256::ZERO);
+    }
+
+    #[test]
+    fn saturating_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.saturating_square();
+        assert_eq!(n2, U256::from_u128(u128::MAX).wrapping_add(&U256::ONE));
+        let n4 = n2.saturating_square();
+        assert_eq!(n4, U256::MAX);
+    }
+
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn mul_cmp() {
+        use crate::{Random, U4096};
+        use rand_core::SeedableRng;
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+
+        let rounds = if cfg!(miri) { 10 } else { 50 };
+        for _ in 0..rounds {
+            let a = U4096::random_from_rng(&mut rng);
+            assert_eq!(a.concatenating_mul(&a), a.concatenating_square(), "a = {a}");
+            assert_eq!(a.widening_mul(&a), a.widening_square(), "a = {a}");
+            assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
+            assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");
+        }
+    }
+
+    #[test]
+    fn checked_mul_sizes() {
+        const SIZE_A: usize = 4;
+        const SIZE_B: usize = 8;
+
+        for n in 0..Uint::<SIZE_A>::BITS {
+            let mut a = Uint::<SIZE_A>::ZERO;
+            a = a.set_bit_vartime(n, true);
+
+            for m in (0..Uint::<SIZE_B>::BITS).step_by(16) {
+                let mut b = Uint::<SIZE_B>::ZERO;
+                b = b.set_bit_vartime(m, true);
+                let res = a.widening_mul(&b);
+                let res_overflow = res.1.is_nonzero();
+                let checked = a.checked_mul(&b);
+                assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());
+                assert_eq!(
+                    checked.as_inner_unchecked(),
+                    &res.0,
+                    "a = 2**{n}, b = 2**{m}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn checked_square_sizes() {
+        const SIZE: usize = 4;
+
+        for n in 0..Uint::<SIZE>::BITS {
+            let mut a = Uint::<SIZE>::ZERO;
+            a = a.set_bit_vartime(n, true);
+
+            let res = a.widening_square();
+            let res_overflow = res.1.is_nonzero();
+            let checked = a.checked_square();
+            assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());
+            assert_eq!(checked.as_inner_unchecked(), &res.0, "a = 2**{n}");
+        }
+    }
+
+    #[test]
+    fn overflowing_mul_limb() {
+        let (max_lo, max_hi) = U128::MAX.widening_mul(&U128::from(Limb::MAX));
+
+        let result = U128::ZERO.overflowing_mul_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::ZERO.overflowing_mul_limb(Limb::ONE);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::ONE);
+        assert_eq!(result, (U128::MAX, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::MAX);
+        assert_eq!(result, (max_lo, max_hi.limbs[0]));
+
+        assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ONE), U128::ZERO);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ONE), U128::MAX);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::MAX), max_lo);
     }
 }

@@ -1,39 +1,18 @@
 use crate::{FixedOutput, FixedOutputReset, Update};
-use crypto_common::{InvalidLength, Key, KeyInit, Output, OutputSizeUser, Reset};
+use common::{Output, OutputSizeUser, Reset};
 
-#[cfg(feature = "rand_core")]
-use crate::rand_core::{CryptoRng, RngCore};
+use common::typenum::Unsigned;
 use core::fmt;
-use crypto_common::typenum::Unsigned;
-use subtle::{Choice, ConstantTimeEq};
+use ctutils::CtEq;
 
 /// Marker trait for Message Authentication algorithms.
-#[cfg_attr(docsrs, doc(cfg(feature = "mac")))]
 pub trait MacMarker {}
 
 /// Convenience wrapper trait covering functionality of Message Authentication algorithms.
 ///
-/// This trait wraps [`KeyInit`], [`Update`], [`FixedOutput`], and [`MacMarker`]
-/// traits and provides additional convenience methods.
-#[cfg_attr(docsrs, doc(cfg(feature = "mac")))]
+/// This trait wraps [`Update`], [`FixedOutput`], and [`MacMarker`] traits
+/// and provides additional convenience methods.
 pub trait Mac: OutputSizeUser + Sized {
-    /// Create new value from fixed size key.
-    fn new(key: &Key<Self>) -> Self
-    where
-        Self: KeyInit;
-
-    /// Generate random key using the provided [`CryptoRng`].
-    #[cfg(feature = "rand_core")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-    fn generate_key(rng: impl CryptoRng + RngCore) -> Key<Self>
-    where
-        Self: KeyInit;
-
-    /// Create new value from variable size key.
-    fn new_from_slice(key: &[u8]) -> Result<Self, InvalidLength>
-    where
-        Self: KeyInit;
-
     /// Update state using the provided data.
     fn update(&mut self, data: &[u8]);
 
@@ -57,10 +36,16 @@ pub trait Mac: OutputSizeUser + Sized {
         Self: Reset;
 
     /// Check if tag/code value is correct for the processed input.
+    ///
+    /// # Errors
+    /// Returns [`MacError`] if `tag` is not valid.
     fn verify(self, tag: &Output<Self>) -> Result<(), MacError>;
 
     /// Check if tag/code value is correct for the processed input and reset
     /// [`Mac`] instance.
+    ///
+    /// # Errors
+    /// Returns [`MacError`] if `tag` is not valid.
     fn verify_reset(&mut self, tag: &Output<Self>) -> Result<(), MacError>
     where
         Self: FixedOutputReset;
@@ -68,15 +53,15 @@ pub trait Mac: OutputSizeUser + Sized {
     /// Check truncated tag correctness using all bytes
     /// of calculated tag.
     ///
-    /// Returns `Error` if `tag` is not valid or not equal in length
-    /// to MAC's output.
+    /// # Errors
+    /// Returns [`MacError`] if `tag` is not valid or not equal in length to this MAC's output.
     fn verify_slice(self, tag: &[u8]) -> Result<(), MacError>;
 
     /// Check truncated tag correctness using all bytes
     /// of calculated tag and reset [`Mac`] instance.
     ///
-    /// Returns `Error` if `tag` is not valid or not equal in length
-    /// to MAC's output.
+    /// # Errors
+    /// Returns [`MacError`] if `tag` is not valid or not equal in length to MAC's output.
     fn verify_slice_reset(&mut self, tag: &[u8]) -> Result<(), MacError>
     where
         Self: FixedOutputReset;
@@ -84,33 +69,19 @@ pub trait Mac: OutputSizeUser + Sized {
     /// Check truncated tag correctness using left side bytes
     /// (i.e. `tag[..n]`) of calculated tag.
     ///
+    /// # Errors
     /// Returns `Error` if `tag` is not valid or empty.
     fn verify_truncated_left(self, tag: &[u8]) -> Result<(), MacError>;
 
     /// Check truncated tag correctness using right side bytes
     /// (i.e. `tag[n..]`) of calculated tag.
     ///
+    /// # Errors
     /// Returns `Error` if `tag` is not valid or empty.
     fn verify_truncated_right(self, tag: &[u8]) -> Result<(), MacError>;
 }
 
 impl<T: Update + FixedOutput + MacMarker> Mac for T {
-    #[inline(always)]
-    fn new(key: &Key<Self>) -> Self
-    where
-        Self: KeyInit,
-    {
-        KeyInit::new(key)
-    }
-
-    #[inline(always)]
-    fn new_from_slice(key: &[u8]) -> Result<Self, InvalidLength>
-    where
-        Self: KeyInit,
-    {
-        KeyInit::new_from_slice(key)
-    }
-
     #[inline]
     fn update(&mut self, data: &[u8]) {
         Update::update(self, data);
@@ -140,7 +111,7 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
     where
         Self: Reset,
     {
-        Reset::reset(self)
+        Reset::reset(self);
     }
 
     #[inline]
@@ -170,12 +141,8 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
         if n != Self::OutputSize::USIZE {
             return Err(MacError);
         }
-        let choice = self.finalize_fixed().ct_eq(tag);
-        if choice.into() {
-            Ok(())
-        } else {
-            Err(MacError)
-        }
+        let choice = self.finalize_fixed().as_slice().ct_eq(tag);
+        if choice.into() { Ok(()) } else { Err(MacError) }
     }
 
     #[inline]
@@ -187,12 +154,8 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
         if n != Self::OutputSize::USIZE {
             return Err(MacError);
         }
-        let choice = self.finalize_fixed_reset().ct_eq(tag);
-        if choice.into() {
-            Ok(())
-        } else {
-            Err(MacError)
-        }
+        let choice = self.finalize_fixed_reset().as_slice().ct_eq(tag);
+        if choice.into() { Ok(()) } else { Err(MacError) }
     }
 
     fn verify_truncated_left(self, tag: &[u8]) -> Result<(), MacError> {
@@ -202,11 +165,7 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
         }
         let choice = self.finalize_fixed()[..n].ct_eq(tag);
 
-        if choice.into() {
-            Ok(())
-        } else {
-            Err(MacError)
-        }
+        if choice.into() { Ok(()) } else { Err(MacError) }
     }
 
     fn verify_truncated_right(self, tag: &[u8]) -> Result<(), MacError> {
@@ -217,21 +176,7 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
         let m = Self::OutputSize::USIZE - n;
         let choice = self.finalize_fixed()[m..].ct_eq(tag);
 
-        if choice.into() {
-            Ok(())
-        } else {
-            Err(MacError)
-        }
-    }
-
-    #[cfg(feature = "rand_core")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-    #[inline]
-    fn generate_key(rng: impl CryptoRng + RngCore) -> Key<Self>
-    where
-        Self: KeyInit,
-    {
-        <T as KeyInit>::generate_key(rng)
+        if choice.into() { Ok(()) } else { Err(MacError) }
     }
 }
 
@@ -240,7 +185,6 @@ impl<T: Update + FixedOutput + MacMarker> Mac for T {
 ///
 /// It is useful for implementing Message Authentication Codes (MACs).
 #[derive(Clone)]
-#[cfg_attr(docsrs, doc(cfg(feature = "mac")))]
 pub struct CtOutput<T: OutputSizeUser> {
     bytes: Output<T>,
 }
@@ -252,10 +196,16 @@ impl<T: OutputSizeUser> CtOutput<T> {
         Self { bytes }
     }
 
+    /// Get reference to the inner [`Output`] array this type wraps.
+    #[inline(always)]
+    pub fn as_bytes(&self) -> &Output<T> {
+        &self.bytes
+    }
+
     /// Get the inner [`Output`] array this type wraps.
     #[inline(always)]
-    pub fn into_bytes(self) -> Output<T> {
-        self.bytes
+    pub fn into_bytes(&self) -> Output<T> {
+        self.bytes.clone()
     }
 }
 
@@ -273,26 +223,38 @@ impl<'a, T: OutputSizeUser> From<&'a Output<T>> for CtOutput<T> {
     }
 }
 
-impl<T: OutputSizeUser> ConstantTimeEq for CtOutput<T> {
-    #[inline(always)]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.bytes.ct_eq(&other.bytes)
-    }
-}
-
 impl<T: OutputSizeUser> PartialEq for CtOutput<T> {
     #[inline(always)]
-    fn eq(&self, x: &CtOutput<T>) -> bool {
-        self.ct_eq(x).into()
+    fn eq(&self, other: &CtOutput<T>) -> bool {
+        self.bytes.ct_eq(&other.bytes).into()
     }
 }
 
 impl<T: OutputSizeUser> Eq for CtOutput<T> {}
 
+impl<T: OutputSizeUser> fmt::Debug for CtOutput<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CtOutput { ... }")
+    }
+}
+
+impl<T: OutputSizeUser> Drop for CtOutput<T> {
+    #[inline]
+    fn drop(&mut self) {
+        #[cfg(feature = "zeroize")]
+        {
+            use zeroize::Zeroize;
+            self.bytes.zeroize();
+        }
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl<T: OutputSizeUser> zeroize::ZeroizeOnDrop for CtOutput<T> {}
+
 /// Error type for when the [`Output`] of a [`Mac`]
 /// is not equal to the expected value.
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
-#[cfg_attr(docsrs, doc(cfg(feature = "mac")))]
 pub struct MacError;
 
 impl fmt::Display for MacError {
@@ -301,5 +263,4 @@ impl fmt::Display for MacError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for MacError {}
+impl core::error::Error for MacError {}

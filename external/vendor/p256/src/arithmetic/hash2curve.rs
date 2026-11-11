@@ -1,32 +1,35 @@
 use super::FieldElement;
 use crate::{AffinePoint, FieldBytes, NistP256, ProjectivePoint, Scalar};
 use elliptic_curve::{
+    array::Array,
     bigint::{ArrayEncoding, U256},
-    consts::U48,
-    generic_array::GenericArray,
-    hash2curve::{FromOkm, GroupDigest, MapToCurve, OsswuMap, OsswuMapParams, Sgn0},
-    point::DecompressPoint,
+    consts::{U16, U48},
+    ops::Reduce,
     subtle::Choice,
 };
+use hash2curve::MapToCurve;
+use primeorder::osswu::{AffineOsswuMap, OsswuMap, OsswuMapParams, Sgn0};
 
-impl GroupDigest for NistP256 {
-    type FieldElement = FieldElement;
+#[cfg(feature = "group-digest")]
+impl hash2curve::GroupDigest for NistP256 {
+    const HASH_TO_CURVE_ID: &[u8] = b"P256_XMD:SHA-256_SSWU_RO_";
+    const ENCODE_TO_CURVE_ID: &[u8] = b"P256_XMD:SHA-256_SSWU_NU_";
+
+    type ExpandMsg = hash2curve::ExpandMsgXmd<sha2::Sha256>;
 }
 
-impl FromOkm for FieldElement {
-    type Length = U48;
-
-    fn from_okm(data: &GenericArray<u8, Self::Length>) -> Self {
-        const F_2_192: FieldElement = FieldElement(U256::from_be_hex(
+impl Reduce<Array<u8, U48>> for FieldElement {
+    fn reduce(value: &Array<u8, U48>) -> Self {
+        const F_2_192: FieldElement = FieldElement::from_montgomery(U256::from_be_hex(
             "00000000000000030000000200000000fffffffffffffffefffffffeffffffff",
         ));
 
         let mut d0_bytes = FieldBytes::default();
-        d0_bytes[8..].copy_from_slice(&data[..24]);
+        d0_bytes[8..].copy_from_slice(&value[..24]);
         let d0 = FieldElement::from_uint_unchecked(U256::from_be_byte_array(d0_bytes));
 
         let mut d1_bytes = FieldBytes::default();
-        d1_bytes[8..].copy_from_slice(&data[24..]);
+        d1_bytes[8..].copy_from_slice(&value[24..]);
         let d1 = FieldElement::from_uint_unchecked(U256::from_be_byte_array(d1_bytes));
 
         d0 * F_2_192 + d1
@@ -47,48 +50,39 @@ impl OsswuMap for FieldElement {
             0x4000_0000_0000_0000,
             0x3fff_ffff_c000_0000,
         ],
-        c2: FieldElement(U256::from_be_hex(
-            "a3323851ba997e271ac5d59c3298bf50b2806c63966a1a6653e43951f64fdbe7",
+        c2: FieldElement::from_montgomery(U256::from_be_hex(
+            "9051d26e12a8f3046913c88f9ea8dfee78400ad7423dcf70a1fd38ee98a195fd",
         )),
-        map_a: FieldElement(U256::from_be_hex(
-            "fffffffc00000004000000000000000000000003fffffffffffffffffffffffc",
-        )),
-        map_b: FieldElement(U256::from_be_hex(
+        map_a: FieldElement::from_u64(3).neg(),
+        map_b: FieldElement::from_montgomery(U256::from_be_hex(
             "dc30061d04874834e5a220abf7212ed6acf005cd78843090d89cdf6229c4bddf",
         )),
-        z: FieldElement(U256::from_be_hex(
-            "fffffff50000000b00000000000000000000000afffffffffffffffffffffff5",
-        )),
+        z: FieldElement::from_u64(10).neg(),
     };
 }
 
-impl MapToCurve for FieldElement {
-    type Output = ProjectivePoint;
+impl MapToCurve for NistP256 {
+    type SecurityLevel = U16;
+    type FieldElement = FieldElement;
+    type Length = U48;
 
-    fn map_to_curve(&self) -> Self::Output {
-        let (qx, qy) = self.osswu();
-
-        // TODO(tarcieri): assert that `qy` is correct? less circuitous conversion?
-        AffinePoint::decompress(&qx.to_bytes(), qy.is_odd())
-            .unwrap()
-            .into()
+    fn map_to_curve(element: Self::FieldElement) -> ProjectivePoint {
+        AffinePoint::osswu(&element).into()
     }
 }
 
-impl FromOkm for Scalar {
-    type Length = U48;
-
-    fn from_okm(data: &GenericArray<u8, Self::Length>) -> Self {
+impl Reduce<Array<u8, U48>> for Scalar {
+    fn reduce(value: &Array<u8, U48>) -> Self {
         const F_2_192: Scalar = Scalar(U256::from_be_hex(
             "0000000000000001000000000000000000000000000000000000000000000000",
         ));
 
-        let mut d0 = GenericArray::default();
-        d0[8..].copy_from_slice(&data[0..24]);
+        let mut d0 = Array::default();
+        d0[8..].copy_from_slice(&value[0..24]);
         let d0 = Scalar(U256::from_be_byte_array(d0));
 
-        let mut d1 = GenericArray::default();
-        d1[8..].copy_from_slice(&data[24..]);
+        let mut d1 = Array::default();
+        d1[8..].copy_from_slice(&value[24..]);
         let d1 = Scalar(U256::from_be_byte_array(d1));
 
         d0 * F_2_192 + d1
@@ -97,19 +91,45 @@ impl FromOkm for Scalar {
 
 #[cfg(test)]
 mod tests {
-    use crate::{FieldElement, NistP256, Scalar, U256};
+    use super::FieldElement;
+    use crate::{NistP256, Scalar, U256, arithmetic::field::FieldParams};
     use elliptic_curve::{
-        bigint::{ArrayEncoding, NonZero, U384},
-        consts::U48,
-        generic_array::GenericArray,
-        group::cofactor::CofactorGroup,
-        hash2curve::{self, ExpandMsgXmd, FromOkm, GroupDigest, MapToCurve},
-        sec1::{self, ToEncodedPoint},
         Curve, Field,
+        array::Array,
+        bigint::{ArrayEncoding, CheckedSub, NonZero, U384, modular::ConstMontyParams},
+        consts::U48,
+        sec1::{self, ToSec1Point},
     };
+    use hash2curve::{self, ExpandMsgXmd, MapToCurve};
     use hex_literal::hex;
+    use primefield::bigint::Reduce;
+    use primeorder::osswu::OsswuMap;
     use proptest::{num::u64::ANY, prelude::ProptestConfig, proptest};
     use sha2::Sha256;
+
+    #[test]
+    fn params() {
+        let params = <FieldElement as OsswuMap>::PARAMS;
+
+        let c1 = FieldParams::PARAMS
+            .modulus()
+            .checked_sub(&U256::from_u8(3))
+            .unwrap()
+            / NonZero::new(U256::from_u8(4)).unwrap();
+
+        assert_eq!(
+            c1.to_be_byte_array(),
+            params
+                .c1
+                .iter()
+                .rev()
+                .flat_map(|v| v.to_be_bytes())
+                .collect::<Array<_, _>>(),
+        );
+
+        let c2 = FieldElement::from_u64(10).sqrt().unwrap();
+        assert_eq!(params.c2, c2);
+    }
 
     #[allow(dead_code)] // TODO(tarcieri): fix commented out code
     #[test]
@@ -188,19 +208,20 @@ mod tests {
 
         for test_vector in TEST_VECTORS {
             // in parts
-            let mut u = [FieldElement::default(), FieldElement::default()];
-            hash2curve::hash_to_field::<ExpandMsgXmd<Sha256>, FieldElement>(
-                &[test_vector.msg],
-                &[DST],
-                &mut u,
-            )
+            let u = hash2curve::hash_to_field::<
+                2,
+                ExpandMsgXmd<Sha256>,
+                <NistP256 as MapToCurve>::SecurityLevel,
+                FieldElement,
+                <NistP256 as MapToCurve>::Length,
+            >(&[test_vector.msg], &[DST])
             .unwrap();
 
             /// Assert that the provided projective point matches the given test vector.
             // TODO(tarcieri): use coordinate APIs. See zkcrypto/group#30
             macro_rules! assert_point_eq {
                 ($actual:expr, $expected_x:expr, $expected_y:expr) => {
-                    let point = $actual.to_affine().to_encoded_point(false);
+                    let point = $actual.to_affine().to_sec1_point(false);
                     let (actual_x, actual_y) = match point.coordinates() {
                         sec1::Coordinates::Uncompressed { x, y } => (x, y),
                         _ => unreachable!(),
@@ -214,23 +235,26 @@ mod tests {
             assert_eq!(u[0].to_bytes().as_slice(), test_vector.u_0);
             assert_eq!(u[1].to_bytes().as_slice(), test_vector.u_1);
 
-            let q0 = u[0].map_to_curve();
+            let q0 = NistP256::map_to_curve(u[0]);
             assert_point_eq!(q0, test_vector.q0_x, test_vector.q0_y);
 
-            let q1 = u[1].map_to_curve();
+            let q1 = NistP256::map_to_curve(u[1]);
             assert_point_eq!(q1, test_vector.q1_x, test_vector.q1_y);
 
-            let p = q0.clear_cofactor() + q1.clear_cofactor();
+            let p = q0 + q1;
             assert_point_eq!(p, test_vector.p_x, test_vector.p_y);
 
             // complete run
-            let pt = NistP256::hash_from_bytes::<ExpandMsgXmd<Sha256>>(&[test_vector.msg], &[DST])
-                .unwrap();
+            let pt = hash2curve::hash_from_bytes::<NistP256, ExpandMsgXmd<Sha256>>(
+                &[test_vector.msg],
+                &[DST],
+            )
+            .unwrap();
             assert_point_eq!(pt, test_vector.p_x, test_vector.p_y);
         }
     }
 
-    /// Taken from <https://www.ietf.org/archive/id/draft-irtf-cfrg-voprf-16.html#name-oprfp-256-sha-256-2>.
+    /// Taken from <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-voprf#appendix-A.3>.
     #[test]
     fn hash_to_scalar_voprf() {
         struct TestVector {
@@ -242,22 +266,22 @@ mod tests {
 
         const TEST_VECTORS: &[TestVector] = &[
             TestVector {
-                dst: b"DeriveKeyPairVOPRF10-\x00\x00\x03",
+                dst: b"DeriveKeyPairOPRFV1-\x00-P256-SHA256",
                 key_info: b"test key",
                 seed: &hex!("a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3"),
-                sk_sm: &hex!("274d7747cf2e26352ecea6bd768c426087da3dfcd466b6841b441ada8412fb33"),
+                sk_sm: &hex!("159749d750713afe245d2d39ccfaae8381c53ce92d098a9375ee70739c7ac0bf"),
             },
             TestVector {
-                dst: b"DeriveKeyPairVOPRF10-\x01\x00\x03",
+                dst: b"DeriveKeyPairOPRFV1-\x01-P256-SHA256",
                 key_info: b"test key",
                 seed: &hex!("a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3"),
-                sk_sm: &hex!("b3d12edba73e40401fdc27c0094a56337feb3646d1633345af7e7142a6b1559d"),
+                sk_sm: &hex!("ca5d94c8807817669a51b196c34c1b7f8442fde4334a7121ae4736364312fca6"),
             },
             TestVector {
-                dst: b"DeriveKeyPairVOPRF10-\x02\x00\x03",
+                dst: b"DeriveKeyPairOPRFV1-\x02-P256-SHA256",
                 key_info: b"test key",
                 seed: &hex!("a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3"),
-                sk_sm: &hex!("59519f6c7da344f340ad35ad895a5b97437673cc3ac8b964b823cdb52c932f86"),
+                sk_sm: &hex!("6ad2173efa689ef2c27772566ad7ff6e2d59b3b196f00219451fb2c89ee4dae2"),
             },
         ];
 
@@ -267,7 +291,7 @@ mod tests {
                 .to_be_bytes();
 
             for counter in 0_u8..=u8::MAX {
-                let scalar = NistP256::hash_to_scalar::<ExpandMsgXmd<Sha256>>(
+                let scalar = hash2curve::hash_to_scalar::<NistP256, ExpandMsgXmd<Sha256>, U48>(
                     &[
                         test_vector.seed,
                         &key_info_len,
@@ -290,11 +314,11 @@ mod tests {
 
     #[test]
     fn from_okm_fuzz() {
-        let mut wide_order = GenericArray::default();
+        let mut wide_order = Array::default();
         wide_order[16..].copy_from_slice(&NistP256::ORDER.to_be_byte_array());
-        let wide_order = NonZero::new(U384::from_be_byte_array(wide_order)).unwrap();
+        let wide_order = NonZero::<U384>::from_be_byte_array(wide_order).unwrap();
 
-        let simple_from_okm = move |data: GenericArray<u8, U48>| -> Scalar {
+        let simple_from_okm = move |data: Array<u8, U48>| -> Scalar {
             let data = U384::from_be_slice(&data);
 
             let scalar = data % wide_order;
@@ -304,7 +328,7 @@ mod tests {
         };
 
         proptest!(ProptestConfig::with_cases(1000), |(b0 in ANY, b1 in ANY, b2 in ANY, b3 in ANY, b4 in ANY, b5 in ANY)| {
-            let mut data = GenericArray::default();
+            let mut data = Array::default();
             data[..8].copy_from_slice(&b0.to_be_bytes());
             data[8..16].copy_from_slice(&b1.to_be_bytes());
             data[16..24].copy_from_slice(&b2.to_be_bytes());
@@ -312,7 +336,7 @@ mod tests {
             data[32..40].copy_from_slice(&b4.to_be_bytes());
             data[40..].copy_from_slice(&b5.to_be_bytes());
 
-            let from_okm = Scalar::from_okm(&data);
+            let from_okm = Scalar::reduce(&data);
             let simple_from_okm = simple_from_okm(data);
             assert_eq!(from_okm, simple_from_okm);
         });

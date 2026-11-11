@@ -21,11 +21,13 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # fn main() {
-//! use rand::rngs::OsRng;
+//! // $ cargo add ed25519_dalek --features rand_core
+//! use getrandom::{SysRng, rand_core::UnwrapErr};
+//! use rand_core::TryRng;
 //! use ed25519_dalek::SigningKey;
 //! use ed25519_dalek::Signature;
 //!
-//! let mut csprng = OsRng;
+//! let mut csprng = UnwrapErr(SysRng);
 //! let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! # }
 //! ```
@@ -35,9 +37,9 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::SigningKey;
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! use ed25519_dalek::{Signature, Signer};
 //! let message: &[u8] = b"This is a test of the tsunami alert system.";
@@ -51,9 +53,9 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::{SigningKey, Signature, Signer};
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! # let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature: Signature = signing_key.sign(message);
@@ -68,12 +70,12 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::SigningKey;
 //! # use ed25519_dalek::Signature;
 //! # use ed25519_dalek::Signer;
 //! use ed25519_dalek::{VerifyingKey, Verifier};
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! # let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature: Signature = signing_key.sign(message);
@@ -94,10 +96,10 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::{SigningKey, Signature, Signer, VerifyingKey};
 //! use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! # let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature: Signature = signing_key.sign(message);
@@ -114,11 +116,11 @@
 #![cfg_attr(feature = "rand_core", doc = "```")]
 #![cfg_attr(not(feature = "rand_core"), doc = "```ignore")]
 //! # use core::convert::{TryFrom, TryInto};
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::{SigningKey, Signature, Signer, VerifyingKey, SecretKey, SignatureError};
 //! # use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, KEYPAIR_LENGTH, SIGNATURE_LENGTH};
 //! # fn do_test() -> Result<(SigningKey, VerifyingKey, Signature), SignatureError> {
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key_orig: SigningKey = SigningKey::generate(&mut csprng);
 //! # let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature_orig: Signature = signing_key_orig.sign(message);
@@ -186,23 +188,23 @@
 //! ```
 //!
 //! They can be then serialised into any of the wire formats which serde supports.
-//! For example, using [bincode](https://github.com/TyOverby/bincode):
+//! For example, using [postcard](https://docs.rs/postcard):
 //!
 #![cfg_attr(all(feature = "rand_core", feature = "serde"), doc = "```")]
 #![cfg_attr(not(all(feature = "rand_core", feature = "serde")), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::{SigningKey, Signature, Signer, Verifier, VerifyingKey};
-//! use bincode::serialize;
-//! # let mut csprng = OsRng;
+//! use postcard::to_allocvec;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! # let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature: Signature = signing_key.sign(message);
 //! # let verifying_key: VerifyingKey = signing_key.verifying_key();
 //! # let verified: bool = verifying_key.verify(message, &signature).is_ok();
 //!
-//! let encoded_verifying_key: Vec<u8> = serialize(&verifying_key).unwrap();
-//! let encoded_signature: Vec<u8> = serialize(&signature).unwrap();
+//! let encoded_verifying_key: Vec<u8> = to_allocvec(&verifying_key).unwrap();
+//! let encoded_signature: Vec<u8> = to_allocvec(&signature).unwrap();
 //! # }
 //! ```
 //!
@@ -212,21 +214,21 @@
 #![cfg_attr(all(feature = "rand_core", feature = "serde"), doc = "```")]
 #![cfg_attr(not(all(feature = "rand_core", feature = "serde")), doc = "```ignore")]
 //! # fn main() {
-//! # use rand::rngs::OsRng;
+//! # use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 //! # use ed25519_dalek::{SigningKey, Signature, Signer, Verifier, VerifyingKey};
-//! # use bincode::serialize;
-//! use bincode::deserialize;
+//! # use postcard::to_allocvec;
+//! use postcard::from_bytes;
 //!
-//! # let mut csprng = OsRng;
+//! # let mut csprng = UnwrapErr(SysRng);
 //! # let signing_key: SigningKey = SigningKey::generate(&mut csprng);
 //! let message: &[u8] = b"This is a test of the tsunami alert system.";
 //! # let signature: Signature = signing_key.sign(message);
 //! # let verifying_key: VerifyingKey = signing_key.verifying_key();
 //! # let verified: bool = verifying_key.verify(message, &signature).is_ok();
-//! # let encoded_verifying_key: Vec<u8> = serialize(&verifying_key).unwrap();
-//! # let encoded_signature: Vec<u8> = serialize(&signature).unwrap();
-//! let decoded_verifying_key: VerifyingKey = deserialize(&encoded_verifying_key).unwrap();
-//! let decoded_signature: Signature = deserialize(&encoded_signature).unwrap();
+//! # let encoded_verifying_key: Vec<u8> = to_allocvec(&verifying_key).unwrap();
+//! # let encoded_signature: Vec<u8> = to_allocvec(&signature).unwrap();
+//! let decoded_verifying_key: VerifyingKey = from_bytes(&encoded_verifying_key).unwrap();
+//! let decoded_signature: Signature = from_bytes(&encoded_signature).unwrap();
 //!
 //! # assert_eq!(verifying_key, decoded_verifying_key);
 //! # assert_eq!(signature, decoded_signature);
@@ -241,16 +243,18 @@
 #![warn(future_incompatible, rust_2018_idioms)]
 #![deny(missing_docs)] // refuse to compile if documentation is missing
 #![deny(clippy::unwrap_used)] // don't allow unwrap
-#![cfg_attr(not(test), forbid(unsafe_code))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, doc_cfg_hide))]
-#![cfg_attr(docsrs, doc(cfg_hide(docsrs)))]
+#![cfg_attr(not(any(test, feature = "batch")), forbid(unsafe_code))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "batch")]
 extern crate alloc;
 
-#[cfg(any(feature = "std", test))]
+#[cfg(test)]
 #[macro_use]
 extern crate std;
+
+#[cfg(feature = "rand_core")]
+pub use rand_core;
 
 pub use ed25519;
 
@@ -285,9 +289,9 @@ pub use crate::verifying::*;
 
 // Re-export the `Signer` and `Verifier` traits from the `signature` crate
 #[cfg(feature = "digest")]
-pub use ed25519::signature::{DigestSigner, DigestVerifier};
-pub use ed25519::signature::{Signer, Verifier};
+pub use ::signature::{DigestSigner, DigestVerifier};
 pub use ed25519::Signature;
+pub use ed25519::signature::{Signer, Verifier};
 
 #[cfg(feature = "pkcs8")]
 pub use ed25519::pkcs8;

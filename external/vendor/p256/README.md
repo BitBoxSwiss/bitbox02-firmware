@@ -32,6 +32,58 @@ USE AT YOUR OWN RISK!
 - [Elliptic Curve Digital Signature Algorithm (ECDSA)][ECDSA]: gated under the
   `ecdsa` feature.
 
+## PKCS#8 Key Encoding
+
+PKCS#8 is a private key format with support for multiple algorithms. It can be
+encoded as binary DER or text PEM.
+
+You can recognize PEM encoded PKCS#8 private keys because they do not have an
+algorithm name in the type label, e.g.:
+
+```text
+-----BEGIN PRIVATE KEY-----
+```
+
+PKCS#8 support is gated under the `pkcs8` feature. The `pem` feature, which is
+enabled by default, adds PEM decoding and also enables `pkcs8`.
+
+The same pattern is used by the other curve crates in this repository which
+re-export `pkcs8`.
+
+The following traits can be used to decode/encode secret and public keys as
+PKCS#8/SPKI. Note that [`pkcs8`] is re-exported from `p256` when the `pkcs8`
+feature is enabled:
+
+- [`pkcs8::DecodePrivateKey`]: decode private keys from PKCS#8
+- [`pkcs8::EncodePrivateKey`]: encode private keys to PKCS#8
+- [`pkcs8::DecodePublicKey`]: decode public keys from SPKI
+- [`pkcs8::EncodePublicKey`]: encode public keys to SPKI
+
+For private keys, [`SecretKey::from_der`] and [`SecretKey::from_pem`] provide
+convenience methods which can decode PKCS#8 keys. Use the trait methods above
+when the input is expected to be specifically PKCS#8.
+
+### Example
+
+```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+# #[cfg(feature = "pem")]
+# {
+use p256::SecretKey;
+
+// WARNING: Do not hardcode private keys in your source code. This is for demonstration purposes only.
+let pem = r#"-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgaWJBcVYaYzQN4OfY
+afKgVJJVjhoEhotqn4VKhmeIGI2hRANCAAQcrP+1Xy8s79idies3SyaBFSRSgC3u
+oJkWBoE32DnPf8SBpESSME1+9mrBF77+g6jQjxVfK1L59hjdRHApBI4P
+-----END PRIVATE KEY-----"#;
+let secret_key = SecretKey::from_pem(pem)?;
+# let _ = secret_key;
+# }
+# Ok(())
+# }
+```
+
 ## About NIST P-256
 
 NIST P-256 is a Weierstrass curve specified in [SP 800-186]:
@@ -41,18 +93,6 @@ Elliptic Curve Domain Parameters.
 Also known as prime256v1 (ANSI X9.62) and secp256r1 (SECG), it's included in
 the US National Security Agency's "Suite B" and is widely used in protocols
 like TLS and the associated X.509 PKI.
-
-## Minimum Supported Rust Version
-
-Rust **1.65** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
-
-## SemVer Policy
-
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
 
 ## License
 
@@ -71,14 +111,14 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/p256
+[crate-image]: https://img.shields.io/crates/v/p256?logo=rust
 [crate-link]: https://crates.io/crates/p256
 [docs-image]: https://docs.rs/p256/badge.svg
 [docs-link]: https://docs.rs/p256/
 [build-image]: https://github.com/RustCrypto/elliptic-curves/actions/workflows/p256.yml/badge.svg
 [build-link]: https://github.com/RustCrypto/elliptic-curves/actions/workflows/p256.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260040-elliptic-curves
 

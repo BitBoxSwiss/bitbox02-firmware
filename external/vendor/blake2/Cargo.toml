@@ -10,15 +10,21 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2024"
+rust-version = "1.85"
 name = "blake2"
-version = "0.10.6"
+version = "0.11.0"
 authors = ["RustCrypto Developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "BLAKE2 hash functions"
 documentation = "https://docs.rs/blake2"
 readme = "README.md"
 keywords = [
-    "crypto",
     "blake2",
     "hash",
     "digest",
@@ -30,22 +36,47 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustCrypto/hashes"
 
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+alloc = ["digest/alloc"]
+default = ["alloc"]
+reset = []
+size_opt = []
+zeroize = ["digest/zeroize"]
+
+[lib]
+name = "blake2"
+path = "src/lib.rs"
+
+[[test]]
+name = "mac"
+path = "tests/mac.rs"
+
+[[test]]
+name = "mod"
+path = "tests/mod.rs"
+
+[[test]]
+name = "persona"
+path = "tests/persona.rs"
+
+[[test]]
+name = "unkeyed"
+path = "tests/unkeyed.rs"
+
+[[bench]]
+name = "mod"
+path = "benches/mod.rs"
+
 [dependencies.digest]
-version = "0.10.3"
+version = "0.11"
 features = ["mac"]
 
 [dev-dependencies.digest]
-version = "0.10.3"
+version = "0.11"
 features = ["dev"]
 
 [dev-dependencies.hex-literal]
-version = "0.2.2"
-
-[features]
-default = ["std"]
-reset = []
-simd = []
-simd_asm = ["simd_opt"]
-simd_opt = ["simd"]
-size_opt = []
-std = ["digest/std"]
+version = "1"

@@ -1,68 +1,155 @@
 //! Length calculations for encoded ASN.1 DER values
 
-use crate::{Decode, DerOrd, Encode, Error, ErrorKind, Reader, Result, SliceWriter, Writer};
-use core::{
-    cmp::Ordering,
-    fmt,
-    ops::{Add, Sub},
-};
-
-/// Maximum number of octets in a DER encoding of a [`Length`] using the
-/// rules implemented by this crate.
-const MAX_DER_OCTETS: usize = 5;
-
-/// Maximum length as a `u32` (256 MiB).
-const MAX_U32: u32 = 0xfff_ffff;
+#[cfg(feature = "ber")]
+pub(crate) mod indefinite;
 
 /// Octet identifying an indefinite length as described in X.690 Section
 /// 8.1.3.6.1:
 ///
 /// > The single octet shall have bit 8 set to one, and bits 7 to
 /// > 1 set to zero.
-const INDEFINITE_LENGTH_OCTET: u8 = 0b10000000; // 0x80
+pub(super) const INDEFINITE_LENGTH_OCTET: u8 = 0b10000000; // 0x80
+
+use crate::{Decode, DerOrd, Encode, EncodingRules, Error, ErrorKind, Reader, Result, Tag, Writer};
+use core::{
+    cmp::Ordering,
+    fmt,
+    ops::{Add, Sub},
+};
 
 /// ASN.1-encoded length.
 ///
-/// Maximum length is defined by the [`Length::MAX`] constant (256 MiB).
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Length(u32);
+/// ## Examples
+/// ```
+/// use der::{Decode, Length, SliceReader};
+///
+/// let mut reader = SliceReader::new(&[0x82, 0xAA, 0xBB]).unwrap();
+/// let length = Length::decode(&mut reader).expect("valid length");
+///
+/// assert_eq!(length, Length::new(0xAABB));
+/// ```
+///
+/// 5-byte lengths are supported:
+/// ```
+/// use der::{Encode, Length};
+/// let length = Length::new(0x10000000);
+///
+/// assert_eq!(length.encoded_len(), Ok(Length::new(5)));
+/// ```
+///
+/// Invalid lengths produce an error:
+/// ```
+/// use der::{Decode, Length, SliceReader};
+///
+/// let mut reader = SliceReader::new(&[0x81, 0x7F]).unwrap();
+///
+/// Length::decode(&mut reader).expect_err("non-canonical length should be rejected");
+/// ```
+#[derive(Copy, Clone, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub struct Length {
+    /// Inner length as a `u32`. Note that the decoder and encoder also support a maximum length
+    /// of 32-bits.
+    inner: u32,
+
+    /// Flag bit which specifies whether the length was indeterminate when decoding ASN.1 BER.
+    ///
+    /// This should always be false when working with DER.
+    #[cfg(feature = "ber")]
+    indefinite: bool,
+}
 
 impl Length {
     /// Length of `0`
-    pub const ZERO: Self = Self(0);
+    pub const ZERO: Self = Self::new(0);
 
     /// Length of `1`
-    pub const ONE: Self = Self(1);
+    pub const ONE: Self = Self::new(1);
 
-    /// Maximum length currently supported: 256 MiB
-    pub const MAX: Self = Self(MAX_U32);
+    /// Maximum length (`u32::MAX`).
+    pub const MAX: Self = Self::new(u32::MAX);
+
+    /// Length of end-of-content octets (i.e. `00 00`).
+    #[cfg(feature = "ber")]
+    pub(crate) const EOC_LEN: Self = Self::new(2);
 
     /// Create a new [`Length`] for any value which fits inside of a [`u16`].
     ///
     /// This function is const-safe and therefore useful for [`Length`] constants.
-    pub const fn new(value: u16) -> Self {
-        Self(value as u32)
+    #[must_use]
+    pub const fn new(value: u32) -> Self {
+        Self {
+            inner: value,
+
+            #[cfg(feature = "ber")]
+            indefinite: false,
+        }
+    }
+
+    /// Create a new [`Length`] for any value which fits inside the length type.
+    ///
+    /// This function is const-safe and therefore useful for [`Length`] constants.
+    #[allow(clippy::cast_possible_truncation)]
+    pub(crate) const fn new_usize(len: usize) -> Result<Self> {
+        if len > (u32::MAX as usize) {
+            Err(Error::from_kind(ErrorKind::Overflow))
+        } else {
+            Ok(Self::new(len as u32))
+        }
     }
 
     /// Is this length equal to zero?
-    pub fn is_zero(self) -> bool {
-        self == Self::ZERO
+    #[must_use]
+    pub const fn is_zero(self) -> bool {
+        self.inner == 0
+    }
+
+    /// Was this length decoded from an indefinite length when decoding BER?
+    #[cfg(feature = "ber")]
+    pub(crate) const fn is_indefinite(self) -> bool {
+        self.indefinite
     }
 
     /// Get the length of DER Tag-Length-Value (TLV) encoded data if `self`
     /// is the length of the inner "value" portion of the message.
-    pub fn for_tlv(self) -> Result<Self> {
-        Self::ONE + self.encoded_len()? + self
+    ///
+    /// # Errors
+    /// Returns an error if an overflow occurred computing the length.
+    pub fn for_tlv(self, tag: Tag) -> Result<Self> {
+        tag.encoded_len()? + self.encoded_len()? + self
     }
 
     /// Perform saturating addition of two lengths.
+    #[must_use]
     pub fn saturating_add(self, rhs: Self) -> Self {
-        Self(self.0.saturating_add(rhs.0))
+        Self::new(self.inner.saturating_add(rhs.inner))
     }
 
     /// Perform saturating subtraction of two lengths.
+    #[must_use]
     pub fn saturating_sub(self, rhs: Self) -> Self {
-        Self(self.0.saturating_sub(rhs.0))
+        Self::new(self.inner.saturating_sub(rhs.inner))
+    }
+
+    /// If the length is indefinite, compute a length with the EOC marker removed
+    /// (i.e. the final two bytes `00 00`).
+    ///
+    /// Otherwise (as should always be the case with DER), the length is unchanged.
+    ///
+    /// This method notably preserves the `indefinite` flag when performing arithmetic.
+    #[cfg(feature = "ber")]
+    pub(crate) fn sans_eoc(self) -> Self {
+        if self.indefinite {
+            // We expect EOC to be present when this is called.
+            debug_assert!(self >= Self::EOC_LEN);
+
+            Self {
+                inner: self.saturating_sub(Self::EOC_LEN).inner,
+                indefinite: true,
+            }
+        } else {
+            // Return DER length
+            self
+        }
     }
 
     /// Get initial octet of the encoded length (if one is required).
@@ -78,11 +165,11 @@ impl Length {
     /// >    most significant bit;
     /// > c) the value 11111111₂ shall not be used.
     fn initial_octet(self) -> Option<u8> {
-        match self.0 {
+        match self.inner {
             0x80..=0xFF => Some(0x81),
             0x100..=0xFFFF => Some(0x82),
             0x10000..=0xFFFFFF => Some(0x83),
-            0x1000000..=MAX_U32 => Some(0x84),
+            0x1000000..=0xFFFFFFFF => Some(0x84),
             _ => None,
         }
     }
@@ -92,10 +179,10 @@ impl Add for Length {
     type Output = Result<Self>;
 
     fn add(self, other: Self) -> Result<Self> {
-        self.0
-            .checked_add(other.0)
+        self.inner
+            .checked_add(other.inner)
             .ok_or_else(|| ErrorKind::Overflow.into())
-            .and_then(TryInto::try_into)
+            .map(Self::new)
     }
 }
 
@@ -119,7 +206,7 @@ impl Add<u32> for Length {
     type Output = Result<Self>;
 
     fn add(self, other: u32) -> Result<Self> {
-        self + Length::try_from(other)?
+        self + Length::from(other)
     }
 }
 
@@ -143,10 +230,10 @@ impl Sub for Length {
     type Output = Result<Self>;
 
     fn sub(self, other: Length) -> Result<Self> {
-        self.0
-            .checked_sub(other.0)
+        self.inner
+            .checked_sub(other.inner)
             .ok_or_else(|| ErrorKind::Overflow.into())
-            .and_then(TryInto::try_into)
+            .map(Self::new)
     }
 }
 
@@ -160,31 +247,25 @@ impl Sub<Length> for Result<Length> {
 
 impl From<u8> for Length {
     fn from(len: u8) -> Length {
-        Length(len.into())
+        Length::new(len.into())
     }
 }
 
 impl From<u16> for Length {
     fn from(len: u16) -> Length {
-        Length(len.into())
+        Length::new(len.into())
+    }
+}
+
+impl From<u32> for Length {
+    fn from(len: u32) -> Length {
+        Length::new(len)
     }
 }
 
 impl From<Length> for u32 {
     fn from(length: Length) -> u32 {
-        length.0
-    }
-}
-
-impl TryFrom<u32> for Length {
-    type Error = Error;
-
-    fn try_from(len: u32) -> Result<Length> {
-        if len <= Self::MAX.0 {
-            Ok(Length(len))
-        } else {
-            Err(ErrorKind::Overflow.into())
-        }
+        length.inner
     }
 }
 
@@ -192,9 +273,7 @@ impl TryFrom<usize> for Length {
     type Error = Error;
 
     fn try_from(len: usize) -> Result<Length> {
-        u32::try_from(len)
-            .map_err(|_| ErrorKind::Overflow)?
-            .try_into()
+        Length::new_usize(len)
     }
 }
 
@@ -202,41 +281,54 @@ impl TryFrom<Length> for usize {
     type Error = Error;
 
     fn try_from(len: Length) -> Result<usize> {
-        len.0.try_into().map_err(|_| ErrorKind::Overflow.into())
+        len.inner.try_into().map_err(|_| ErrorKind::Overflow.into())
     }
 }
 
 impl<'a> Decode<'a> for Length {
+    type Error = Error;
+
     fn decode<R: Reader<'a>>(reader: &mut R) -> Result<Length> {
         match reader.read_byte()? {
-            // Note: per X.690 Section 8.1.3.6.1 the byte 0x80 encodes indefinite
-            // lengths, which are not allowed in DER, so disallow that byte.
             len if len < INDEFINITE_LENGTH_OCTET => Ok(len.into()),
-            INDEFINITE_LENGTH_OCTET => Err(ErrorKind::IndefiniteLength.into()),
+            // Note: per X.690 Section 8.1.3.6.1 the byte 0x80 encodes indefinite lengths
+            INDEFINITE_LENGTH_OCTET => match reader.encoding_rules() {
+                // Indefinite lengths are allowed when decoding BER
+                #[cfg(feature = "ber")]
+                EncodingRules::Ber => indefinite::decode_indefinite_length(&mut reader.clone()),
+                // Indefinite lengths are disallowed when decoding DER
+                EncodingRules::Der => Err(reader.error(ErrorKind::IndefiniteLength)),
+            },
             // 1-4 byte variable-sized length prefix
             tag @ 0x81..=0x84 => {
-                let nbytes = tag.checked_sub(0x80).ok_or(ErrorKind::Overlength)? as usize;
+                let nbytes = tag
+                    .checked_sub(0x80)
+                    .ok_or_else(|| reader.error(ErrorKind::Overlength))?
+                    as usize;
+
                 debug_assert!(nbytes <= 4);
 
                 let mut decoded_len = 0u32;
                 for _ in 0..nbytes {
-                    decoded_len = decoded_len.checked_shl(8).ok_or(ErrorKind::Overflow)?
+                    decoded_len = decoded_len
+                        .checked_shl(8)
+                        .ok_or_else(|| reader.error(ErrorKind::Overflow))?
                         | u32::from(reader.read_byte()?);
                 }
 
-                let length = Length::try_from(decoded_len)?;
+                let length = Length::from(decoded_len);
 
                 // X.690 Section 10.1: DER lengths must be encoded with a minimum
                 // number of octets
                 if length.initial_octet() == Some(tag) {
                     Ok(length)
                 } else {
-                    Err(ErrorKind::Overlength.into())
+                    Err(reader.error(ErrorKind::Overlength))
                 }
             }
             _ => {
                 // We specialize to a maximum 4-byte length (including initial octet)
-                Err(ErrorKind::Overlength.into())
+                Err(reader.error(ErrorKind::Overlength))
             }
         }
     }
@@ -244,13 +336,12 @@ impl<'a> Decode<'a> for Length {
 
 impl Encode for Length {
     fn encoded_len(&self) -> Result<Length> {
-        match self.0 {
-            0..=0x7F => Ok(Length(1)),
-            0x80..=0xFF => Ok(Length(2)),
-            0x100..=0xFFFF => Ok(Length(3)),
-            0x10000..=0xFFFFFF => Ok(Length(4)),
-            0x1000000..=MAX_U32 => Ok(Length(5)),
-            _ => Err(ErrorKind::Overflow.into()),
+        match self.inner {
+            0..=0x7F => Ok(Length::new(1)),
+            0x80..=0xFF => Ok(Length::new(2)),
+            0x100..=0xFFFF => Ok(Length::new(3)),
+            0x10000..=0xFFFFFF => Ok(Length::new(4)),
+            0x1000000..=0xFFFFFFFF => Ok(Length::new(5)),
         }
     }
 
@@ -260,7 +351,7 @@ impl Encode for Length {
                 writer.write_byte(tag_byte)?;
 
                 // Strip leading zeroes
-                match self.0.to_be_bytes() {
+                match self.inner.to_be_bytes() {
                     [0, 0, 0, byte] => writer.write_byte(byte),
                     [0, 0, bytes @ ..] => writer.write(&bytes),
                     [0, bytes @ ..] => writer.write(&bytes),
@@ -268,29 +359,32 @@ impl Encode for Length {
                 }
             }
             #[allow(clippy::cast_possible_truncation)]
-            None => writer.write_byte(self.0 as u8),
+            None => writer.write_byte(self.inner as u8),
         }
     }
 }
 
 impl DerOrd for Length {
     fn der_cmp(&self, other: &Self) -> Result<Ordering> {
-        let mut buf1 = [0u8; MAX_DER_OCTETS];
-        let mut buf2 = [0u8; MAX_DER_OCTETS];
+        // The DER encoding has the same ordering as the integer value
+        Ok(self.inner.cmp(&other.inner))
+    }
+}
 
-        let mut encoder1 = SliceWriter::new(&mut buf1);
-        encoder1.encode(self)?;
+impl fmt::Debug for Length {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[cfg(feature = "ber")]
+        if self.indefinite {
+            return write!(f, "Length([indefinite])");
+        }
 
-        let mut encoder2 = SliceWriter::new(&mut buf2);
-        encoder2.encode(other)?;
-
-        Ok(encoder1.finish()?.cmp(encoder2.finish()?))
+        f.debug_tuple("Length").field(&self.inner).finish()
     }
 }
 
 impl fmt::Display for Length {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        self.inner.fmt(f)
     }
 }
 
@@ -299,7 +393,7 @@ impl fmt::Display for Length {
 #[cfg(feature = "arbitrary")]
 impl<'a> arbitrary::Arbitrary<'a> for Length {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(Self(u.int_in_range(0..=MAX_U32)?))
+        Ok(Self::new(u.arbitrary()?))
     }
 
     fn size_hint(depth: usize) -> (usize, Option<usize>) {
@@ -307,113 +401,10 @@ impl<'a> arbitrary::Arbitrary<'a> for Length {
     }
 }
 
-/// Length type with support for indefinite lengths as used by ASN.1 BER,
-/// as described in X.690 Section 8.1.3.6:
-///
-/// > 8.1.3.6 For the indefinite form, the length octets indicate that the
-/// > contents octets are terminated by end-of-contents
-/// > octets (see 8.1.5), and shall consist of a single octet.
-/// >
-/// > 8.1.3.6.1 The single octet shall have bit 8 set to one, and bits 7 to
-/// > 1 set to zero.
-/// >
-/// > 8.1.3.6.2 If this form of length is used, then end-of-contents octets
-/// > (see 8.1.5) shall be present in the encoding following the contents
-/// > octets.
-///
-/// Indefinite lengths are non-canonical and therefore invalid DER, however
-/// there are interoperability corner cases where we have little choice but to
-/// tolerate some BER productions where this is helpful.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct IndefiniteLength(Option<Length>);
-
-impl IndefiniteLength {
-    /// Length of `0`.
-    pub const ZERO: Self = Self(Some(Length::ZERO));
-
-    /// Length of `1`.
-    pub const ONE: Self = Self(Some(Length::ONE));
-
-    /// Indefinite length.
-    pub const INDEFINITE: Self = Self(None);
-}
-
-impl IndefiniteLength {
-    /// Create a definite length from a type which can be converted into a
-    /// `Length`.
-    pub fn new(length: impl Into<Length>) -> Self {
-        Self(Some(length.into()))
-    }
-
-    /// Is this length definite?
-    pub fn is_definite(self) -> bool {
-        self.0.is_some()
-    }
-    /// Is this length indefinite?
-    pub fn is_indefinite(self) -> bool {
-        self.0.is_none()
-    }
-}
-
-impl<'a> Decode<'a> for IndefiniteLength {
-    fn decode<R: Reader<'a>>(reader: &mut R) -> Result<IndefiniteLength> {
-        if reader.peek_byte() == Some(INDEFINITE_LENGTH_OCTET) {
-            // Consume the byte we already peeked at.
-            let byte = reader.read_byte()?;
-            debug_assert_eq!(byte, INDEFINITE_LENGTH_OCTET);
-
-            Ok(Self::INDEFINITE)
-        } else {
-            Length::decode(reader).map(Into::into)
-        }
-    }
-}
-
-impl Encode for IndefiniteLength {
-    fn encoded_len(&self) -> Result<Length> {
-        match self.0 {
-            Some(length) => length.encoded_len(),
-            None => Ok(Length::ONE),
-        }
-    }
-
-    fn encode(&self, writer: &mut impl Writer) -> Result<()> {
-        match self.0 {
-            Some(length) => length.encode(writer),
-            None => writer.write_byte(INDEFINITE_LENGTH_OCTET),
-        }
-    }
-}
-
-impl From<Length> for IndefiniteLength {
-    fn from(length: Length) -> IndefiniteLength {
-        Self(Some(length))
-    }
-}
-
-impl From<Option<Length>> for IndefiniteLength {
-    fn from(length: Option<Length>) -> IndefiniteLength {
-        IndefiniteLength(length)
-    }
-}
-
-impl From<IndefiniteLength> for Option<Length> {
-    fn from(length: IndefiniteLength) -> Option<Length> {
-        length.0
-    }
-}
-
-impl TryFrom<IndefiniteLength> for Length {
-    type Error = Error;
-
-    fn try_from(length: IndefiniteLength) -> Result<Length> {
-        length.0.ok_or_else(|| ErrorKind::IndefiniteLength.into())
-    }
-}
-
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{IndefiniteLength, Length};
+    use super::Length;
     use crate::{Decode, DerOrd, Encode, ErrorKind};
     use core::cmp::Ordering;
 
@@ -439,14 +430,18 @@ mod tests {
         );
 
         assert_eq!(
-            Length::try_from(0x10000u32).unwrap(),
+            Length::from(0x10000u32),
             Length::from_der(&[0x83, 0x01, 0x00, 0x00]).unwrap()
+        );
+        assert_eq!(
+            Length::from(0xFFFFFFFFu32),
+            Length::from_der(&[0x84, 0xFF, 0xFF, 0xFF, 0xFF]).unwrap()
         );
     }
 
     #[test]
     fn encode() {
-        let mut buffer = [0u8; 4];
+        let mut buffer = [0u8; 5];
 
         assert_eq!(&[0x00], Length::ZERO.encode_to_slice(&mut buffer).unwrap());
 
@@ -472,29 +467,15 @@ mod tests {
 
         assert_eq!(
             &[0x83, 0x01, 0x00, 0x00],
-            Length::try_from(0x10000u32)
-                .unwrap()
+            Length::from(0x10000u32)
                 .encode_to_slice(&mut buffer)
                 .unwrap()
         );
-    }
-
-    #[test]
-    fn indefinite_lengths() {
-        // DER disallows indefinite lengths
-        assert!(Length::from_der(&[0x80]).is_err());
-
-        // The `IndefiniteLength` type supports them
-        let indefinite_length = IndefiniteLength::from_der(&[0x80]).unwrap();
-        assert!(indefinite_length.is_indefinite());
-        assert_eq!(indefinite_length, IndefiniteLength::INDEFINITE);
-
-        // It also supports definite lengths.
-        let length = IndefiniteLength::from_der(&[0x83, 0x01, 0x00, 0x00]).unwrap();
-        assert!(length.is_definite());
         assert_eq!(
-            Length::try_from(0x10000u32).unwrap(),
-            length.try_into().unwrap()
+            &[0x84, 0xFF, 0xFF, 0xFF, 0xFF],
+            Length::from(0xFFFFFFFFu32)
+                .encode_to_slice(&mut buffer)
+                .unwrap()
         );
     }
 
@@ -502,7 +483,7 @@ mod tests {
     fn add_overflows_when_max_length_exceeded() {
         let result = Length::MAX + Length::ONE;
         assert_eq!(
-            result.err().map(|err| err.kind()),
+            result.err().map(super::super::error::Error::kind),
             Some(ErrorKind::Overflow)
         );
     }
@@ -510,5 +491,10 @@ mod tests {
     #[test]
     fn der_ord() {
         assert_eq!(Length::ONE.der_cmp(&Length::MAX).unwrap(), Ordering::Less);
+        assert_eq!(Length::ONE.der_cmp(&Length::ONE).unwrap(), Ordering::Equal);
+        assert_eq!(
+            Length::ONE.der_cmp(&Length::ZERO).unwrap(),
+            Ordering::Greater
+        );
     }
 }

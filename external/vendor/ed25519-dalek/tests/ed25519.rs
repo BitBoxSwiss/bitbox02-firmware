@@ -20,6 +20,7 @@ use hex_literal::hex;
 #[cfg(test)]
 mod vectors {
     use super::*;
+    use getrandom::{SysRng, rand_core::UnwrapErr};
 
     use curve25519_dalek::{
         constants::ED25519_BASEPOINT_POINT,
@@ -27,10 +28,11 @@ mod vectors {
         scalar::Scalar,
         traits::IsIdentity,
     };
-    use sha2::{digest::Digest, Sha512};
+
+    #[cfg(not(feature = "digest"))]
+    use sha2::{Sha512, digest::Digest};
 
     use std::{
-        convert::TryFrom,
         fs::File,
         io::{BufRead, BufReader},
         ops::Neg,
@@ -103,7 +105,9 @@ mod vectors {
         let sec_bytes = hex!("833fe62409237b9d62ec77587520911e9a759cec1d19755b7da901b96dca3d42");
         let pub_bytes = hex!("ec172b93ad5e563bf4932c70e1245034c35467ef2efd4d64ebf819683467e2bf");
         let msg_bytes = hex!("616263");
-        let sig_bytes = hex!("98a70222f0b8121aa9d30f813d683f809e462b469c7ff87639499bb94e6dae4131f85042463c2a355a2003d062adf5aaa10b8c61e636062aaad11c2a26083406");
+        let sig_bytes = hex!(
+            "98a70222f0b8121aa9d30f813d683f809e462b469c7ff87639499bb94e6dae4131f85042463c2a355a2003d062adf5aaa10b8c61e636062aaad11c2a26083406"
+        );
 
         let signing_key = SigningKey::from_bytes(&sec_bytes);
         let expected_verifying_key = VerifyingKey::from_bytes(&pub_bytes).unwrap();
@@ -179,7 +183,7 @@ mod vectors {
 
     // Pick a random Scalar
     fn non_null_scalar() -> Scalar {
-        let mut rng = rand::rngs::OsRng;
+        let mut rng = UnwrapErr(SysRng);
         let mut s_candidate = Scalar::random(&mut rng);
         while s_candidate == Scalar::ZERO {
             s_candidate = Scalar::random(&mut rng);
@@ -267,29 +271,31 @@ mod vectors {
         let signature = serialize_signature(&r, &s);
         let vk = VerifyingKey::from_bytes(pubkey.compress().as_bytes()).unwrap();
         let sig = Signature::try_from(&signature[..]).unwrap();
-        assert!(vk
-            .verify_prehashed(message1.clone(), context_str, &sig)
-            .is_ok());
-        assert!(vk
-            .verify_prehashed(message2.clone(), context_str, &sig)
-            .is_ok());
+        assert!(
+            vk.verify_prehashed(message1.clone(), context_str, &sig)
+                .is_ok()
+        );
+        assert!(
+            vk.verify_prehashed(message2.clone(), context_str, &sig)
+                .is_ok()
+        );
 
         // Check that verify_prehashed_strict fails on both sigs
-        assert!(vk
-            .verify_prehashed_strict(message1.clone(), context_str, &sig)
-            .is_err());
-        assert!(vk
-            .verify_prehashed_strict(message2.clone(), context_str, &sig)
-            .is_err());
+        assert!(
+            vk.verify_prehashed_strict(message1.clone(), context_str, &sig)
+                .is_err()
+        );
+        assert!(
+            vk.verify_prehashed_strict(message2.clone(), context_str, &sig)
+                .is_err()
+        );
     }
 }
 
 #[cfg(feature = "rand_core")]
 mod integrations {
     use super::*;
-    use rand::rngs::OsRng;
-    #[cfg(feature = "digest")]
-    use sha2::Sha512;
+    use getrandom::{SysRng, rand_core::UnwrapErr};
     use std::collections::HashMap;
 
     #[test]
@@ -299,7 +305,7 @@ mod integrations {
         let good: &[u8] = "test message".as_bytes();
         let bad: &[u8] = "wrong message".as_bytes();
 
-        let mut csprng = OsRng;
+        let mut csprng = UnwrapErr(SysRng);
 
         let signing_key: SigningKey = SigningKey::generate(&mut csprng);
         let verifying_key = signing_key.verifying_key();
@@ -337,11 +343,55 @@ mod integrations {
 
     #[cfg(feature = "digest")]
     #[test]
+    fn sign_verify_digest_equivalence() {
+        // TestSignVerify
+
+        let mut csprng = UnwrapErr(SysRng);
+
+        let good: &[u8] = "test message".as_bytes();
+        let bad: &[u8] = "wrong message".as_bytes();
+
+        let keypair: SigningKey = SigningKey::generate(&mut csprng);
+        let good_sig: Signature = keypair.sign(good);
+        let bad_sig: Signature = keypair.sign(bad);
+
+        let mut verifier = keypair.verify_stream(&good_sig).unwrap();
+        verifier.update(good);
+        assert!(
+            verifier.finalize_and_verify().is_ok(),
+            "Verification of a valid signature failed!"
+        );
+
+        let mut verifier = keypair.verify_stream(&bad_sig).unwrap();
+        verifier.update(good);
+        assert!(
+            verifier.finalize_and_verify().is_err(),
+            "Verification of a signature on a different message passed!"
+        );
+
+        let mut verifier = keypair.verify_stream(&good_sig).unwrap();
+        verifier.update("test ");
+        verifier.update("message");
+        assert!(
+            verifier.finalize_and_verify().is_ok(),
+            "Verification of a valid signature failed!"
+        );
+
+        let mut verifier = keypair.verify_stream(&good_sig).unwrap();
+        verifier.update(bad);
+        assert!(
+            verifier.finalize_and_verify().is_err(),
+            "Verification of a signature on a different message passed!"
+        );
+    }
+
+    #[cfg(feature = "digest")]
+    #[test]
     fn ed25519ph_sign_verify() {
         let good: &[u8] = b"test message";
         let bad: &[u8] = b"wrong message";
 
-        let mut csprng = OsRng;
+        let mut csprng = UnwrapErr(SysRng);
 
         // ugh… there's no `impl Copy for Sha512`… i hope we can all agree these are the same hashes
         let mut prehashed_good1: Sha512 = Sha512::default();
@@ -416,7 +466,7 @@ mod integrations {
             b"Fuck dumbin' it down, spit ice, skip jewellery: Molotov cocktails on me like accessories.",
             b"Hey, I never cared about your bucks, so if I run up with a mask on, probably got a gas can too.",
             b"And I'm not here to fill 'er up. Nope, we came to riot, here to incite, we don't want any of your stuff.", ];
-        let mut csprng = OsRng;
+        let mut csprng = UnwrapErr(SysRng);
         let mut signing_keys: Vec<SigningKey> = Vec::new();
         let mut signatures: Vec<Signature> = Vec::new();
 
@@ -435,7 +485,7 @@ mod integrations {
 
     #[test]
     fn public_key_hash_trait_check() {
-        let mut csprng = OsRng {};
+        let mut csprng = UnwrapErr(SysRng);
         let secret: SigningKey = SigningKey::generate(&mut csprng);
         let public_from_secret: VerifyingKey = (&secret).into();
 
@@ -459,6 +509,29 @@ mod integrations {
         assert_eq!(v, "Second public key");
         assert_eq!(m.len(), 2usize);
     }
+
+    #[test]
+    fn montgomery_and_edwards_conversion() {
+        let mut rng = UnwrapErr(SysRng);
+        let signing_key = SigningKey::generate(&mut rng);
+        let verifying_key = signing_key.verifying_key();
+
+        let ed = verifying_key.to_edwards();
+
+        // Check that to_edwards and From return same result:
+        assert_eq!(ed, curve25519_dalek::EdwardsPoint::from(verifying_key));
+
+        // The verifying key serialization is simply the compressed Edwards point
+        assert_eq!(verifying_key.to_bytes(), ed.compress().0);
+
+        // Check that modulo sign, to_montgomery().to_edwards() returns the original point
+        let monty = verifying_key.to_montgomery();
+        let via_monty0 = monty.to_edwards(0).unwrap();
+        let via_monty1 = monty.to_edwards(1).unwrap();
+
+        assert!(via_monty0 != via_monty1);
+        assert!(ed == via_monty0 || ed == via_monty1);
+    }
 }
 
 #[cfg(all(test, feature = "serde"))]
@@ -474,8 +547,12 @@ mod serialisation {
 
     use super::*;
 
-    // The size for bincode to serialize the length of a byte array.
-    static BINCODE_INT_LENGTH: usize = 8;
+    // The minimum number of bytes needed for postcard to encode a length prefix for a sequence. We
+    // only want to serialize secret keys, signatures, and (compressed) public keys, all of which
+    // have a `Serialize` impl that calls `serialize_bytes` (which serializes a seq, in postcard
+    // parlance) on the byte representation.  Since all of these have a byte representation of
+    // length <128, the initial `varint(usize)` will be precisely 1 byte for all of them.
+    static POSTCARD_MIN_LEN_SIZE: usize = 1;
 
     static PUBLIC_KEY_BYTES: [u8; PUBLIC_KEY_LENGTH] = [
         130, 039, 155, 015, 062, 076, 188, 063, 124, 122, 026, 251, 233, 253, 225, 220, 014, 041,
@@ -496,10 +573,10 @@ mod serialisation {
     ];
 
     #[test]
-    fn serialize_deserialize_signature_bincode() {
+    fn serialize_deserialize_signature_postcard() {
         let signature: Signature = Signature::from_bytes(&SIGNATURE_BYTES);
-        let encoded_signature: Vec<u8> = bincode::serialize(&signature).unwrap();
-        let decoded_signature: Signature = bincode::deserialize(&encoded_signature).unwrap();
+        let encoded_signature: Vec<u8> = postcard::to_allocvec(&signature).unwrap();
+        let decoded_signature: Signature = postcard::from_bytes(&encoded_signature).unwrap();
 
         assert_eq!(signature, decoded_signature);
     }
@@ -514,11 +591,11 @@ mod serialisation {
     }
 
     #[test]
-    fn serialize_deserialize_verifying_key_bincode() {
+    fn serialize_deserialize_verifying_key_postcard() {
         let verifying_key: VerifyingKey = VerifyingKey::from_bytes(&PUBLIC_KEY_BYTES).unwrap();
-        let encoded_verifying_key: Vec<u8> = bincode::serialize(&verifying_key).unwrap();
+        let encoded_verifying_key: Vec<u8> = postcard::to_allocvec(&verifying_key).unwrap();
         let decoded_verifying_key: VerifyingKey =
-            bincode::deserialize(&encoded_verifying_key).unwrap();
+            postcard::from_bytes(&encoded_verifying_key).unwrap();
 
         assert_eq!(
             &PUBLIC_KEY_BYTES[..],
@@ -565,10 +642,10 @@ mod serialisation {
     }
 
     #[test]
-    fn serialize_deserialize_signing_key_bincode() {
+    fn serialize_deserialize_signing_key_postcard() {
         let signing_key = SigningKey::from_bytes(&SECRET_KEY_BYTES);
-        let encoded_signing_key: Vec<u8> = bincode::serialize(&signing_key).unwrap();
-        let decoded_signing_key: SigningKey = bincode::deserialize(&encoded_signing_key).unwrap();
+        let encoded_signing_key: Vec<u8> = postcard::to_allocvec(&signing_key).unwrap();
+        let decoded_signing_key: SigningKey = postcard::from_bytes(&encoded_signing_key).unwrap();
 
         #[allow(clippy::needless_range_loop)]
         for i in 0..SECRET_KEY_LENGTH {
@@ -632,8 +709,8 @@ mod serialisation {
     fn serialize_verifying_key_size() {
         let verifying_key: VerifyingKey = VerifyingKey::from_bytes(&PUBLIC_KEY_BYTES).unwrap();
         assert_eq!(
-            bincode::serialized_size(&verifying_key).unwrap() as usize,
-            BINCODE_INT_LENGTH + PUBLIC_KEY_LENGTH
+            postcard::to_allocvec(&verifying_key).unwrap().len(),
+            POSTCARD_MIN_LEN_SIZE + PUBLIC_KEY_LENGTH
         );
     }
 
@@ -641,8 +718,8 @@ mod serialisation {
     fn serialize_signature_size() {
         let signature: Signature = Signature::from_bytes(&SIGNATURE_BYTES);
         assert_eq!(
-            bincode::serialized_size(&signature).unwrap() as usize,
-            SIGNATURE_LENGTH
+            postcard::to_allocvec(&signature).unwrap().len(),
+            POSTCARD_MIN_LEN_SIZE + SIGNATURE_LENGTH
         );
     }
 
@@ -650,8 +727,8 @@ mod serialisation {
     fn serialize_signing_key_size() {
         let signing_key = SigningKey::from_bytes(&SECRET_KEY_BYTES);
         assert_eq!(
-            bincode::serialized_size(&signing_key).unwrap() as usize,
-            BINCODE_INT_LENGTH + SECRET_KEY_LENGTH
+            postcard::to_allocvec(&signing_key).unwrap().len(),
+            POSTCARD_MIN_LEN_SIZE + SECRET_KEY_LENGTH
         );
     }
 }

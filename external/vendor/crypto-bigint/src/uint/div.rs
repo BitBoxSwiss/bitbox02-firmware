@@ -1,597 +1,550 @@
 //! [`Uint`] division operations.
 
-use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CtChoice, Limb, NonZero, Uint, Word, Wrapping};
-use core::ops::{Div, DivAssign, Rem, RemAssign};
-use subtle::CtOption;
+use super::div_limb::Reciprocal;
+use crate::{
+    CheckedDiv, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem, RemAssign,
+    RemLimb, RemMixed, ToUnsigned, Uint, UintRef, Unsigned, Wrapping,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self` / `rhs` using a pre-made reciprocal,
-    /// returns the quotient (q) and remainder (r).
-    #[inline(always)]
-    pub const fn ct_div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
-        div_rem_limb_with_reciprocal(self, reciprocal)
-    }
-
-    /// Computes `self` / `rhs` using a pre-made reciprocal,
-    /// returns the quotient (q) and remainder (r).
-    #[inline(always)]
-    pub fn div_rem_limb_with_reciprocal(
-        &self,
-        reciprocal: &CtOption<Reciprocal>,
-    ) -> CtOption<(Self, Limb)> {
-        reciprocal.map(|r| div_rem_limb_with_reciprocal(self, &r))
-    }
-
-    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
-    /// Returns the truthy value as the third element of the tuple if `rhs != 0`,
-    /// and the falsy value otherwise.
-    #[inline(always)]
-    pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, CtChoice) {
-        let (reciprocal, is_some) = Reciprocal::ct_new(rhs);
-        let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
-        (quo, rem, is_some)
-    }
-
-    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
-    #[inline(always)]
-    pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
-        // Guaranteed to succeed since `rhs` is nonzero.
-        let (quo, rem, _is_some) = self.ct_div_rem_limb(*rhs);
+    /// Computes `self / rhs` using a pre-made reciprocal, returning the quotient
+    /// and remainder.
+    #[must_use]
+    pub const fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        let mut quo = *self;
+        let rem = quo
+            .as_mut_uint_ref()
+            .div_rem_limb_with_reciprocal(reciprocal);
         (quo, rem)
     }
 
-    /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
-    /// and the truthy value for is_some or the falsy value for is_none.
-    ///
-    /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::div_rem`] because
-    /// the value for is_some needs to be checked before using `q` and `r`.
-    ///
-    /// This is variable only with respect to `rhs`.
-    ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
-    /// to `self`.
-    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
-        let mb = rhs.bits_vartime();
-        let mut bd = Self::BITS - mb;
-        let mut rem = *self;
-        let mut quo = Self::ZERO;
-        let mut c = rhs.shl_vartime(bd);
-
-        loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
-            r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c = c.shr_vartime(1);
-            quo = quo.shl_vartime(1);
-        }
-
-        let is_some = Limb(mb as Word).ct_is_nonzero();
-        quo = Self::ct_select(&Self::ZERO, &quo, is_some);
-        (quo, rem, is_some)
+    /// Computes `self / rhs`, returning the quotient and remainder.
+    #[must_use]
+    pub const fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        let mut quo = *self;
+        let rem = quo.as_mut_uint_ref().div_rem_limb(rhs);
+        (quo, rem)
     }
 
-    /// Computes `self` % `rhs`, returns the remainder and
-    /// and the truthy value for is_some or the falsy value for is_none.
-    ///
-    /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::rem`].
-    /// This is variable only with respect to `rhs`.
-    ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
-    /// to `self`.
-    pub const fn const_rem(&self, rhs: &Self) -> (Self, CtChoice) {
-        let mb = rhs.bits_vartime();
-        let mut bd = Self::BITS - mb;
-        let mut rem = *self;
-        let mut c = rhs.shl_vartime(bd);
-
-        loop {
-            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c = c.shr_vartime(1);
-        }
-
-        let is_some = Limb(mb as Word).ct_is_nonzero();
-        (rem, is_some)
+    /// Computes `self % rhs` using a pre-made reciprocal.
+    #[must_use]
+    pub const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        self.as_uint_ref()
+            .rem_limb_with_reciprocal(reciprocal, Limb::ZERO)
     }
 
-    /// Computes `self` % `rhs`, returns the remainder and
-    /// and the truthy value for is_some or the falsy value for is_none.
+    /// Computes `self % rhs` for a `Limb`-sized divisor.
+    #[must_use]
+    pub const fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        self.as_uint_ref().rem_limb(rhs)
+    }
+
+    /// Computes `self` / `rhs`, returning the quotient and the remainder.
     ///
-    /// This is variable only with respect to `rhs`.
+    /// This function is constant-time with respect to both `self` and `rhs`.
+    #[must_use]
+    pub const fn div_rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        (x, y)
+    }
+
+    /// Computes `self` / `rhs`, returning the quotient and the remainder.
+    ///
+    /// This is variable-time only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn const_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
-        let mb = rhs.bits_vartime();
+    #[inline]
+    #[must_use]
+    pub const fn div_rem_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        (x, y)
+    }
 
-        // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
-        let mut bd = (2 * Self::BITS) - mb;
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub const fn div_exact<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = quo.as_mut_uint_ref().div_exact(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
 
-        // The wide integer to reduce, split into two halves
-        let (mut lower, mut upper) = lower_upper;
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    ///
+    /// This is variable-time only with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect to `self`.
+    #[must_use]
+    pub const fn div_exact_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = quo
+            .as_mut_uint_ref()
+            .div_exact_vartime(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
 
-        // Factor of the modulus, split into two halves
-        let mut c = Self::shl_vartime_wide((*rhs, Uint::ZERO), bd);
+    /// Computes self / rhs, assigning the quotient to `self` and returning the remainder.
+    #[must_use]
+    pub(crate) fn div_rem_assign<Rhs: Unsigned>(&mut self, rhs: NonZero<Rhs>) -> Rhs {
+        let mut rem = rhs.get();
+        self.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        rem
+    }
 
-        loop {
-            let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
-            let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
+    /// Computes `self` % `rhs`.
+    #[must_use]
+    pub const fn rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Uint<RHS_LIMBS> {
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        y
+    }
 
-            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow.0));
-            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow.0));
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c = Self::shr_vartime_wide(c, 1);
-        }
+    /// Computes `self` % `rhs` in variable-time with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    #[inline]
+    #[must_use]
+    pub const fn rem_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Uint<RHS_LIMBS> {
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        y
+    }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
-        (lower, is_some)
+    /// Computes `self` % `rhs` for a double-width `Uint`.
+    #[inline]
+    #[must_use]
+    pub const fn rem_wide(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
+        let mut y = *rhs.as_ref();
+        UintRef::rem_wide(
+            (
+                lower_upper.0.as_mut_uint_ref(),
+                lower_upper.1.as_mut_uint_ref(),
+            ),
+            y.as_mut_uint_ref(),
+        );
+        y
+    }
+
+    /// Computes `self` % `rhs`.
+    ///
+    /// This is variable-time only with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    #[inline]
+    #[must_use]
+    pub const fn rem_wide_vartime(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
+        let mut y = *rhs.as_ref();
+        UintRef::rem_wide_vartime(
+            (
+                lower_upper.0.as_mut_uint_ref(),
+                lower_upper.1.as_mut_uint_ref(),
+            ),
+            y.as_mut_uint_ref(),
+        );
+        y
     }
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
-    pub const fn rem2k(&self, k: usize) -> Self {
-        let highest = (LIMBS - 1) as u32;
-        let index = k as u32 / (Limb::BITS as u32);
-        let le = Limb::ct_le(Limb::from_u32(index), Limb::from_u32(highest));
-        let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
-
-        let base = k % Limb::BITS;
-        let mask = (1 << base) - 1;
-        let mut out = *self;
-
-        let outmask = Limb(out.limbs[word].0 & mask);
-
-        out.limbs[word] = Limb::ct_select(out.limbs[word], outmask, le);
-
-        let mut i = word + 1;
-        while i < LIMBS {
-            out.limbs[i] = Limb::ZERO;
-            i += 1;
-        }
-
-        out
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, Limb};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let k = 3; // 2^3 = 8
+    /// let remainder = a.rem2k_vartime(k);
+    ///
+    /// // As 10 % 8 = 2
+    /// assert_eq!(remainder, U448::from(2_u64));
+    /// ```
+    #[must_use]
+    pub const fn rem2k_vartime(&self, k: u32) -> Self {
+        self.restrict_bits(k)
     }
 
-    /// Computes self / rhs, returns the quotient, remainder.
-    pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        // Since `rhs` is nonzero, this should always hold.
-        let (q, r, _c) = self.ct_div_rem(rhs);
-        (q, r)
-    }
-
-    /// Computes self % rhs, returns the remainder.
-    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        // Since `rhs` is nonzero, this should always hold.
-        let (r, _c) = self.const_rem(rhs);
-        r
-    }
-
-    /// Wrapped division is just normal division i.e. `self` / `rhs`
+    /// Wrapped division is just normal division i.e. `self` / `rhs`.
+    ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
+    pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem(rhs).0
+    }
+
+    /// Wrapped division is just normal division i.e. `self` / `rhs`.
     ///
-    /// Panics if `rhs == 0`.
-    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
-        let (q, _, c) = self.ct_div_rem(rhs);
-        assert!(c.is_true_vartime(), "divide by zero");
-        q
+    /// There’s no way wrapping could ever happen.
+    /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
+    pub const fn wrapping_div_vartime<const RHS: usize>(&self, rhs: &NonZero<Uint<RHS>>) -> Self {
+        self.div_rem_vartime(rhs).0
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
-    /// only if the rhs != 0
-    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
-        NonZero::new(*rhs).map(|rhs| {
-            let (q, _r) = self.div_rem(&rhs);
-            q
-        })
+    /// only if the rhs != 0.
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero};
+    ///
+    /// let a = U448::from(8_u64);
+    /// let result = NonZero::new(U448::from(4_u64))
+    ///     .map(|b| a.div_rem(&b))
+    ///     .expect("Division by zero");
+    ///
+    /// assert_eq!(result.0, U448::from(2_u64));
+    ///
+    /// // Check division by zero
+    /// let zero = U448::from(0_u64);
+    /// assert!(a.checked_div(&zero).is_none().to_bool(), "should be None for division by zero");
+    /// ```
+    #[must_use]
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
+        NonZero::new(*rhs).map(|rhs| self.div_rem(&rhs).0)
     }
 
-    /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
-    /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     ///
-    /// Panics if `rhs == 0`.
-    pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
-        let (r, c) = self.const_rem(rhs);
-        assert!(c.is_true_vartime(), "modulo zero");
-        r
+    /// # Panics
+    /// - if `rhs == 0`.
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::U448;
+    ///
+    /// let a = U448::from(10_u64);
+    /// let b = U448::from(3_u64);
+    /// let remainder = a.wrapping_rem_vartime(&b);
+    ///
+    /// assert_eq!(remainder, U448::from(1_u64));
+    /// ```
+    #[must_use]
+    pub const fn wrapping_rem_vartime(&self, rhs: &Self) -> Self {
+        let nz_rhs = rhs.to_nz().expect_copied("non-zero divisor");
+        self.rem_vartime(&nz_rhs)
     }
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let remainder_option = NonZero::new(U448::from(3_u64))
+    ///     .map(|b| a.rem(&b));
+    ///
+    /// assert!(bool::from(remainder_option.is_some()));
+    ///
+    /// // Check reduction by zero
+    /// let zero = U448::from(0_u64);
+    ///
+    /// assert!(a.checked_rem(&zero).is_none().to_bool(), "should be None for reduction by zero");
+    /// ```
+    #[must_use]
+    pub fn checked_rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> CtOption<Uint<RHS_LIMBS>> {
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
 }
 
-//
-// Division by a single limb
-//
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self / *rhs
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
+        self.checked_div(rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for Uint<LIMBS> {
+impl<const LIMBS: usize, Rhs: Unsigned> Div<Rhs> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
+    #[inline]
+    fn div(self, rhs: Rhs) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Limb>> for Uint<LIMBS> {
+impl<const LIMBS: usize, Rhs: Unsigned> Div<Rhs> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (q, _, _) = self.ct_div_rem_limb(*rhs);
-        q
+    #[inline]
+    fn div(self, rhs: Rhs) -> Self::Output {
+        self / NonZero::new(rhs).expect("attempt to divide with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self /= *rhs;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        let mut quo = *self;
+        let _rem = quo.div_rem_assign(rhs.to_unsigned());
+        quo
     }
 }
 
-impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: NonZero<Limb>) {
-        *self = *self / rhs;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn div(mut self, rhs: &NonZero<Rhs>) -> Self::Output {
+        let _rem = self.div_rem_assign(rhs.to_unsigned());
+        self
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
+        let mut quo = *self;
+        let _rem = quo.div_rem_assign(rhs);
+        quo
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn div(mut self, rhs: NonZero<Rhs>) -> Self::Output {
+        let _rem = self.div_rem_assign(rhs);
+        self
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> DivAssign<&NonZero<Rhs>> for Uint<LIMBS> {
+    fn div_assign(&mut self, rhs: &NonZero<Rhs>) {
+        let _rem = self.div_rem_assign(rhs.to_unsigned());
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> DivAssign<NonZero<Rhs>> for Uint<LIMBS> {
+    fn div_assign(&mut self, rhs: NonZero<Rhs>) {
+        let _rem = self.div_rem_assign(rhs);
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Self;
+
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
         Wrapping(self.0 / rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping(self.0 / rhs)
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: NonZero<Limb>) {
-        *self /= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self % rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (_, r, _) = self.ct_div_rem_limb(*rhs);
-        r
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = (*self % rhs).into();
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<NonZero<Limb>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: NonZero<Limb>) {
-        *self %= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        Wrapping(self.0 % rhs)
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self % rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: NonZero<Limb>) {
-        *self %= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping((self.0 % rhs).into())
-    }
-}
-
-//
-// Division by an Uint
-//
-
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        let (q, _) = self.div_rem(&rhs);
-        q
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self /= *rhs
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self = *self / rhs;
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
         Wrapping(self.0 / rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self / rhs
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Self;
 
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self / *rhs
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        self / *rhs
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> DivAssign<&NonZero<Rhs>>
+    for Wrapping<Uint<LIMBS>>
+{
+    fn div_assign(&mut self, rhs: &NonZero<Rhs>) {
+        self.0 /= rhs;
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self = Wrapping(self.0 / rhs);
+impl<const LIMBS: usize, Rhs: Unsigned> DivAssign<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    fn div_assign(&mut self, rhs: NonZero<Rhs>) {
+        self.0 /= rhs;
     }
 }
 
-impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self /= &rhs;
+impl<const LIMBS: usize> DivVartime for Uint<LIMBS> {
+    fn div_vartime(&self, rhs: &NonZero<Uint<LIMBS>>) -> Self {
+        self.div_rem_vartime(rhs).0
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<Rhs> for &Uint<LIMBS> {
+    type Output = Rhs;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    #[inline]
+    fn rem(self, rhs: Rhs) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<Rhs> for Uint<LIMBS> {
+    type Output = Rhs;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        Self::rem(&self, &rhs)
+    #[inline]
+    fn rem(self, rhs: Rhs) -> Self::Output {
+        self % NonZero::new(rhs).expect("attempt to calculate the remainder with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self %= *rhs
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Rhs::Unsigned;
+
+    #[inline]
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        (*self).rem(rhs)
     }
 }
 
-impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self = *self % rhs;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Rhs::Unsigned;
+
+    #[inline]
+    fn rem(mut self, rhs: &NonZero<Rhs>) -> Self::Output {
+        self.div_rem_assign(rhs.to_unsigned())
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Rhs;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    #[inline]
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
+        (*self).rem(rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Rhs;
+
+    #[inline]
+    fn rem(mut self, rhs: NonZero<Rhs>) -> Self::Output {
+        self.div_rem_assign(rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs>;
+
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
         Wrapping(self.0 % rhs)
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs>;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs::Unsigned>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        *self % *rhs
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        *self % rhs.to_unsigned()
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs::Unsigned>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
-        self % *rhs
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        self % rhs.to_unsigned()
     }
 }
 
-impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
+impl<const LIMBS: usize, Rhs: Unsigned> RemAssign<NonZero<Rhs>> for Uint<LIMBS> {
+    fn rem_assign(&mut self, rhs: NonZero<Rhs>) {
+        let rem = *self % rhs;
+        *self = rem.as_uint_ref().to_uint_resize();
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> RemAssign<&NonZero<Rhs>> for Uint<LIMBS> {
+    fn rem_assign(&mut self, rhs: &NonZero<Rhs>) {
+        *self %= rhs.to_unsigned();
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> RemAssign<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    fn rem_assign(&mut self, rhs: NonZero<Rhs>) {
         *self %= &rhs;
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self = Wrapping(self.0 % rhs)
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> RemAssign<&NonZero<Rhs>>
+    for Wrapping<Uint<LIMBS>>
+{
+    fn rem_assign(&mut self, rhs: &NonZero<Rhs>) {
+        self.0 %= rhs;
+    }
+}
+
+impl<const LIMBS: usize> DivRemLimb for Uint<LIMBS> {
+    fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        Self::div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
+    fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        Self::rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> RemMixed<Rhs> for Uint<LIMBS> {
+    fn rem_mixed(&self, reductor: &NonZero<Rhs>) -> Rhs {
+        let (mut quo, mut rem) = (*self, reductor.as_ref().clone());
+        quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        rem
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
-    use super::*;
-    use crate::{limb::HI_BIT, Limb, U256};
-
-    #[cfg(feature = "rand")]
-    use {
-        crate::{CheckedMul, Random},
-        rand_chacha::ChaChaRng,
-        rand_core::RngCore,
-        rand_core::SeedableRng,
+    use crate::{
+        CtAssign, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,
+        Uint, Word, Wrapping, Zero,
     };
+
+    #[cfg(feature = "rand_core")]
+    use {crate::Random, chacha20::ChaCha8Rng, rand_core::Rng, rand_core::SeedableRng};
 
     #[test]
     fn div_word() {
@@ -608,26 +561,45 @@ mod tests {
             (1u64, 13u64, 0u64, 1u64),
         ] {
             let lhs = U256::from(*n);
-            let rhs = U256::from(*d);
-            let (q, r, is_some) = lhs.ct_div_rem(&rhs);
-            assert!(is_some.is_true_vartime());
+            let rhs = NonZero::new(U256::from(*d)).unwrap();
+            let (q, r) = lhs.div_rem(&rhs);
             assert_eq!(U256::from(*e), q);
             assert_eq!(U256::from(*ee), r);
+            let (q, r) = lhs.div_rem_vartime(&rhs);
+            assert_eq!(U256::from(*e), q);
+            assert_eq!(U256::from(*ee), r);
+            let q = lhs.div_exact(&rhs).into_option();
+            assert_eq!(if *ee == 0 { Some(U256::from(*e)) } else { None }, q);
+            let q = lhs.div_exact_vartime(&rhs).into_option();
+            assert_eq!(if *ee == 0 { Some(U256::from(*e)) } else { None }, q);
         }
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn div() {
-        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let num = U256::random(&mut rng).shr_vartime(128);
-            let den = U256::random(&mut rng).shr_vartime(128);
-            let n = num.checked_mul(&den);
+            let num = U256::random_from_rng(&mut rng)
+                .overflowing_shr_vartime(128)
+                .unwrap();
+            let den = NonZero::new(
+                U256::random_from_rng(&mut rng)
+                    .overflowing_shr_vartime(128)
+                    .unwrap(),
+            )
+            .unwrap();
+            let n = num.checked_mul(den.as_ref());
             if n.is_some().into() {
-                let (q, _, is_some) = n.unwrap().ct_div_rem(&den);
-                assert!(is_some.is_true_vartime());
+                let n = n.unwrap();
+                let (q, _) = n.div_rem(&den);
                 assert_eq!(q, num);
+                let (q, _) = n.div_rem_vartime(&den);
+                assert_eq!(q, num);
+                let q = n.div_exact(&den).into_option();
+                assert_eq!(q, Some(num));
+                let q = n.div_exact_vartime(&den).into_option();
+                assert_eq!(q, Some(num));
             }
         }
     }
@@ -637,69 +609,221 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
+        let q = a.wrapping_div(&NonZero::new(b).unwrap());
+        assert_eq!(q, Uint::ZERO);
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
+        let b = NonZero::new(b).unwrap();
         let q = a.wrapping_div(&b);
         assert_eq!(q, Uint::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
-        let q = a.wrapping_div(&b);
-        assert_eq!(q, Uint::ZERO);
-    }
-
-    #[test]
-    fn div_zero() {
-        let (q, r, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
-        assert!(!is_some.is_true_vartime());
-        assert_eq!(q, U256::ZERO);
-        assert_eq!(r, U256::ONE);
     }
 
     #[test]
     fn div_one() {
-        let (q, r, is_some) = U256::from(10u8).ct_div_rem(&U256::ONE);
-        assert!(is_some.is_true_vartime());
+        let (q, r) = U256::from(10u8).div_rem(&NonZero::new(U256::ONE).unwrap());
+        assert_eq!(q, U256::from(10u8));
+        assert_eq!(r, U256::ZERO);
+        let (q, r) = U256::from(10u8).div_rem_vartime(&NonZero::new(U256::ONE).unwrap());
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
     }
 
     #[test]
-    fn reduce_one() {
-        let (r, is_some) = U256::from(10u8).const_rem(&U256::ONE);
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::ZERO);
+    fn div_edge() {
+        let lo = U128::from_be_hex("00000000000000000000000000000001");
+        let hi = U128::from_be_hex("00000000000000000000000000000001");
+        let y = U128::from_be_hex("00000000000000010000000000000001");
+        let x = U256::from((lo, hi));
+        let expect = (U64::MAX.resize::<{ U256::LIMBS }>(), U256::from(2u64));
+
+        let (q1, r1) = Uint::div_rem(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!((q1, r1), expect);
+        let (q2, r2) = Uint::div_rem_vartime(&x, &NonZero::new(y).unwrap());
+        assert_eq!((q2, r2.resize()), expect);
+        let r3 = Uint::rem(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!(r3, expect.1);
+        let r4 = Uint::rem_vartime(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!(r4, expect.1);
+        let r5 = Uint::rem_wide((lo, hi), &NonZero::new(y).unwrap());
+        assert_eq!(r5.resize(), expect.1);
+        let r6 = Uint::rem_wide_vartime((lo, hi), &NonZero::new(y).unwrap());
+        assert_eq!(r6.resize(), expect.1);
     }
 
     #[test]
-    fn reduce_zero() {
-        let u = U256::from(10u8);
-        let (r, is_some) = u.const_rem(&U256::ZERO);
-        assert!(!is_some.is_true_vartime());
-        assert_eq!(r, u);
+    fn div_rem_larger_denominator() {
+        // 1 = len(x) < len(y) and x < y
+        let x = U64::from_be_hex("8000000000000000");
+        let y = U128::from_be_hex("00000000000000010000000000000000")
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, Uint::ZERO);
+        assert_eq!(rem, x.resize());
+
+        // 1 = len(x) < len(y) and x > y
+        let x = U64::from_be_hex("8000000000000000");
+        let y = U128::from_be_hex("00000000000000000000000000001000")
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U64::from_be_hex("0008000000000000"));
+        assert_eq!(rem, U128::ZERO);
+
+        // 2 = len(x) < len(y) and x < y
+        let x = U128::from_be_hex("80000000000000008000000000000000");
+        let y =
+            U256::from_be_hex("0000000000000001000000000000000000000000000000010000000000000000")
+                .to_nz()
+                .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U128::ZERO);
+        assert_eq!(rem, x.resize());
+
+        // 2 = len(x) < len(y) and x > y
+        let x = U128::from_be_hex("80000000000000008000000000000000");
+        let y =
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000110000")
+                .to_nz()
+                .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U128::from_be_hex("000007878787878787878f0f0f0f0f0f"));
+        assert_eq!(
+            rem,
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000010000",)
+        );
+    }
+
+    #[test]
+    fn div_rem_larger_numerator() {
+        let denom = U128::from_be_hex("AAAA0000FFFF11117777333344449999");
+        let (full_q, full_r) =
+            U1024::MAX.div_rem(&denom.resize::<{ U1024::LIMBS }>().to_nz().unwrap());
+
+        let (q, r) = U1024::MAX.div_rem(&denom.to_nz().unwrap());
+        assert_eq!(full_q, q);
+        assert_eq!(full_r.resize(), r);
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn div_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(2u64)).unwrap();
+        let c = U256::from(5u64);
+
+        assert_eq!(a / b, c);
+        assert_eq!(a / &b, c);
+        assert_eq!(&a / b, c);
+        assert_eq!(&a / &b, c);
+        assert_eq!(Wrapping(a) / b, Wrapping(c));
+        assert_eq!(Wrapping(a) / &b, Wrapping(c));
+        assert_eq!(&Wrapping(a) / b, Wrapping(c));
+        assert_eq!(&Wrapping(a) / &b, Wrapping(c));
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn div_assign_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(2u64)).unwrap();
+        let c = U256::from(5u64);
+
+        let mut res = a;
+        res /= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b;
+        assert_eq!(res, c);
+
+        let mut res = Wrapping(a);
+        res /= b;
+        assert_eq!(res, Wrapping(c));
+        let mut res = Wrapping(a);
+        res /= &b;
+        assert_eq!(res, Wrapping(c));
+    }
+
+    #[should_panic]
+    #[test]
+    fn div_zero() {
+        let _ = U256::ONE / U256::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    #[allow(clippy::op_ref)]
+    fn div_ref_zero() {
+        let _ = &U256::ONE / U256::ZERO;
+    }
+
+    #[test]
+    fn reduce_one() {
+        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::ONE).unwrap());
+        assert_eq!(r, U256::ZERO);
     }
 
     #[test]
     fn reduce_tests() {
-        let (r, is_some) = U256::from(10u8).const_rem(&U256::from(2u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::ZERO);
-        let (r, is_some) = U256::from(10u8).const_rem(&U256::from(3u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::ONE);
-        let (r, is_some) = U256::from(10u8).const_rem(&U256::from(7u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::from(3u8));
+        let tests = [
+            (U256::from(2u8), 0u8),
+            (U256::from(3u8), 1u8),
+            (U256::from(7u8), 3u8),
+            (U256::MAX, 10u8),
+        ];
+        for (divisor, expect) in tests {
+            let r1 = U256::from(10u8).rem(&NonZero::new(divisor).unwrap());
+            let r2 = U256::from(10u8).rem_vartime(&NonZero::new(divisor).unwrap());
+            assert_eq!(r1, U256::from(expect));
+            assert_eq!(r1, r2);
+        }
     }
 
     #[test]
     fn reduce_tests_wide_zero_padded() {
-        let (r, is_some) = U256::const_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(2u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::ZERO);
-        let (r, is_some) = U256::const_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(3u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::ONE);
-        let (r, is_some) = U256::const_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(7u8));
-        assert!(is_some.is_true_vartime());
-        assert_eq!(r, U256::from(3u8));
+        let tests = [
+            (U256::from(2u8), 0u8),
+            (U256::from(3u8), 1u8),
+            (U256::from(7u8), 3u8),
+            (U256::MAX, 10u8),
+        ];
+        for (divisor, expect) in tests {
+            let r1 = U256::rem_wide(
+                (U256::from(10u8), U256::ZERO),
+                &NonZero::new(divisor).unwrap(),
+            );
+            let r2 = U256::rem_wide_vartime(
+                (U256::from(10u8), U256::ZERO),
+                &NonZero::new(divisor).unwrap(),
+            );
+            assert_eq!(r1, U256::from(expect));
+            assert_eq!(r1, r2);
+        }
+    }
+
+    #[test]
+    fn rem_wide_corner_case() {
+        let modulus = "0000000000000000000000000000000081000000000000000000000000000001";
+        let modulus = NonZero::new(U256::from_be_hex(modulus)).expect("it's odd and not zero");
+        let lo_hi = (
+            U256::from_be_hex("1000000000000000000000000000000000000000000000000000000000000001"),
+            U256::ZERO,
+        );
+        let rem = U256::rem_wide(lo_hi, &modulus);
+        // Lower half is zero
+        assert_eq!(
+            &rem.to_be_bytes().as_ref()[0..16],
+            U128::ZERO.to_be_bytes().as_ref()
+        );
+        // Upper half
+        let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
+        assert_eq!(
+            &rem.to_be_bytes().as_ref()[16..],
+            expected.to_be_bytes().as_ref()
+        );
+
+        let remv = U256::rem_wide_vartime(lo_hi, &modulus);
+        assert_eq!(rem, remv);
     }
 
     #[test]
@@ -707,25 +831,25 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
-        let r = a.wrapping_rem(&b);
+        let r = a.wrapping_rem_vartime(&b);
         assert_eq!(r, Uint::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
-        let r = a.wrapping_rem(&b);
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
+        let r = a.wrapping_rem_vartime(&b);
         assert_eq!(r, a);
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn rem2krand() {
-        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let num = U256::random(&mut rng);
-            let k = (rng.next_u32() % 256) as usize;
-            let den = U256::ONE.shl_vartime(k);
+            let num = U256::random_from_rng(&mut rng);
+            let k = rng.next_u32() % 256;
+            let den = U256::ONE.overflowing_shl_vartime(k).unwrap();
 
-            let a = num.rem2k(k);
-            let e = num.wrapping_rem(&den);
+            let a = num.rem2k_vartime(k);
+            let e = num.wrapping_rem_vartime(&den);
             assert_eq!(a, e);
         }
     }
@@ -741,5 +865,137 @@ mod tests {
         assert_eq!(a % &b, c);
         assert_eq!(&a % b, c);
         assert_eq!(&a % &b, c);
+        assert_eq!(Wrapping(a) % b, Wrapping(c));
+        assert_eq!(Wrapping(a) % &b, Wrapping(c));
+        assert_eq!(&Wrapping(a) % b, Wrapping(c));
+        assert_eq!(&Wrapping(a) % &b, Wrapping(c));
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn rem_assign_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(3u64)).unwrap();
+        let c = U256::from(1u64);
+
+        let mut res = a;
+        res %= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= &b;
+        assert_eq!(res, c);
+
+        let mut res = Wrapping(a);
+        res %= b;
+        assert_eq!(res, Wrapping(c));
+        let mut res = Wrapping(a);
+        res %= &b;
+        assert_eq!(res, Wrapping(c));
+    }
+
+    #[should_panic]
+    #[test]
+    fn rem_zero() {
+        let _ = U256::ONE % U256::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    #[allow(clippy::op_ref)]
+    fn rem_ref_zero() {
+        let _ = &U256::ONE % U256::ZERO;
+    }
+
+    #[test]
+    fn rem_mixed() {
+        let x = U1024::from_be_hex(concat![
+            "3740C11DB8F260753BC6B97DD2B8746D3E2694412772AC6ABD975119EE0A6190",
+            "F27F6F0969BCA069D8D151031AF83EE2283CC2E3E4FADBBDB9EEDBF0B8F4C1FD",
+            "51912C0D329FDC37D49176DB0A1A2D17E5E6D4F9F6B217FE9412EAA2F881F702",
+            "7A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A",
+        ]);
+        let y = U128::from_u64(1234567890987654321);
+        let rem = x.rem_mixed(&y.to_nz().unwrap());
+
+        let y2: U1024 = U128::concat_mixed(&y, &U896::ZERO);
+        let rem_control = x.rem(&NonZero::new(y2).unwrap());
+
+        assert_eq!(rem.bit_width(), rem_control.bit_width());
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
+        assert!(
+            rem_control.as_words()[U128::LIMBS..]
+                .iter()
+                .all(|w| *w == 0)
+        );
+    }
+
+    #[test]
+    fn rem_mixed_even() {
+        let x = U1024::from_be_hex(concat![
+            "3740C11DB8F260753BC6B97DD2B8746D3E2694412772AC6ABD975119EE0A6190",
+            "F27F6F0969BCA069D8D151031AF83EE2283CC2E3E4FADBBDB9EEDBF0B8F4C1FD",
+            "51912C0D329FDC37D49176DB0A1A2D17E5E6D4F9F6B217FE9412EAA2F881F702",
+            "7A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A",
+        ]);
+        let y = U512::from_u64(1234567890987654321);
+        let rem: U512 = x.rem_mixed(&y.to_nz().unwrap());
+
+        let y_wide = U512::concat_mixed(&y, &U512::ZERO);
+        let rem_control: U1024 = x.rem(&NonZero::new(y_wide).unwrap());
+
+        assert_eq!(rem.bit_width(), rem_control.bit_width());
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U512::LIMBS]);
+        assert!(
+            rem_control.as_words()[U512::LIMBS..]
+                .iter()
+                .all(|w| *w == 0)
+        );
+    }
+
+    #[test]
+    fn rem_mixed_through_traits() {
+        struct A<T, U> {
+            t: T,
+            u: U,
+        }
+        impl<T, U> A<T, U>
+        where
+            T: RemMixed<U>,
+            U: Clone + Zero + One + CtAssign,
+        {
+            fn reduce_t_by_u(&self) -> U {
+                let rhs = &NonZero::new(self.u.clone()).unwrap();
+                self.t.rem_mixed(rhs)
+            }
+        }
+
+        let a = A {
+            t: U1024::from(1234567890u64),
+            u: U128::from(456u64),
+        };
+        assert_eq!(a.reduce_t_by_u(), U128::from(330u64));
+    }
+
+    #[test]
+    fn div_vartime_through_traits() {
+        struct A<T> {
+            x: T,
+            y: T,
+        }
+        impl<T> A<T>
+        where
+            T: DivVartime + Clone + Zero + One + CtAssign,
+        {
+            fn divide_x_by_y(&self) -> T {
+                let rhs = &NonZero::new(self.y.clone()).unwrap();
+                self.x.div_vartime(rhs)
+            }
+        }
+
+        let a = A {
+            x: U1024::from(1234567890u64),
+            y: U1024::from(456u64),
+        };
+        assert_eq!(a.divide_x_by_y(), U1024::from(2707385u64));
     }
 }

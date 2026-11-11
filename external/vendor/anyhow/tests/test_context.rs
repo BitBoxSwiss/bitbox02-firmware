@@ -1,3 +1,8 @@
+#![allow(
+    // Clippy bug: https://github.com/rust-lang/rust-clippy/issues/7422
+    clippy::nonstandard_macro_braces,
+)]
+
 mod drop;
 
 use crate::drop::{DetectDrop, Flag};
@@ -19,6 +24,7 @@ macro_rules! context_type {
         #[derive(Debug)]
         struct $name {
             message: &'static str,
+            #[allow(dead_code)]
             drop: DetectDrop,
         }
 
@@ -156,4 +162,34 @@ fn test_unsuccessful_downcast() {
 
     drop(err);
     assert!(dropped.all());
+}
+
+#[test]
+fn test_downcast_mut() {
+    let (mut err, dropped) = make_chain();
+
+    err.downcast_mut::<HighLevel>().unwrap().message = "high context";
+    err.downcast_mut::<MidLevel>().unwrap().message = "mid context";
+    err.downcast_mut::<LowLevel>().unwrap().message = "low error";
+
+    assert_eq!(
+        err.downcast_ref::<HighLevel>().unwrap().message,
+        "high context",
+    );
+    assert_eq!(
+        err.downcast_ref::<MidLevel>().unwrap().message,
+        "mid context",
+    );
+    assert_eq!(err.downcast_ref::<LowLevel>().unwrap().message, "low error");
+
+    assert!(dropped.none());
+    drop(err);
+    assert!(dropped.all());
+}
+
+#[test]
+fn test_root_cause() {
+    let (err, _) = make_chain();
+
+    assert_eq!(err.root_cause().to_string(), "no such file or directory");
 }

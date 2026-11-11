@@ -2,6 +2,20 @@
 
 `group` is a crate for working with groups over elliptic curves.
 
+## RFC process
+
+This crate follows the [zkcrypto RFC process](https://zkcrypto.github.io/rfcs/).
+If you want to propose "substantial" changes to this crate (in particular to the
+`group` traits), please [create an RFC](https://github.com/zkcrypto/rfcs) for
+wider discussion.
+
+## Minimum Supported Rust Version
+
+Requires Rust **1.85** or higher.
+
+Minimum supported Rust version can be changed in the future, but it will be done with a
+minor version bump.
+
 ## License
 
 Licensed under either of

@@ -12,7 +12,7 @@ impl fmt::Debug for ComponentFormatter<'_> {
         write!(f, "0x")?;
 
         for byte in self.0 {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{byte:02x}")?;
         }
 
         Ok(())
@@ -23,7 +23,7 @@ impl fmt::LowerHex for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for component in [&self.R, &self.s] {
             for byte in component {
-                write!(f, "{:02x}", byte)?;
+                write!(f, "{byte:02x}")?;
             }
         }
         Ok(())
@@ -34,7 +34,7 @@ impl fmt::UpperHex for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for component in [&self.R, &self.s] {
             for byte in component {
-                write!(f, "{:02X}", byte)?;
+                write!(f, "{byte:02X}")?;
             }
         }
         Ok(())
@@ -50,7 +50,7 @@ impl str::FromStr for Signature {
     type Err = Error;
 
     fn from_str(hex: &str) -> signature::Result<Self> {
-        if hex.as_bytes().len() != Signature::BYTE_SIZE * 2 {
+        if hex.len() != Signature::BYTE_SIZE * 2 {
             return Err(Error::new());
         }
 

@@ -1,4 +1,5 @@
 //! AVX2 helpers for implementing Poly1305 using 26-bit limbs.
+#![allow(unsafe_op_in_unsafe_fn)]
 
 use core::fmt;
 use core::ops::{Add, Mul};
@@ -17,11 +18,11 @@ const fn set02(x3: u8, x2: u8, x1: u8, x0: u8) -> i32 {
 
 /// Helper for Display impls of aligned values.
 fn write_130(f: &mut fmt::Formatter<'_>, limbs: [u32; 5]) -> fmt::Result {
-    let r0 = limbs[0] as u128;
-    let r1 = limbs[1] as u128;
-    let r2 = limbs[2] as u128;
-    let r3 = limbs[3] as u128;
-    let r4 = limbs[4] as u128;
+    let r0 = u128::from(limbs[0]);
+    let r1 = u128::from(limbs[1]);
+    let r2 = u128::from(limbs[2]);
+    let r3 = u128::from(limbs[3]);
+    let r4 = u128::from(limbs[4]);
 
     // Reduce into two u128s
     let l0 = r0 + (r1 << 26) + (r2 << 52) + (r3 << 78);
@@ -33,11 +34,11 @@ fn write_130(f: &mut fmt::Formatter<'_>, limbs: [u32; 5]) -> fmt::Result {
 
 /// Helper for Display impls of unreduced values.
 fn write_130_wide(f: &mut fmt::Formatter<'_>, limbs: [u64; 5]) -> fmt::Result {
-    let r0 = limbs[0] as u128;
-    let r1 = limbs[1] as u128;
-    let r2 = limbs[2] as u128;
-    let r3 = limbs[3] as u128;
-    let r4 = limbs[4] as u128;
+    let r0 = u128::from(limbs[0]);
+    let r1 = u128::from(limbs[1]);
+    let r2 = u128::from(limbs[2]);
+    let r3 = u128::from(limbs[3]);
+    let r4 = u128::from(limbs[4]);
 
     // Reduce into two u128s
     let l0 = r0 + (r1 << 26) + (r2 << 52);
@@ -52,7 +53,7 @@ fn write_130_wide(f: &mut fmt::Formatter<'_>, limbs: [u64; 5]) -> fmt::Result {
 #[target_feature(enable = "avx2")]
 pub(super) unsafe fn prepare_keys(key: &Key) -> (AdditionKey, PrecomputedMultiplier) {
     // [k7, k6, k5, k4, k3, k2, k1, k0]
-    let key = _mm256_loadu_si256(key.as_ptr() as *const _);
+    let key = _mm256_loadu_si256(key.as_ptr().cast());
 
     // Prepare addition key: [0, k7, 0, k6, 0, k5, 0, k4]
     let k = AdditionKey(_mm256_and_si256(
@@ -79,7 +80,7 @@ impl fmt::Display for Aligned130 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut v0 = [0u8; 32];
         unsafe {
-            _mm256_storeu_si256(v0.as_mut_ptr() as *mut _, self.0);
+            _mm256_storeu_si256(v0.as_mut_ptr().cast(), self.0);
         }
 
         write!(f, "Aligned130(")?;
@@ -105,7 +106,7 @@ impl Aligned130 {
         Aligned130::new(_mm256_or_si256(
             _mm256_and_si256(
                 // Load the 128-bit block into a 256-bit vector.
-                _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
+                _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr().cast())),
                 // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
                 _mm256_set_epi64x(0, 0, -1, -1),
             ),
@@ -121,7 +122,7 @@ impl Aligned130 {
     pub(super) unsafe fn from_partial_block(block: &Block) -> Self {
         Aligned130::new(_mm256_and_si256(
             // Load the 128-bit block into a 256-bit vector.
-            _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr() as *const _)),
+            _mm256_castsi128_si256(_mm_loadu_si128(block.as_ptr().cast())),
             // Mask off the upper 128 bits (undefined by _mm256_castsi128_si256).
             _mm256_set_epi64x(0, 0, -1, -1),
         ))
@@ -418,8 +419,8 @@ impl fmt::Display for Unreduced130 {
         let mut v0 = [0u8; 32];
         let mut v1 = [0u8; 32];
         unsafe {
-            _mm256_storeu_si256(v0.as_mut_ptr() as *mut _, self.v0);
-            _mm256_storeu_si256(v1.as_mut_ptr() as *mut _, self.v1);
+            _mm256_storeu_si256(v0.as_mut_ptr().cast(), self.v0);
+            _mm256_storeu_si256(v1.as_mut_ptr().cast(), self.v1);
         }
 
         write!(f, "Unreduced130(")?;
@@ -898,9 +899,9 @@ impl fmt::Display for Aligned4x130 {
         let mut v1 = [0u8; 32];
         let mut v2 = [0u8; 32];
         unsafe {
-            _mm256_storeu_si256(v0.as_mut_ptr() as *mut _, self.v0);
-            _mm256_storeu_si256(v1.as_mut_ptr() as *mut _, self.v1);
-            _mm256_storeu_si256(v2.as_mut_ptr() as *mut _, self.v2);
+            _mm256_storeu_si256(v0.as_mut_ptr().cast(), self.v0);
+            _mm256_storeu_si256(v1.as_mut_ptr().cast(), self.v1);
+            _mm256_storeu_si256(v2.as_mut_ptr().cast(), self.v2);
         }
 
         writeln!(f, "Aligned4x130([")?;
@@ -966,8 +967,8 @@ impl Aligned4x130 {
     #[target_feature(enable = "avx2")]
     pub(super) unsafe fn from_blocks(src: &[Block; 4]) -> Self {
         let (lo, hi) = src.split_at(2);
-        let blocks_23 = _mm256_loadu_si256(hi.as_ptr() as *const _);
-        let blocks_01 = _mm256_loadu_si256(lo.as_ptr() as *const _);
+        let blocks_23 = _mm256_loadu_si256(hi.as_ptr().cast());
+        let blocks_01 = _mm256_loadu_si256(lo.as_ptr().cast());
 
         Self::from_loaded_blocks(blocks_01, blocks_23)
     }
@@ -977,8 +978,8 @@ impl Aligned4x130 {
     #[target_feature(enable = "avx2")]
     pub(super) unsafe fn from_par_blocks(src: &ParBlocks) -> Self {
         let (lo, hi) = src.split_at(2);
-        let blocks_23 = _mm256_loadu_si256(hi.as_ptr() as *const _);
-        let blocks_01 = _mm256_loadu_si256(lo.as_ptr() as *const _);
+        let blocks_23 = _mm256_loadu_si256(hi.as_ptr().cast());
+        let blocks_01 = _mm256_loadu_si256(lo.as_ptr().cast());
 
         Self::from_loaded_blocks(blocks_01, blocks_23)
     }
@@ -1597,11 +1598,11 @@ impl fmt::Display for Unreduced4x130 {
         let mut v3 = [0u8; 32];
         let mut v4 = [0u8; 32];
         unsafe {
-            _mm256_storeu_si256(v0.as_mut_ptr() as *mut _, self.v0);
-            _mm256_storeu_si256(v1.as_mut_ptr() as *mut _, self.v1);
-            _mm256_storeu_si256(v2.as_mut_ptr() as *mut _, self.v2);
-            _mm256_storeu_si256(v3.as_mut_ptr() as *mut _, self.v3);
-            _mm256_storeu_si256(v4.as_mut_ptr() as *mut _, self.v4);
+            _mm256_storeu_si256(v0.as_mut_ptr().cast(), self.v0);
+            _mm256_storeu_si256(v1.as_mut_ptr().cast(), self.v1);
+            _mm256_storeu_si256(v2.as_mut_ptr().cast(), self.v2);
+            _mm256_storeu_si256(v3.as_mut_ptr().cast(), self.v3);
+            _mm256_storeu_si256(v4.as_mut_ptr().cast(), self.v4);
         }
 
         writeln!(f, "Unreduced4x130([")?;
@@ -1985,7 +1986,7 @@ impl From<AdditionKey> for IntegerTag {
 impl IntegerTag {
     pub(super) fn write(self, tag: &mut [u8]) {
         unsafe {
-            _mm_storeu_si128(tag.as_mut_ptr() as *mut _, self.0);
+            _mm_storeu_si128(tag.as_mut_ptr().cast(), self.0);
         }
     }
 }

@@ -2,6 +2,13 @@
 
 `ff` is a finite field library written in pure Rust, with no `unsafe{}` code.
 
+## RFC process
+
+This crate follows the [zkcrypto RFC process](https://zkcrypto.github.io/rfcs/).
+If you want to propose "substantial" changes to this crate (in particular to the
+`ff` traits), please [create an RFC](https://github.com/zkcrypto/rfcs) for wider
+discussion.
+
 ## Disclaimers
 
 * This library does not provide constant-time guarantees. The traits enable downstream
@@ -15,13 +22,13 @@ Add the `ff` crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ff = "0.13"
+ff = "0.14"
 ```
 
 The `ff` crate contains the `Field` and `PrimeField` traits.
 See the **[documentation](https://docs.rs/ff/)** for more.
 
-### #![derive(PrimeField)]
+### `#![derive(PrimeField)]`
 
 If you need an implementation of a prime field, this library also provides a procedural
 macro that will expand into an efficient implementation of a prime field when supplied
@@ -32,7 +39,7 @@ First, enable the `derive` crate feature:
 
 ```toml
 [dependencies]
-ff = { version = "0.13", features = ["derive"] }
+ff = { version = "0.14", features = ["derive"] }
 ```
 
 And then use the macro like so:
@@ -52,7 +59,7 @@ And that's it! `Fp` now implements `Field` and `PrimeField`.
 
 ## Minimum Supported Rust Version
 
-Requires Rust **1.56** or higher.
+Requires Rust **1.85** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be done with a
 minor version bump.

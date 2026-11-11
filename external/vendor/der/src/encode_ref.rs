@@ -6,15 +6,16 @@ use core::cmp::Ordering;
 
 /// Reference encoder: wrapper type which impls `Encode` for any reference to a
 /// type which impls the same.
+#[derive(Debug)]
 pub struct EncodeRef<'a, T>(pub &'a T);
 
-impl<'a, T> AsRef<T> for EncodeRef<'a, T> {
+impl<T> AsRef<T> for EncodeRef<'_, T> {
     fn as_ref(&self) -> &T {
         self.0
     }
 }
 
-impl<'a, T> Encode for EncodeRef<'a, T>
+impl<T> Encode for EncodeRef<'_, T>
 where
     T: Encode,
 {
@@ -31,15 +32,16 @@ where
 /// for any reference type which impls the same.
 ///
 /// By virtue of the blanket impl, this type also impls `Encode`.
+#[derive(Debug)]
 pub struct EncodeValueRef<'a, T>(pub &'a T);
 
-impl<'a, T> AsRef<T> for EncodeValueRef<'a, T> {
+impl<T> AsRef<T> for EncodeValueRef<'_, T> {
     fn as_ref(&self) -> &T {
         self.0
     }
 }
 
-impl<'a, T> EncodeValue for EncodeValueRef<'a, T>
+impl<T> EncodeValue for EncodeValueRef<'_, T>
 where
     T: EncodeValue,
 {
@@ -52,7 +54,7 @@ where
     }
 }
 
-impl<'a, T> Tagged for EncodeValueRef<'a, T>
+impl<T> Tagged for EncodeValueRef<'_, T>
 where
     T: Tagged,
 {
@@ -61,7 +63,7 @@ where
     }
 }
 
-impl<'a, T> ValueOrd for EncodeValueRef<'a, T>
+impl<T> ValueOrd for EncodeValueRef<'_, T>
 where
     T: ValueOrd,
 {

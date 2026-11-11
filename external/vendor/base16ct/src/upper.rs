@@ -1,6 +1,6 @@
-use crate::{decode_inner, encoded_len, Error};
+use crate::{Error, decode_inner, encoded_len};
 #[cfg(feature = "alloc")]
-use crate::{decoded_len, String, Vec};
+use crate::{String, Vec, decoded_len};
 
 /// Decode an upper Base16 (hex) string into the provided destination buffer.
 pub fn decode(src: impl AsRef<[u8]>, dst: &mut [u8]) -> Result<&[u8], Error> {
@@ -46,7 +46,7 @@ pub fn encode_string(input: &[u8]) -> String {
     let res = encode(input, &mut dst).expect("dst length is correct");
 
     debug_assert_eq!(elen, res.len());
-    unsafe { crate::String::from_utf8_unchecked(dst) }
+    unsafe { String::from_utf8_unchecked(dst) }
 }
 
 /// Decode a single nibble of upper hex

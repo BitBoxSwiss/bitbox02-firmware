@@ -1,6 +1,6 @@
 [package]
 name = "base16ct"
-version = "0.2.0"
+version = "1.0.0"
 description = """
 Pure Rust implementation of Base16 a.k.a hexadecimal (RFC 4648) which avoids
 any usages of data-dependent branches/LUTs and thereby provides portable
@@ -9,16 +9,16 @@ any usages of data-dependent branches/LUTs and thereby provides portable
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
 documentation = "https://docs.rs/base16ct"
-repository = "https://github.com/RustCrypto/formats/tree/master/base16ct"
+homepage = "https://github.com/RustCrypto/formats/tree/master/base16ct"
+repository = "https://github.com/RustCrypto/formats"
 categories = ["cryptography", "encoding", "no-std", "parser-implementations"]
 keywords = ["crypto", "hex", "hexadecimal"]
 readme = "README.md"
-edition = "2021"
-rust-version = "1.60"
+edition = "2024"
+rust-version = "1.85"
 
 [features]
 alloc = []
-std = ["alloc"]
 
 [package.metadata.docs.rs]
 all-features = true

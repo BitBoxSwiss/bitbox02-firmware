@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.1 (2026-03-31)
+### Added
+- Impl `CtAssign(Slice)`/`CtEq(Slice)` for `EncodedPoint` ([#2269])
+
+[#2269]: https://github.com/RustCrypto/formats/pull/2269
+
+## 0.8.0 (2026-03-10)
+### Added
+- `ctutils` feature ([#2150])
+
+### Changed
+- Migrate from `generic-array` to `hybrid-array` ([#1298])
+- Use `core::error::Error` ([#1573])
+- Blanket impl `ModulusSize` for all typenums ([#1650])
+- Upgrade to edition 2024; bump MSRV to 1.85 ([#1666])
+- Bump `serdect` to v0.4 ([#2008])
+- Bump `base16ct` to v1 ([#2145])
+- Bump `der` to v0.8 ([#2234])
+
+### Removed
+- Integration with `pkcs8` crate ([#1927])
+
+[#1298]: https://github.com/RustCrypto/formats/pull/1298
+[#1573]: https://github.com/RustCrypto/formats/pull/1573
+[#1650]: https://github.com/RustCrypto/formats/pull/1650
+[#1666]: https://github.com/RustCrypto/formats/pull/1666
+[#1927]: https://github.com/RustCrypto/formats/pull/1927
+[#2008]: https://github.com/RustCrypto/formats/pull/2008
+[#2145]: https://github.com/RustCrypto/formats/pull/2145
+[#2150]: https://github.com/RustCrypto/formats/pull/2150
+[#2234]: https://github.com/RustCrypto/formats/pull/2234
+
 ## 0.7.3 (2023-07-16)
 ### Added
 - Impl `Hash` for `EncodedPoint` ([#1102])

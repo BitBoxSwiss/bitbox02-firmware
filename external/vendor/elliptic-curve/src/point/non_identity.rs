@@ -1,15 +1,20 @@
 //! Non-identity point type.
 
-use core::ops::{Deref, Mul};
+#![cfg(feature = "arithmetic")]
 
-use group::{prime::PrimeCurveAffine, Curve, GroupEncoding};
-use rand_core::{CryptoRng, RngCore};
+use common::Generate;
+use core::ops::{Deref, Mul};
+use group::{Group, GroupEncoding, prime::PrimeCurveAffine};
+use rand_core::{CryptoRng, TryCryptoRng};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 #[cfg(feature = "serde")]
-use serdect::serde::{de, ser, Deserialize, Serialize};
+use serdect::serde::{Deserialize, Serialize, de, ser};
+use zeroize::Zeroize;
 
-use crate::{CurveArithmetic, NonZeroScalar, Scalar};
+use crate::{BatchNormalize, CurveArithmetic, CurveGroup, NonZeroScalar, Scalar};
 
 /// Non-identity point type.
 ///
@@ -17,7 +22,9 @@ use crate::{CurveArithmetic, NonZeroScalar, Scalar};
 ///
 /// In the context of ECC, it's useful for ensuring that certain arithmetic
 /// cannot result in the identity point.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// `repr` is needed for `unsafe` safety invariants below
+#[repr(transparent)]
 pub struct NonIdentity<P> {
     point: P,
 }
@@ -46,6 +53,42 @@ where
     }
 }
 
+impl<P> NonIdentity<P> {
+    /// Transform array reference containing [`NonIdentity`] points to an array reference to the
+    /// inner point type.
+    pub fn array_as_inner<const N: usize>(points: &[Self; N]) -> &[P; N] {
+        // SAFETY: `NonIdentity` is a `repr(transparent)` newtype for `P` so it's safe to cast to
+        // the inner `P` type.
+        #[allow(unsafe_code)]
+        unsafe {
+            &*points.as_ptr().cast()
+        }
+    }
+
+    /// Transform slice containing [`NonIdentity`] points to a slice of the inner point type.
+    pub fn slice_as_inner(points: &[Self]) -> &[P] {
+        // SAFETY: `NonIdentity` is a `repr(transparent)` newtype for `P` so it's safe to cast to
+        // the inner `P` type.
+        #[allow(unsafe_code)]
+        unsafe {
+            &*(core::ptr::from_ref(points) as *const [P])
+        }
+    }
+
+    /// Transform array reference containing [`NonIdentity`] points to an array reference to the
+    /// inner point type.
+    #[deprecated(since = "0.14.0", note = "use `NonIdentity::array_as_inner` instead")]
+    pub fn cast_array_as_inner<const N: usize>(points: &[Self; N]) -> &[P; N] {
+        Self::array_as_inner(points)
+    }
+
+    /// Transform slice containing [`NonIdentity`] points to a slice of the inner point type.
+    #[deprecated(since = "0.14.0", note = "use `NonIdentity::slice_as_inner` instead")]
+    pub fn cast_slice_as_inner(points: &[Self]) -> &[P] {
+        Self::slice_as_inner(points)
+    }
+}
+
 impl<P: Copy> NonIdentity<P> {
     /// Return wrapped point.
     pub fn to_point(self) -> P {
@@ -55,21 +98,32 @@ impl<P: Copy> NonIdentity<P> {
 
 impl<P> NonIdentity<P>
 where
-    P: ConditionallySelectable + ConstantTimeEq + Curve + Default,
+    P: ConditionallySelectable + ConstantTimeEq + CurveGroup + Default,
 {
     /// Generate a random `NonIdentity<ProjectivePoint>`.
-    pub fn random(mut rng: impl CryptoRng + RngCore) -> Self {
+    #[deprecated(since = "0.14.0", note = "use the `Generate` trait instead")]
+    pub fn random<R: CryptoRng + ?Sized>(rng: &mut R) -> Self {
         loop {
-            if let Some(point) = Self::new(P::random(&mut rng)).into() {
+            if let Some(point) = Self::new(P::random(rng)).into() {
                 break point;
             }
         }
     }
 
     /// Converts this element into its affine representation.
-    pub fn to_affine(self) -> NonIdentity<P::AffineRepr> {
+    pub fn to_affine(self) -> NonIdentity<P::Affine> {
         NonIdentity {
             point: self.point.to_affine(),
+        }
+    }
+
+    /// Multiply by the generator of the prime-order subgroup.
+    pub fn mul_by_generator<C: CurveArithmetic>(scalar: &NonZeroScalar<C>) -> Self
+    where
+        P: Group<Scalar = C::Scalar>,
+    {
+        Self {
+            point: P::mul_by_generator(scalar),
         }
     }
 }
@@ -89,6 +143,36 @@ where
 impl<P> AsRef<P> for NonIdentity<P> {
     fn as_ref(&self) -> &P {
         &self.point
+    }
+}
+
+impl<const N: usize, P> BatchNormalize<[Self; N]> for NonIdentity<P>
+where
+    P: CurveGroup + BatchNormalize<[P; N], Output = [P::Affine; N]>,
+{
+    type Output = [NonIdentity<P::Affine>; N];
+
+    fn batch_normalize(points: &[Self; N]) -> [NonIdentity<P::Affine>; N] {
+        let points = Self::array_as_inner::<N>(points);
+        let affine_points = <P as BatchNormalize<_>>::batch_normalize(points);
+        affine_points.map(|point| NonIdentity { point })
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<P> BatchNormalize<[Self]> for NonIdentity<P>
+where
+    P: CurveGroup + BatchNormalize<[P], Output = Vec<P::Affine>>,
+{
+    type Output = Vec<NonIdentity<P::Affine>>;
+
+    fn batch_normalize(points: &[Self]) -> Vec<NonIdentity<P::Affine>> {
+        let points = Self::slice_as_inner(points);
+        let affine_points = <P as BatchNormalize<_>>::batch_normalize(points);
+        affine_points
+            .into_iter()
+            .map(|point| NonIdentity { point })
+            .collect()
     }
 }
 
@@ -117,6 +201,19 @@ impl<P> Deref for NonIdentity<P> {
 
     fn deref(&self) -> &Self::Target {
         &self.point
+    }
+}
+
+impl<P> Generate for NonIdentity<P>
+where
+    P: ConditionallySelectable + ConstantTimeEq + Default + Generate,
+{
+    fn try_generate_from_rng<R: TryCryptoRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        loop {
+            if let Some(point) = Self::new(P::try_generate_from_rng(rng)?).into() {
+                break Ok(point);
+            }
+        }
     }
 }
 
@@ -152,6 +249,32 @@ where
     }
 }
 
+impl<C, P> Mul<&NonZeroScalar<C>> for NonIdentity<P>
+where
+    C: CurveArithmetic,
+    P: Copy + Mul<Scalar<C>, Output = P>,
+{
+    type Output = NonIdentity<P>;
+
+    fn mul(self, rhs: &NonZeroScalar<C>) -> Self::Output {
+        self * *rhs
+    }
+}
+
+impl<C, P> Mul<NonZeroScalar<C>> for &NonIdentity<P>
+where
+    C: CurveArithmetic,
+    P: Copy + Mul<Scalar<C>, Output = P>,
+{
+    type Output = NonIdentity<P>;
+
+    fn mul(self, rhs: NonZeroScalar<C>) -> Self::Output {
+        NonIdentity {
+            point: self.point * *rhs.as_ref(),
+        }
+    }
+}
+
 impl<C, P> Mul<&NonZeroScalar<C>> for &NonIdentity<P>
 where
     C: CurveArithmetic,
@@ -160,9 +283,7 @@ where
     type Output = NonIdentity<P>;
 
     fn mul(self, rhs: &NonZeroScalar<C>) -> Self::Output {
-        NonIdentity {
-            point: self.point * *rhs.as_ref(),
-        }
+        self * *rhs
     }
 }
 
@@ -188,17 +309,26 @@ where
     where
         D: de::Deserializer<'de>,
     {
-        Option::from(Self::new(P::deserialize(deserializer)?))
+        Self::new(P::deserialize(deserializer)?)
+            .into_option()
             .ok_or_else(|| de::Error::custom("expected non-identity point"))
+    }
+}
+
+impl<P: Group> Zeroize for NonIdentity<P> {
+    fn zeroize(&mut self) {
+        self.point = P::generator();
     }
 }
 
 #[cfg(all(test, feature = "dev"))]
 mod tests {
     use super::NonIdentity;
-    use crate::dev::{AffinePoint, ProjectivePoint};
+    use crate::BatchNormalize;
+    use crate::dev::{AffinePoint, NonZeroScalar, ProjectivePoint, SecretKey};
     use group::GroupEncoding;
     use hex_literal::hex;
+    use zeroize::Zeroize;
 
     #[test]
     fn new_success() {
@@ -233,5 +363,65 @@ mod tests {
         let bytes = hex!("02c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721");
         let point = NonIdentity::<AffinePoint>::from_repr(&bytes.into()).unwrap();
         assert_eq!(&bytes, point.to_bytes().as_slice());
+    }
+
+    #[test]
+    fn zeroize() {
+        let point = ProjectivePoint::from_bytes(
+            &hex!("02c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721").into(),
+        )
+        .unwrap();
+        let mut point = NonIdentity::new(point).unwrap();
+        point.zeroize();
+
+        assert_eq!(point.to_point(), ProjectivePoint::Generator);
+    }
+
+    #[test]
+    fn mul_by_generator() {
+        let scalar = NonZeroScalar::from_repr(
+            hex!("c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721").into(),
+        )
+        .unwrap();
+        let point = NonIdentity::<ProjectivePoint>::mul_by_generator(&scalar);
+
+        let sk = SecretKey::from(scalar);
+        let pk = sk.public_key();
+
+        assert_eq!(point.to_point(), pk.to_projective());
+    }
+
+    #[test]
+    fn batch_normalize() {
+        let point = ProjectivePoint::from_bytes(
+            &hex!("02c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721").into(),
+        )
+        .unwrap();
+        let point = NonIdentity::new(point).unwrap();
+        let points = [point, point];
+
+        for (point, affine_point) in points
+            .into_iter()
+            .zip(NonIdentity::batch_normalize(&points))
+        {
+            assert_eq!(point.to_affine(), affine_point);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn batch_normalize_alloc() {
+        let point = ProjectivePoint::from_bytes(
+            &hex!("02c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721").into(),
+        )
+        .unwrap();
+        let point = NonIdentity::new(point).unwrap();
+        let points = vec![point, point];
+
+        let affine_points = NonIdentity::batch_normalize(points.as_slice());
+
+        for (point, affine_point) in points.into_iter().zip(affine_points) {
+            assert_eq!(point.to_affine(), affine_point);
+        }
     }
 }

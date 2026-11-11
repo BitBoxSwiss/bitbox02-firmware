@@ -8,7 +8,7 @@ verification.
 To import `ed25519-dalek`, add the following to the dependencies section of
 your project's `Cargo.toml`:
 ```toml
-ed25519-dalek = "2"
+ed25519-dalek = "3.0.0"
 ```
 
 # Feature Flags
@@ -17,13 +17,12 @@ This crate is `#[no_std]` compatible with `default-features = false`.
 
 | Feature                | Default? | Description |
 | :---                   | :---     | :---        |
-| `alloc`                | ✓        | When `pkcs8` is enabled, implements `EncodePrivateKey`/`EncodePublicKey` for `SigningKey`/`VerifyingKey`, respectively. |
-| `std`                  | ✓        | Implements `std::error::Error` for `SignatureError`. Also enables `alloc`. |
+| `alloc`                |          | When `pkcs8` is enabled, implements `EncodePrivateKey`/`EncodePublicKey` for `SigningKey`/`VerifyingKey`, respectively. |
+| `fast`                 | ✓        | Enables the use of precomputed tables for curve arithmetic. Makes key generation, signing, and verifying faster. |
 | `zeroize`              | ✓        | Implements `Zeroize` and `ZeroizeOnDrop` for `SigningKey` |
 | `rand_core`            |          | Enables `SigningKey::generate` |
-| `batch`                |          | Enables `verify_batch` for verifying many signatures quickly. Also enables `rand_core`. |
-| `digest`               |          | Enables `Context`, `SigningKey::{with_context, sign_prehashed}` and `VerifyingKey::{with_context, verify_prehashed, verify_prehashed_strict}` for Ed25519ph prehashed signatures |
-| `asm`                  |          | Enables assembly optimizations in the SHA-512 compression functions |
+| `batch`                |          | Enables `verify_batch` for verifying many signatures quickly. Also enables `alloc` and `rand_core`. |
+| `digest`               |          | Enables `Context`, `SigningKey::{with_context, sign_prehashed}` and `VerifyingKey::{with_context, verify_prehashed, verify_prehashed_strict}` for Ed25519ph prehashed signatures. Implements `KeySizeUser` for `VerifyingKey`, and `KeySizeUser + TryKeyInit + Generate` for `SigningKey`.
 | `pkcs8`                |          | Enables [PKCS#8](https://en.wikipedia.org/wiki/PKCS_8) serialization/deserialization for `SigningKey` and `VerifyingKey` |
 | `pem`                  |          | Enables PEM serialization support for PKCS#8 private keys and SPKI public keys. Also enables `alloc`. |
 | `legacy_compatibility` |          | **Unsafe:** Disables certain signature checks. See [below](#malleability-and-the-legacy_compatibility-feature) |
@@ -31,21 +30,14 @@ This crate is `#[no_std]` compatible with `default-features = false`.
 
 # Major Changes
 
-See [CHANGELOG.md](CHANGELOG.md) for a list of changes made in past version of this crate.
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes made in past versions of this crate.
 
-## Breaking Changes in 2.0.0
+## Important Breaking Changes in 3.0.0
 
-* Bump MSRV from 1.41 to 1.60.0
-* Bump Rust edition
-* Bump `signature` dependency to 2.0
-* Make `digest` an optional dependency
-* Make `zeroize` an optional dependency
-* Make `rand_core` an optional dependency
-* Adopt [curve25519-backend selection](https://github.com/dalek-cryptography/curve25519-dalek/#backends) over features
-* Make all batch verification deterministic remove `batch_deterministic` ([#256](https://github.com/dalek-cryptography/ed25519-dalek/pull/256))
-* Remove `ExpandedSecretKey` API ([#205](https://github.com/dalek-cryptography/ed25519-dalek/pull/205))
-* Rename `Keypair` → `SigningKey` and `PublicKey` → `VerifyingKey`
-* Make `hazmat` feature to expose, `ExpandedSecretKey`, `raw_sign()`, `raw_sign_prehashed()`, `raw_verify()`, and `raw_verify_prehashed()`
+* Update edition to 2024
+* Update the MSRV from 1.60 to 1.85
+* Remove `std` feature now that `error::Error` is in `core`
+* Make signing and verifying keys use `pkcs8::spki::SignatureAlgorithmIdentifier` instead of `DynSignatureAlgorithmIdentifier` ([#779](https://github.com/dalek-cryptography/curve25519-dalek/pull/779))
 
 # Documentation
 
@@ -60,10 +52,11 @@ SemVer exemptions are outlined below for MSRV and public API.
 
 | Releases | MSRV   |
 | :---     | :---   |
+| 3.x      | 1.85   |
 | 2.x      | 1.60   |
 | 1.x      | 1.41   |
 
-From 2.x and on, MSRV changes will be accompanied by a minor version bump.
+From 2.x onwards, MSRV changes will be accompanied by a minor version bump.
 
 ## Public API SemVer Exemptions
 
@@ -73,6 +66,7 @@ Below are the specific policies:
 
 | Releases | Public API Component(s) | Policy |
 | :---     | :---                    | :---   |
+| 3.x      | Dependencies `digest`, `pkcs8` and `rand_core` | Minor SemVer bump |
 | 2.x      | Dependencies `digest`, `pkcs8` and `rand_core` | Minor SemVer bump |
 
 # Safety
@@ -144,7 +138,7 @@ In this section, we mention some specific details about our validation criteria,
 
 ## Malleability and the `legacy_compatibility` Feature
 
-A signature scheme is considered to produce _malleable signatures_ if a passive attacker with knowledge of a public key _A_, message _m_, and valid signature _σ'_ can produce a distinct _σ'_ such that _σ'_ is a valid signature of _m_ with respect to _A_. A scheme is only malleable if the attacker can do this _without_ knowledge of the private key corresponding to _A_.
+A signature scheme is considered to produce _malleable signatures_ if a passive attacker with knowledge of a public key _A_, message _m_, and valid signature _σ_ can produce a distinct _σ'_ such that _σ'_ is a valid signature of _m_ with respect to _A_. A scheme is only malleable if the attacker can do this _without_ knowledge of the private key corresponding to _A_.
 
 `ed25519-dalek` is not a malleable signature scheme.
 

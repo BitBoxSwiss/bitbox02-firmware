@@ -1,13 +1,14 @@
 //! Traits for elliptic curve points.
 
-#[cfg(feature = "arithmetic")]
 mod non_identity;
 
 #[cfg(feature = "arithmetic")]
-pub use {self::non_identity::NonIdentity, crate::CurveArithmetic};
-
+pub use self::non_identity::NonIdentity;
 use crate::{Curve, FieldBytes};
 use subtle::{Choice, CtOption};
+
+#[cfg(feature = "arithmetic")]
+use crate::CurveArithmetic;
 
 /// Affine point type for a given curve with a [`CurveArithmetic`]
 /// implementation.
@@ -21,12 +22,21 @@ pub type ProjectivePoint<C> = <C as CurveArithmetic>::ProjectivePoint;
 
 /// Access to the affine coordinates of an elliptic curve point.
 // TODO: use zkcrypto/group#30 coordinate API when available
-pub trait AffineCoordinates {
-    /// Field element representation.
+pub trait AffineCoordinates: Sized {
+    /// Field element representation with curve-specific serialization/endianness.
     type FieldRepr: AsRef<[u8]>;
+
+    /// Creates an affine point from its coordinates.
+    fn from_coordinates(x: &Self::FieldRepr, y: &Self::FieldRepr) -> CtOption<Self>;
 
     /// Get the affine x-coordinate as a serialized field element.
     fn x(&self) -> Self::FieldRepr;
+
+    /// Get the affine y-coordinate as a serialized field element.
+    fn y(&self) -> Self::FieldRepr;
+
+    /// Is the affine x-coordinate odd?
+    fn x_is_odd(&self) -> Choice;
 
     /// Is the affine y-coordinate odd?
     fn y_is_odd(&self) -> Choice;
@@ -34,20 +44,28 @@ pub trait AffineCoordinates {
 
 /// Normalize point(s) in projective representation by converting them to their affine ones.
 #[cfg(feature = "arithmetic")]
-pub trait BatchNormalize<Points: ?Sized>: group::Curve {
+pub trait BatchNormalize<Points: ?Sized> {
     /// The output of the batch normalization; a container of affine points.
-    type Output: AsRef<[Self::AffineRepr]>;
+    type Output;
 
     /// Perform a batched conversion to affine representation on a sequence of projective points
     /// at an amortized cost that should be practically as efficient as a single conversion.
     /// Internally, implementors should rely upon `InvertBatch`.
-    fn batch_normalize(points: &Points) -> <Self as BatchNormalize<Points>>::Output;
-}
+    fn batch_normalize(points: &Points) -> Self::Output;
 
-/// Double a point (i.e. add it to itself)
-pub trait Double {
-    /// Double this point.
-    fn double(&self) -> Self;
+    /// Perform a batched conversion to affine representation on a sequence of projective points
+    /// in variable-time.
+    ///
+    /// <div class="warning">
+    /// <b>Security Warning</b>
+    ///
+    /// This should NOT be used on points which represent secrets!
+    ///
+    /// </div>
+    fn batch_normalize_vartime(points: &Points) -> Self::Output {
+        // Call the constant-time implementation by default
+        Self::batch_normalize(points)
+    }
 }
 
 /// Decompress an elliptic curve point.

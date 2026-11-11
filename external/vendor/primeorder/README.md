@@ -8,8 +8,9 @@
 [![Project Chat][chat-image]][chat-link]
 
 Pure Rust implementation of complete addition formulas for prime order elliptic
-curves ([Renes-Costello-Batina 2015]). Generic over field elements and curve
-equation coefficients.
+curves ([Renes-Costello-Batina 2015] a.k.a. RCB).
+
+Generic over field element implementations and curve equation coefficients.
 
 [Documentation][docs-link]
 
@@ -43,18 +44,6 @@ that generated assembly is constant time on common CPU architectures.
 
 USE AT YOUR OWN RISK!
 
-## Minimum Supported Rust Version
-
-Rust **1.65** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
-
-## SemVer Policy
-
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
-
 ## License
 
 All crates licensed under either of:
@@ -72,14 +61,14 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://buildstats.info/crate/primeorder
+[crate-image]: https://img.shields.io/crates/v/primeorder?logo=rust
 [crate-link]: https://crates.io/crates/primeorder
 [docs-image]: https://docs.rs/primeorder/badge.svg
 [docs-link]: https://docs.rs/primeorder/
 [build-image]: https://github.com/RustCrypto/elliptic-curves/actions/workflows/primeorder.yml/badge.svg
 [build-link]: https://github.com/RustCrypto/elliptic-curves/actions/workflows/primeorder.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260040-elliptic-curves
 
@@ -92,5 +81,5 @@ dual licensed as above, without any additional terms or conditions.
 [`p224`]: https://github.com/RustCrypto/elliptic-curves/tree/master/p224
 [`p256`]: https://github.com/RustCrypto/elliptic-curves/tree/master/p256
 [`p384`]: https://github.com/RustCrypto/elliptic-curves/tree/master/p384
-[`p521`]: https://github.com/RustCrypto/elliptic-curves/tree/master/p384
+[`p521`]: https://github.com/RustCrypto/elliptic-curves/tree/master/p521
 [`sm2`]: https://github.com/RustCrypto/elliptic-curves/tree/master/sm2

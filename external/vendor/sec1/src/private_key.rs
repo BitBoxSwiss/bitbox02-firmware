@@ -8,14 +8,13 @@
 use crate::{EcParameters, Error, Result};
 use core::fmt;
 use der::{
-    asn1::{BitStringRef, ContextSpecific, ContextSpecificRef, OctetStringRef},
     Decode, DecodeValue, Encode, EncodeValue, Header, Length, Reader, Sequence, Tag, TagMode,
     TagNumber, Writer,
+    asn1::{BitStringRef, ContextSpecific, ContextSpecificRef, OctetStringRef},
 };
 
 #[cfg(all(feature = "alloc", feature = "zeroize"))]
 use der::SecretDocument;
-
 #[cfg(feature = "pem")]
 use der::pem::PemLabel;
 
@@ -31,10 +30,10 @@ use der::pem::PemLabel;
 const VERSION: u8 = 1;
 
 /// Context-specific tag number for the elliptic curve parameters.
-const EC_PARAMETERS_TAG: TagNumber = TagNumber::new(0);
+const EC_PARAMETERS_TAG: TagNumber = TagNumber(0);
 
 /// Context-specific tag number for the public key.
-const PUBLIC_KEY_TAG: TagNumber = TagNumber::new(1);
+const PUBLIC_KEY_TAG: TagNumber = TagNumber(1);
 
 /// SEC1 elliptic curve private key.
 ///
@@ -95,24 +94,24 @@ impl<'a> EcPrivateKey<'a> {
 }
 
 impl<'a> DecodeValue<'a> for EcPrivateKey<'a> {
-    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> der::Result<Self> {
-        reader.read_nested(header.length, |reader| {
-            if u8::decode(reader)? != VERSION {
-                return Err(der::Tag::Integer.value_error());
-            }
+    type Error = der::Error;
 
-            let private_key = OctetStringRef::decode(reader)?.as_bytes();
-            let parameters = reader.context_specific(EC_PARAMETERS_TAG, TagMode::Explicit)?;
-            let public_key = reader
-                .context_specific::<BitStringRef<'_>>(PUBLIC_KEY_TAG, TagMode::Explicit)?
-                .map(|bs| bs.as_bytes().ok_or_else(|| Tag::BitString.value_error()))
-                .transpose()?;
+    fn decode_value<R: Reader<'a>>(reader: &mut R, _header: Header) -> der::Result<Self> {
+        if u8::decode(reader)? != VERSION {
+            return Err(reader.error(Tag::Integer.value_error()));
+        }
 
-            Ok(EcPrivateKey {
-                private_key,
-                parameters,
-                public_key,
-            })
+        let private_key = <&OctetStringRef>::decode(reader)?.as_bytes();
+        let parameters = reader.context_specific(EC_PARAMETERS_TAG, TagMode::Explicit)?;
+        let public_key = reader
+            .context_specific::<BitStringRef<'_>>(PUBLIC_KEY_TAG, TagMode::Explicit)?
+            .map(|bs| bs.as_bytes().ok_or_else(|| Tag::BitString.value_error()))
+            .transpose()?;
+
+        Ok(EcPrivateKey {
+            private_key,
+            parameters,
+            public_key,
         })
     }
 }
@@ -144,7 +143,7 @@ impl<'a> TryFrom<&'a [u8]> for EcPrivateKey<'a> {
     }
 }
 
-impl<'a> fmt::Debug for EcPrivateKey<'a> {
+impl fmt::Debug for EcPrivateKey<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("EcPrivateKey")
             .field("parameters", &self.parameters)

@@ -1,12 +1,10 @@
+// Compare our key derivation with ed25519_bip32 using the same test vectors.
+
 use serde::Deserialize;
 use std::fs::File;
 use std::io::BufReader;
 
-// Our crate:
 use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv};
-
-// Another crate for comparison:
-use ed25519_bip32;
 
 fn mk_other_xprv(
     key: &[u8; ED25519_EXPANDED_SECRET_KEY_SIZE],

@@ -2,7 +2,7 @@
 //!
 //! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
 //! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
-//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logoColor=white&logo=data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjxwYXRoIGZpbGw9IiNmNWY1ZjUiIGQ9Ik00ODguNiAyNTAuMkwzOTIgMjE0VjEwNS41YzAtMTUtOS4zLTI4LjQtMjMuNC0zMy43bC0xMDAtMzcuNWMtOC4xLTMuMS0xNy4xLTMuMS0yNS4zIDBsLTEwMCAzNy41Yy0xNC4xIDUuMy0yMy40IDE4LjctMjMuNCAzMy43VjIxNGwtOTYuNiAzNi4yQzkuMyAyNTUuNSAwIDI2OC45IDAgMjgzLjlWMzk0YzAgMTMuNiA3LjcgMjYuMSAxOS45IDMyLjJsMTAwIDUwYzEwLjEgNS4xIDIyLjEgNS4xIDMyLjIgMGwxMDMuOS01MiAxMDMuOSA1MmMxMC4xIDUuMSAyMi4xIDUuMSAzMi4yIDBsMTAwLTUwYzEyLjItNi4xIDE5LjktMTguNiAxOS45LTMyLjJWMjgzLjljMC0xNS05LjMtMjguNC0yMy40LTMzLjd6TTM1OCAyMTQuOGwtODUgMzEuOXYtNjguMmw4NS0zN3Y3My4zek0xNTQgMTA0LjFsMTAyLTM4LjIgMTAyIDM4LjJ2LjZsLTEwMiA0MS40LTEwMi00MS40di0uNnptODQgMjkxLjFsLTg1IDQyLjV2LTc5LjFsODUtMzguOHY3NS40em0wLTExMmwtMTAyIDQxLjQtMTAyLTQxLjR2LS42bDEwMi0zOC4yIDEwMiAzOC4ydi42em0yNDAgMTEybC04NSA0Mi41di03OS4xbDg1LTM4Ljh2NzUuNHptMC0xMTJsLTEwMiA0MS40LTEwMi00MS40di0uNmwxMDItMzguMiAxMDIgMzguMnYuNnoiPjwvcGF0aD48L3N2Zz4K
+//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
 //!
 //! <br>
 //!
@@ -17,7 +17,7 @@
 //!   the return type of any fallible function.
 //!
 //!   Within the function, use `?` to easily propagate any error that implements
-//!   the `std::error::Error` trait.
+//!   the [`std::error::Error`] trait.
 //!
 //!   ```
 //!   # pub trait Deserialize {}
@@ -128,7 +128,7 @@
 //!   # ;
 //!   ```
 //!
-//! - If using the nightly channel, a backtrace is captured and printed with the
+//! - If using Rust &ge; 1.65, a backtrace is captured and printed with the
 //!   error if the underlying error type does not already provide its own. In
 //!   order to see backtraces, they must be enabled through the environment
 //!   variables described in [`std::backtrace`]:
@@ -139,10 +139,7 @@
 //!   - If you want only panics to have backtraces, set `RUST_BACKTRACE=1` and
 //!     `RUST_LIB_BACKTRACE=0`.
 //!
-//!   The tracking issue for this feature is [rust-lang/rust#53487].
-//!
-//!   [`std::backtrace`]: https://doc.rust-lang.org/std/backtrace/index.html#environment-variables
-//!   [rust-lang/rust#53487]: https://github.com/rust-lang/rust/issues/53487
+//!   [`std::backtrace`]: std::backtrace#environment-variables
 //!
 //! - Anyhow works with any error type that has an impl of `std::error::Error`,
 //!   including ones defined in your crate. We do not bundle a `derive(Error)`
@@ -179,12 +176,24 @@
 //!   # }
 //!   ```
 //!
+//!   A `bail!` macro is provided as a shorthand for the same early return.
+//!
+//!   ```
+//!   # use anyhow::{bail, Result};
+//!   #
+//!   # fn demo() -> Result<()> {
+//!   #     let missing = "...";
+//!   bail!("Missing attribute: {}", missing);
+//!   #     Ok(())
+//!   # }
+//!   ```
+//!
 //! <br>
 //!
 //! # No-std support
 //!
-//! In no_std mode, the same API is almost all available and works the same way.
-//! To depend on Anyhow in no_std mode, disable our default enabled "std"
+//! In no_std mode, almost all of the same API is available and works the same
+//! way. To depend on Anyhow in no_std mode, disable our default enabled "std"
 //! feature in Cargo.toml. A global allocator is required.
 //!
 //! ```toml
@@ -192,60 +201,88 @@
 //! anyhow = { version = "1.0", default-features = false }
 //! ```
 //!
-//! Since the `?`-based error conversions would normally rely on the
-//! `std::error::Error` trait which is only available through std, no_std mode
-//! will require an explicit `.map_err(Error::msg)` when working with a
-//! non-Anyhow error type inside a function that returns Anyhow's error type.
+//! With versions of Rust older than 1.81, no_std mode may require an additional
+//! `.map_err(Error::msg)` when working with a non-Anyhow error type inside a
+//! function that returns Anyhow's error type, as the trait that `?`-based error
+//! conversions are defined by is only available in std in those old versions.
 
-#![doc(html_root_url = "https://docs.rs/anyhow/1.0.31")]
-#![cfg_attr(backtrace, feature(backtrace))]
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![doc(html_root_url = "https://docs.rs/anyhow/1.0.104")]
+#![cfg_attr(error_generic_member_access, feature(error_generic_member_access))]
+#![no_std]
+#![deny(dead_code, unsafe_op_in_unsafe_fn, unused_imports, unused_mut)]
 #![allow(
+    clippy::doc_markdown,
+    clippy::elidable_lifetime_names,
+    clippy::enum_glob_use,
+    clippy::explicit_auto_deref,
+    clippy::extra_unused_type_parameters,
+    clippy::incompatible_msrv,
+    clippy::let_underscore_untyped,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::needless_doctest_main,
+    clippy::needless_lifetimes,
     clippy::new_ret_no_self,
+    clippy::redundant_else,
+    clippy::return_self_not_must_use,
+    clippy::struct_field_names,
+    clippy::uninlined_format_args,
+    clippy::unused_self,
+    clippy::used_underscore_binding,
+    clippy::wildcard_imports,
     clippy::wrong_self_convention
 )]
+#![allow(unknown_lints, mismatched_lifetime_syntaxes)]
 
-mod alloc {
-    #[cfg(not(feature = "std"))]
-    extern crate alloc;
+#[cfg(all(
+    anyhow_nightly_testing,
+    feature = "std",
+    not(error_generic_member_access)
+))]
+compile_error!("Build script probe failed to compile.");
 
-    #[cfg(not(feature = "std"))]
-    pub use alloc::boxed::Box;
+extern crate alloc;
 
-    #[cfg(feature = "std")]
-    pub use std::boxed::Box;
-}
+#[cfg(feature = "std")]
+extern crate std;
 
 #[macro_use]
 mod backtrace;
 mod chain;
 mod context;
+mod ensure;
 mod error;
 mod fmt;
 mod kind;
 mod macros;
+#[cfg(error_generic_member_access)]
+mod nightly;
+mod ptr;
 mod wrapper;
 
-use crate::alloc::Box;
 use crate::error::ErrorImpl;
+use crate::ptr::Own;
 use core::fmt::Display;
-use core::mem::ManuallyDrop;
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), anyhow_no_core_error))]
 use core::fmt::Debug;
 
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
 
-#[cfg(not(feature = "std"))]
+#[cfg(not(any(feature = "std", anyhow_no_core_error)))]
+use core::error::Error as StdError;
+
+#[cfg(all(not(feature = "std"), anyhow_no_core_error))]
 trait StdError: Debug + Display {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         None
     }
 }
 
+#[doc(no_inline)]
 pub use anyhow as format_err;
 
 /// The `Error` type, a wrapper around a dynamic error type.
@@ -349,8 +386,9 @@ pub use anyhow as format_err;
 ///     # Ok(())
 /// }
 /// ```
+#[repr(transparent)]
 pub struct Error {
-    inner: ManuallyDrop<Box<ErrorImpl<()>>>,
+    inner: Own<ErrorImpl>,
 }
 
 /// Iterator of a chain of source errors.
@@ -372,7 +410,7 @@ pub struct Error {
 ///     None
 /// }
 /// ```
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", not(anyhow_no_core_error)))]
 #[derive(Clone)]
 pub struct Chain<'a> {
     state: crate::chain::ChainState<'a>,
@@ -476,6 +514,11 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 /// Caused by:
 ///     No such file or directory (os error 2)
 /// ```
+///
+/// Refer to the [Display representations] documentation for other forms in
+/// which this context chain can be rendered.
+///
+/// [Display representations]: Error#display-representations
 ///
 /// <br>
 ///
@@ -584,29 +627,102 @@ pub trait Context<T, E>: context::private::Sealed {
         F: FnOnce() -> C;
 }
 
+/// Equivalent to `Ok::<_, anyhow::Error>(value)`.
+///
+/// This simplifies creation of an `anyhow::Result` in places where type
+/// inference cannot deduce the `E` type of the result &mdash; without needing
+/// to write `Ok::<_, anyhow::Error>(value)`.
+///
+/// One might think that `anyhow::Result::Ok(value)` would work in such cases
+/// but it does not.
+///
+/// ```console
+/// error[E0282]: type annotations needed for `std::result::Result<i32, E>`
+///   --> src/main.rs:11:13
+///    |
+/// 11 |     let _ = anyhow::Result::Ok(1);
+///    |         -   ^^^^^^^^^^^^^^^^^^ cannot infer type for type parameter `E` declared on the enum `Result`
+///    |         |
+///    |         consider giving this pattern the explicit type `std::result::Result<i32, E>`, where the type parameter `E` is specified
+/// ```
+#[allow(non_snake_case)]
+#[inline]
+pub fn Ok<T>(value: T) -> Result<T> {
+    Result::Ok(value)
+}
+
 // Not public API. Referenced by macro-generated code.
 #[doc(hidden)]
-pub mod private {
+pub mod __private {
+    use self::not::Bool;
     use crate::Error;
-    use core::fmt::{Debug, Display};
+    use alloc::fmt;
+    use core::fmt::Arguments;
 
-    #[cfg(backtrace)]
-    use std::backtrace::Backtrace;
-
+    #[doc(hidden)]
+    pub use crate::ensure::{BothDebug, NotBothDebug};
+    #[doc(hidden)]
+    pub use alloc::format;
+    #[doc(hidden)]
     pub use core::result::Result::Err;
+    #[doc(hidden)]
+    pub use core::{concat, format_args, stringify};
 
     #[doc(hidden)]
     pub mod kind {
+        #[doc(hidden)]
         pub use crate::kind::{AdhocKind, TraitKind};
 
-        #[cfg(feature = "std")]
+        #[cfg(any(feature = "std", not(anyhow_no_core_error)))]
+        #[doc(hidden)]
         pub use crate::kind::BoxedKind;
     }
 
-    pub fn new_adhoc<M>(message: M) -> Error
-    where
-        M: Display + Debug + Send + Sync + 'static,
-    {
-        Error::from_adhoc(message, backtrace!())
+    #[doc(hidden)]
+    #[inline]
+    #[cold]
+    pub fn format_err(args: Arguments) -> Error {
+        if let Some(message) = args.as_str() {
+            // anyhow!("literal"), can downcast to &'static str
+            Error::msg(message)
+        } else {
+            // anyhow!("interpolate {var}"), can downcast to String
+            Error::msg(fmt::format(args))
+        }
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    #[cold]
+    #[must_use]
+    pub fn must_use(error: Error) -> Error {
+        error
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn not(cond: impl Bool) -> bool {
+        cond.not()
+    }
+
+    mod not {
+        #[doc(hidden)]
+        pub trait Bool {
+            fn not(self) -> bool;
+        }
+
+        impl Bool for bool {
+            #[inline]
+            fn not(self) -> bool {
+                !self
+            }
+        }
+
+        impl Bool for &bool {
+            #[inline]
+            fn not(self) -> bool {
+                !*self
+            }
+        }
     }
 }

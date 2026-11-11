@@ -3,26 +3,23 @@
 #![allow(clippy::op_ref)]
 
 use crate::{PrimeCurveParams, ProjectivePoint};
-use core::{
-    borrow::Borrow,
-    ops::{Mul, Neg},
-};
+use core::borrow::Borrow;
 use elliptic_curve::{
+    Error, FieldBytes, Generate, PublicKey, Result, Scalar,
+    bigint::modular::Retrieve,
+    ctutils::{self, CtGt as _, CtSelect as _},
     ff::{Field, PrimeField},
-    generic_array::ArrayLength,
-    group::{prime::PrimeCurveAffine, GroupEncoding},
-    point::{AffineCoordinates, DecompactPoint, DecompressPoint, Double},
-    sec1::{
-        self, CompressedPoint, EncodedPoint, FromEncodedPoint, ModulusSize, ToCompactEncodedPoint,
-        ToEncodedPoint, UncompressedPointSize,
-    },
-    subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption},
+    group::{CurveAffine, GroupEncoding},
+    ops::{Double, Mul, MulVartime, Neg},
+    point::{AffineCoordinates, DecompactPoint, DecompressPoint, NonIdentity},
+    rand_core::{TryCryptoRng, TryRng},
+    sec1::{self, CompressedPoint, FromSec1Point, Sec1Point, ToCompactSec1Point, ToSec1Point},
+    subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption},
     zeroize::DefaultIsZeroes,
-    Error, FieldBytes, FieldBytesEncoding, FieldBytesSize, PublicKey, Result, Scalar,
 };
 
 #[cfg(feature = "serde")]
-use serdect::serde::{de, ser, Deserialize, Serialize};
+use serdect::serde::{Deserialize, Serialize, de, ser};
 
 /// Point on a Weierstrass curve in affine coordinates.
 #[derive(Clone, Copy, Debug)]
@@ -66,13 +63,30 @@ where
     /// Conditionally negate [`AffinePoint`] for use with point compaction.
     fn to_compact(self) -> Self {
         let neg_self = -self;
-        let choice = C::Uint::decode_field_bytes(&self.y.to_repr())
-            .ct_gt(&C::Uint::decode_field_bytes(&neg_self.y.to_repr()));
-
+        let gt = self.y.retrieve().ct_gt(&neg_self.y.retrieve());
+        let y = C::FieldElement::conditional_select(&self.y, &neg_self.y, gt.into());
         Self {
             x: self.x,
-            y: C::FieldElement::conditional_select(&self.y, &neg_self.y, choice),
+            y,
             infinity: self.infinity,
+        }
+    }
+
+    /// Internal RNG that avoids a `TryCryptoRng` bound so we can use it with `group`.
+    ///
+    /// TODO(tarcieri): find some way to avoid this?
+    pub(crate) fn try_random<R: TryRng + ?Sized>(
+        rng: &mut R,
+    ) -> core::result::Result<Self, R::Error> {
+        let mut bytes = FieldBytes::<C>::default();
+        let mut sign = 0;
+
+        loop {
+            rng.try_fill_bytes(&mut bytes)?;
+            rng.try_fill_bytes(core::array::from_mut(&mut sign))?;
+            if let Some(point) = Self::decompress(&bytes, Choice::from(sign & 1)).into_option() {
+                return Ok(point);
+            }
         }
     }
 }
@@ -83,8 +97,26 @@ where
 {
     type FieldRepr = FieldBytes<C>;
 
+    fn from_coordinates(x: &Self::FieldRepr, y: &Self::FieldRepr) -> CtOption<Self> {
+        C::FieldElement::from_repr(*y).and_then(|y| {
+            C::FieldElement::from_repr(*x).and_then(|x| {
+                let lhs = y * &y;
+                let rhs = x * &x * &x + &(C::EQUATION_A * &x) + &C::EQUATION_B;
+                CtOption::new(Self { x, y, infinity: 0 }, lhs.ct_eq(&rhs))
+            })
+        })
+    }
+
     fn x(&self) -> FieldBytes<C> {
         self.x.to_repr()
+    }
+
+    fn y(&self) -> FieldBytes<C> {
+        self.y.to_repr()
+    }
+
+    fn x_is_odd(&self) -> Choice {
+        self.x.is_odd()
     }
 
     fn y_is_odd(&self) -> Choice {
@@ -115,6 +147,24 @@ where
     }
 }
 
+impl<C> ctutils::CtEq for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn ct_eq(&self, other: &Self) -> ctutils::Choice {
+        ConstantTimeEq::ct_eq(self, other).into()
+    }
+}
+
+impl<C> ctutils::CtSelect for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn ct_select(&self, other: &Self, choice: ctutils::Choice) -> Self {
+        ConditionallySelectable::conditional_select(self, other, choice.into())
+    }
+}
+
 impl<C> Default for AffinePoint<C>
 where
     C: PrimeCurveParams,
@@ -129,7 +179,6 @@ impl<C> DefaultIsZeroes for AffinePoint<C> where C: PrimeCurveParams {}
 impl<C> DecompressPoint<C> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
 {
     fn decompress(x_bytes: &FieldBytes<C>, y_is_odd: Choice) -> CtOption<Self> {
         C::FieldElement::from_repr(*x_bytes).and_then(|x| {
@@ -152,45 +201,42 @@ where
 impl<C> DecompactPoint<C> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
 {
     fn decompact(x_bytes: &FieldBytes<C>) -> CtOption<Self> {
-        Self::decompress(x_bytes, Choice::from(0)).map(|point| point.to_compact())
+        Self::decompress(x_bytes, Choice::from(0)).map(AffinePoint::to_compact)
     }
 }
 
 impl<C> Eq for AffinePoint<C> where C: PrimeCurveParams {}
 
-impl<C> FromEncodedPoint<C> for AffinePoint<C>
+impl<C> FromSec1Point<C> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
 {
-    /// Attempts to parse the given [`EncodedPoint`] as an SEC1-encoded
+    /// Attempts to parse the given [`Sec1Point`] as an SEC1-encoded
     /// [`AffinePoint`].
     ///
     /// # Returns
     ///
     /// `None` value if `encoded_point` is not on the secp384r1 curve.
-    fn from_encoded_point(encoded_point: &EncodedPoint<C>) -> CtOption<Self> {
+    fn from_sec1_point(encoded_point: &Sec1Point<C>) -> ctutils::CtOption<Self> {
         match encoded_point.coordinates() {
-            sec1::Coordinates::Identity => CtOption::new(Self::IDENTITY, 1.into()),
-            sec1::Coordinates::Compact { x } => Self::decompact(x),
+            sec1::Coordinates::Identity => ctutils::CtOption::some(Self::IDENTITY),
+            sec1::Coordinates::Compact { x } => Self::decompact(x).into(),
             sec1::Coordinates::Compressed { x, y_is_odd } => {
-                Self::decompress(x, Choice::from(y_is_odd as u8))
+                Self::decompress(x, Choice::from(u8::from(y_is_odd))).into()
             }
-            sec1::Coordinates::Uncompressed { x, y } => {
-                C::FieldElement::from_repr(*y).and_then(|y| {
-                    C::FieldElement::from_repr(*x).and_then(|x| {
-                        let lhs = y * &y;
-                        let rhs = x * &x * &x + &(C::EQUATION_A * &x) + &C::EQUATION_B;
-                        CtOption::new(Self { x, y, infinity: 0 }, lhs.ct_eq(&rhs))
-                    })
-                })
-            }
+            sec1::Coordinates::Uncompressed { x, y } => Self::from_coordinates(x, y).into(),
         }
+    }
+}
+
+impl<C> From<NonIdentity<AffinePoint<C>>> for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn from(affine: NonIdentity<AffinePoint<C>>) -> Self {
+        affine.to_point()
     }
 }
 
@@ -230,39 +276,47 @@ where
     }
 }
 
-impl<C> From<AffinePoint<C>> for EncodedPoint<C>
+impl<C> From<AffinePoint<C>> for Sec1Point<C>
 where
     C: PrimeCurveParams,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
-    fn from(affine: AffinePoint<C>) -> EncodedPoint<C> {
-        affine.to_encoded_point(false)
+    fn from(affine: AffinePoint<C>) -> Sec1Point<C> {
+        affine.to_sec1_point(false)
+    }
+}
+
+impl<C> Generate for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    fn try_generate_from_rng<R: TryCryptoRng + ?Sized>(
+        rng: &mut R,
+    ) -> core::result::Result<Self, R::Error> {
+        Self::try_random(rng)
     }
 }
 
 impl<C> GroupEncoding for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
     type Repr = CompressedPoint<C>;
 
     /// NOTE: not constant-time with respect to identity point
     fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
-        EncodedPoint::<C>::from_bytes(bytes)
-            .map(|point| CtOption::new(point, Choice::from(1)))
-            .unwrap_or_else(|_| {
-                // SEC1 identity encoding is technically 1-byte 0x00, but the
-                // `GroupEncoding` API requires a fixed-width `Repr`
-                let is_identity = bytes.ct_eq(&Self::Repr::default());
-                CtOption::new(EncodedPoint::<C>::identity(), is_identity)
-            })
-            .and_then(|point| Self::from_encoded_point(&point))
+        Sec1Point::<C>::from_bytes(bytes)
+            .map_or_else(
+                |_| {
+                    // SEC1 identity encoding is technically 1-byte 0x00, but the
+                    // `GroupEncoding` API requires a fixed-width `Repr`
+                    let is_identity =
+                        ctutils::CtEq::ct_eq(bytes.as_slice(), Self::Repr::default().as_slice());
+                    ctutils::CtOption::new(Sec1Point::<C>::identity(), is_identity)
+                },
+                ctutils::CtOption::some,
+            )
+            .and_then(|point| Self::from_sec1_point(&point))
+            .into()
     }
 
     fn from_bytes_unchecked(bytes: &Self::Repr) -> CtOption<Self> {
@@ -271,7 +325,7 @@ where
     }
 
     fn to_bytes(&self) -> Self::Repr {
-        let encoded = self.to_encoded_point(true);
+        let encoded = self.to_sec1_point(true);
         let mut result = CompressedPoint::<C>::default();
         result[..encoded.len()].copy_from_slice(encoded.as_bytes());
         result
@@ -287,14 +341,9 @@ where
     }
 }
 
-impl<C> PrimeCurveAffine for AffinePoint<C>
+impl<C> CurveAffine for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    ProjectivePoint<C>: Double,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
     type Curve = ProjectivePoint<C>;
     type Scalar = Scalar<C>;
@@ -316,72 +365,73 @@ where
     }
 }
 
-impl<C> ToCompactEncodedPoint<C> for AffinePoint<C>
+impl<C> ToCompactSec1Point<C> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
-    /// Serialize this value as a  SEC1 compact [`EncodedPoint`]
-    fn to_compact_encoded_point(&self) -> CtOption<EncodedPoint<C>> {
+    /// Serialize this value as a  SEC1 compact [`Sec1Point`]
+    fn to_compact_encoded_point(&self) -> ctutils::CtOption<Sec1Point<C>> {
         let point = self.to_compact();
 
         let mut bytes = CompressedPoint::<C>::default();
         bytes[0] = sec1::Tag::Compact.into();
         bytes[1..].copy_from_slice(&point.x.to_repr());
 
-        let encoded = EncodedPoint::<C>::from_bytes(bytes);
-        let is_some = point.y.ct_eq(&self.y);
-        CtOption::new(encoded.unwrap_or_default(), is_some)
+        let encoded = Sec1Point::<C>::from_bytes(bytes);
+        let is_some =
+            ctutils::CtEq::ct_eq(point.y.to_repr().as_slice(), self.y.to_repr().as_slice());
+        ctutils::CtOption::new(encoded.unwrap_or_default(), is_some)
     }
 }
 
-impl<C> ToEncodedPoint<C> for AffinePoint<C>
+impl<C> ToSec1Point<C> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
-    fn to_encoded_point(&self, compress: bool) -> EncodedPoint<C> {
-        EncodedPoint::<C>::conditional_select(
-            &EncodedPoint::<C>::from_affine_coordinates(
+    fn to_sec1_point(&self, compress: bool) -> Sec1Point<C> {
+        Sec1Point::<C>::ct_select(
+            &Sec1Point::<C>::from_affine_coordinates(
                 &self.x.to_repr(),
                 &self.y.to_repr(),
                 compress,
             ),
-            &EncodedPoint::<C>::identity(),
-            self.is_identity(),
+            &Sec1Point::<C>::identity(),
+            self.is_identity().into(),
         )
     }
 }
 
-impl<C> TryFrom<EncodedPoint<C>> for AffinePoint<C>
+/// The constant-time alternative is available at [`NonIdentity::new()`].
+impl<C> TryFrom<AffinePoint<C>> for NonIdentity<AffinePoint<C>>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
 {
     type Error = Error;
 
-    fn try_from(point: EncodedPoint<C>) -> Result<AffinePoint<C>> {
+    fn try_from(affine_point: AffinePoint<C>) -> Result<Self> {
+        NonIdentity::new(affine_point).into_option().ok_or(Error)
+    }
+}
+
+impl<C> TryFrom<Sec1Point<C>> for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+{
+    type Error = Error;
+
+    fn try_from(point: Sec1Point<C>) -> Result<AffinePoint<C>> {
         AffinePoint::try_from(&point)
     }
 }
 
-impl<C> TryFrom<&EncodedPoint<C>> for AffinePoint<C>
+impl<C> TryFrom<&Sec1Point<C>> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
 {
     type Error = Error;
 
-    fn try_from(point: &EncodedPoint<C>) -> Result<AffinePoint<C>> {
-        Option::from(AffinePoint::<C>::from_encoded_point(point)).ok_or(Error)
+    fn try_from(point: &Sec1Point<C>) -> Result<AffinePoint<C>> {
+        Option::from(AffinePoint::<C>::from_sec1_point(point)).ok_or(Error)
     }
 }
 
@@ -419,8 +469,47 @@ where
 {
     type Output = ProjectivePoint<C>;
 
+    #[inline]
     fn mul(self, scalar: S) -> ProjectivePoint<C> {
         ProjectivePoint::<C>::from(self) * scalar
+    }
+}
+
+impl<C, S> Mul<S> for &AffinePoint<C>
+where
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+    ProjectivePoint<C>: Double,
+{
+    type Output = ProjectivePoint<C>;
+
+    #[inline]
+    fn mul(self, scalar: S) -> ProjectivePoint<C> {
+        ProjectivePoint::<C>::from(self) * scalar
+    }
+}
+
+impl<C, S> MulVartime<S> for AffinePoint<C>
+where
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+    ProjectivePoint<C>: Double,
+{
+    #[inline]
+    fn mul_vartime(self, scalar: S) -> ProjectivePoint<C> {
+        ProjectivePoint::<C>::from(self).mul_vartime(scalar)
+    }
+}
+
+impl<C, S> MulVartime<S> for &AffinePoint<C>
+where
+    C: PrimeCurveParams,
+    S: Borrow<Scalar<C>>,
+    ProjectivePoint<C>: Double,
+{
+    #[inline]
+    fn mul_vartime(self, scalar: S) -> ProjectivePoint<C> {
+        ProjectivePoint::<C>::from(self).mul_vartime(scalar)
     }
 }
 
@@ -430,6 +519,7 @@ where
 {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self {
         AffinePoint {
             x: self.x,
@@ -445,6 +535,7 @@ where
 {
     type Output = AffinePoint<C>;
 
+    #[inline]
     fn neg(self) -> AffinePoint<C> {
         -(*self)
     }
@@ -458,15 +549,12 @@ where
 impl<C> Serialize for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
-    <UncompressedPointSize<C> as ArrayLength<u8>>::ArrayType: Copy,
 {
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: ser::Serializer,
     {
-        self.to_encoded_point(true).serialize(serializer)
+        self.to_sec1_point(true).serialize(serializer)
     }
 }
 
@@ -474,15 +562,12 @@ where
 impl<'de, C> Deserialize<'de> for AffinePoint<C>
 where
     C: PrimeCurveParams,
-    FieldBytes<C>: Copy,
-    FieldBytesSize<C>: ModulusSize,
-    CompressedPoint<C>: Copy,
 {
     fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
     where
         D: de::Deserializer<'de>,
     {
-        EncodedPoint::<C>::deserialize(deserializer)?
+        Sec1Point::<C>::deserialize(deserializer)?
             .try_into()
             .map_err(de::Error::custom)
     }

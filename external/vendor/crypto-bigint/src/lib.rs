@@ -1,35 +1,32 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
 )]
-#![deny(unsafe_code)]
-#![warn(
-    clippy::mod_module_files,
-    clippy::unwrap_used,
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    rust_2018_idioms,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_qualifications
-)]
+#![cfg_attr(not(test), warn(clippy::unwrap_used))]
 
 //! ## Usage
 //!
-//! This crate defines a [`Uint`] type which is const generic around an inner
-//! [`Limb`] array, where a [`Limb`] is a newtype for a word-sized integer.
-//! Thus large integers are represented as arrays of smaller integers which
-//! are sized appropriately for the CPU, giving us some assurances of how
-//! arithmetic operations over those smaller integers will behave.
+//! The core types of `crypto-bigint` are as follows:
 //!
-//! To obtain appropriately sized integers regardless of what a given CPU's
-//! word size happens to be, a number of portable type aliases are provided for
-//! integer sizes commonly used in cryptography, for example:
-//! [`U128`], [`U384`], [`U256`], [`U2048`], [`U3072`], [`U4096`].
+//! - [`Uint`]: stack-allocated big integer type, const generic around a number of [`Limb`]s.
+//!   Type aliases are provided for various sizes, e.g. [`U128`], [`U384`], [`U256`], [`U2048`],
+//!   [`U3072`], [`U4096`].
+//! - [`BoxedUint`]: heap-allocated big integer type. Requires the `alloc` crate feature is enabled.
+//!
+//! Big integer types in this crate use a 32-bit or 64-bit saturated representation, depending on
+//! the underlying CPU's pointer width.
+//!
+//! The following types for modular arithmetic are available under the [`modular`] submodule:
+//!
+//! - [`modular::ConstMontyForm`]: stack-allocated type-safe modular arithmetic using Montgomery
+//!   form suitable for cases where the modulus is known at compile-time.
+//! - [`modular::FixedMontyForm`]: stack-allocated modular arithmetic using Montgomery form for cases
+//!   where the modulus is only known at runtime.
+//! - [`modular::BoxedMontyForm`]: heap-allocated modular arithmetic using Montgomery form.
+//!   Requires the `alloc` crate feature is enabled.
 //!
 //! ### `const fn` usage
 //!
@@ -45,16 +42,7 @@
 //!     U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
 //!
 //! // Compute `MODULUS` shifted right by 1 at compile time
-//! pub const MODULUS_SHR1: U256 = MODULUS.shr_vartime(1);
-//! ```
-//!
-//! Note that large constant computations may accidentally trigger a the `const_eval_limit` of the compiler.
-//! The current way to deal with this problem is to either simplify this computation,
-//! or increase the compiler's limit (currently a nightly feature).
-//! One can completely remove the compiler's limit using:
-//! ```ignore
-//! #![feature(const_eval_limit)]
-//! #![const_eval_limit = "0"]
+//! pub const MODULUS_SHR1: U256 = MODULUS.shr(1);
 //! ```
 //!
 //! ### Trait-based usage
@@ -91,15 +79,17 @@
 //!
 //! ### Modular arithmetic
 //!
-//! This library has initial support for modular arithmetic in the form of the
-//! [`AddMod`], [`SubMod`], [`NegMod`], and [`MulMod`] traits, as well as the
-//! support for the [`Rem`] trait when used with a [`NonZero`] operand.
+//! See the [`modular`] module for types which implement Montgomery form modular arithmetic.
+//!
+//! This library also has support for performing modular arithmetic on integers in the form of the
+//! [`AddMod`], [`SubMod`], [`NegMod`], and [`MulMod`] traits, as well as the support for the
+//! [`Rem`] trait when used with a [`NonZero`] operand.
 //!
 //! ```
-//! use crypto_bigint::{AddMod, U256};
+//! use crypto_bigint::{AddMod, NonZero, U256};
 //!
 //! // mod 3
-//! let modulus = U256::from(3u8);
+//! let modulus = NonZero::new(U256::from(3u8)).expect("non-zero");
 //!
 //! // 1 + 1 mod 3 = 2
 //! let a = U256::ONE.add_mod(&U256::ONE, &modulus);
@@ -110,23 +100,22 @@
 //! assert_eq!(b, U256::ZERO);
 //! ```
 //!
-//! It also supports modular arithmetic over constant moduli using `Residue`,
-//! and over moduli set at runtime using `DynResidue`.
-//! That includes modular exponentiation and multiplicative inverses.
-//! These features are described in the [`modular`] module.
-//!
 //! ### Random number generation
 //!
-//! When the `rand_core` or `rand` features of this crate are enabled, it's
-//! possible to generate random numbers using any CSRNG by using the
-//! [`Random`] trait:
+//! When the `rand_core` feature of this crate are enabled, it's possible to generate random numbers
+//! using any RNG by using the [`Random`] trait:
 //!
 //! ```
-//! # #[cfg(feature = "rand")]
+//! # #[cfg(feature = "rand_core")]
 //! # {
-//! use crypto_bigint::{Random, U256, rand_core::OsRng};
+//! # use chacha20::ChaCha8Rng;
+//! # use rand_core::SeedableRng;
+//! # fn rng() -> ChaCha8Rng {
+//! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
+//! # }
+//! use crypto_bigint::{Random, U256};
 //!
-//! let n = U256::random(&mut OsRng);
+//! let n = U256::random_from_rng(&mut rng());
 //! # }
 //! ```
 //!
@@ -136,12 +125,17 @@
 //! distribution around a given [`NonZero`] modulus.
 //!
 //! ```
-//! # #[cfg(feature = "rand")]
+//! # #[cfg(feature = "rand_core")]
 //! # {
-//! use crypto_bigint::{NonZero, RandomMod, U256, rand_core::OsRng};
+//! # use chacha20::ChaCha8Rng;
+//! # use rand_core::SeedableRng;
+//! # fn rng() -> ChaCha8Rng {
+//! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
+//! # }
+//! use crypto_bigint::{NonZero, RandomMod, U256};
 //!
 //! let modulus = NonZero::new(U256::from(3u8)).unwrap();
-//! let n = U256::random_mod(&mut OsRng, &modulus);
+//! let n = U256::random_mod_vartime(&mut rng(), &modulus);
 //! # }
 //! ```
 //!
@@ -150,68 +144,77 @@
 //! [`Mul`]: core::ops::Mul
 //! [`Rem`]: core::ops::Rem
 //! [`Sub`]: core::ops::Sub
+//!
+//! ## `crypto-primes` crate
+//!
+//! This crate contains no prime number related functionality (e.g. random prime generation). Such
+//! functionality can be found in the companion [`crypto-primes`](https://docs.rs/crypto-primes)
+//! crate.
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
 
-#[macro_use]
-mod macros;
-
-#[cfg(feature = "generic-array")]
-mod array;
-#[cfg(feature = "alloc")]
-mod boxed;
-mod checked;
-mod ct_choice;
-mod limb;
-mod non_zero;
-mod traits;
-mod uint;
-mod wrapping;
-
 pub use crate::{
     checked::Checked,
-    ct_choice::CtChoice,
-    limb::{Limb, WideWord, Word},
-    non_zero::NonZero,
+    encoding::ByteOrder,
+    encoding::*,
+    int::{types::*, *},
+    jacobi::JacobiSymbol,
+    limb::{Limb, nlimbs},
+    non_zero::*,
+    odd::*,
     traits::*,
-    uint::div_limb::Reciprocal,
-    uint::*,
+    uint::{
+        div_limb::Reciprocal,
+        encoding::{EncodedUint, TryFromSliceError},
+        ref_type::UintRef,
+        *,
+    },
+    word::{WideWord, Word},
     wrapping::Wrapping,
 };
-pub use subtle;
+
+pub use cpubits::cpubits;
+pub use ctutils::{self, Choice, CtOption};
 
 #[cfg(feature = "alloc")]
-pub use crate::boxed::uint::BoxedUint;
-
-#[cfg(feature = "generic-array")]
-pub use {
-    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    generic_array::{self, typenum::consts},
-};
-
+pub use crate::uint::boxed::BoxedUint;
+#[cfg(feature = "hybrid-array")]
+pub use hybrid_array::{self, typenum::consts};
 #[cfg(feature = "rand_core")]
 pub use rand_core;
-
 #[cfg(feature = "rlp")]
 pub use rlp;
-
 #[cfg(feature = "zeroize")]
 pub use zeroize;
 
+pub mod modular;
+
+mod bitlen;
+mod checked;
+mod encoding;
+mod int;
+mod jacobi;
+mod limb;
+mod non_zero;
+mod odd;
+mod primitives;
+mod traits;
+mod uint;
+mod word;
+mod wrapping;
+
 /// Import prelude for this crate: includes important traits.
 pub mod prelude {
-    pub use crate::traits::*;
-
-    #[cfg(feature = "generic-array")]
-    pub use crate::array::{ArrayDecoding, ArrayEncoding};
+    pub use crate::{encoding::*, traits::*};
 }
 
-#[cfg(sidefuzz)]
-#[no_mangle]
-pub extern "C" fn fuzz() {
-    let input = sidefuzz::fetch_input(32); // 32 bytes of of fuzzing input as a &[u8]
-    sidefuzz::black_box(my_hopefully_constant_fn(input));
-}
+/// DEPRECATED: legacy type alias for [`Choice`].
+#[deprecated(since = "0.7.0", note = "use `Choice` instead")]
+pub type ConstChoice = Choice;
+
+/// DEPRECATED: legacy type alias for [`CtOption`].
+#[deprecated(since = "0.7.0", note = "use `CtOption` instead")]
+pub type ConstCtOption<T> = CtOption<T>;

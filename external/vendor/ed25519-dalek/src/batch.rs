@@ -9,9 +9,11 @@
 
 //! Batch signature verification.
 
+mod transcript;
+
 use alloc::vec::Vec;
 
-use core::convert::TryFrom;
+use core::convert::Infallible;
 use core::iter::once;
 
 use curve25519_dalek::constants;
@@ -22,29 +24,39 @@ use curve25519_dalek::traits::VartimeMultiscalarMul;
 
 pub use curve25519_dalek::digest::Digest;
 
-use merlin::Transcript;
+use transcript::Transcript;
 
-use rand_core::RngCore;
+use rand_core::Rng;
 
 use sha2::Sha512;
 
+use crate::VerifyingKey;
 use crate::errors::InternalError;
 use crate::errors::SignatureError;
 use crate::signature::InternalSignature;
-use crate::VerifyingKey;
 
-/// An implementation of `rand_core::RngCore` which does nothing. This is necessary because merlin
+/// Domain separation label to initialize the STROBE context.
+///
+/// This is not to be confused with the crate's semver string:
+/// the latter applies to the API, while this label defines the protocol.
+/// E.g. it is possible that crate 2.0 will have an incompatible API,
+/// but implement the same 1.0 protocol.
+const MERLIN_PROTOCOL_LABEL: &[u8] = b"Merlin v1.0";
+
+/// An implementation of `rand_core::Rng` which does nothing. This is necessary because merlin
 /// demands an `Rng` as input to `TranscriptRngBuilder::finalize()`. Using this with `finalize()`
 /// yields a PRG whose input is the hashed transcript.
 struct ZeroRng;
 
-impl rand_core::RngCore for ZeroRng {
-    fn next_u32(&mut self) -> u32 {
-        rand_core::impls::next_u32_via_fill(self)
+impl rand_core::TryRng for ZeroRng {
+    type Error = Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        rand_core::utils::next_word_via_fill(self)
     }
 
-    fn next_u64(&mut self) -> u64 {
-        rand_core::impls::next_u64_via_fill(self)
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        rand_core::utils::next_word_via_fill(self)
     }
 
     /// A no-op function which leaves the destination bytes for randomness unchanged.
@@ -55,19 +67,16 @@ impl rand_core::RngCore for ZeroRng {
     /// STROBE state based on external randomness, we're doing an
     /// `ENC_{state}(00000000000000000000000000000000)` operation, which is
     /// identical to the STROBE `MAC` operation.
-    fn fill_bytes(&mut self, _dest: &mut [u8]) {}
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        self.fill_bytes(dest);
+    fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), Self::Error> {
         Ok(())
     }
 }
 
 // `TranscriptRngBuilder::finalize()` requires a `CryptoRng`
-impl rand_core::CryptoRng for ZeroRng {}
+impl rand_core::TryCryptoRng for ZeroRng {}
 
 // We write our own gen() function so we don't need to pull in the rand crate
-fn gen_u128<R: RngCore>(rng: &mut R) -> u128 {
+fn gen_u128<R: Rng>(rng: &mut R) -> u128 {
     let mut buf = [0u8; 16];
     rng.fill_bytes(&mut buf);
     u128::from_le_bytes(buf)
@@ -119,10 +128,10 @@ fn gen_u128<R: RngCore>(rng: &mut R) -> u128 {
 /// use ed25519_dalek::{
 ///     verify_batch, SigningKey, VerifyingKey, Signer, Signature,
 /// };
-/// use rand::rngs::OsRng;
+/// use getrandom::{SysRng, rand_core::{TryRng, UnwrapErr}};
 ///
 /// # fn main() {
-/// let mut csprng = OsRng;
+/// let mut csprng = UnwrapErr(SysRng);
 /// let signing_keys: Vec<_> = (0..64).map(|_| SigningKey::generate(&mut csprng)).collect();
 /// let msg: &[u8] = b"They're good dogs Brant";
 /// let messages: Vec<_> = (0..64).map(|_| msg).collect();

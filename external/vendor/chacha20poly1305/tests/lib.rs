@@ -6,14 +6,24 @@ use chacha20poly1305::ChaCha20Poly1305;
 use chacha20poly1305::XChaCha20Poly1305;
 
 // Test vectors from Wycheproof
-aead::new_test!(
-    wycheproof_chacha20poly1305,
-    "wycheproof_chacha20poly1305",
+aead::new_pass_test!(
+    wycheproof_chacha20poly1305_pass,
+    "wycheproof_chacha20poly1305_pass",
     ChaCha20Poly1305
 );
-aead::new_test!(
-    wycheproof_xchacha20poly1305,
-    "wycheproof_xchacha20poly1305",
+aead::new_fail_test!(
+    wycheproof_chacha20poly1305_fail,
+    "wycheproof_chacha20poly1305_fail",
+    ChaCha20Poly1305
+);
+aead::new_pass_test!(
+    wycheproof_xchacha20poly1305_pass,
+    "wycheproof_xchacha20poly1305_pass",
+    XChaCha20Poly1305
+);
+aead::new_fail_test!(
+    wycheproof_xchacha20poly1305_fail,
+    "wycheproof_xchacha20poly1305_fail",
     XChaCha20Poly1305
 );
 
@@ -21,14 +31,14 @@ macro_rules! impl_tests {
     ($cipher:ty, $key:expr, $nonce:expr, $aad:expr, $plaintext:expr, $ciphertext:expr, $tag:expr) => {
         #[test]
         fn encrypt() {
-            let key = GenericArray::from_slice($key);
-            let nonce = GenericArray::from_slice($nonce);
+            let key = Array(*$key);
+            let nonce = Array(*$nonce);
             let payload = Payload {
                 msg: $plaintext,
                 aad: $aad,
             };
 
-            let ciphertext = <$cipher>::new(key).encrypt(nonce, payload).unwrap();
+            let ciphertext = <$cipher>::new(&key).encrypt(&nonce, payload).unwrap();
 
             let tag_begins = ciphertext.len() - 16;
             assert_eq!($ciphertext, &ciphertext[..tag_begins]);
@@ -37,8 +47,8 @@ macro_rules! impl_tests {
 
         #[test]
         fn decrypt() {
-            let key = GenericArray::from_slice($key);
-            let nonce = GenericArray::from_slice($nonce);
+            let key = Array(*$key);
+            let nonce = Array(*$nonce);
 
             let mut ciphertext = Vec::from($ciphertext);
             ciphertext.extend_from_slice($tag);
@@ -47,15 +57,15 @@ macro_rules! impl_tests {
                 aad: $aad,
             };
 
-            let plaintext = <$cipher>::new(key).decrypt(nonce, payload).unwrap();
+            let plaintext = <$cipher>::new(&key).decrypt(&nonce, payload).unwrap();
 
             assert_eq!($plaintext, plaintext.as_slice());
         }
 
         #[test]
         fn decrypt_modified() {
-            let key = GenericArray::from_slice($key);
-            let nonce = GenericArray::from_slice($nonce);
+            let key = Array(*$key);
+            let nonce = Array(*$nonce);
 
             let mut ciphertext = Vec::from($ciphertext);
             ciphertext.extend_from_slice($tag);
@@ -68,8 +78,8 @@ macro_rules! impl_tests {
                 aad: $aad,
             };
 
-            let cipher = <$cipher>::new(key);
-            assert!(cipher.decrypt(nonce, payload).is_err());
+            let cipher = <$cipher>::new(&key);
+            assert!(cipher.decrypt(&nonce, payload).is_err());
         }
     };
 }
@@ -96,9 +106,9 @@ const PLAINTEXT: &[u8] = b"Ladies and Gentlemen of the class of '99: \
 /// <https://tools.ietf.org/html/rfc8439#section-2.8.2>
 mod chacha20 {
     use super::{AAD, KEY, PLAINTEXT};
-    use chacha20poly1305::aead::generic_array::GenericArray;
-    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
     use chacha20poly1305::ChaCha20Poly1305;
+    use chacha20poly1305::aead::array::Array;
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
 
     const NONCE: &[u8; 12] = &[
         0x07, 0x00, 0x00, 0x00, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
@@ -132,18 +142,18 @@ mod chacha20 {
 
     #[test]
     fn clone_impl() {
-        let _ = ChaCha20Poly1305::new(GenericArray::from_slice(KEY)).clone();
+        let _ = ChaCha20Poly1305::new(KEY.into()).clone();
     }
 }
 
 /// XChaCha20Poly1305 test vectors.
 ///
-/// From <https://tools.ietf.org/html/draft-arciszewski-xchacha-03#appendix-A.1>
+/// From <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha#appendix-A.1>
 mod xchacha20 {
     use super::{AAD, KEY, PLAINTEXT};
-    use chacha20poly1305::aead::generic_array::GenericArray;
-    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
     use chacha20poly1305::XChaCha20Poly1305;
+    use chacha20poly1305::aead::array::Array;
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
 
     const NONCE: &[u8; 24] = &[
         0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e,

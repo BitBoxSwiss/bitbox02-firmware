@@ -173,10 +173,17 @@ else()
     set(RUSTFLAGS "")
 endif()
 
+# Keep the smaller 32-bit crypto-bigint backend in sync with .cargo/config.toml.
+string(APPEND RUSTFLAGS " --cfg=cpubits=\"32\"")
+
 # Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 # This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
 string(APPEND RUSTFLAGS " --cfg=rust_secp_no_symbol_renaming")
+
+# Keep the compact SHA-2 backend in sync with .cargo/config.toml.
+string(APPEND RUSTFLAGS " --cfg=sha2_backend=\"soft\" --cfg=sha2_backend_soft=\"compact\"")
+separate_arguments(CARGO_ENV_FLAGS NATIVE_COMMAND "$ENV{CARGOFLAGS}")
 
 #-----------------------------------------------------------------------------
 # Print system information and build options

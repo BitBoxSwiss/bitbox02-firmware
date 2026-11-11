@@ -14,12 +14,13 @@
 // Note that State only implements the original Goll-Gueron algorithm, not the
 // optimisations provided by Bhattacharyya and Sarkar. The latter require the message
 // length to be known, which is incompatible with the streaming API of UniversalHash.
+#![allow(unsafe_op_in_unsafe_fn)]
 
 use universal_hash::{
-    consts::{U16, U4},
-    crypto_common::{BlockSizeUser, ParBlocksSizeUser},
-    generic_array::GenericArray,
     UhfBackend,
+    array::Array,
+    common::{BlockSizeUser, ParBlocksSizeUser},
+    consts::{U4, U16},
 };
 
 use crate::{Block, Key, Tag};
@@ -112,7 +113,7 @@ impl State {
             // finalization).
             let (m, r4) = SpacedMultiplier4x130::new(self.r1, self.r2);
 
-            self.initialized = Some(Initialized { p, m, r4 })
+            self.initialized = Some(Initialized { p, m, r4 });
         }
     }
 
@@ -160,7 +161,7 @@ impl State {
         }
 
         // Compute tag: p + k mod 2^128
-        let mut tag = GenericArray::<u8, _>::default();
+        let mut tag = Array::<u8, _>::default();
         let tag_int = if let Some(p) = p {
             self.k + p
         } else {

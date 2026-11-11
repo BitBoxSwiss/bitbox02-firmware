@@ -26,8 +26,10 @@ config:
 	python3 scripts/build_config.py $(CONFIG_ARGS)
 
 bootstrap:
+	@python3 -c 'import sys; from pathlib import Path; sys.exit(0 if sys.prefix != sys.base_prefix and Path(sys.prefix).resolve() == Path(".venv").resolve() else "Activate .venv before running make bootstrap: . .venv/bin/activate")'
 	git submodule update --init --recursive
 	./scripts/bootstrap-cargo-config
+	python3 -m pip install --requirement py/requirements-protobuf.txt
 
 IMAGES := firmware factorysetup bootloader-stage0 bootloader-stage1
 FLASH_IMAGES := $(IMAGES)

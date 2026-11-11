@@ -32,7 +32,7 @@ development machine to follow the instructions below.
 | [HIDAPI](https://github.com/signal11/hidapi) | 0.11.2 |
 | [cmake](https://cmake.org/download/) | 3.10 |
 | [git](https://git-scm.com/downloads) | 2.34 |
-| [Protobuf Compiler](https://github.com/protocolbuffers/protobuf/releases) | 21.2 |
+| [Protobuf Compiler](https://github.com/protocolbuffers/protobuf/releases) | [Pinned version](py/requirements-protobuf.txt) |
 | Python | >= 3.10 |
 | [Python Probobuf Runtime](https://github.com/protocolbuffers/protobuf/tree/master/python#installation) | 5.27.3 |
 | [SEGGER J-Link Software and Documentation Pack](https://www.segger.com/downloads/jlink) | 6.34g |
@@ -99,7 +99,7 @@ Make sure you have [Homebrew](https://brew.sh) installed. Install the
 dependencies with:
 
 ```sh
-brew install hidapi cmake protobuf@21
+brew install hidapi cmake
 brew install automake libtool
 brew tap osx-cross/arm
 brew install arm-gcc-bin
@@ -152,11 +152,17 @@ cd bitbox02-firmware
 
 ### Configure and build
 
-Inside the development container, run `make bootstrap` once to initialize submodules. From the
-host, use `./scripts/dev_exec.sh make <target>` for builds (or set
-`BITBOX_FW_EXEC_MODE=docker` to use the container toolchain).
+Run `make bootstrap` once to initialize submodules, configure Cargo, and install the pinned
+protobuf generators from [py/requirements-protobuf.txt](py/requirements-protobuf.txt). Bootstrap
+requires the repository's `.venv` to be active, including inside the development container. Keep it
+active when building so the installed generators are on `PATH`. Use
+`./scripts/dev_exec.sh make <target>` for host builds (or set `BITBOX_FW_EXEC_MODE=docker` to use the
+container toolchain).
 
 ```sh
+python3 -m venv .venv
+. .venv/bin/activate
+make bootstrap
 make config
 make firmware
 make factorysetup

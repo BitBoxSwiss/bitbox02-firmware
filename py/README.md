@@ -122,5 +122,6 @@ pip install -e ./bitbox02
 ```
 
 For developing the Python sources, almost all of it can be done on the host easily.
-To regenerate protobufs it is recommended to use the Docker container.
-Read more about dockerized setup in [BUILD.md](../BUILD.md).
+Before regenerating protobufs, run `make bootstrap` from the repository root to install the pinned
+generators. Keep the repository's `.venv` active for bootstrap and generation.
+Read more about the development environment in [BUILD.md](../BUILD.md).

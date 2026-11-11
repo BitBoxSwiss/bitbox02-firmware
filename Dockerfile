@@ -68,6 +68,7 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    python3-venv \
     clang-format-22 \
     clang-tidy-22
 
@@ -86,8 +87,7 @@ RUN python3 -m pip install --upgrade \
     pylint==3.3.7 \
     pylint-protobuf==0.22.0 \
     black==25.1.0 \
-    mypy==1.15.0 \
-    mypy-protobuf==3.6.0
+    mypy==1.15.0
 
 # Python modules for packaging
 RUN python3 -m pip install --upgrade \
@@ -95,17 +95,10 @@ RUN python3 -m pip install --upgrade \
     wheel==0.33.6 \
     twine==1.15.0
 
-#Install protoc from release, because the version available on the repo is too old
-RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
-      PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v21.2/protoc-21.2-linux-aarch_64.zip; \
-    else \
-      PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v21.2/protoc-21.2-linux-x86_64.zip; \
-    fi; \
-    mkdir -p /opt/protoc && \
-    curl -L0 ${PROTOC_URL} -o /tmp/protoc-21.2.zip && \
-    unzip /tmp/protoc-21.2.zip -d /opt/protoc && \
-    rm /tmp/protoc-21.2.zip
-ENV PATH=/opt/protoc/bin:$PATH
+# Protobuf generators
+COPY py/requirements-protobuf.txt /tmp/requirements-protobuf.txt
+RUN python3 -m pip install --requirement /tmp/requirements-protobuf.txt && \
+    rm /tmp/requirements-protobuf.txt
 
 # Developer tools
 RUN apt-get update && apt-get install -y \

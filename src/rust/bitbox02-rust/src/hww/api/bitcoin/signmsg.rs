@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::Error;
 use super::pb;
+use super::{bip322, common};
 
 use pb::BtcCoin;
 use pb::btc_script_config::{Config, SimpleType};
@@ -19,9 +20,10 @@ use crate::keystore;
 use crate::hal::Ui;
 use crate::workflow::verify_message;
 use bitcoin::consensus::encode::{VarInt, serialize};
+use bitcoin::hashes::Hash as _;
 use util::bip32::HARDENED;
 
-const MAX_MESSAGE_SIZE: usize = 1024;
+pub(super) const MAX_MESSAGE_SIZE: usize = 1024;
 const MAX_KEYPATH_DEPTH: usize = 10;
 const EXTERNAL_SERVICE_PURPOSE_M45: u32 = 45 + HARDENED;
 const EXTERNAL_SERVICE_PURPOSE_M48: u32 = 48 + HARDENED;
@@ -40,74 +42,22 @@ fn validate_external_service_keypath(keypath: &[u32]) -> Result<(), Error> {
     }
 }
 
-/// Process a sign message request.
-///
-/// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
-/// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process(
+/// Confirms signing a message with `address`. `basic_info` is shown first and names the coin.
+pub(super) async fn confirm_address(
     hal: &mut impl crate::hal::Hal,
-    request: &pb::BtcSignMessageRequest,
-) -> Result<Response, Error> {
-    let coin = BtcCoin::try_from(request.coin)?;
-    if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc | BtcCoin::Rbtc) {
-        return Err(Error::InvalidInput);
-    }
-    let (keypath, simple_type) = match &request.script_config {
-        Some(pb::BtcScriptConfigWithKeypath {
-            script_config:
-                Some(pb::BtcScriptConfig {
-                    config: Some(Config::SimpleType(simple_type)),
-                }),
-            keypath,
-        }) => (keypath, SimpleType::try_from(*simple_type)?),
-        _ => return Err(Error::InvalidInput),
-    };
-    if simple_type == SimpleType::P2tr {
-        return Err(Error::InvalidInput);
-    }
-    if request.msg.len() > MAX_MESSAGE_SIZE {
-        return Err(Error::InvalidInput);
-    }
-
-    // Standard Bitcoin keypaths keep the existing UI. Keypaths in the external service
-    // application namespace are accepted and identified as external service keys.
-    let coin_params = super::params::get(coin);
-    let is_standard_keypath = super::keypath::validate_address_simple(
-        keypath,
-        coin_params.bip44_coin,
-        simple_type,
-        coin_params.taproot_support,
-        super::keypath::ReceiveSpend::Receive,
-    )
-    .is_ok();
-    if !is_standard_keypath {
-        validate_external_service_keypath(keypath)?;
-    }
-
-    let address = super::derive_address_simple_unvalidated(
-        hal,
-        coin,
-        simple_type,
-        keypath,
-        crate::keystore::Compute::Twice,
-    )
-    .await?;
-    let address_formatted = util::strings::format_address(&address);
-
-    let basic_info = if is_standard_keypath {
-        crate::tr_format!(hal, "Coin: {}", &[coin_params.name])
-    } else {
-        crate::tr_format!(hal, "Coin: {}\nExternal service key", &[coin_params.name])
-    };
+    basic_info: &str,
+    address: &str,
+) -> Result<(), Error> {
     let title = crate::tr!(hal, "Sign message");
     let confirm_params = ConfirmParams {
         title: &title,
-        body: &basic_info,
+        body: basic_info,
         accept_is_nextarrow: true,
         ..Default::default()
     };
     hal.ui().confirm(&confirm_params).await?;
 
+    let address_formatted = util::strings::format_address(address);
     let title = crate::tr!(hal, "Address");
     let confirm_params = ConfirmParams {
         title: &title,
@@ -117,25 +67,71 @@ pub async fn process(
         ..Default::default()
     };
     hal.ui().confirm(&confirm_params).await?;
+    Ok(())
+}
 
+/// Confirms the message to sign, as the final step before signing.
+pub(super) async fn confirm_message(
+    hal: &mut impl crate::hal::Hal,
+    msg: &[u8],
+) -> Result<(), Error> {
     let title_long = crate::tr!(hal, "Sign message");
     let title_short = crate::tr!(hal, "Sign");
-    verify_message::verify(hal, &title_long, &title_short, &request.msg, true).await?;
+    verify_message::verify(hal, &title_long, &title_short, msg, true).await?;
+    Ok(())
+}
 
+/// Compute the BIP-322 "simple" signature of the P2TR address at the keypath.
+///
+/// Returns the signature encoded as specified by BIP-322: the prefix `smp` followed by the
+/// base64-encoded witness stack, which consists of the 64-byte Schnorr signature.
+async fn sign_bip322_p2tr(
+    hal: &mut impl crate::hal::Hal,
+    coin_params: &super::params::Params,
+    keypath: &[u32],
+    msg: &[u8],
+) -> Result<Vec<u8>, Error> {
+    let mut xpub_cache = crate::xpubcache::XpubCache::new(keystore::Compute::Twice);
+    let script_pubkey =
+        common::Payload::from_simple(hal, &mut xpub_cache, coin_params, SimpleType::P2tr, keypath)
+            .await?
+            .pk_script(coin_params)?;
+    let sighash = bip322::sighash_p2tr(msg, &script_pubkey);
+
+    // This is a BIP-86 spend, so we tweak the private key by the hash of the public key only, as
+    // there is no Taproot merkle root.
+    let xpub = xpub_cache.get_xpub(hal, keypath).await?;
+    let pubkey = bitcoin::PublicKey::from_slice(xpub.public_key()).map_err(|_| Error::Generic)?;
+    let tweak_hash = bitcoin::TapTweakHash::from_key_and_tweak(pubkey.into(), None);
+    let signature =
+        keystore::secp256k1_schnorr_sign(hal, keypath, &sighash, Some(tweak_hash.as_byte_array()))
+            .await?;
+    Ok(bip322::encode_simple_p2tr(&signature))
+}
+
+/// Compute the legacy "Bitcoin Signed Message" signature (ECDSA).
+///
+/// Returns a 65-byte signature: 64 bytes secp256k1 compact (R, S) + 1 byte recovery id.
+async fn sign_legacy(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    msg: &[u8],
+    host_nonce_commitment: &Option<pb::AntiKleptoHostNonceCommitment>,
+) -> Result<Vec<u8>, Error> {
     // See
     // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
     // This is the message format that is widespread for p2pkh addresses.
     // Electrum re-used it for p2wpkh-p2sh and p2wpkh addresses.
-    let mut msg: Vec<u8> = Vec::new();
-    msg.extend(b"\x18Bitcoin Signed Message:\n");
-    msg.extend(serialize(&VarInt(request.msg.len() as _)));
-    msg.extend(&request.msg);
+    let mut extended_msg: Vec<u8> = Vec::new();
+    extended_msg.extend(b"\x18Bitcoin Signed Message:\n");
+    extended_msg.extend(serialize(&VarInt(msg.len() as _)));
+    extended_msg.extend(msg);
 
-    let sighash: [u8; 32] = Sha256::digest(Sha256::digest(msg)).into();
+    let sighash: [u8; 32] = Sha256::digest(Sha256::digest(extended_msg)).into();
 
-    let host_nonce = match request.host_nonce_commitment {
+    let host_nonce = match host_nonce_commitment {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
-        Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+        Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
             let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
                 keystore::secp256k1_get_private_key(hal, keypath)
                     .await?
@@ -170,6 +166,80 @@ pub async fn process(
     )?;
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
+    Ok(signature)
+}
+
+/// Process a sign message request.
+///
+/// For P2TR, the result contains the BIP-322 "simple" signature: the prefix `smp` followed by the
+/// base64-encoded witness stack.
+///
+/// For all other script types, the result contains a 65 byte signature. The first 64 bytes are the
+/// secp256k1 signature in compact format (R and S values), and the last byte is the recoverable id
+/// (recid).
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
+    request: &pb::BtcSignMessageRequest,
+) -> Result<Response, Error> {
+    let coin = BtcCoin::try_from(request.coin)?;
+    if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc | BtcCoin::Rbtc) {
+        return Err(Error::InvalidInput);
+    }
+    let (keypath, simple_type) = match &request.script_config {
+        Some(pb::BtcScriptConfigWithKeypath {
+            script_config:
+                Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(simple_type)),
+                }),
+            keypath,
+        }) => (keypath, SimpleType::try_from(*simple_type)?),
+        _ => return Err(Error::InvalidInput),
+    };
+    // Anti-Klepto protocol not supported yet for Schnorr signatures.
+    if simple_type == SimpleType::P2tr && request.host_nonce_commitment.is_some() {
+        return Err(Error::InvalidInput);
+    }
+    if request.msg.len() > MAX_MESSAGE_SIZE {
+        return Err(Error::InvalidInput);
+    }
+
+    // Standard Bitcoin keypaths keep the existing UI. Keypaths in the external service
+    // application namespace are accepted and identified as external service keys.
+    let coin_params = super::params::get(coin);
+    let is_standard_keypath = super::keypath::validate_address_simple(
+        keypath,
+        coin_params.bip44_coin,
+        simple_type,
+        coin_params.taproot_support,
+        super::keypath::ReceiveSpend::Receive,
+    )
+    .is_ok();
+    if !is_standard_keypath {
+        validate_external_service_keypath(keypath)?;
+    }
+
+    let address = super::derive_address_simple_unvalidated(
+        hal,
+        coin,
+        simple_type,
+        keypath,
+        crate::keystore::Compute::Twice,
+    )
+    .await?;
+
+    let basic_info = if is_standard_keypath {
+        crate::tr_format!(hal, "Coin: {}", &[coin_params.name])
+    } else {
+        crate::tr_format!(hal, "Coin: {}\nExternal service key", &[coin_params.name])
+    };
+    confirm_address(hal, &basic_info, &address).await?;
+    confirm_message(hal, &request.msg).await?;
+
+    let signature = if simple_type == SimpleType::P2tr {
+        sign_bip322_p2tr(hal, coin_params, keypath, &request.msg).await?
+    } else {
+        sign_legacy(hal, keypath, &request.msg, &request.host_nonce_commitment).await?
+    };
 
     Ok(Response::SignMessage(pb::BtcSignMessageResponse {
         signature,
@@ -516,6 +586,79 @@ mod tests {
     }
 
     #[async_test::test]
+    pub async fn test_p2tr() {
+        let keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+                }),
+                keypath: keypath.to_vec(),
+            }),
+            msg: MESSAGE.as_bytes().to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let Ok(Response::SignMessage(pb::BtcSignMessageResponse { signature })) =
+            process(&mut mock_hal, &request).await
+        else {
+            panic!("unexpected response");
+        };
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "bc1p z6xe mnzk 9nzj pt5a z3v8 27st 6e72 emt3 364v z6u3 p7gl rg56 r39q et59 hc".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
+
+        // The signature is a BIP-322 "simple" signature: the witness stack consists of the Schnorr
+        // signature, which verifies against the output key of the address for the sighash of the
+        // `to_sign` transaction.
+        let mut witness_stack = [0u8; 66];
+        binascii::b64decode(signature.strip_prefix(b"smp").unwrap(), &mut witness_stack).unwrap();
+        assert_eq!(witness_stack[..2], [1, 64]);
+        let coin_params = super::super::params::get(BtcCoin::Btc);
+        let script_pubkey = common::Payload::from_simple(
+            &mut mock_hal,
+            &mut crate::xpubcache::XpubCache::new(keystore::Compute::Once),
+            coin_params,
+            SimpleType::P2tr,
+            &keypath,
+        )
+        .await
+        .unwrap()
+        .pk_script(coin_params)
+        .unwrap();
+        bitcoin::secp256k1::Secp256k1::verification_only()
+            .verify_schnorr(
+                &bitcoin::secp256k1::schnorr::Signature::from_slice(&witness_stack[2..]).unwrap(),
+                &bitcoin::secp256k1::Message::from_digest(bip322::sighash_p2tr(
+                    MESSAGE.as_bytes(),
+                    &script_pubkey,
+                )),
+                &bitcoin::secp256k1::XOnlyPublicKey::from_slice(&script_pubkey[2..]).unwrap(),
+            )
+            .unwrap();
+    }
+
+    #[async_test::test]
     pub async fn test_process_user_aborted() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
@@ -610,7 +753,7 @@ mod tests {
             Err(Error::InvalidInput)
         );
 
-        // Invalid script type (taproot not supported)
+        // Anti-klepto is not supported for taproot.
         assert_eq!(
             process(
                 &mut TestingHal::new(),
@@ -623,7 +766,9 @@ mod tests {
                         keypath: vec![86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                     }),
                     msg: MESSAGE.as_bytes().to_vec(),
-                    host_nonce_commitment: None,
+                    host_nonce_commitment: Some(pb::AntiKleptoHostNonceCommitment {
+                        commitment: vec![0xab; 32],
+                    }),
                 }
             )
             .await,

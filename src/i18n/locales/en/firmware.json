@@ -86,6 +86,10 @@
         "address": "Address",
         "coin": "Coin: {}",
         "externalServiceKey": "Coin: {}\nExternal service key",
+        "proofOfFunds": {
+          "body": "Coins: {}\nTotal: {}",
+          "title": "Proof of funds"
+        },
         "sign": "Sign",
         "signMessage": "Sign message"
       },

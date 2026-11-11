@@ -86,6 +86,10 @@
         "address": "Adresse",
         "coin": "Coin: {}",
         "externalServiceKey": "Coin: {}\nSchlüssel für\nexternen Dienst",
+        "proofOfFunds": {
+          "body": "Coins: {}\nTotal: {}",
+          "title": "Guthabennachweis"
+        },
         "sign": "Signieren",
         "signMessage": "Nachricht\nsignieren"
       },

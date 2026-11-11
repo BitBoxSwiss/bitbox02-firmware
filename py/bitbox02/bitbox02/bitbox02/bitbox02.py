@@ -475,6 +475,7 @@ class BitBox02(BitBoxCommonAPI):
         locktime: int = 0,
         format_unit: "btc.BTCSignInitRequest.FormatUnit.V" = btc.BTCSignInitRequest.FormatUnit.DEFAULT,
         output_script_configs: Optional[Sequence[btc.BTCScriptConfigWithKeypath]] = None,
+        bip322_message: Optional[bytes] = None,
     ) -> Sequence[Tuple[int, bytes]]:
         """
         coin: the first element of all provided keypaths must match the coin:
@@ -491,10 +492,15 @@ class BitBox02(BitBoxCommonAPI):
           if `btc_sign_needs_prevtxs()` returns True.
         outputs: transaction outputs. Can be an external output
         (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
-        version: transaction version, 1 or 2.
+        version: transaction version, 1 or 2. For BIP-322 message signing, 0 or 2.
         locktime: consensus nLockTime, interpreted as a block height or Unix timestamp.
         format_unit: defines in which unit amounts will be displayed
         output_script_configs: script types for outputs belonging to the same keystore
+        bip322_message: if set, sign this BIP-322 message instead of a transaction. It is the
+        value of the PSBT_GLOBAL_GENERIC_SIGNED_MESSAGE field of the PSBT. The inputs and outputs
+        must be the ones of the BIP-322 to_sign transaction: the first input spends the to_spend
+        transaction of the message, additional inputs make it a proof of funds, and the only output
+        is an OP_RETURN without data.
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
@@ -503,7 +509,12 @@ class BitBox02(BitBoxCommonAPI):
         # Anti-klepto support for BTC transaction signing was added in v9.4.0.
         self._require_atleast(semver.VersionInfo(9, 4, 0))
 
-        assert version in (1, 2)
+        if bip322_message is not None:
+            # BIP-322 message signing supported since v9.28.0.
+            self._require_atleast(semver.VersionInfo(9, 28, 0))
+            assert version in (0, 2)
+        else:
+            assert version in (1, 2)
 
         if locktime >= 500_000_000:
             # Timestamp-based nLockTime supported since v9.27.0.
@@ -540,6 +551,7 @@ class BitBox02(BitBoxCommonAPI):
                 locktime=locktime,
                 format_unit=format_unit,
                 output_script_configs=output_script_configs,
+                bip322_message=bip322_message,
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
@@ -693,6 +705,8 @@ class BitBox02(BitBoxCommonAPI):
         """
         Returns a 64 byte sig, the recoverable id, and a 65 byte signature containing
         the recid, compatible with Electrum.
+        For P2TR, the first and third element are both the BIP-322 "simple" signature (the prefix
+        "smp" followed by the base64-encoded witness stack), and the recoverable id is 0.
         """
         # pylint: disable=no-member
 
@@ -705,6 +719,15 @@ class BitBox02(BitBoxCommonAPI):
         request.sign_message.CopyFrom(
             btc.BTCSignMessageRequest(coin=coin, script_config=script_config, msg=msg)
         )
+
+        if _is_taproot_simple(script_config):
+            # BIP-322 message signing for P2TR supported since v9.28.0. There is no anti-klepto
+            # support for Schnorr signatures.
+            self._require_atleast(semver.VersionInfo(9, 28, 0))
+            signature = self._btc_msg_query(
+                request, expected_response="sign_message"
+            ).sign_message.signature
+            return (signature, 0, signature)
 
         host_nonce = os.urandom(32)
 

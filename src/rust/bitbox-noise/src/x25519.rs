@@ -54,6 +54,25 @@ impl noise_protocol::DH for X25519 {
     fn dh(k: &Self::Key, pk: &Self::Pubkey) -> Result<Self::Output, ()> {
         let k = x25519_dalek::StaticSecret::from(*k.deref());
         let pk = x25519_dalek::PublicKey::from(*pk);
-        Ok(*k.diffie_hellman(&pk).as_bytes())
+        let shared = k.diffie_hellman(&pk);
+        if !shared.was_contributory() {
+            return Err(());
+        }
+        Ok(*shared.as_bytes())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::{MockRandom, non_contributory_pubkeys};
+    use noise_protocol::DH;
+
+    #[test]
+    fn test_dh_non_contributory() {
+        let private_key = genkey(&mut MockRandom);
+        for pubkey in non_contributory_pubkeys() {
+            assert_eq!(X25519::dh(&private_key, &pubkey), Err(()), "{pubkey:02x?}");
+        }
     }
 }

@@ -12,12 +12,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG TARGETPLATFORM
 ARG TARGETARCH
 
+RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2 xz-utils
 
 # for clang-*-22, see https://apt.llvm.org/
 RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" >> /etc/apt/sources.list && \
     echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" >> /etc/apt/sources.list && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    wget -4 -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
 RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
@@ -27,7 +29,7 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
       GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz \
       GNU_TOOLCHAIN_HASH=597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16; \
     fi; \
-    curl -sSL -o gcc.tar.xz ${GNU_TOOLCHAIN} && \
+    curl -4 -sSL -o gcc.tar.xz ${GNU_TOOLCHAIN} && \
     echo "$GNU_TOOLCHAIN_HASH gcc.tar.xz" | sha256sum -c && \
     tar -xvf gcc.tar.xz -C /usr/local --strip-components=1 && \
     rm -f gcc.tar.xz
@@ -116,13 +118,13 @@ ENV GOPATH=/opt/go
 ENV GOROOT=/opt/go_dist/go
 ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
-    curl https://dl.google.com/go/go1.19.3.linux-${TARGETARCH}.tar.gz | tar -xz -C /opt/go_dist
+    curl -4 https://dl.google.com/go/go1.19.3.linux-${TARGETARCH}.tar.gz | tar -xz -C /opt/go_dist
 
 # Install rust compiler
 ENV PATH=/opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
 COPY rust-toolchain.toml rust-toolchain.toml
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' rust-toolchain.toml) -y
+RUN curl -4 --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' rust-toolchain.toml) -y
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.2 --locked
 RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.1 --locked
 

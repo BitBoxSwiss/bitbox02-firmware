@@ -71,6 +71,39 @@ When connecting the first time to an initialized but unpaired BitBox, the device
 will prompt to unlock and continue to compare and confirm the Noise pairing key.
 This is a one-time action.
 
+### Manual screen walkthrough
+
+Run the long interactive UI test with a disposable test device:
+
+```bash
+python ./send_message.py --test-ui
+```
+
+For the simulator, use `--test-ui --simulator` (and optionally `--simulator-port`).
+Install `py/requirements.txt`, including `bech32` and `rlp`, first.
+
+The walkthrough exercises startup and pairing, passwords, backups and recovery words,
+Bitcoin addresses and transaction warnings, message display variants, BIP85, BitBoxSync,
+passphrases, resets and recovery. Multi-coin firmware also exercises Litecoin, Ethereum,
+EIP712, payment memos/swaps, Cardano and U2F. Bootloader screens are inspected manually
+at the end. Payment-request fixtures deliberately have invalid signatures: inspect the
+memo and swap screens, then expect the invalid-payment-request error.
+
+Each case has instructions and run/skip controls. Afterwards, enter `p` for pass, `f` for
+fail, `r` to repeat, or `s` to skip. Enter `q` at these prompts or press Ctrl-C to stop.
+The final summary records your observations; it does not automatically verify the display.
+Exit status is 0 when all applicable cases pass, 1 for failures/skips, and 130 when stopped.
+
+The test changes device settings, registers test accounts, creates backups and offers factory
+resets. Each reset requires typing `RESET` and confirming on the device. Keep test microSD
+cards (one with a backup and one empty) and record the recovery words when prompted. Follow
+reconnection instructions after resets and passphrase changes. Transactions are never broadcast.
+
+Use a fresh test wallet to see account-registration screens that would otherwise be skipped
+by the firmware. Hardware faults, successful validation of service-signed payment requests,
+and firmware installation need separate testing. Simulator runs cannot verify physical
+microSD behavior, U2F or the bootloader.
+
 
 ## Flash the firmware.bin
 

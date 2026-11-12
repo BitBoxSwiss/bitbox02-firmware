@@ -20,6 +20,7 @@ import os
 import getpass
 import select
 import threading
+from functools import partial
 
 import requests
 import base58
@@ -1257,12 +1258,13 @@ class SendMessage:
         except UserAbortException:
             eprint("Aborted by user")
 
-    def _sign_eth_tx(self) -> None:
+    def _sign_eth_tx(self, inp: Optional[str] = None) -> None:
         # pylint: disable=line-too-long,too-many-branches,too-many-statements
 
-        inp = input(
-            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum; 10=streaming (10KB data); 11=long amounts: "
-        ).strip()
+        if inp is None:
+            inp = input(
+                "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum; 10=streaming (10KB data); 11=long amounts: "
+            ).strip()
 
         chain_id = 1  # mainnet
         if inp == "6":
@@ -1462,7 +1464,7 @@ class SendMessage:
         )
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
 
-    def _cardano(self) -> None:
+    def _cardano(self, choice_index: Optional[int] = None) -> None:
         def xpubs() -> None:
             xpubs = self._device.cardano_xpubs(
                 keypaths=[
@@ -1735,7 +1737,7 @@ class SendMessage:
             ("Delegate vote to a dRep", delegate_vote),
             ("Withdraw staking rewards", withdraw),
         )
-        choice = ask_user(choices)
+        choice = ask_user(choices) if choice_index is None else choices[choice_index][1]
         if callable(choice):
             try:
                 choice()
@@ -1971,6 +1973,630 @@ class SendMessage:
         return 0
 
 
+class ManualUITest(SendMessage):
+    def __init__(
+        self,
+        device: bitbox02.BitBox02,
+        debug: bool,
+        reconnect: Callable[[], bitbox02.BitBox02],
+        simulator: bool = False,
+    ):
+        super().__init__(device, debug)
+        self._connect = reconnect
+        self._simulator = simulator
+        self._results: List[Tuple[str, str]] = []
+
+    @staticmethod
+    def _answer(prompt: str, choices: Sequence[str]) -> str:
+        while True:
+            answer = input(prompt).strip().lower()
+            if answer == "q":
+                raise KeyboardInterrupt
+            if answer in choices:
+                return answer
+            print("Invalid input")
+
+    def _step(self, title: str, instructions: str, action: Callable[[], Any]) -> None:
+        print(f"\n[{len(self._results) + 1}] {title}\n{instructions}")
+        answer = self._answer("Enter to run, s to skip, q to quit: ", ("", "s"))
+        if answer == "s":
+            self._results.append((title, "SKIP"))
+            return
+        while True:
+            try:
+                result = action()
+                if result is False:
+                    print("The device reported failure or cancellation.")
+            except UserAbortException:
+                print("Cancelled on the device.")
+            except (
+                Bitbox02Exception,
+                FirmwareVersionOutdatedException,
+                bitbox02.DuplicateEntryException,
+                devices.NoneFoundException,
+                devices.TooManyFoundException,
+                ValueError,
+            ) as exc:
+                print(f"Request failed: {exc}")
+            answer = self._answer(
+                "Observed result: p=pass, f=fail, r=repeat, s=skip, q=quit: ",
+                ("p", "f", "r", "s"),
+            )
+            if answer != "r":
+                self._results.append((title, {"p": "PASS", "f": "FAIL", "s": "SKIP"}[answer]))
+                return
+            print(instructions)
+
+    def _reconnect(self) -> None:
+        self._device.close()
+        while True:
+            self._answer(
+                "Replug the device (restart the simulator if needed), then Enter to connect, q to quit: ",
+                ("",),
+            )
+            try:
+                self._device = self._connect()
+                break
+            except (OSError, devices.NoneFoundException, devices.TooManyFoundException) as exc:
+                print(f"Could not reconnect: {exc}")
+        self._device.debug = self._debug
+
+    def _btc_ui_address(
+        self, coin: "bitbox02.btc.BTCCoin.V", purpose: int, account: int = 0
+    ) -> None:
+        coin_type = {
+            bitbox02.btc.BTC: 0,
+            bitbox02.btc.TBTC: 1,
+            bitbox02.btc.LTC: 2,
+            bitbox02.btc.TLTC: 1,
+        }[coin]
+        script_type = {
+            49: bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH,
+            84: bitbox02.btc.BTCScriptConfig.P2WPKH,
+            86: bitbox02.btc.BTCScriptConfig.P2TR,
+        }[purpose]
+        print(
+            self._device.btc_address(
+                coin=coin,
+                keypath=[purpose + HARDENED, coin_type + HARDENED, account + HARDENED, 0, 0],
+                script_config=bitbox02.btc.BTCScriptConfig(simple_type=script_type),
+                display=True,
+            )
+        )
+
+    def _btc_ui_message(self, msg: bytes, purpose: int = 84) -> None:
+        self._device.btc_sign_msg(
+            bitbox02.btc.BTC,
+            bitbox02.btc.BTCScriptConfigWithKeypath(
+                script_config=bitbox02.btc.BTCScriptConfig(
+                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                ),
+                keypath=[purpose + HARDENED, HARDENED, HARDENED, 0, 0],
+            ),
+            msg,
+        )
+
+    def _eth_ui_message(self, msg: bytes) -> None:
+        self._device.eth_sign_msg(msg=msg, keypath=[44 + HARDENED, 60 + HARDENED, HARDENED, 0, 0])
+
+    def _cardano_ui_certificate(
+        self, certificate: bitbox02.cardano.CardanoSignTransactionRequest.Certificate
+    ) -> None:
+        transaction = bitbox02.cardano.CardanoSignTransactionRequest
+        self._device.cardano_sign_transaction(
+            transaction(
+                network=bitbox02.cardano.CardanoMainnet,
+                inputs=[
+                    transaction.Input(
+                        keypath=[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                        prev_out_hash=b"\x11" * 32,
+                        prev_out_index=0,
+                    )
+                ],
+                outputs=[
+                    transaction.Output(
+                        encoded_address=(
+                            "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vn"
+                            "ctc9eklee5dtykzyag5penc6dcmakqsqqgpt"
+                        ),
+                        value=1000000,
+                    )
+                ],
+                fee=170499,
+                ttl=41115811,
+                certificates=[certificate],
+            )
+        )
+
+    def _payment_request_ui(self, amount: str) -> None:
+        # Payment-request screens precede signature validation; an invalid signature exercises
+        # the UI without a service signing key, then ends with the invalid-request screen.
+        # pylint: disable=protected-access,no-member
+        memo = bitbox02.btc.BTCPaymentRequestRequest.Memo
+        self._device._eth_msg_query(
+            bitbox02.eth.ETHRequest(
+                sign_eip1559=bitbox02.eth.ETHSignEIP1559Request(
+                    chain_id=1,
+                    keypath=[44 + HARDENED, 60 + HARDENED, HARDENED, 0, 0],
+                    max_priority_fee_per_gas=b"\x01",
+                    max_fee_per_gas=b"\x3b\x9a\xca\x00",
+                    gas_limit=b"\x52\x08",
+                    recipient=b"\x11" * 20,
+                    value=(10**18).to_bytes(8, "big"),
+                    payment_request=bitbox02.btc.BTCPaymentRequestRequest(
+                        recipient_name="SWAPKIT",
+                        memos=[
+                            memo(text_memo=memo.TextMemo(note="Manual UI test\nPayment memo")),
+                            memo(coin_purchase_memo=memo.CoinPurchaseMemo(amount=amount)),
+                        ],
+                        signature=b"\x00" * 64,
+                    ),
+                )
+            )
+        )
+
+    def _passphrase(self, enabled: bool) -> None:
+        if enabled:
+            self._device.enable_mnemonic_passphrase()
+        else:
+            self._device.disable_mnemonic_passphrase()
+
+    def _recover(self, method: str) -> None:
+        if self._device.device_info()["initialized"]:
+            if input("This erases the current wallet. Type RESET to proceed: ") != "RESET":
+                raise ValueError("Reset not confirmed; recovery was not exercised")
+            if not self._device.reset():
+                raise ValueError("Reset cancelled; recovery was not exercised")
+            self._reconnect()
+        if method == "sd":
+            self._restore_backup_workflow()
+        elif method == "words":
+            self._restore_from_mnemonic()
+        else:
+            entropy_size = {"12": 16, "24": 32}[method]
+            while not self._device.set_password(entropy_size=entropy_size):
+                print("Passwords did not match; try again.")
+            self._device.show_mnemonic()
+        if not self._device.device_info()["initialized"]:
+            raise ValueError("Wallet is still uninitialized; repeat to finish recovery/setup")
+
+    def _bootloader(self, purpose: "bitbox02.system.RebootRequest.Purpose.V") -> None:
+        if not self._device.reboot(purpose=purpose):
+            raise ValueError("Reboot cancelled; bootloader screens were not exercised")
+        self._reconnect()
+
+    def _u2f_ui(self) -> None:
+        # pylint: disable=protected-access
+        device_info = u2f.bitbox02.get_bitbox02_u2f_device()
+        hid_device = hid.device()
+        hid_device.open_path(device_info["path"])
+        device = u2f.bitbox02.BitBox02U2F(hid_device)
+        app = U2FApp(device, self._debug)
+        try:
+            self._step("U2F wink", "Inspect the identification screen.", app._wink)
+            self._step("U2F registration", "Approve registration for example.com.", app._register)
+            self._step(
+                "U2F authentication", "Approve authentication for example.com.", app._authenticate
+            )
+            self._step(
+                "U2F bogus registration",
+                "Test both chromium and firefox using Repeat; inspect the presence prompt.",
+                app._bogus,
+            )
+        finally:
+            device.close()
+
+    def _cases(self) -> List[Tuple[str, str, Callable[[], Any]]]:
+        # pylint: disable=no-member
+        inspect = "Inspect all text, scroll to both ends, and approve every screen."
+        cases: List[Tuple[str, str, Callable[[], Any]]] = [
+            (
+                "Orientation, unlock and pairing",
+                "Record the startup screens seen when connecting: orientation, password "
+                "entry, unlock animation and pairing-code comparison.",
+                lambda: None,
+            ),
+            (
+                "Idle / screensaver",
+                "Leave the device idle until the screensaver appears, then touch to wake it.",
+                lambda: None,
+            ),
+            (
+                "Rename: cancellation",
+                "Reject the name change and inspect the cancellation screen.",
+                lambda: self._device.set_device_name("Cancelled UI test"),
+            ),
+            ("Rename: short name", inspect, partial(self._change_name_workflow, "UI test")),
+            (
+                "Rename: maximum length",
+                inspect,
+                partial(self._change_name_workflow, "0123456789" * 6 + "ABCD"),
+            ),
+            (
+                "Rename: choose final name",
+                "Set the name to keep after the test.",
+                self._change_name_workflow,
+            ),
+            (
+                "Password: mismatch",
+                "Enter the current password, then two different new passwords. Inspect the error.",
+                self._change_password_workflow,
+            ),
+            (
+                "Password: cancel entry",
+                "Start changing the password, cancel while entering it, and inspect the "
+                "cancel confirmation. Repeat to test returning to entry.",
+                self._change_password_workflow,
+            ),
+            (
+                "Password: incorrect password",
+                "Enter an incorrect current password once. Inspect the error and remaining "
+                "attempts warning, then enter the correct password and finish.",
+                self._change_password_workflow,
+            ),
+            (
+                "Password: short password warning",
+                "Set a test password with fewer than four characters. Inspect and accept the "
+                "warning. Remember it for the following password-change test.",
+                self._change_password_workflow,
+            ),
+            (
+                "Password: keyboards and confirmation",
+                "Change the password. Exercise lowercase, uppercase, digits, symbols, delete, "
+                "show/hide, and back navigation. Remember the new password.",
+                self._change_password_workflow,
+            ),
+            (
+                "microSD: insert",
+                "Remove the card before starting, then follow the insertion prompt.",
+                self._insert_sdcard,
+            ),
+            (
+                "Backup: create",
+                "Use a test microSD card. Inspect date, name and success screens.",
+                self._create_backup,
+            ),
+            ("Backup: check matching", "Leave the matching backup inserted.", self._check_backup),
+            (
+                "Backup: check missing",
+                "Insert an empty test microSD card; inspect the no-backup error.",
+                self._check_backup,
+            ),
+            (
+                "Recovery words: display and quiz",
+                "Record the test wallet words. Navigate back and forward; select a wrong quiz "
+                "answer once, then complete the quiz. These words are needed for recovery later.",
+                self._show_mnemnoic_seed,
+            ),
+            ("Bitcoin: account xpub", inspect, self._display_zpub),
+            ("Bitcoin: multiple accounts", inspect, self._btc_xpubs),
+            ("Bitcoin: cancel address", "Reject the address confirmation.", self._btc_address),
+        ]
+        for coin, label in ((bitbox02.btc.BTC, "Bitcoin"), (bitbox02.btc.TBTC, "Testnet")):
+            for purpose, address_type in ((49, "nested SegWit"), (84, "SegWit"), (86, "Taproot")):
+                cases.append(
+                    (
+                        f"{label}: {address_type} address",
+                        inspect,
+                        partial(self._btc_ui_address, coin, purpose),
+                    )
+                )
+        cases.extend(
+            [
+                (
+                    "Bitcoin: account number",
+                    inspect,
+                    partial(self._btc_ui_address, bitbox02.btc.BTC, 84, 99),
+                ),
+                (
+                    "Multisig: registration and address",
+                    "For an unregistered wallet, leave the account name empty to exercise device "
+                    "name entry. Inspect all cosigner details and the address. Registration is "
+                    "only shown once per wallet configuration; use a fresh test wallet to repeat it.",
+                    self._btc_multisig_address,
+                ),
+                (
+                    "Policy: registration and address",
+                    "Inspect the policy, keys, account name and address. Registration is only shown for new configurations.",
+                    self._btc_policy_address,
+                ),
+                (
+                    "Bitcoin: cancel signing",
+                    "Reject a recipient or the final hold-to-confirm screen.",
+                    self._sign_btc_normal,
+                ),
+            ]
+        )
+        for title, action in (
+            ("recipients, amount and fee", self._sign_btc_normal),
+            (
+                "amounts in sats",
+                partial(self._sign_btc_normal, bitbox02.btc.BTCSignInitRequest.FormatUnit.SAT),
+            ),
+            ("send to self", self._sign_btc_send_to_self_same_account),
+            ("send between accounts", self._sign_btc_send_to_self_different_account),
+            ("high fee warning", self._sign_btc_high_fee),
+            ("multiple change outputs", self._sign_btc_multiple_changes),
+            ("block-height locktime", self._sign_btc_height_based_locktime),
+            ("time-based locktime", self._sign_btc_time_based_locktime),
+            ("Taproot inputs", self._sign_btc_taproot_inputs),
+            ("Taproot output", self._sign_btc_taproot_output),
+            ("policy signing", self._sign_btc_policy),
+            ("OP_RETURN", self._sign_btc_op_return),
+        ):
+            cases.append((f"Bitcoin transaction: {title}", inspect, action))
+        messages = (
+            ("text", b"BitBox UI test"),
+            ("multiple lines", b"First line\n\nThird line\nLast line"),
+            ("long text", b"0123456789 " * 90),
+            ("binary / hex", bytes(range(256))),
+            ("unsupported glyph", "UI test: \U0001f680".encode("utf-8")),
+        )
+        for title, msg in messages:
+            cases.append((f"Bitcoin message: {title}", inspect, partial(self._btc_ui_message, msg)))
+        for purpose in (45, 48):
+            cases.append(
+                (
+                    f"Bitcoin message: external service m/{purpose}'",
+                    inspect,
+                    partial(self._btc_ui_message, b"External service UI test", purpose),
+                )
+            )
+        cases.extend(
+            [
+                (
+                    "BIP85: 12 words",
+                    "Select 12 words and a quick-access index; complete the mnemonic quiz.",
+                    self._bip85_bip39,
+                ),
+                (
+                    "BIP85: 24 words and numeric keyboard",
+                    "Select 24 words, More, and type an index; complete the mnemonic quiz.",
+                    self._bip85_bip39,
+                ),
+                (
+                    "BIP85: invalid index",
+                    "Select More and enter 2147483648; inspect the invalid-index error.",
+                    self._bip85_bip39,
+                ),
+                ("BIP85: Lightning", inspect, self._bip85_ln),
+            ]
+        )
+        if self._device.edition == bitbox_api_protocol.BitBox02Edition.MULTI:
+            for coin, label in (
+                (bitbox02.btc.LTC, "Litecoin"),
+                (bitbox02.btc.TLTC, "Litecoin testnet"),
+            ):
+                cases.append(
+                    (f"{label}: address", inspect, partial(self._btc_ui_address, coin, 84))
+                )
+            cases.extend(
+                [
+                    ("Ethereum: address", inspect, self._display_eth_address),
+                    (
+                        "Ethereum: long token name",
+                        inspect,
+                        partial(
+                            self._display_eth_address,
+                            bytes.fromhex("ba11d00c5f74255f56a5e366f4f77f5a186d7f55"),
+                        ),
+                    ),
+                ]
+            )
+            for index, title in enumerate(
+                (
+                    "normal",
+                    "ERC20",
+                    "ERC721 / contract data",
+                    "unknown ERC20",
+                    "large data",
+                    "BSC",
+                    "unknown network",
+                    "EIP1559",
+                    "Arbitrum",
+                    "streaming data",
+                    "long amounts",
+                ),
+                1,
+            ):
+                cases.append(
+                    (
+                        f"Ethereum transaction: {title}",
+                        inspect,
+                        partial(self._sign_eth_tx, str(index)),
+                    )
+                )
+            for title, msg in messages:
+                cases.append(
+                    (f"Ethereum message: {title}", inspect, partial(self._eth_ui_message, msg))
+                )
+            cases.extend(
+                [
+                    ("EIP712: nested fields and arrays", inspect, self._sign_eth_typed_message),
+                    (
+                        "EIP712: streaming and truncation warning",
+                        inspect,
+                        self._sign_eth_typed_message_large_data,
+                    ),
+                    (
+                        "Payment request: memo and swap",
+                        "Inspect the service name, multiline memo and swap amounts. Approve "
+                        "to reach Invalid payment request (the test signature is deliberately invalid).",
+                        partial(self._payment_request_ui, "0.01 BTC"),
+                    ),
+                    (
+                        "Payment request: long swap amount",
+                        "Inspect scrolling of the long destination amount. Approve to reach "
+                        "Invalid payment request (expected).",
+                        partial(self._payment_request_ui, "12345678901234567890.123456789 BTC"),
+                    ),
+                ]
+            )
+            for index, title in enumerate(
+                (
+                    "account xpubs",
+                    "address",
+                    "transaction",
+                    "zero TTL warning",
+                    "tokens",
+                    "stake registration and delegation",
+                    "vote delegation",
+                    "withdraw rewards",
+                )
+            ):
+                cases.append((f"Cardano: {title}", inspect, partial(self._cardano, index)))
+            certificate = bitbox02.cardano.CardanoSignTransactionRequest.Certificate
+            stake_keypath = [1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0]
+            cases.extend(
+                [
+                    (
+                        "Cardano: stake deregistration",
+                        inspect,
+                        partial(
+                            self._cardano_ui_certificate,
+                            certificate(
+                                stake_deregistration=bitbox02.common.Keypath(keypath=stake_keypath)
+                            ),
+                        ),
+                    ),
+                    (
+                        "Cardano: vote delegation with DRep hash",
+                        inspect,
+                        partial(
+                            self._cardano_ui_certificate,
+                            certificate(
+                                vote_delegation=certificate.VoteDelegation(
+                                    keypath=stake_keypath,
+                                    type=certificate.VoteDelegation.CardanoDRepType.KEY_HASH,
+                                    drep_credhash=b"\xab" * 28,
+                                )
+                            ),
+                        ),
+                    ),
+                ]
+            )
+        else:
+            print("Bitcoin-only edition: Litecoin, Ethereum, Cardano and U2F are not applicable.")
+        for title, action in (
+            ("login", self._bitboxsync_sign_login_intent),
+            ("revoke tokens", self._bitboxsync_sign_revoke_all_tokens_intent),
+            ("create invite", self._bitboxsync_sign_create_namespace_invite_intent),
+            ("join request", self._bitboxsync_sign_join_request_intent),
+        ):
+            cases.append((f"BitBoxSync: {title}", inspect, action))
+        cases.extend(
+            [
+                ("Passphrase: enable", inspect, partial(self._passphrase, True)),
+                (
+                    "Unlock: device passphrase entry",
+                    "After reconnecting, enter the password and a test passphrase on the device. "
+                    "Exercise editing, cancel/back, and passphrase confirmation.",
+                    self._reconnect,
+                ),
+                (
+                    "Unlock: host passphrase entry",
+                    "After reconnecting, press h in the terminal. Cancel host entry once to return "
+                    "to the device, then retry and submit a test passphrase. Inspect its confirmation.",
+                    self._reconnect,
+                ),
+                (
+                    "Unlock: empty passphrase",
+                    "After reconnecting, submit an empty passphrase and inspect its confirmation.",
+                    self._reconnect,
+                ),
+                ("Passphrase: disable", inspect, partial(self._passphrase, False)),
+                (
+                    "Unlock: password only",
+                    "Reconnect and unlock with the current password.",
+                    self._reconnect,
+                ),
+                (
+                    "Recovery: microSD",
+                    "This resets the test wallet. Insert its backup, restore it and choose a password.",
+                    partial(self._recover, "sd"),
+                ),
+                (
+                    "Recovery: mnemonic",
+                    "This resets the test wallet. Enter an invalid checksum once, then the "
+                    "recorded words. Exercise autocomplete, editing and back navigation.",
+                    partial(self._recover, "words"),
+                ),
+                (
+                    "Setup: 12 words",
+                    "This resets the test wallet. Set a password, write down all 12 words and complete the quiz.",
+                    partial(self._recover, "12"),
+                ),
+                (
+                    "Setup: 24 words",
+                    "This resets the test wallet. Set a password, write down all 24 words and complete the quiz.",
+                    partial(self._recover, "24"),
+                ),
+            ]
+        )
+        if not self._simulator:
+            if self._device.edition == bitbox_api_protocol.BitBox02Edition.MULTI:
+                cases.append(
+                    (
+                        "U2F screens",
+                        "Follow the registration and authentication subtests.",
+                        self._u2f_ui,
+                    )
+                )
+            cases.extend(
+                [
+                    (
+                        "Bootloader: upgrade",
+                        "Approve the upgrade prompt. Inspect the bootloader screen, then replug to boot firmware.",
+                        partial(self._bootloader, bitbox02.system.RebootRequest.Purpose.UPGRADE),
+                    ),
+                    (
+                        "Bootloader: startup settings",
+                        "Inspect startup settings, firmware version/hash and rotation. Boot firmware again before reconnecting.",
+                        partial(self._bootloader, bitbox02.system.RebootRequest.Purpose.SETTINGS),
+                    ),
+                ]
+            )
+        return cases
+
+    def run(self) -> int:
+        self._device.debug = self._debug
+        interrupted = False
+        try:
+            if not self._device.device_info()["initialized"]:
+                self._step(
+                    "Initial wallet setup",
+                    "Create a disposable test wallet. Exercise password entry and mismatch, "
+                    "then complete either microSD or recovery-word backup.",
+                    self._setup_workflow,
+                )
+                if not self._device.device_info()["initialized"]:
+                    print("Initialize a test wallet before running the remaining screens.")
+                    return 1
+            for title, instructions, action in self._cases():
+                self._step(title, instructions, action)
+        except (KeyboardInterrupt, EOFError):
+            print("\nManual UI test stopped.")
+            interrupted = True
+        except OSError as exc:
+            print(f"\nConnection lost: {exc}. Reconnect and restart the test.")
+            interrupted = True
+        finally:
+            self._device.close()
+            print("\nManual UI test results (operator reported):")
+            for title, result in self._results:
+                print(f"  {result}: {title}")
+            for result in ("PASS", "FAIL", "SKIP"):
+                print(f"{result}: {sum(value == result for _, value in self._results)}")
+            print(
+                "Coverage limits: hardware faults, valid signed payment requests and firmware "
+                "installation need separate tests. Simulator runs omit microSD hardware, "
+                "U2F and bootloader verification. Skipped cases have not been verified."
+            )
+        if interrupted:
+            return 130
+        return 1 if any(result != "PASS" for _, result in self._results) else 0
+
+
 class SendMessageBootloader:
     """Simple test application for bootloader"""
 
@@ -2116,7 +2742,7 @@ class U2FApp:
         return 0
 
 
-def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
+def connect_to_simulator_bitbox(debug: bool, port: int, test_ui: bool = False) -> int:
     """
     Connects and runs the main menu on host computer,
     simulating a BitBox02 connected over USB.
@@ -2146,36 +2772,44 @@ def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
             return res
 
         def close(self) -> None:
-            return None
+            self.client_socket.close()
 
         def __del__(self) -> None:
             print("Simulator quit")
             self.client_socket.close()
 
-    simulator = Simulator()
-    noise_config = bitbox_api_protocol.BitBoxNoiseConfig()
-    bitbox_connection = bitbox02.BitBox02(
-        transport=u2fhid.U2FHid(simulator),
-        device_info=None,
-        noise_config=noise_config,
-        bitbox_config=passphrase_demo(),
-    )
-    print("Connection ready.")
-    try:
-        bitbox_connection.check_min_version()
-    except FirmwareVersionOutdatedException as exc:
-        print("WARNING: ", exc)
+    def connect() -> bitbox02.BitBox02:
+        simulator = Simulator()
+        noise_config = bitbox_api_protocol.BitBoxNoiseConfig()
+        connection = bitbox02.BitBox02(
+            transport=u2fhid.U2FHid(simulator),
+            device_info=None,
+            noise_config=noise_config,
+            bitbox_config=passphrase_demo(),
+        )
+        print("Connection ready.")
+        try:
+            connection.check_min_version()
+        except FirmwareVersionOutdatedException as exc:
+            print("WARNING: ", exc)
+        return connection
 
+    bitbox_connection = connect()
+    if test_ui:
+        return ManualUITest(bitbox_connection, debug, connect, simulator=True).run()
     return SendMessage(bitbox_connection, debug).run()
 
 
-def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
+def connect_to_usb_bitbox(debug: bool, use_cache: bool, test_ui: bool = False) -> int:
     """
     Connects and runs the main menu on a BitBox02 connected
     over USB.
     """
 
     def connect_to_bootloader() -> int:
+        if test_ui:
+            print("Boot into firmware before starting --test-ui.")
+            return 1
         try:
             bootloader = devices.get_any_bitbox02_bootloader()
         except devices.TooManyFoundException:
@@ -2243,27 +2877,38 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     else:
         config = NoiseConfigNoCache()
 
-    hid_device = hid.device()
+    def connect() -> bitbox02.BitBox02:
+        device_info = devices.get_any_bitbox02()
+        hid_device = hid.device()
+        try:
+            hid_device.open_path(device_info["path"])
+        except OSError:
+            hid_device.close()
+            raise
+        connection = bitbox02.BitBox02(
+            transport=u2fhid.U2FHid(hid_device),
+            device_info=device_info,
+            noise_config=config,
+            bitbox_config=passphrase_demo(),
+        )
+        print("Connection ready.")
+        try:
+            connection.check_min_version()
+        except FirmwareVersionOutdatedException as exc:
+            print("WARNING: ", exc)
+        return connection
+
     try:
-        hid_device.open_path(bitbox["path"])
+        bitbox_connection = connect()
     except OSError:
         print("Could not connect to the BitBox, device may be already connected to another app.")
         return 1
-    bitbox_connection = bitbox02.BitBox02(
-        transport=u2fhid.U2FHid(hid_device),
-        device_info=bitbox,
-        noise_config=config,
-        bitbox_config=passphrase_demo(),
-    )
-    print("Connection ready.")
-    try:
-        bitbox_connection.check_min_version()
-    except FirmwareVersionOutdatedException as exc:
-        print("WARNING: ", exc)
 
     if debug:
         print("Device Info:")
         pprint.pprint(bitbox)
+    if test_ui:
+        return ManualUITest(bitbox_connection, debug, connect).run()
     return SendMessage(bitbox_connection, debug).run()
 
 
@@ -2271,7 +2916,13 @@ def main() -> int:
     """Main function"""
     parser = argparse.ArgumentParser(description="Tool for communicating with bitbox device")
     parser.add_argument("--debug", action="store_true", help="Print messages sent and received")
-    parser.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--u2f", action="store_true", help="Use u2f menu instead")
+    mode.add_argument(
+        "--test-ui",
+        action="store_true",
+        help="Run a long interactive screen walkthrough on a disposable test wallet",
+    )
     parser.add_argument(
         "--simulator",
         action="store_true",
@@ -2287,6 +2938,19 @@ def main() -> int:
         "--no-cache", action="store_true", help="Don't use cached or store noise keys"
     )
     args = parser.parse_args()
+
+    if args.test_ui:
+        missing = [module for module in ("bech32", "rlp") if module not in globals()]
+        if missing:
+            parser.error(f"--test-ui requires {', '.join(missing)}; install py/requirements.txt")
+        print(
+            "Manual BitBox02 UI test: use a disposable device or simulator and test microSD cards.\n"
+            "This walkthrough changes the name/password/passphrase settings, registers accounts, "
+            "creates backups, and offers wallet resets and recovery. No transactions are broadcast.\n"
+            "Inspect each screen and record pass/fail; repeat to test alternate choices or cancel.\n"
+            "Before connecting, inspect orientation selection and unlock. Pairing is not cached.\n"
+            "Recovery steps require the test wallet's backup/words. Each reset requires typing RESET."
+        )
 
     if args.u2f:
         try:
@@ -2304,9 +2968,9 @@ def main() -> int:
         return 1
 
     if args.simulator:
-        return connect_to_simulator_bitbox(args.debug, args.simulator_port)
+        return connect_to_simulator_bitbox(args.debug, args.simulator_port, args.test_ui)
 
-    return connect_to_usb_bitbox(args.debug, not args.no_cache)
+    return connect_to_usb_bitbox(args.debug, not args.no_cache and not args.test_ui, args.test_ui)
 
 
 if __name__ == "__main__":

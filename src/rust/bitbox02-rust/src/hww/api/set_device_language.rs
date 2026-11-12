@@ -33,7 +33,7 @@ pub async fn process(
     }
     hal.memory().set_device_language(language)?;
     if hal.memory().is_initialized() {
-        let status = crate::i18n::translate(language, "Success");
+        let status = bitbox_i18n::tr!(language, "Success");
         hal.ui().status(&status, true).await;
     }
     Ok(Response::Success(pb::Success {}))

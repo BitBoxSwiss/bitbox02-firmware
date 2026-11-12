@@ -53,11 +53,23 @@ def cmake(config: Config, profile: str, targets: list[str]) -> None:
     run(["make", "-C", str(directory), *targets])
 
 
+def copy_binary(source: Path, name: str) -> None:
+    directory = ROOT / "build" / "bin"
+    run(["mkdir", "-p", str(directory)])
+    run(["cp", str(source), str(directory / f"{name}.bin")])
+
+
 def build_image(config: Config, image: str) -> None:
     profile = config.profile
     info = image_info(config, image)
     if config.product != "bitbox03":
         cmake(config, profile, [f"{info.name}.elf"])
+        name = info.name
+        if image == "firmware":
+            name = f"{config.product}-{config.edition.replace('-', '')}"
+        elif image == "factorysetup":
+            name = f"factory-setup-{config.product}"
+        copy_binary(info.elf.with_suffix(".bin"), name)
         return
     config.describe()
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
@@ -85,6 +97,7 @@ def dispatch(config: Config, target: str) -> None:
     elif target.startswith("firmware-blupgrade-"):
         product = target.split("-")[2]
         cmake(defaults(product), "relwithdebinfo", [target + ".elf"])
+        copy_binary(build_dir(defaults(product)) / "bin" / f"{target}.bin", target)
     elif target in ("bootloader-upgrade-assets", "bootloader-upgrade-assets-development"):
         suffix = "-development" if target.endswith("-development") else ""
         for product in ("bitbox02", "bitbox02nova"):

@@ -99,7 +99,7 @@ Make sure you have [Homebrew](https://brew.sh) installed. Install the
 dependencies with:
 
 ```sh
-brew install hidapi cmake protobuf@21
+brew install hidapi cmake
 brew install automake libtool
 brew tap osx-cross/arm
 brew install arm-gcc-bin
@@ -152,17 +152,35 @@ cd bitbox02-firmware
 
 ### Configure and build
 
-Inside the development container, run `make bootstrap` once to initialize submodules. From the
-host, use `./scripts/dev_exec.sh make <target>` for builds (or set
-`BITBOX_FW_EXEC_MODE=docker` to use the container toolchain).
+Run `make bootstrap` once to initialize submodules, configure Cargo, and install the Python
+dependencies, including pinned protobuf generators, from [py/requirements.txt](py/requirements.txt).
+It also installs the local `bitbox02` Python package in editable mode.
+
+Bootstrap creates `.venv/` in the repository root if it is missing and reuses it otherwise,
+including inside the development container. It installs the dependencies there regardless of which
+virtualenv is active in your shell. All top-level Make targets prefer `.venv/bin` on `PATH`, so
+builds use the installed tools automatically.
+
+Run the following from the repository root:
 
 ```sh
+make bootstrap
 make config
 make firmware
 make factorysetup
 make bootloader-stage0
 make bootloader-stage1
 ```
+
+For Python commands outside Make, activate the environment from the repository root in each new
+shell:
+
+```sh
+. .venv/bin/activate
+```
+
+Use `./scripts/dev_exec.sh make <target>` for host builds (or set `BITBOX_FW_EXEC_MODE=docker` to use
+the container toolchain).
 
 `make config` remembers selections in the git-ignored `config.mk`. It prompts for product, board,
 edition (`multi` or `btc-only`), debug builds, locked hardware, development mode, probe software, and

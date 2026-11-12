@@ -1,4 +1,4 @@
-# Modules needed to run scripts in this directory
+# Dependencies for Python scripts and protobuf generation
 tzlocal>=1.5,<2.0
 types-tzlocal
 bitbox02
@@ -7,3 +7,5 @@ requests
 types-requests
 rlp
 pyhpke>=0.6.4,<0.7
+protoc-wheel-0==21.2
+mypy-protobuf==3.6.0

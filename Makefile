@@ -4,6 +4,7 @@
 .DEFAULT_GOAL := firmware
 .NOTPARALLEL:
 SANITIZE ?= ON
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
 
 ifneq ($(filter config,$(MAKECMDGOALS)),)
 ifneq ($(words $(MAKECMDGOALS)),1)
@@ -26,8 +27,11 @@ config:
 	python3 scripts/build_config.py $(CONFIG_ARGS)
 
 bootstrap:
+	test -d .venv || python3 -m venv .venv
 	git submodule update --init --recursive
 	./scripts/bootstrap-cargo-config
+	.venv/bin/python3 -m pip install --requirement py/requirements.txt --editable ./py/bitbox02
+	@echo 'For Python commands in your shell, run: . .venv/bin/activate'
 
 IMAGES := firmware factorysetup bootloader-stage0 bootloader-stage1
 FLASH_IMAGES := $(IMAGES)

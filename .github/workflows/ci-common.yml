@@ -116,7 +116,7 @@ jobs:
           make bootstrap
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
-      - name: Check protobuf Rust bindings
+      - name: Check protobuf bindings
         run: ./.ci/check-protobuf
 
   unit-tests:

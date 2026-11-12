@@ -234,6 +234,12 @@ software or SWD speed does not affect compilation. Configuration never cleans. `
 build trees but preserves `config.mk`. Host tests and simulators still use `build-build` and
 `build-build-noasan`.
 
+BitBox02/Nova Make builds also copy the binary to `build/bin`. Firmware is named
+`<product>-<edition>.bin`, for example `bitbox02-multi.bin` or `bitbox02nova-btconly.bin`.
+Factorysetup is named `factory-setup-<product>.bin`; bootloaders and upgrade firmware retain their
+existing variant names. Both debug and non-debug builds update the same destination with the latest
+binary. CMake output names and directories remain unchanged.
+
 Use `bootloader-stage0` and `bootloader-stage1` with `LOCKED=yes DEVELOPMENT=no` for production
 bootloaders, or `LOCKED=yes DEVELOPMENT=yes` for locked development devices. These targets build
 only the configured product and edition. Development artifact names use `-development`, with

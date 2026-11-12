@@ -32,6 +32,7 @@ pub fn process_is_script_config_registered(
             keypath,
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
+            super::coin_enabled(coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
                     is_registered: super::multisig::get_name(hal, coin, multisig, keypath)?
@@ -48,6 +49,7 @@ pub fn process_is_script_config_registered(
             ..
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
+            super::coin_enabled(coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
                     is_registered: super::policies::get_name(hal, coin, policy)
@@ -122,6 +124,7 @@ pub async fn process_register_script_config(
             keypath,
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
+            super::coin_enabled(coin)?;
             let coin_params = params::get(coin);
             let name = get_name(hal, request).await?;
             super::multisig::validate(hal, multisig, keypath).await?;
@@ -151,6 +154,7 @@ pub async fn process_register_script_config(
             ..
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
+            super::coin_enabled(coin)?;
             let coin_params = params::get(coin);
             let name = get_name(hal, request).await?;
             let parsed = super::policies::parse(hal, policy, coin).await?;

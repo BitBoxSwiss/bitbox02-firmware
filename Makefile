@@ -18,9 +18,10 @@ EDITION ?= multi
 DEBUG ?= no
 LOCKED ?= no
 DEVELOPMENT ?= yes
+EMBED_STAGE1 ?= no
 PROBE_SOFTWARE ?= $(if $(filter bitbox03,$(PRODUCT)),openocd,jlink)
 SWD_SPEED ?= 4000
-CONFIG_OPTIONS = --product "$(PRODUCT)" --board "$(BOARD)" --edition "$(EDITION)" --debug "$(DEBUG)" --locked "$(LOCKED)" --development "$(DEVELOPMENT)" --probe-software "$(PROBE_SOFTWARE)" --swd-speed "$(SWD_SPEED)"
+CONFIG_OPTIONS = --product "$(PRODUCT)" --board "$(BOARD)" --edition "$(EDITION)" --debug "$(DEBUG)" --locked "$(LOCKED)" --development "$(DEVELOPMENT)" --embed-stage1 "$(EMBED_STAGE1)" --probe-software "$(PROBE_SOFTWARE)" --swd-speed "$(SWD_SPEED)"
 
 config:
 	python3 scripts/build_config.py $(CONFIG_ARGS)
@@ -36,8 +37,6 @@ FLASH_IMAGES := $(filter-out factorysetup,$(FLASH_IMAGES))
 endif
 BUILD_TARGETS := $(IMAGES) \
 	bootloader-upgrade-assets bootloader-upgrade-assets-development docs rust-docs
-BUILD_TARGETS += $(foreach product,bitbox02 bitbox02nova,$(foreach edition,multi btconly,\
-	firmware-blupgrade-$(product)-$(edition) firmware-blupgrade-$(product)-$(edition)-development))
 
 $(BUILD_TARGETS):
 	+python3 scripts/build_product.py $(CONFIG_OPTIONS) $@

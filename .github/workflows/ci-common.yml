@@ -213,11 +213,11 @@ jobs:
           - {target: bootloader-stage0, product: bitbox02nova, edition: multi, locked: 'yes', development: 'yes'}
           - {target: bootloader-stage1, product: bitbox02, edition: multi, locked: 'yes', development: 'yes'}
           - {target: bootloader-stage1, product: bitbox02nova, edition: multi, locked: 'yes', development: 'yes'}
-          - {target: firmware-blupgrade-bitbox02-btconly, product: bitbox02, edition: multi}
-          - {target: firmware-blupgrade-bitbox02-multi, product: bitbox02, edition: multi}
-          - {target: firmware-blupgrade-bitbox02nova-btconly, product: bitbox02nova, edition: multi}
-          - {target: firmware-blupgrade-bitbox02nova-multi, product: bitbox02nova, edition: multi}
-          - {target: firmware-blupgrade-bitbox02-btconly-development, product: bitbox02, edition: multi}
+          - {target: firmware, product: bitbox02, edition: btc-only, embed-stage1: 'yes', locked: 'yes', development: 'no'}
+          - {target: firmware, product: bitbox02, edition: multi, embed-stage1: 'yes', locked: 'yes', development: 'no'}
+          - {target: firmware, product: bitbox02nova, edition: btc-only, embed-stage1: 'yes', locked: 'yes', development: 'no'}
+          - {target: firmware, product: bitbox02nova, edition: multi, embed-stage1: 'yes', locked: 'yes', development: 'no'}
+          - {target: firmware, product: bitbox02, edition: btc-only, embed-stage1: 'yes'}
           - {target: factorysetup, product: bitbox02, edition: multi}
           - {target: firmware, product: bitbox02, edition: multi, debug: 'yes'}
           - {target: simulator, product: bitbox02, edition: multi}
@@ -248,7 +248,7 @@ jobs:
         run: ./scripts/bootstrap-cargo-config
 
       - name: Configure product
-        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }}"
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }} --embed-stage1 ${{ matrix.embed-stage1 || 'no' }}"
 
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
@@ -273,7 +273,7 @@ jobs:
         if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-${{github.sha}}.bin
+          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-embed-stage1-${{ matrix.embed-stage1 || 'no' }}-${{github.sha}}.bin
           path: |
             build*/bin/*.bin
             build*/bin/*.elf

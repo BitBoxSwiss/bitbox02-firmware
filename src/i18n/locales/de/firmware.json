@@ -328,9 +328,13 @@
     "passphrase": {
       "confirm": "Bestätigen",
       "confirmEmpty": "Leere Passphrase\nverwenden?",
+      "confirmHost": "Passphrase auf\nHost eingeben?",
       "doubleCheck": "Bitte prüfe gleich\ndie angezeigte\nPassphrase erneut.",
+      "enterOnHost": "Passphrase auf\nHost eingeben",
       "title": "Optionale Passphrase",
-      "tryAgain": "Bitte erneut\nversuchen"
+      "tooLong": "Passphrase\nzu lang",
+      "tryAgain": "Bitte erneut\nversuchen",
+      "unsupportedCharacters": "Ungültige\nZeichen"
     },
     "remainingAttempts": {
       "last": "LETZTER Versuch.\nBei falschem\nPasswort wird das\nGerät zurückgesetzt.",

@@ -20,6 +20,11 @@ For automation and editor integrations, use `./scripts/dev_exec.sh <command>` as
 entrypoint. It runs commands natively on the host by default and can be switched to container
 execution with `BITBOX_FW_EXEC_MODE=docker`.
 
+Before switching between host and container development environments, you must run
+`make distclean` to remove `.venv` and build artifacts from the previous environment. On the host,
+use `./scripts/dev_exec.sh make distclean`. After switching, run `make bootstrap` in the new
+environment before building.
+
 Accessing USB devices, like the flashing tool and the bitbox, is easier outside
 of the container. So it is recommended to install the J-Link Software on your
 development machine to follow the instructions below.

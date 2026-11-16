@@ -129,6 +129,8 @@ prepare-tidy:
 	$(MAKE) -C build-build rust-cbindgen
 clean:
 	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target
+distclean: clean
+	rm -rf .venv
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
@@ -141,4 +143,4 @@ vendor-rust-deps:
 	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
 	run-valgrind-on-unit-tests flash-dev-firmware \
 	rtt-client dockerinit dockerpull dockerdev dockerrel generate-protobufs \
-	generate-atecc608-config ci prepare-tidy clean vendor-rust-deps
+	generate-atecc608-config ci prepare-tidy clean distclean vendor-rust-deps

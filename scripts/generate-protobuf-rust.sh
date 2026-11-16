@@ -15,6 +15,10 @@ trap cleanup EXIT
 
 mkdir -p "${OUT_DIR}"
 
+if [[ -x "${ROOT_DIR}/.venv/bin/protoc" ]]; then
+    export PROTOC="${ROOT_DIR}/.venv/bin/protoc"
+fi
+
 prost-build-proto \
     "${ROOT_DIR}/messages" \
     "${TMP_DIR}"

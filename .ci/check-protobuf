@@ -2,5 +2,16 @@
 
 set -euo pipefail
 
+rust_dir=src/rust/bitbox-proto
+python_dir=py/bitbox02/bitbox02/communication/generated
+
+rm -rf -- "$rust_dir/src/generated" "$python_dir"
 ./scripts/generate-protobuf-rust.sh
-git diff --exit-code -- src/rust/bitbox-proto
+make -C py/bitbox02
+
+changes=$(git status --porcelain --untracked-files=all -- "$rust_dir" "$python_dir")
+if [[ -n "$changes" ]]; then
+    git diff -- "$rust_dir" "$python_dir"
+    printf '%s\n' "$changes"
+    exit 1
+fi

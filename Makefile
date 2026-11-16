@@ -4,6 +4,7 @@
 .DEFAULT_GOAL := firmware
 .NOTPARALLEL:
 SANITIZE ?= ON
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
 
 ifneq ($(filter config,$(MAKECMDGOALS)),)
 ifneq ($(words $(MAKECMDGOALS)),1)
@@ -26,8 +27,11 @@ config:
 	python3 scripts/build_config.py $(CONFIG_ARGS)
 
 bootstrap:
+	test -d .venv || python3 -m venv .venv
 	git submodule update --init --recursive
 	./scripts/bootstrap-cargo-config
+	.venv/bin/python3 -m pip install --requirement py/requirements.txt --editable ./py/bitbox02
+	@echo 'For Python commands in your shell, run: . .venv/bin/activate'
 
 IMAGES := firmware factorysetup bootloader-stage0 bootloader-stage1
 FLASH_IMAGES := $(IMAGES)
@@ -125,6 +129,8 @@ prepare-tidy:
 	$(MAKE) -C build-build rust-cbindgen
 clean:
 	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target
+distclean: clean
+	rm -rf .venv
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
@@ -137,4 +143,4 @@ vendor-rust-deps:
 	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
 	run-valgrind-on-unit-tests flash-dev-firmware \
 	rtt-client dockerinit dockerpull dockerdev dockerrel generate-protobufs \
-	generate-atecc608-config ci prepare-tidy clean vendor-rust-deps
+	generate-atecc608-config ci prepare-tidy clean distclean vendor-rust-deps

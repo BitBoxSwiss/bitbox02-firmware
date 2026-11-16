@@ -7,7 +7,7 @@
 
 set -e
 
-if git diff --name-only HEAD^1 HEAD | grep -E '^(\.containerversion|Dockerfile)' >/dev/null; then
+if git diff --name-only HEAD^1 HEAD | grep -E '^(\.containerversion|Dockerfile|py/requirements\.txt)' >/dev/null; then
 	echo "true"
 	exit
 fi

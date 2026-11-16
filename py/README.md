@@ -8,7 +8,7 @@ This directory contains scripts to talk to the BitBox device directly via the co
 These instructions require Python 3.10 or newer, pip, and venv (a lightweight "virtual
 environment"). Inside the virtual environment, `python` and `pip` refer to Python 3.
 
-All commands below assume you are in the `py/bitbox02` directory.
+All commands below assume you are in the `py` directory, unless stated otherwise.
 
 ### Requirements
 
@@ -20,21 +20,24 @@ Older pip versions will fail due to changes in how editable installs are handled
 
 ### Installing dependencies
 
-Install the required Python dependencies listed in `requirements.txt`:
+Use the shared `.venv` in the repository root. `make bootstrap` creates or reuses it automatically;
+see [Configure and build](../BUILD.md#configure-and-build).
+
+From the repository root, install the dependencies with bootstrap and activate the environment:
 
 ```bash
-python3 -m venv .venv
+make bootstrap
 source .venv/bin/activate
-pip install -r requirements.txt
+cd py
 ```
 
 ## Activate the virtual environment
 
-If you open a new shell, remember to re-activate the virtual environment,
-to use the scripts and communicate with the BitBox.
+In a new shell, activate `.venv` from the repository root before returning to `py/`:
 
 ```
 source .venv/bin/activate
+cd py
 ```
 
 You can deactivate a virtual environment by typing `deactivate` in your shell.
@@ -114,13 +117,11 @@ For building the BitBox firmware please refer to the
 
 ## Development
 
-To work on the library or scripts, install them in editable mode.
-Editable installs are only needed if you want to modify the scripts or library code.
-
-```bash
-pip install -e ./bitbox02
-```
+`make bootstrap` installs the local `bitbox02` package in editable mode, so changes to the library
+are used without reinstalling it.
 
 For developing the Python sources, almost all of it can be done on the host easily.
-To regenerate protobufs it is recommended to use the Docker container.
-Read more about dockerized setup in [BUILD.md](../BUILD.md).
+Before regenerating protobufs, run `make bootstrap` from the repository root to install the pinned
+generators. Activate the repository's `.venv` before running Python scripts or regenerating
+bindings directly with `make -C py/bitbox02`.
+Read more about the development environment in [BUILD.md](../BUILD.md#configure-and-build).

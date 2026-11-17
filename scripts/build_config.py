@@ -15,9 +15,10 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 PRODUCTS = ("bitbox02", "bitbox02nova", "bitbox03")
 CHIP_TYPES = {
-    "bitbox02": "ATSAMD51J20",
-    "bitbox02nova": "ATSAMD51J20",
-    "bitbox03": "STM32U5A9NJ",
+    ("bitbox02", "bitbox02"): "ATSAMD51J20",
+    ("bitbox02nova", "bitbox02nova"): "ATSAMD51J20",
+    ("bitbox03", "dev-kit"): "STM32U5A9NJ",
+    ("bitbox03", "testboard"): "STM32U5G9ZJ",
 }
 EDITIONS = ("multi", "btc-only")
 IMAGES = ("firmware", "factorysetup", "bootloader-stage0", "bootloader-stage1")
@@ -55,7 +56,7 @@ class Config:
 
     @property
     def chip_type(self) -> str:
-        return CHIP_TYPES[self.product]
+        return CHIP_TYPES[(self.product, self.board)]
 
     @property
     def probe_hardware(self) -> str:
@@ -105,8 +106,6 @@ class Config:
         print(f"SWD speed: {self.swd_speed} kHz")
         if self.product == "bitbox03":
             print("BitBox03: multi and btc-only currently build the same stub.")
-            if self.board == "testboard":
-                print("BitBox03 testboard currently uses the dev-kit build target.")
 
 
 def defaults(product: str = "bitbox02") -> Config:

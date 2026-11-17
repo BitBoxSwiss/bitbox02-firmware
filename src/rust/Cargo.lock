@@ -520,6 +520,7 @@ name = "bitbox03-boot0"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
+ "bitbox-board-stm32u5g9j-tb",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -532,6 +533,7 @@ name = "bitbox03-boot1"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
+ "bitbox-board-stm32u5g9j-tb",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -545,8 +547,10 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
+ "bitbox-board-stm32u5g9j-tb",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",
+ "bitbox-platform-stm32u5-sys",
  "cortex-m",
  "cortex-m-rt",
  "log",
@@ -559,6 +563,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
+ "bitbox-board-stm32u5g9j-tb",
  "bitbox-debug",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",

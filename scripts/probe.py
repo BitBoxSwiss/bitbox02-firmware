@@ -38,6 +38,8 @@ def openocd_command(config: Config) -> list[str]:
         "openocd",
         "-c",
         f"set PROBE_ADAPTER {config.probe_hardware}",
+        "-c",
+        f"set PROBE_BOARD {config.board}",
         "-f",
         str(ROOT / "scripts" / filename),
         "-c",

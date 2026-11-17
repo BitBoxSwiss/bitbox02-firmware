@@ -5,6 +5,8 @@
 
 #[cfg(feature = "board-stm32u5a9j-dk")]
 use bitbox_board_stm32u5a9j_dk as board;
+#[cfg(feature = "board-stm32u5g9j-tb")]
+use bitbox_board_stm32u5g9j_tb as board;
 use bitbox_boot_utils::{IMAGE_HEADER_MAGIC_BOOT1, bootload, halt, vector_table_from_image_header};
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;

@@ -19,6 +19,12 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Docker diagnostics
+        run: |
+          docker version
+          docker buildx version
+          docker buildx ls
+          docker info
       - name: Clone the repo
         uses: actions/checkout@v4
         with:

@@ -164,12 +164,23 @@ static sigcheck_masks_t _check_signatures(
         const uint8_t key_idx = reverse ? (uint8_t)(BB02_STAGE1_ROOT_KEY_COUNT - 1U - i) : i;
         const uint8_t key_bit = (uint8_t)(1U << key_idx);
         const size_t signature_offset = (size_t)key_idx * BB02_STAGE1_SIGNATURE_LEN;
-        const uint8_t valid = _is_zero_u8(pukcc_ecdsa_verify(
+        const uint8_t status = pukcc_ecdsa_verify(
             pubkeys[key_idx],
             &signatures[signature_offset],
             digest,
             BB02_STAGE1_SIGNED_DIGEST_LEN,
-            curve_p256));
+            curve_p256);
+
+        // Force fresh reads in each verification pass under LTO.
+        const volatile uint8_t* signature = &signatures[signature_offset];
+        uint8_t signature_bits = 0;
+        // OR all bytes to detect an all-zero signature without early exit.
+        for (size_t j = 0; j < BB02_STAGE1_SIGNATURE_LEN; j++) {
+            signature_bits |= signature[j];
+        }
+        // Reject all-zero signatures even if PUKCC verification succeeds.
+        const uint8_t nonzero = (uint8_t)(_is_zero_u8(signature_bits) ^ 1U);
+        const uint8_t valid = (uint8_t)(_is_zero_u8(status) & nonzero);
         const uint8_t invalid = (uint8_t)(valid ^ 1U);
         masks.valid_mask |= (uint8_t)((uint8_t)(0U - valid) & key_bit);
         masks.invalid_mask |= (uint8_t)((uint8_t)(0U - invalid) & key_bit);

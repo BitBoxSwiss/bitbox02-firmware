@@ -761,6 +761,10 @@ struct Args {
     /// locked and the first client connection triggers the on-device unlock workflow.
     #[arg(long, requires = "preseed")]
     unlock: bool,
+
+    /// TCP port to listen on for the host connection.
+    #[arg(long, default_value_t = 15423)]
+    port: u16,
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {
@@ -790,7 +794,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     // "Accept incoming connections" thread
     thread::spawn({
         let el_proxy = event_loop.create_proxy();
-        let Ok(listener) = TcpListener::bind("0.0.0.0:15423") else {
+        let Ok(listener) = TcpListener::bind(("0.0.0.0", args.port)) else {
             return Err(Box::new(AppError::new("Failed to bind to address!")));
         };
         move || {

@@ -106,7 +106,7 @@ impl InputType {
 // a_sum_pubkey is the corresponding pubkey.
 // scan_pubkey is the output's silent payment scan pubkey (extracted from the silent payment address).
 //
-// We create c_pubkey = a_sum*scan_pubkey and a DLEQ (discrete log equivalence) proof that
+// Given c_pubkey = a_sum*scan_pubkey, create a DLEQ (discrete log equivalence) proof that
 // a_sum_pubkey has the same discrete log with respect to the secp256k1 base G as c_pubkey to the
 // base scan_pubkey. The result returned to the host is
 // `<33 byte compressed c_pubkey><64 byte dleq proof>`.
@@ -118,27 +118,24 @@ impl InputType {
 // - verifying using the dleq proof that the discrete log of a_sum_pubkey to G is the same as the
 //   discrete log of c_pubkey to the base scan_pubkey.
 // - re-computing the output (https://github.com/bitcoin/bips/blob/ad1d3bc2a7b0d84247c29f847e85c35283094e2f/bip-0352.mediawiki#creating-outputs)
-//   using ecdsa_shared_secret = input_hash·a_sum·scan_pubkey = input_hash·c_pubkey
+//   using ecdh_shared_secret = input_hash·a_sum·scan_pubkey = input_hash·c_pubkey
 // - verifying that the created output matches the re-computed output.
 fn create_dleq_proof(
     secp: &Secp256k1<secp256k1::All>,
     a_sum: &SecretKey,
     a_sum_pubkey: &PublicKey,
     scan_pubkey: &PublicKey,
+    c_pubkey: &PublicKey,
 ) -> Result<[u8; DLEQ_PROOF_SIZE], ()> {
-    let c_pubkey = scan_pubkey
-        .mul_tweak(secp, &Scalar::from(*a_sum))
-        .map_err(|_| ())?;
-
     let proof =
-        bitbox_secp256k1::dleq_prove(secp, a_sum.as_ref(), scan_pubkey, a_sum_pubkey, &c_pubkey)?;
+        bitbox_secp256k1::dleq_prove(secp, a_sum.as_ref(), scan_pubkey, a_sum_pubkey, c_pubkey)?;
     // Sanity check.
     bitbox_secp256k1::dleq_verify(
         secp,
         proof.as_slice().try_into().unwrap(),
         scan_pubkey,
         a_sum_pubkey,
-        &c_pubkey,
+        c_pubkey,
     )?;
 
     let mut result = c_pubkey.serialize().to_vec();
@@ -221,10 +218,15 @@ impl<'a> SilentPayment<'a> {
         let inputs_hash =
             hash::calculate_input_hash(self.smallest_outpoint.as_ref().ok_or(())?, a_sum_pubkey);
 
-        let partial_secret = a_sum.mul_tweak(&inputs_hash).map_err(|_| ())?;
+        let xy = secp256k1::ecdh::shared_secret_point(&scan_pubkey, a_sum);
+        let mut uncompressed = [0u8; secp256k1::constants::UNCOMPRESSED_PUBLIC_KEY_SIZE];
+        uncompressed[0] = 0x04;
+        uncompressed[1..].copy_from_slice(&xy);
+        let c_pubkey = PublicKey::from_slice(&uncompressed).map_err(|_| ())?;
 
-        let ecdh_shared_secret: PublicKey = scan_pubkey
-            .mul_tweak(self.secp, &partial_secret.into())
+        // mul_tweak is variable-time. The host knows inputs_hash and receives c_pubkey in the proof.
+        let ecdh_shared_secret = c_pubkey
+            .mul_tweak(self.secp, &inputs_hash)
             .map_err(|_| ())?;
 
         // If we want to support more than one silent payment output, we need to get this value from
@@ -242,7 +244,13 @@ impl<'a> SilentPayment<'a> {
 
         Ok(TransactionOutput {
             pubkey: reskey_xonly,
-            dleq_proof: create_dleq_proof(self.secp, a_sum, &a_sum_pubkey, &scan_pubkey)?,
+            dleq_proof: create_dleq_proof(
+                self.secp,
+                a_sum,
+                &a_sum_pubkey,
+                &scan_pubkey,
+                &c_pubkey,
+            )?,
         })
     }
 }

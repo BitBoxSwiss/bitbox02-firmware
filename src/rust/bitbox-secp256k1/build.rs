@@ -29,6 +29,7 @@ fn main() {
         .define("COMB_TEETH", Some("5"))
         .define("USE_EXTERNAL_DEFAULT_CALLBACKS", Some("1"))
         .define("ENABLE_MODULE_RECOVERY", Some("1")) // needed only in Rust unit tests.
+        .define("ENABLE_MODULE_ECDH", Some("1"))
         .define("ENABLE_MODULE_EXTRAKEYS", Some("1"))
         .define("ENABLE_MODULE_SCHNORRSIG", Some("1"))
         .define("ENABLE_MODULE_ECDSA_ADAPTOR", Some("1"))

@@ -16,7 +16,8 @@ declaration and definition of `SystemPower_Config()`. The imported output is
 split into:
 - `external/ST/<board>/Inc` and `external/ST/<board>/Src` for
   board-specific application code copied from `Core/Inc` and `Core/Src`, except
-  for `stm32u5xx_hal_conf.h` and `*_it.c`/`*_it.h` interrupt files
+  for `stm32u5xx_hal_conf.h`, `*_it.c`/`*_it.h` interrupt files, `syscalls.c`,
+  and `sysmem.c`
 - `external/ST/Common/Inc` for common project configuration copied from
   `Core/Inc/stm32u5xx_hal_conf.h`
 - `external/ST/Drivers` for shared vendor code copied from `Drivers/CMSIS`
@@ -60,7 +61,7 @@ REQUIRED_FILES = (HAL_CONF,)
 RESERVED_BOARD_NAMES = frozenset(("Core", "Common", "Drivers"))
 # Interrupt routines are implemented in Rust in this repository, so the
 # Cube-generated *_it sources must not be imported.
-BOARD_FILE_EXCLUDES = ("*_it.c", "*_it.h")
+BOARD_FILE_EXCLUDES = ("*_it.c", "*_it.h", "syscalls.c", "sysmem.c")
 
 
 def eprint(*args: object, **kwargs: Any) -> None:

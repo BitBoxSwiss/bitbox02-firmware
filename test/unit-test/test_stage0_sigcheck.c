@@ -37,6 +37,7 @@ static uint8_t _sha_update_count;
 static uint8_t _sha_finish_count;
 static bool _accept_any_digest;
 static bool _assert_message_not_header_prefix;
+static bool _zero_first_signature_in_reverse_pass;
 static uint8_t _forward_valid_mask;
 static uint8_t _reverse_valid_mask;
 static uint8_t _call_count;
@@ -192,6 +193,7 @@ static void _reset_image(void)
     _header.stage1_marketing_version_len = 3;
     memcpy(_header.stage1_marketing_version, "dev", 3);
     _fill_body();
+    _fill_signature_fixture();
 }
 
 static void _reset_script(uint8_t forward_valid_mask, uint8_t reverse_valid_mask)
@@ -208,6 +210,7 @@ static void _reset_script(uint8_t forward_valid_mask, uint8_t reverse_valid_mask
     _sha_finish_count = 0;
     _accept_any_digest = false;
     _assert_message_not_header_prefix = false;
+    _zero_first_signature_in_reverse_pass = false;
     _forward_valid_mask = forward_valid_mask;
     _reverse_valid_mask = reverse_valid_mask;
     _call_count = 0;
@@ -330,6 +333,10 @@ uint8_t __wrap_pukcc_ecdsa_verify(
 {
     (void)curve;
     assert_true(_call_count < sizeof(_call_order));
+
+    if (_zero_first_signature_in_reverse_pass && _call_count == BB02_STAGE1_ROOT_KEY_COUNT) {
+        memset(_signatures(), 0, BB02_STAGE1_SIGNATURE_LEN);
+    }
 
     const uint8_t key_idx = _key_index(public_key);
     assert_ptr_equal(signature, &_signatures()[(uint32_t)key_idx * BB02_STAGE1_SIGNATURE_LEN]);
@@ -538,6 +545,63 @@ static void test_stage1_sigcheck_image_ok_rejects_inconsistent_passes(void** sta
     _assert_result(0x07, 0x03, secfalse_u32);
 }
 
+static void test_stage1_sigcheck_image_ok_requires_nonzero_verified_signatures(void** state)
+{
+    (void)state;
+    for (uint8_t nonzero_mask = 0; nonzero_mask < 8; nonzero_mask++) {
+        for (uint8_t verified_mask = 0; verified_mask < 8; verified_mask++) {
+            _reset_image();
+            uint8_t valid_count = 0;
+            for (uint8_t i = 0; i < BB02_STAGE1_ROOT_KEY_COUNT; i++) {
+                const uint8_t key_bit = (uint8_t)(1u << i);
+                if ((nonzero_mask & key_bit) == 0) {
+                    memset(
+                        &_signatures()[i * BB02_STAGE1_SIGNATURE_LEN],
+                        0,
+                        BB02_STAGE1_SIGNATURE_LEN);
+                } else if ((verified_mask & key_bit) != 0) {
+                    valid_count++;
+                }
+            }
+            _reset_script(verified_mask, verified_mask);
+
+            const secbool_u32 expected =
+                valid_count >= BB02_STAGE1_SIGNATURE_THRESHOLD ? sectrue_u32 : secfalse_u32;
+            assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), expected);
+            _assert_sha_calls();
+            _assert_call_order();
+        }
+    }
+}
+
+static void test_stage1_sigcheck_image_ok_checks_all_signature_bytes(void** state)
+{
+    (void)state;
+    for (size_t i = 0; i < BB02_STAGE1_SIGNATURE_LEN; i++) {
+        _reset_image();
+        memset(_signatures(), 0, BB02_STAGE1_HEADER_SIGNATURES_LEN);
+        _signatures()[i] = 0x80;
+        _signatures()[BB02_STAGE1_SIGNATURE_LEN] = 1;
+        _reset_script(0x07, 0x07);
+
+        assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), sectrue_u32);
+        _assert_sha_calls();
+        _assert_call_order();
+    }
+}
+
+static void test_stage1_sigcheck_image_ok_rejects_changed_signature_between_passes(void** state)
+{
+    (void)state;
+    _reset_image();
+    _reset_script(0x07, 0x07);
+    _zero_first_signature_in_reverse_pass = true;
+
+    assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), secfalse_u32);
+    _assert_sha_calls();
+    _assert_call_order();
+}
+
 static void test_stage1_sigcheck_image_ok_rejects_changed_body(void** state)
 {
     (void)state;
@@ -624,6 +688,7 @@ static void test_stage1_sigcheck_image_ok_accepts_larger_header_len(void** state
     _header.header_len = BB02_STAGE1_HEADER_LEN + EXTRA_HEADER_LEN;
     _header.image_len = _header.header_len + BODY_LEN;
     _fill_body();
+    _fill_signature_fixture();
     _reset_script(0x07, 0x07);
 
     assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), sectrue_u32);
@@ -678,6 +743,9 @@ int main(void)
         cmocka_unit_test(test_stage1_sigcheck_image_ok_accepts_two_signatures),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_accepts_three_signatures),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_inconsistent_passes),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_requires_nonzero_verified_signatures),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_checks_all_signature_bytes),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_changed_signature_between_passes),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_changed_body),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_changed_metadata),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_changed_header_version),

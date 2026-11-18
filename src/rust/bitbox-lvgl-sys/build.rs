@@ -255,6 +255,9 @@ fn main() -> Result<(), &'static str> {
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
 
     let mut lvgl_build = cc::Build::new();
+    let widgets = manifest_dir.join("widgets.c");
+    println!("cargo::rerun-if-changed={}", widgets.display());
+    lvgl_build.file(widgets);
     for source in LVGL_C_FILES {
         lvgl_build.file(lvgl_dir.join(source));
     }

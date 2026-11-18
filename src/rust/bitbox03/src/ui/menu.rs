@@ -3,7 +3,7 @@
 use alloc::format;
 
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, ObjExt,
+    self as lvgl, BitboxLabel, BitboxLabelLongMode, LabelExt, LvObj, LvOpacityLevel, ObjExt,
 };
 use util::futures::completion::Responder;
 
@@ -61,9 +61,9 @@ pub fn build_menu_screen(
     let title_text = title
         .map(alloc::string::ToString::to_string)
         .unwrap_or_else(|| format!("{:02}", index + 1));
-    let title_label = LvLabel::new(&screen).unwrap();
+    let title_label = BitboxLabel::new(&screen).unwrap();
     title_label.set_width(380);
-    title_label.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title_label.set_long_mode(BitboxLabelLongMode::Wrap);
     title_label.set_text(&title_text).unwrap();
     title_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title_label.set_style_text_font(
@@ -71,9 +71,9 @@ pub fn build_menu_screen(
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
 
-    let word_label = LvLabel::new(&screen).unwrap();
+    let word_label = BitboxLabel::new(&screen).unwrap();
     word_label.set_width(380);
-    word_label.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    word_label.set_long_mode(BitboxLabelLongMode::Wrap);
     word_label.set_text(words[index]).unwrap();
     word_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     word_label.set_style_text_font(

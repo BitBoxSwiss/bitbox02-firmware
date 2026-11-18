@@ -7,8 +7,11 @@
 
 use alloc::rc::Rc;
 use alloc::vec;
+use core::ffi::CStr;
 
-use bitbox_lvgl::{self as lvgl, LabelExt, LvLabel, LvObj, LvTextarea, ObjExt, TextareaExt};
+use bitbox_lvgl::{
+    self as lvgl, BitboxLabel, BitboxTextarea, LabelExt, LvObj, ObjExt, TextareaExt,
+};
 
 use super::keyboard::gray;
 use super::nav_button::{NavIcon, build_nav_button, enable_press_invert, style_outline_button};
@@ -36,28 +39,32 @@ pub(super) fn key_center(row: usize, col: usize) -> (i32, i32) {
 
 /// Adds one digit key: the navigation-button frame with the digit as its label; inserts the
 /// digit on release.
-fn add_digit_key(container: &LvObj, textarea: &Rc<LvTextarea>, digit: u8, x: i32, y: i32) {
+fn add_digit_key(
+    container: &LvObj,
+    textarea: &Rc<BitboxTextarea>,
+    digit: &'static CStr,
+    x: i32,
+    y: i32,
+) {
     let key = lvgl::LvButton::new(container).unwrap();
     key.set_size(KEY_SIZE, KEY_SIZE);
     key.set_pos(x, y);
     key.set_style_radius(19, 0); // navigation-button corner radius
     style_outline_button(&key, 3);
-    let label = LvLabel::new(&key).unwrap();
+    let label = BitboxLabel::new(&key).unwrap();
     label.set_style_text_color(lvgl::color::white(), 0);
     label.set_style_text_color(lvgl::color::black(), PRESSED);
     label.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_48,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
-    let text = [digit];
-    label
-        .set_text(core::str::from_utf8(&text).expect("keypad digits are ASCII"))
-        .expect("keypad digits contain no NUL");
+    label.set_text_static(Some(digit));
     label.align(lvgl::LvAlign::LV_ALIGN_CENTER, 0, 0);
     let label_part = key.child(0).expect("digit label");
     enable_press_invert(&key, vec![label_part]);
     let textarea = Rc::clone(textarea);
-    key.add_click_cb(move || textarea.add_char(u32::from(digit)))
+    let digit = char::from(digit.to_bytes()[0]);
+    key.add_click_cb(move || textarea.add_char(digit))
         .expect("failed to register digit callback");
 }
 
@@ -66,7 +73,7 @@ fn add_digit_key(container: &LvObj, textarea: &Rc<LvTextarea>, digit: u8, x: i32
 ///
 /// Child order is row-major over the grid: digits 1–9 (0..=8), backspace (9), 0 (10),
 /// confirm (11).
-pub fn build_keypad<F>(parent: &LvObj, textarea: Rc<LvTextarea>, on_confirm: F) -> LvObj
+pub fn build_keypad<F>(parent: &LvObj, textarea: Rc<BitboxTextarea>, on_confirm: F) -> LvObj
 where
     F: FnMut() + 'static,
 {
@@ -81,7 +88,10 @@ where
     container.set_style_pad_right(0, 0);
     container.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
 
-    for (i, digit) in (b'1'..=b'9').enumerate() {
+    for (i, digit) in [c"1", c"2", c"3", c"4", c"5", c"6", c"7", c"8", c"9"]
+        .into_iter()
+        .enumerate()
+    {
         let (row, col) = (i / 3, i % 3);
         add_digit_key(
             &container,
@@ -121,7 +131,7 @@ where
         .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, refresh_backspace)
         .expect("failed to register backspace state callback");
 
-    add_digit_key(&container, &textarea, b'0', KEY_PITCH, bottom);
+    add_digit_key(&container, &textarea, c"0", KEY_PITCH, bottom);
 
     let confirm = build_nav_button(&container, NavIcon::Confirm);
     confirm.set_pos(2 * KEY_PITCH, bottom);

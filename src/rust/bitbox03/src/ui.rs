@@ -4,8 +4,8 @@ use alloc::format;
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvAlign, LvDisplay, LvHandle, LvLabel, LvObj, LvOpacityLevel, LvPart,
-    LvSpangroup, ObjExt, SpangroupExt,
+    self as lvgl, BitboxLabel, LabelExt, LvAlign, LvDisplay, LvHandle, LvObj, LvOpacityLevel,
+    LvPart, LvSpangroup, ObjExt, SpangroupExt,
 };
 use core::marker::PhantomData;
 use tracing::info;
@@ -131,7 +131,7 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         let screen = LvObj::new().unwrap();
         screen.set_style_bg_color(lvgl::color::black(), 0);
         screen.set_style_text_color(lvgl::color::white(), 0);
-        let label = LvLabel::new(&screen).unwrap();
+        let label = BitboxLabel::new(&screen).unwrap();
         label.set_width(380);
         label.set_text(message).unwrap();
         label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
@@ -328,8 +328,8 @@ impl<Timer> BitBox03Ui<Timer> {
         screen.set_style_pad_top(40, 0);
         screen.set_style_pad_left(50, 0);
 
-        let label = LvLabel::new(&screen).unwrap();
-        label.set_text("Welcome!").unwrap();
+        let label = BitboxLabel::new(&screen).unwrap();
+        label.set_text_static(Some(c"Welcome!"));
         label.set_style_margin_bottom(60, 0);
         label.set_style_text_font(
             lvgl::fonts::INTER_REGULAR_48,
@@ -342,27 +342,25 @@ impl<Timer> BitBox03Ui<Timer> {
         spangroup.set_height(lvgl::ffi::LV_SIZE_CONTENT as i32);
 
         let span0 = spangroup.add_span().unwrap();
-        span0
-            .set_text("Let's get started\nsetting up your ")
-            .unwrap();
+        span0.set_text_static(Some(c"Let's get started\nsetting up your "));
         span0.set_style_text_font(lvgl::fonts::INTER_REGULAR_48);
         let span1 = spangroup.add_span().unwrap();
-        span1.set_text("BitBox").unwrap();
+        span1.set_text_static(Some(c"BitBox"));
         span1.set_style_text_font(lvgl::fonts::INTER_BOLD_48);
         let span2 = spangroup.add_span().unwrap();
-        span2.set_text("03").unwrap();
+        span2.set_text_static(Some(c"03"));
         span2.set_style_text_font(lvgl::fonts::INTER_REGULAR_48);
 
-        let label = LvLabel::new(&screen).unwrap();
-        label.set_text("Download and open\nthe BitBoxApp.").unwrap();
+        let label = BitboxLabel::new(&screen).unwrap();
+        label.set_text_static(Some(c"Download and open\nthe BitBoxApp."));
         label.set_style_margin_bottom(60, 0);
         label.set_style_text_font(
             lvgl::fonts::INTER_REGULAR_32,
             lvgl::LvState::LV_STATE_DEFAULT as u32,
         );
 
-        let label = LvLabel::new(&screen).unwrap();
-        label.set_text("bitbox.swiss/start").unwrap();
+        let label = BitboxLabel::new(&screen).unwrap();
+        label.set_text_static(Some(c"bitbox.swiss/start"));
         label.set_style_text_font(
             lvgl::fonts::INTER_BOLD_32,
             lvgl::LvState::LV_STATE_DEFAULT as u32,

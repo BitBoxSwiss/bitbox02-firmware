@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{rc::Rc, vec, vec::Vec};
+use alloc::{boxed::Box, rc::Rc, vec};
 use core::cell::RefCell;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -14,13 +14,15 @@ use crate::{
 /// The deletion callback keeps the buffer alive even if this handle is dropped first.
 pub struct LvZeroizingLabel {
     label: LvLabel,
-    buffer: Rc<RefCell<Zeroizing<Vec<u8>>>>,
+    buffer: Rc<RefCell<Zeroizing<Box<[u8]>>>>,
 }
 
 impl LvZeroizingLabel {
     pub fn new<P: class::LvClass>(parent: &LvHandle<P>, max_bytes: usize) -> Option<Self> {
         let capacity = max_bytes.checked_add(1)?;
-        let buffer = Rc::new(RefCell::new(Zeroizing::new(vec![0; capacity])));
+        let buffer = Rc::new(RefCell::new(Zeroizing::new(
+            vec![0; capacity].into_boxed_slice(),
+        )));
         let label = LvLabel::new(parent)?;
         let obj = label.as_ptr();
         let buffer_on_delete = Rc::clone(&buffer);
@@ -28,7 +30,7 @@ impl LvZeroizingLabel {
             .add_event_cb(LvEventCode::LV_EVENT_DELETE, move || {
                 // Detach before wiping, so subsequent deletion callbacks cannot read old text.
                 unsafe { ffi::lv_label_set_text_static(obj, c"".as_ptr()) };
-                buffer_on_delete.borrow_mut().as_mut_slice().zeroize();
+                buffer_on_delete.borrow_mut().zeroize();
             })
             .is_err()
         {
@@ -51,7 +53,7 @@ impl LvZeroizingLabel {
                 return Err(LvTextError::TooLong);
             }
             // Wipe the full buffer, including any suffix left by shortening the text.
-            buffer.as_mut_slice().zeroize();
+            buffer.zeroize();
             buffer[..text.len()].copy_from_slice(text.as_bytes());
             buffer.as_mut_ptr().cast()
         };
@@ -98,7 +100,7 @@ mod tests {
         assert_eq!(label.set_text("a\0b"), Err(LvTextError::ContainsNul));
         assert_eq!(label.get_text().unwrap().to_str().unwrap(), "abstract");
         label.set_text("act").unwrap();
-        assert_eq!(buffer.borrow().as_slice(), b"act\0\0\0\0\0\0");
+        assert_eq!(buffer.borrow().as_ref(), b"act\0\0\0\0\0\0");
         assert_eq!(buffer.borrow().as_ptr(), ptr);
         // Dropping the Rust handle must leave the visible label's buffer alive.
         let obj = label.as_ptr();

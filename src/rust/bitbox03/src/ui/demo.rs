@@ -25,7 +25,7 @@ pub fn build_demo_screen(responder: Responder<()>) -> LvObj {
 
     let title = LvLabel::new(&screen).unwrap();
     title.set_width(380);
-    title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title.set_long_mode(LvLabelLongMode::Wrap);
     title.set_text("Navigation buttons").unwrap();
     title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
@@ -64,7 +64,7 @@ pub fn build_demo_screen(responder: Responder<()>) -> LvObj {
 
     let hint = LvLabel::new(&screen).unwrap();
     hint.set_width(380);
-    hint.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    hint.set_long_mode(LvLabelLongMode::Wrap);
     hint.set_text("Tap to preview. Close with the X.").unwrap();
     hint.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     hint.set_style_text_font(

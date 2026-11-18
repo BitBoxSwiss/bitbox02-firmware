@@ -57,7 +57,7 @@ fn add_digit_key(container: &LvObj, textarea: &Rc<LvTextarea>, digit: u8, x: i32
     let label_part = key.child(0).expect("digit label");
     enable_press_invert(&key, vec![label_part]);
     let textarea = Rc::clone(textarea);
-    key.add_click_cb(move || textarea.add_char(u32::from(digit)))
+    key.add_click_cb(move || textarea.add_char(char::from(digit)))
         .expect("failed to register digit callback");
 }
 

@@ -63,7 +63,7 @@ pub fn build_menu_screen(
         .unwrap_or_else(|| format!("{:02}", index + 1));
     let title_label = LvLabel::new(&screen).unwrap();
     title_label.set_width(380);
-    title_label.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title_label.set_long_mode(LvLabelLongMode::Wrap);
     title_label.set_text(&title_text).unwrap();
     title_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title_label.set_style_text_font(
@@ -73,7 +73,7 @@ pub fn build_menu_screen(
 
     let word_label = LvLabel::new(&screen).unwrap();
     word_label.set_width(380);
-    word_label.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    word_label.set_long_mode(LvLabelLongMode::Wrap);
     word_label.set_text(words[index]).unwrap();
     word_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     word_label.set_style_text_font(

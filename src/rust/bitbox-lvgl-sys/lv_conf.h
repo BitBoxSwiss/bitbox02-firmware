@@ -727,7 +727,7 @@
 
 #define LV_USE_BUTTONMATRIX  1
 
-#define LV_USE_CALENDAR   1
+#define LV_USE_CALENDAR   0
 #if LV_USE_CALENDAR
     #define LV_CALENDAR_WEEK_STARTS_MONDAY 0
     #if LV_CALENDAR_WEEK_STARTS_MONDAY
@@ -748,15 +748,15 @@
 
 #define LV_USE_CHECKBOX   1
 
-#define LV_USE_DROPDOWN   1   /**< Requires: lv_label */
+#define LV_USE_DROPDOWN   0   /**< Requires: lv_label */
 
-#define LV_USE_IMAGE      1   /**< Requires: lv_label */
+#define LV_USE_IMAGE      1
 
 #define LV_USE_IMAGEBUTTON     1
 
-#define LV_USE_KEYBOARD   1
+#define LV_USE_KEYBOARD   0
 
-#define LV_USE_LABEL      1
+#define LV_USE_LABEL      0
 #if LV_USE_LABEL
     #define LV_LABEL_TEXT_SELECTION 1   /**< Enable selecting text of the label */
     #define LV_LABEL_LONG_TXT_HINT 1    /**< Store some extra info in labels to speed up drawing of very long text */
@@ -767,15 +767,15 @@
 
 #define LV_USE_LINE       1
 
-#define LV_USE_LIST       1
+#define LV_USE_LIST       0
 
 #define LV_USE_LOTTIE     0  /**< Requires: lv_canvas, thorvg */
 
-#define LV_USE_MENU       1
+#define LV_USE_MENU       0
 
-#define LV_USE_MSGBOX     1
+#define LV_USE_MSGBOX     0
 
-#define LV_USE_ROLLER     1   /**< Requires: lv_label */
+#define LV_USE_ROLLER     0   /**< Requires: lv_label */
 
 #define LV_USE_SCALE      1
 
@@ -787,24 +787,24 @@
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
 #endif
 
-#define LV_USE_SPINBOX    1
+#define LV_USE_SPINBOX    0
 
 #define LV_USE_SPINNER    1
 
 #define LV_USE_SWITCH     1
 
-#define LV_USE_TABLE      1
+#define LV_USE_TABLE      0
 
-#define LV_USE_TABVIEW    1
+#define LV_USE_TABVIEW    0
 
-#define LV_USE_TEXTAREA   1   /**< Requires: lv_label */
+#define LV_USE_TEXTAREA   0   /**< Requires: lv_label */
 #if LV_USE_TEXTAREA != 0
     #define LV_TEXTAREA_DEF_PWD_SHOW_TIME 1500    /**< [ms] */
 #endif
 
 #define LV_USE_TILEVIEW   1
 
-#define LV_USE_WIN        1
+#define LV_USE_WIN        0
 
 #define LV_USE_3DTEXTURE  0
 

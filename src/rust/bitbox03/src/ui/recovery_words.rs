@@ -10,9 +10,10 @@
 //! [`build_recovery_words_screen`].
 
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Write as _;
 
-use bitbox_hal::ui::{MAX_MNEMONIC_BYTES, UserAbort};
+use bitbox_hal::ui::UserAbort;
 use bitbox_lvgl::{self as lvgl, LabelExt, LvFont, LvLabel, LvObj, LvOpacityLevel, ObjExt, fonts};
 use util::futures::completion::Responder;
 
@@ -78,20 +79,23 @@ fn build_column(parent: &LvObj, words: &[&str], first_number: usize) {
     column.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
 
     let mut numbers_text = String::new();
-    let mut words_text = zeroize::Zeroizing::new(String::with_capacity(MAX_MNEMONIC_BYTES));
+    // Reserve once so growing the buffer cannot leave earlier copies of the words behind.
+    let capacity =
+        words.iter().map(|word| word.len()).sum::<usize>() + words.len().saturating_sub(1);
+    let mut words_text = zeroize::Zeroizing::new(Vec::with_capacity(capacity));
     for (i, word) in words.iter().enumerate() {
         if i > 0 {
             numbers_text.push('\n');
-            words_text.push('\n');
+            words_text.push(b'\n');
         }
         write!(numbers_text, "{}", first_number + i).unwrap();
-        words_text.push_str(word);
+        words_text.extend_from_slice(word.as_bytes());
     }
 
     #[cfg(test)]
     assert_eq!(
         words_text.capacity(),
-        MAX_MNEMONIC_BYTES,
+        capacity,
         "recovery-word buffer must not reallocate"
     );
 
@@ -106,7 +110,11 @@ fn build_column(parent: &LvObj, words: &[&str], first_number: usize) {
         0,
     );
 
-    let word_label = build_column_label(&column, &words_text, WORD_FONT);
+    let word_label = build_column_label(
+        &column,
+        core::str::from_utf8(&words_text).unwrap(),
+        WORD_FONT,
+    );
     word_label.set_style_text_color(lvgl::color::white(), 0);
     word_label.set_style_flex_grow(1, 0);
 }

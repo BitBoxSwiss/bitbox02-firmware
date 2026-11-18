@@ -53,7 +53,7 @@ pub fn build_status_screen(title: &str, status_success: bool) -> LvObj {
 
     let title_label = LvLabel::new(&screen).unwrap();
     title_label.set_width(380);
-    title_label.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title_label.set_long_mode(LvLabelLongMode::Wrap);
     title_label.set_text(title).unwrap();
     title_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title_label.set_style_text_font(

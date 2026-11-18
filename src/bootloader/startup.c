@@ -48,7 +48,7 @@ uint32_t __stack_chk_guard = 0;
 
 #if PLATFORM_BITBOX02PLUS == 1
 extern volatile bool measurement_done_touch;
-int bootloader_pairing_request = false;
+bool bootloader_pairing_request = false;
 uint8_t bootloader_pairing_code_bytes[4] = {0};
     // Must fit bond_db.
     #define UART_OUT_BUF_LEN 2048
@@ -144,6 +144,7 @@ int main(void)
                     uart_poll(NULL, 0, NULL, uart_write_queue);
                 }
                 rust_communication_mode_ble_disable();
+                bootloader_pairing_request = false;
                 bootloader_render_default_screen();
             }
 #endif

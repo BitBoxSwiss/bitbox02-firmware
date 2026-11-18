@@ -80,8 +80,6 @@ static void _ble_pairing_callback(bool ok, void* param)
 }
 #else
     #include <bootloader/bootloader.h>
-extern bool bootloader_pairing_request;
-extern uint8_t bootloader_pairing_code_bytes[4];
 #endif
 
 #if FACTORYSETUP == 1

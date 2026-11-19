@@ -66,6 +66,7 @@ pal_os_event_t* pal_os_event_create(register_callback callback, void* callback_a
     return (&pal_os_event_0);
 }
 
+// Command creation and destruction mask interrupts. Callbacks rearm this timer in the RTC IRQ.
 static struct timer_task scheduler;
 
 void pal_os_event_trigger_registered_callback(void)
@@ -90,6 +91,10 @@ void pal_os_event_register_callback_oneshot(
     void* callback_args,
     uint32_t time_us)
 {
+    // The command scheduler can replace an event before its timer fires.
+    if (is_list_element(&TIMER_0.tasks, &scheduler)) {
+        timer_remove_task(&TIMER_0, &scheduler);
+    }
     p_pal_os_event->callback_registered = callback;
     p_pal_os_event->callback_ctx = callback_args;
 
@@ -104,7 +109,9 @@ void pal_os_event_destroy(pal_os_event_t* pal_os_event)
     if (pal_os_event != NULL) {
         pal_os_event_stop(pal_os_event);
     }
-    timer_remove_task(&TIMER_0, &scheduler);
+    if (is_list_element(&TIMER_0.tasks, &scheduler)) {
+        timer_remove_task(&TIMER_0, &scheduler);
+    }
 }
 
 /**

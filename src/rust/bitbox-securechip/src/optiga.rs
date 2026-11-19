@@ -6,6 +6,7 @@ use bitbox_hal::{Memory, Random};
 use util::sha2::{hmac_sha256, hmac_sha256_overwrite, sha256};
 use zeroize::Zeroizing;
 
+mod crypto;
 mod der;
 
 #[cfg(not(test))]

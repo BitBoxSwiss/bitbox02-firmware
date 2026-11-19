@@ -3,7 +3,7 @@
 	url = https://github.com/BitBoxSwiss/cryptoauthlib.git
 [submodule "external/optiga-trust-m"]
 	path = external/optiga-trust-m
-	url = https://github.com/BitBoxSwiss/optiga-trust-m.git
+	url = https://github.com/Infineon/optiga-trust-m.git
 [submodule "external/embedded-swd"]
 	path = external/embedded-swd
 	url = https://github.com/BitBoxSwiss/embedded-swd

@@ -26,10 +26,10 @@ const PSBT_OTHER_ACCOUNT_ADDRESS_GROUPED: &str =
 // cannot be mistaken for the screens shown by the device.
 const COMPLETE_TRANSACTION_SCREEN_CAPTURE_VERSION: &str = "9.20.0";
 const LOCKTIME_CONFIRMATION_UPDATE_VERSION: &str = "9.27.0";
-const HIGH_FEE_WORDING_UPDATE_VERSION: &str = "9.28.0";
+const HIGH_FEE_WORDING_UPDATE_VERSION: &str = "9.27.2";
 pub const DEVICE_POLICY_XPUB: &str = "[4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv";
 
-/// Preserve the pre-v9.28 fee wording, splitting only ranges that span the wording change.
+/// Preserve the old fee wording, splitting only ranges that span the wording change.
 pub(super) fn with_historical_fee_warnings(
     expectations: Vec<VersionExpectation>,
 ) -> Vec<VersionExpectation> {

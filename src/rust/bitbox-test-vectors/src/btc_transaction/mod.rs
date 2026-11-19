@@ -471,12 +471,12 @@ mod tests {
             ),
             (
                 "high-fee-rounding",
-                "9.27.2",
+                "9.27.1",
                 Some("The fee is 18.1%\nthe send amount.\nProceed?"),
             ),
             (
                 "high-fee-rounding",
-                "9.28.0",
+                "9.27.2",
                 Some("Fee is 18.1%\nof the send amount.\nProceed?"),
             ),
             (
@@ -492,7 +492,7 @@ mod tests {
             ),
             (
                 "all-change-high-fee",
-                "9.28.0",
+                "9.27.2",
                 Some("Fee is 70.0%\nof all inputs.\nProceed?"),
             ),
             (

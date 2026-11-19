@@ -45,6 +45,7 @@ class Config:
     debug: str = "no"
     locked: str = "no"
     development: str = "yes"
+    embed_stage1: str = "no"
 
     @property
     def profile(self) -> str:
@@ -79,6 +80,10 @@ class Config:
             raise ValueError(f"Invalid locked setting: {self.locked}")
         if self.development not in ("no", "yes"):
             raise ValueError(f"Invalid development setting: {self.development}")
+        if self.embed_stage1 not in ("no", "yes"):
+            raise ValueError(f"Invalid embed-stage1 setting: {self.embed_stage1}")
+        if self.product == "bitbox03" and self.embed_stage1 == "yes":
+            raise ValueError("Embedding stage1 is not implemented for BitBox03")
         if self.product == "bitbox03" and (self.locked != "no" or self.development != "yes"):
             raise ValueError("Locked and non-development builds are not implemented for BitBox03")
         if self.development == "no" and self.locked == "no":
@@ -95,6 +100,7 @@ class Config:
         print(f"Product: {self.product}; board: {self.board}; edition: {self.edition}")
         print(f"Debug: {self.debug}; profile: {self.profile}")
         print(f"Locked: {self.locked}; development: {self.development}")
+        print(f"Embed stage1: {self.embed_stage1}")
         print(f"Probe hardware: {self.probe_hardware}; software: {self.probe_software}")
         print(f"SWD speed: {self.swd_speed} kHz")
         if self.product == "bitbox03":
@@ -121,6 +127,9 @@ def add_config_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--debug", choices=("no", "yes"), help="Debug build (default: no)")
     parser.add_argument("--locked", choices=("no", "yes"), help="Lock hardware (default: no)")
     parser.add_argument("--development", choices=("no", "yes"), help="Development (default: yes)")
+    parser.add_argument(
+        "--embed-stage1", choices=("no", "yes"), help="Embed stage1 in firmware (default: no)"
+    )
     parser.add_argument("--probe-software", choices=("jlink", "openocd"))
     parser.add_argument("--swd-speed", type=int, help="SWD speed in kHz (default: 4000)")
 
@@ -136,6 +145,7 @@ def from_args(args: argparse.Namespace) -> Config:
         args.debug or base.debug,
         args.locked or base.locked,
         args.development or base.development,
+        args.embed_stage1 or base.embed_stage1,
     ).validate()
 
 
@@ -152,6 +162,7 @@ def read_config(path: Path) -> dict[str, str]:
             "DEBUG",
             "LOCKED",
             "DEVELOPMENT",
+            "EMBED_STAGE1",
             "PROBE_SOFTWARE",
             "SWD_SPEED",
         ):
@@ -192,6 +203,11 @@ def interactive(saved: dict[str, str]) -> Config:
         ("yes",) if locked == "no" else ("yes", "no"),
         saved.get("DEVELOPMENT", base.development),
     )
+    embed_stage1 = choose(
+        "Embed stage1",
+        ("no",) if product == "bitbox03" else ("no", "yes"),
+        saved.get("EMBED_STAGE1", base.embed_stage1),
+    )
     config = Config(product, board, edition, base.probe_software)
     print(f"Probe hardware: {config.probe_hardware} (derived from board)")
     software = choose(
@@ -200,7 +216,7 @@ def interactive(saved: dict[str, str]) -> Config:
     saved_speed = saved.get("SWD_SPEED", str(base.swd_speed))
     speed = input(f"SWD speed in kHz [{saved_speed}]: ").strip() or saved_speed
     return Config(
-        product, board, edition, software, int(speed), debug, locked, development
+        product, board, edition, software, int(speed), debug, locked, development, embed_stage1
     ).validate()
 
 
@@ -221,6 +237,7 @@ def save_config(path: Path, config: Config) -> None:
                 "debug",
                 "locked",
                 "development",
+                "embed_stage1",
                 "probe_software",
                 "swd_speed",
             ):

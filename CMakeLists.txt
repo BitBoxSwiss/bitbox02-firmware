@@ -62,6 +62,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mod
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
+option(EMBED_STAGE1 "Embed the stage1 bootloader update in firmware." OFF)
+option(DEVELOPMENT "Use development bootloader update assets." ON)
+set(PRODUCT "bitbox02" CACHE STRING "Firmware product.")
+set_property(CACHE PRODUCT PROPERTY STRINGS "bitbox02" "bitbox02nova")
+if(EMBED_STAGE1 AND NOT PRODUCT STREQUAL "bitbox02" AND NOT PRODUCT STREQUAL "bitbox02nova")
+  message(FATAL_ERROR "Embedding stage1 is only supported for bitbox02 and bitbox02nova")
+endif()
 
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

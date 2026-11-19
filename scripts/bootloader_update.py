@@ -282,7 +282,7 @@ def main() -> None:
 
     update_parser = subparsers.add_parser(
         "create-stage1-fw-embedding",
-        help="create the stage1 update payload consumed by blupgrade firmware",
+        help="create the stage1 update payload embedded in firmware",
         description=(
             "Validate a stage1 image for the requested product and production "
             "or development mode, then pad it with erased-flash bytes to the fixed "
@@ -298,7 +298,7 @@ def main() -> None:
 
     embed_parser = subparsers.add_parser(
         "create-stage0-fw-embedding",
-        help="create the stage0 image blob consumed by blupgrade firmware",
+        help="create the stage0 image blob embedded in firmware",
         description=(
             "Validate a prebuilt stage0 image descriptor for the requested product "
             "and production or development mode, then pad the image to the fixed "

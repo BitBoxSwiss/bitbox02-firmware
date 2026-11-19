@@ -88,6 +88,34 @@ class TestBuildConfig(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "DEVELOPMENT=no requires LOCKED=yes"):
                         build_config.image_info(config, image)
 
+    def test_embed_stage1_config_roundtrip(self) -> None:
+        parser = argparse.ArgumentParser()
+        build_config.add_config_arguments(parser)
+        self.assertEqual(build_config.from_args(parser.parse_args([])).embed_stage1, "no")
+        for product in ("bitbox02", "bitbox02nova"):
+            for embed_stage1 in ("no", "yes"):
+                with self.subTest(product=product, embed_stage1=embed_stage1):
+                    config = build_config.from_args(
+                        parser.parse_args(["--product", product, "--embed-stage1", embed_stage1])
+                    )
+                    with tempfile.TemporaryDirectory() as directory:
+                        path = Path(directory) / "config.mk"
+                        build_config.save_config(path, config)
+                        saved = build_config.read_config(path)
+                    self.assertEqual(saved["EMBED_STAGE1"], embed_stage1)
+                    with patch("builtins.input", return_value=""), contextlib.redirect_stdout(
+                        io.StringIO()
+                    ):
+                        self.assertEqual(build_config.interactive(saved), config)
+                    for edition in build_config.EDITIONS:
+                        configured = replace(config, edition=edition)
+                        self.assertEqual(
+                            build_config.image_info(configured, "firmware"),
+                            build_config.image_info(
+                                replace(configured, embed_stage1="no"), "firmware"
+                            ),
+                        )
+
     def test_invalid_flags_preserve_saved_config(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.mk"
@@ -97,6 +125,7 @@ class TestBuildConfig(unittest.TestCase):
                 replace(build_config.Config(), locked="invalid"),
                 replace(build_config.Config(), development="invalid"),
                 replace(build_config.Config(), development="no"),
+                replace(build_config.Config(), embed_stage1="invalid"),
             ):
                 with self.subTest(config=config), self.assertRaises(ValueError):
                     build_config.save_config(path, config)
@@ -105,7 +134,7 @@ class TestBuildConfig(unittest.TestCase):
     def test_interactive_unlock_requires_development(self) -> None:
         saved = {"LOCKED": "yes", "DEVELOPMENT": "no"}
         with patch(
-            "builtins.input", side_effect=["", "", "", "no", "", ""]
+            "builtins.input", side_effect=["", "", "", "no", "", "", ""]
         ), contextlib.redirect_stdout(io.StringIO()):
             config = build_config.interactive(saved)
         self.assertEqual((config.locked, config.development), ("no", "yes"))
@@ -113,12 +142,16 @@ class TestBuildConfig(unittest.TestCase):
     def test_bitbox03_rejects_unimplemented_modes(self) -> None:
         base = build_config.defaults("bitbox03")
         base.validate()
-        for config in (replace(base, locked="yes"), replace(base, development="no")):
+        for config in (
+            replace(base, locked="yes"),
+            replace(base, development="no"),
+            replace(base, embed_stage1="yes"),
+        ):
             with self.assertRaisesRegex(ValueError, "not implemented for BitBox03"):
                 config.validate()
 
     def test_interactive_product_change_resets_unsupported_modes(self) -> None:
-        saved = {"LOCKED": "yes", "DEVELOPMENT": "no"}
+        saved = {"LOCKED": "yes", "DEVELOPMENT": "no", "EMBED_STAGE1": "yes"}
         with patch(
             "builtins.input", side_effect=["bitbox03", "", "", "", ""]
         ), contextlib.redirect_stdout(io.StringIO()):

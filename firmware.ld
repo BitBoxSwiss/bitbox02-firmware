@@ -35,11 +35,14 @@ SEARCH_DIR(.)
 /* Memory Spaces Definitions */
 MEMORY
 {
-  rom      (rx)  : ORIGIN = 0x00010000, LENGTH = 0x000D8000
+  rom      (rx)  : ORIGIN = 0x00010000, LENGTH = 0x000CB000
+  bootloader_update (rx) : ORIGIN = 0x000DB000, LENGTH = 0x0000C000
   ram      (rwx) : ORIGIN = 0x20000200, LENGTH = 0x0003FE00
   bkupram  (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000
   qspi     (rwx) : ORIGIN = 0x04000000, LENGTH = 0x01000000
 }
+
+ASSERT(ORIGIN(rom) + LENGTH(rom) <= ORIGIN(bootloader_update), "firmware code/data overlaps embedded stage1 payload")
 
 /* The stack size used by the application. NOTE: Stack and heap sizes should be set in
  * CMakeLists.txt */
@@ -183,4 +186,11 @@ SECTIONS
         . = ALIGN(8);
         _heap_end = .;
     } > ram
+
+    .bootloader_update ORIGIN(bootloader_update) :
+    {
+        FILL(0xff)
+        KEEP(*(.bootloader_update))
+        . = ORIGIN(bootloader_update) + LENGTH(bootloader_update);
+    } > bootloader_update =0xff
 }

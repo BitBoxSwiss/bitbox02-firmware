@@ -46,6 +46,9 @@ def cmake(config: Config, profile: str, targets: list[str]) -> None:
             str(directory),
             "-DCMAKE_TOOLCHAIN_FILE=arm.cmake",
             f"-DCMAKE_BUILD_TYPE={profile.upper()}",
+            f"-DPRODUCT={config.product}",
+            f"-DDEVELOPMENT={'ON' if config.development == 'yes' else 'OFF'}",
+            f"-DEMBED_STAGE1={'ON' if config.embed_stage1 == 'yes' else 'OFF'}",
         ]
     )
     if first_build:
@@ -82,9 +85,6 @@ def build_image(config: Config, image: str) -> None:
 def dispatch(config: Config, target: str) -> None:
     if target in IMAGES:
         build_image(config, target)
-    elif target.startswith("firmware-blupgrade-"):
-        product = target.split("-")[2]
-        cmake(defaults(product), "relwithdebinfo", [target + ".elf"])
     elif target in ("bootloader-upgrade-assets", "bootloader-upgrade-assets-development"):
         suffix = "-development" if target.endswith("-development") else ""
         for product in ("bitbox02", "bitbox02nova"):

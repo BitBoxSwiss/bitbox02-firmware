@@ -25,8 +25,12 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 const MAX_KEYPATH_DEPTH: usize = 10;
 const EXTERNAL_SERVICE_PURPOSE_M45: u32 = 45 + HARDENED;
 const EXTERNAL_SERVICE_PURPOSE_M48: u32 = 48 + HARDENED;
-const EXTERNAL_SERVICE_PURPOSES: [u32; 2] =
-    [EXTERNAL_SERVICE_PURPOSE_M45, EXTERNAL_SERVICE_PURPOSE_M48];
+const EXTERNAL_SERVICE_PURPOSE_M49: u32 = 49;
+const EXTERNAL_SERVICE_PURPOSES: [u32; 3] = [
+    EXTERNAL_SERVICE_PURPOSE_M45,
+    EXTERNAL_SERVICE_PURPOSE_M48,
+    EXTERNAL_SERVICE_PURPOSE_M49,
+];
 
 /// Validate a keypath in the external service application namespace.
 fn validate_external_service_keypath(keypath: &[u32]) -> Result<(), Error> {
@@ -192,11 +196,9 @@ mod tests {
 
     #[test]
     fn test_validate_external_service_keypath() {
-        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE_M45]).is_ok());
-        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE_M48]).is_ok());
-        assert!(
-            validate_external_service_keypath(&[
-                EXTERNAL_SERVICE_PURPOSE_M45,
+        for purpose in [45 + HARDENED, 48 + HARDENED, 49] {
+            let keypath = [
+                purpose,
                 0 + HARDENED,
                 0,
                 1 + HARDENED,
@@ -206,9 +208,16 @@ mod tests {
                 3 + HARDENED,
                 3,
                 4,
-            ])
-            .is_ok()
-        );
+                5,
+            ];
+            for depth in 1..=MAX_KEYPATH_DEPTH {
+                assert!(validate_external_service_keypath(&keypath[..depth]).is_ok());
+            }
+            assert_eq!(
+                validate_external_service_keypath(&keypath),
+                Err(Error::InvalidInput)
+            );
+        }
 
         assert_eq!(
             validate_external_service_keypath(&[]),
@@ -223,17 +232,15 @@ mod tests {
             Err(Error::InvalidInput)
         );
         assert_eq!(
+            validate_external_service_keypath(&[49 + HARDENED]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
             validate_external_service_keypath(&[44 + HARDENED]),
             Err(Error::InvalidInput)
         );
         assert_eq!(
             validate_external_service_keypath(&[46 + HARDENED]),
-            Err(Error::InvalidInput)
-        );
-        assert_eq!(
-            validate_external_service_keypath(
-                &[EXTERNAL_SERVICE_PURPOSE_M48; MAX_KEYPATH_DEPTH + 1]
-            ),
             Err(Error::InvalidInput)
         );
     }
@@ -385,6 +392,41 @@ mod tests {
                     longtouch: true,
                 },
             ]
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_process_m49() {
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
+                }),
+                keypath: vec![49],
+            }),
+            msg: MESSAGE.as_bytes().to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            process(&mut mock_hal, &request).await,
+            Ok(Response::SignMessage(pb::BtcSignMessageResponse {
+                signature: hex!(
+                    "470dacd1ec8426cc857ca7fb2b8871e7f1039e5c84a845e680b6b84182271d1834599efeb6406ba234be5d1909059770d1a374988b8ae36293419ab3d9d3a2c101"
+                )
+                .to_vec(),
+            }))
+        );
+        assert_eq!(
+            mock_hal.ui.screens[0],
+            Screen::Confirm {
+                title: "Sign message".into(),
+                body: "Coin: Bitcoin\nExternal service key".into(),
+                longtouch: false,
+            }
         );
     }
 

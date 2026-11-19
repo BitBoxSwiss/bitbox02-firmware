@@ -69,13 +69,14 @@ for size in 9 11 12; do
 done
 ```
 
-After generation, retain these uGUI layout metrics in the public font descriptors:
+Use the generated line metrics for `regular_9` and `regular_12`. Keep their password fonts'
+line metrics in sync with the corresponding regular font. Override `regular_11` as described below:
 
 | Font | `.line_height` | `.base_line` |
 | --- | --- | --- |
-| `regular_9` | 9 | 2 |
-| `regular_11` | 10 | 2 |
-| `regular_12` | 12 | 3 |
+| `regular_9`, `password_9` | 12 | 3 |
+| `regular_11` | 12 | 2 |
+| `regular_12`, `password_12` | 15 | 3 |
 
 Preserve the checked-in ASCII glyph pixels and spacing when regenerating. These glyphs contain
 manual bitmap or metric adjustments that raw FreeType output does not reproduce:
@@ -85,6 +86,16 @@ manual bitmap or metric adjustments that raw FreeType output does not reproduce:
 | `regular_9` | `0 A V j t` |
 | `regular_11` | `B W j t` |
 | `regular_12` | `f` |
+
+`regular_11` labels use no extra line spacing, so five lines plus the 1-pixel title/body gap
+occupy 61 pixels of the 64-pixel screen. Preserve these additional bitmap adjustments:
+
+* For `À Á Â È É Ê Ì Í Î Ñ Ò Ó Ô Ù Ú Û`, remove the blank third row between the accent and
+  letter. Set `box_h` to 10 and retain `ofs_y = 0`.
+* For `Ç ç`, remove the first of the three cedilla rows, decrease `box_h` by one, and set
+  `ofs_y = -2`.
+
+These adjustments keep every supported glyph within the 10-pixel ascent and 2-pixel descent.
 
 The ASCII rendering snapshots in `test/unit-test/test_ugui.c` verify the pixels, placement,
 advance widths, and line heights, including the password-font fallbacks.
@@ -120,8 +131,7 @@ objects and the generated headers include `<ugui.h>` and declare `extern const U
 For BitBox02 uGUI use, keep the generated font in the compact subset consumed by `ugui.c`: 1bpp,
 `stride = 0`, no kerning, and `LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY` cmaps only. The local
 `lv_font_get_glyph_dsc_fmt_txt` and `lv_font_get_bitmap_fmt_txt` callbacks only support this subset.
-If the historical uGUI layout height differs from the generated FreeType line height, set
-`.line_height` to the uGUI layout height.
+Keep the generated line metrics unless the font has a documented compact layout override above.
 
 ## libfreetype note
 

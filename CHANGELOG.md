@@ -7,6 +7,7 @@ recorded separately.
 ## Firmware
 
 ### Unreleased
+- Reject master xpub exports at `m/` through the Bitcoin API
 
 ### v9.29.0
 - Require wallet-owned refund addresses for SwapKit

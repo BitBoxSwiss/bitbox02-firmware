@@ -287,7 +287,6 @@ version = "0.1.0"
 dependencies = [
  "bitcoin",
  "ctaes",
- "util",
  "zeroize",
 ]
 
@@ -495,7 +494,6 @@ name = "bitbox02-rust-c"
 version = "0.1.0"
 dependencies = [
  "bip39",
- "bitbox-aes",
  "bitbox-bytequeue",
  "bitbox-core-utils",
  "bitbox-da14531",
@@ -2948,7 +2946,6 @@ dependencies = [
 name = "simulator-graphical"
 version = "0.1.0"
 dependencies = [
- "bitbox-aes",
  "bitbox-platform-host",
  "bitbox02",
  "bitbox02-rust",

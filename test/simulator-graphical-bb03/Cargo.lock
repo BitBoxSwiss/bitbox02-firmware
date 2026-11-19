@@ -325,7 +325,6 @@ version = "0.1.0"
 dependencies = [
  "bitcoin",
  "ctaes",
- "util",
  "zeroize",
 ]
 
@@ -3011,7 +3010,6 @@ dependencies = [
 name = "simulator-graphical-bb03"
 version = "0.1.0"
 dependencies = [
- "bitbox-aes",
  "bitbox-hal",
  "bitbox-lvgl",
  "bitbox-platform-host",

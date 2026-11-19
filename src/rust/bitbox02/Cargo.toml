@@ -30,7 +30,6 @@ hex_lit = { workspace = true }
 
 [dev-dependencies]
 async_test = { path = "../async_test" }
-bitbox-aes = { path = "../bitbox-aes" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 
 [features]

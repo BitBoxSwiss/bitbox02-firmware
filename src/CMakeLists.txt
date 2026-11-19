@@ -301,18 +301,6 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-clippy rust-cbindgen)
 endif()
 
-# Stage1 uses the legacy bootloader Rust feature names internally.
-set(BB02_STAGE1_RUST_LIBS
-  bb02-bl-btconly-development
-  bb02-bl-btconly-production
-  bb02-bl-multi-development
-  bb02-bl-multi-production
-  bb02p-bl-btconly-development
-  bb02p-bl-btconly-production
-  bb02p-bl-multi-development
-  bb02p-bl-multi-production
-)
-
 set(FIRMWARES
   firmware # Firmware MULTI
   firmware-btc # Firmware BTC-ONLY
@@ -321,7 +309,7 @@ set(FIRMWARES
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
 
 if(CMAKE_CROSSCOMPILING)
-  set(RUST_LIBS ${FIRMWARES} ${BB02_STAGE1_RUST_LIBS})
+  set(RUST_LIBS ${FIRMWARES} bootloader-bitbox02 bootloader-bitbox02nova)
 else()
   set(RUST_LIBS c-unit-tests)
 endif()
@@ -332,6 +320,8 @@ endif()
 #  *  firmware_rust_c
 #  *  firmware-btc_rust_c
 #  *  factory-setup_rust_c
+#  *  bootloader-bitbox02_rust_c
+#  *  bootloader-bitbox02nova_rust_c
 foreach(type ${RUST_LIBS})
   # We build the rust standard libs so that everything from the rust runtime
   # is included (like eh_personality).
@@ -657,12 +647,10 @@ if(CMAKE_CROSSCOMPILING)
   set(BB02_STAGE1_TARGETS)
   foreach(product bitbox02 bitbox02nova)
     set(is_plus FALSE)
-    set(rust_prefix bb02)
     set(product_prefix PRODUCT_BITBOX)
     set(product_id 1)
     if(product STREQUAL "bitbox02nova")
       set(is_plus TRUE)
-      set(rust_prefix bb02p)
       set(product_prefix PRODUCT_BITBOX_PLUS)
       set(product_id 3)
     endif()
@@ -675,10 +663,8 @@ if(CMAKE_CROSSCOMPILING)
       foreach(variant production development development-locked)
         set(development FALSE)
         set(locked FALSE)
-        set(rust_variant production)
         if(variant MATCHES "^development")
           set(development TRUE)
-          set(rust_variant development)
         endif()
         if(variant STREQUAL "production" OR variant STREQUAL "development-locked")
           set(locked TRUE)
@@ -689,7 +675,7 @@ if(CMAKE_CROSSCOMPILING)
           ${stage0_target} ${product_definition} ${product_id} ${development} ${locked})
         add_bb02_stage1_target(
           ${stage1_target}
-          ${rust_prefix}-bl-${edition}-${rust_variant}_rust_c
+          bootloader-${product}_rust_c
           ${product_definition} ${product_id} ${development} ${locked} ${is_plus})
         list(APPEND BB02_STAGE0_TARGETS ${stage0_target})
         list(APPEND BB02_STAGE1_TARGETS ${stage1_target})

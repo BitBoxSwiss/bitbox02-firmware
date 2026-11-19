@@ -4,10 +4,12 @@
 #define _MEMORY_SHARED_H_
 
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <compiler_util.h>
 #include <flags.h>
+#include <sha256.h>
 
 #if (FLASH_SHARED_DATA_LEN != CHUNK_SIZE)
     #error "Shared data chunk not correct length"
@@ -20,6 +22,8 @@
 #define BOOT_PUBKEY_LEN 64u
 #define BOOT_SIG_LEN 64u
 
+#define BOOTDATA_VERSIONS_HASH_OFFSET 589U
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -31,6 +35,11 @@ typedef union {
         // `hardware_version` is deprecated/unused, as MPU prevents the firmware from easily reading
         // this.
         uint16_t hardware_version;
+        // Both bytes must be `sectrue_u8` in valid bootdata. Once set, this field is otherwise
+        // unused. Up to stage1 v1.2.2, any other value caused bootdata to be initialized
+        // automatically. Starting with production stage1 v1.2.3, the bootloader never changes
+        // these bytes and rejects bootdata unless both have the expected value. Development
+        // builds may reinitialize corrupt bootdata.
         uint8_t is_initialized[2];
         version_t signing_pubkeys_version;
         uint8_t signing_pubkeys
@@ -42,10 +51,29 @@ typedef union {
             firmware_signatures[BOOT_SIG_LEN * BOOT_NUM_FIRMWARE_SIGNING_KEYS]; // Keep after
                                                                                 // firmware_version
         uint8_t show_firmware_hash;
+        // SHA256(signing_pubkeys_version_le32 || firmware_version_le32).
+        // In production, any prior checksum bytes are allowed for migration while the independent
+        // marker in PERMANENT chunk 7 does not match the consumed magic. With an exact magic match,
+        // every checksum mismatch (including zero) is invalid. Development builds can reset
+        // invalid bootdata with a fresh checksum.
+        uint8_t versions_hash[SHA256_DIGEST_LENGTH];
     } fields;
     uint8_t bytes[FLASH_BOOTDATA_LEN];
 } boot_data_t;
 #pragma GCC diagnostic pop
+
+static_assert(
+    offsetof(boot_data_t, fields.versions_hash) ==
+        offsetof(boot_data_t, fields.show_firmware_hash) +
+            sizeof(((boot_data_t*)0)->fields.show_firmware_hash),
+    "versions_hash must immediately follow show_firmware_hash");
+static_assert(
+    offsetof(boot_data_t, fields.versions_hash) == BOOTDATA_VERSIONS_HASH_OFFSET,
+    "versions_hash persistent offset changed");
+static_assert(
+    offsetof(boot_data_t, fields.versions_hash) + sizeof(((boot_data_t*)0)->fields.versions_hash) <=
+        FLASH_BOOTDATA_LEN,
+    "versions_hash does not fit in bootdata");
 
 // CHUNK_SHARED: Shared data between the bootloader and firmware.
 //    auto_enter: if sectrue_u8, bootloader mode is entered on reboot

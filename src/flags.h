@@ -72,6 +72,7 @@
 #define FLASH_ERASE_PAGE_NUM (16U)
 #define FLASH_ERASE_MIN_LEN \
     (FLASH_ERASE_PAGE_NUM * FLASH_PAGE_SIZE) // 8kB; minimum erase granularity
+#define ERASE_BLOCK_SIZE (FLASH_ERASE_MIN_LEN)
 // Bootloader memory area - 64kB total, first 56kB read-only, last 8kB R/W data reserved for
 // bootloader
 #define FLASH_BOOT_START (FLASH_ADDR)
@@ -100,7 +101,7 @@
 #define FLASH_APP_VERSION_LEN (4) // 4 byte big endian unsigned int
 #define FLASH_APP_VERSION_START (FLASH_APP_START + FLASH_APP_LEN - FLASH_APP_VERSION_LEN)
 
-#define CHUNK_SIZE (FLASH_ERASE_MIN_LEN) // 8kB; minimum erase granularity
+#define CHUNK_SIZE (ERASE_BLOCK_SIZE) // 8kB; minimum erase granularity
 
 // Shared temporary storage for stage1 and firmware. Contents may not survive a reboot:
 // stage0 currently overwrites this space with a factory randomness backup when updating stage1.

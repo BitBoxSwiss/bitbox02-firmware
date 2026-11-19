@@ -83,6 +83,7 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
+  ${CMAKE_SOURCE_DIR}/src/bootloader/bootdata.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_format.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c

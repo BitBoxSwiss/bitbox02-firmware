@@ -28,6 +28,14 @@ void util_zero(volatile void* dst, size_t len)
 #endif
 }
 
+void util_write_le32(uint8_t out[4], uint32_t value)
+{
+    out[0] = (uint8_t)value;
+    out[1] = (uint8_t)(value >> 8);
+    out[2] = (uint8_t)(value >> 16);
+    out[3] = (uint8_t)(value >> 24);
+}
+
 void util_strlcpy(char* dst, const char* src, size_t dst_len)
 {
     if (dst_len == 0) {

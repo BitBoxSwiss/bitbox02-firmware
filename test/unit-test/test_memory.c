@@ -110,7 +110,8 @@ static const memory_interface_functions_t _ifs = {
 
 static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
 {
-    // Reset all except first and last chunk.
+    // Reset all except first and last chunk, preserving the bootdata migration consumed marker in
+    // chunk 7.
     for (uint32_t write_calls = 0; write_calls < FLASH_APP_DATA_LEN / CHUNK_SIZE - 2;
          write_calls++) {
         expect_value(__wrap_memory_write_chunk_fake, chunk_num, write_calls + 1);
@@ -797,6 +798,38 @@ static void _test_memory_set_attestation_certificate(void** state)
     assert_true(memory_set_attestation_certificate(pubkey, certificate, root_pubkey_identifier));
 }
 
+static void _test_memory_set_attestation_bootloader_hash_preserves_migration_consumed(void** state)
+{
+    (void)state;
+    const uint8_t markers[][MEMORY_BOOTDATA_MIGRATION_CONSUMED_LEN] = {
+        {0},
+        {0xFF, 0xFF, 0xFF, 0xFF},
+        MEMORY_BOOTDATA_MIGRATION_CONSUMED_MAGIC,
+        {0xA5, 0x5A, 0x12, 0x34}};
+    uint8_t salt[32];
+    memset(salt, 0x42, sizeof(salt));
+    for (size_t i = 0; i < sizeof(markers) / sizeof(markers[0]); i++) {
+        uint8_t chunk[CHUNK_SIZE];
+        for (size_t byte = 0; byte < sizeof(chunk); byte++) {
+            chunk[byte] = (uint8_t)byte;
+        }
+        memcpy(chunk + MEMORY_BOOTDATA_MIGRATION_CONSUMED_OFFSET, markers[i], sizeof(markers[i]));
+        expect_value(
+            __wrap_memory_read_chunk_fake, chunk_num, MEMORY_BOOTDATA_MIGRATION_CONSUMED_CHUNK);
+        will_return(__wrap_memory_read_chunk_fake, chunk);
+
+        uint8_t expected[CHUNK_SIZE];
+        memcpy(expected, chunk, sizeof(expected));
+        expected[0] = sectrue_u8;
+        memcpy(expected + 4, salt, sizeof(salt));
+        expect_value(
+            __wrap_memory_write_chunk_fake, chunk_num, MEMORY_BOOTDATA_MIGRATION_CONSUMED_CHUNK);
+        expect_memory(__wrap_memory_write_chunk_fake, chunk, expected, sizeof(expected));
+        will_return(__wrap_memory_write_chunk_fake, true);
+        assert_true(memory_set_attestation_bootloader_hash(salt));
+    }
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -832,6 +865,7 @@ int main(void)
         cmocka_unit_test(_test_memory_get_stage0_version_invalid_argument),
         cmocka_unit_test(_test_memory_set_attestation_device_pubkey),
         cmocka_unit_test(_test_memory_set_attestation_certificate),
+        cmocka_unit_test(_test_memory_set_attestation_bootloader_hash_preserves_migration_consumed),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

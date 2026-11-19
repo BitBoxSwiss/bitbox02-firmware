@@ -29,6 +29,12 @@ else()
   # Tests
 
   set(TEST_LIST
+     bootdata
+     "-Wl,--wrap=pukcc_sha256_compute,--wrap=nvmctrl_read,--wrap=nvmctrl_read_block_checked,--wrap=nvmctrl_write_block"
+     bootdata_dev
+     "-Wl,--wrap=pukcc_sha256_compute,--wrap=nvmctrl_read,--wrap=nvmctrl_read_block_checked,--wrap=nvmctrl_write_block"
+     nvmctrl
+     ""
      atecc
      "-Wl,--gc-sections"
      bootloader_format
@@ -84,7 +90,11 @@ else()
     list(GET TEST_LIST ${I} TEST_NAME)
     list(GET TEST_LIST ${I2} TEST_LINK_ARGS)
     set(EXE test_${TEST_NAME})
-    add_executable(${EXE} test_${TEST_NAME}.c)
+    if(TEST_NAME STREQUAL "bootdata_dev")
+      add_executable(${EXE} test_bootdata.c)
+    else()
+      add_executable(${EXE} test_${TEST_NAME}.c)
+    endif()
     # asan must be first library in linking order
     target_link_libraries(${EXE} PRIVATE
       $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
@@ -108,6 +118,21 @@ else()
     if(TEST_NAME STREQUAL "bootloader_format")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_format.c)
       target_include_directories(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+      )
+    endif()
+    if(TEST_NAME STREQUAL "bootdata" OR TEST_NAME STREQUAL "bootdata_dev")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootdata.c)
+      if(TEST_NAME STREQUAL "bootdata_dev")
+        target_compile_definitions(${EXE} PRIVATE BOOTLOADER_DEVELOPMENT)
+      else()
+        target_compile_definitions(${EXE} PRIVATE BOOTLOADER_LOCKED)
+      endif()
+    endif()
+    if(TEST_NAME STREQUAL "nvmctrl")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c)
+      target_include_directories(${EXE} BEFORE PRIVATE
+          ${CMAKE_CURRENT_SOURCE_DIR}/fakes/nvmctrl
           ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
       )
     endif()

@@ -35,6 +35,8 @@ When upgrading from a firmware with version v9.17.0 or below, you first must ins
 
 When upgrading from a firmware with version v9.26.1 or below, you first must install and run [firmware v9.26.2](${repository_url}/releases/tag/firmware%2Fv9.26.2).
 
+When upgrading from a firmware with version v9.27.1 or below, you first must install and run [firmware v9.27.2](${repository_url}/releases/tag/firmware%2Fv9.27.2).
+
 The [BitBoxApp](https://bitbox.swiss/app/) automatically performs these steps.
 
 **Simulator:**

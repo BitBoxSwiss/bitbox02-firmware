@@ -262,7 +262,7 @@ int ecc_sig_to_der(const uint8_t* sig, uint8_t* der)
 
     // process R
     i = 0;
-    while (sig[i] == 0 && i < 32) {
+    while (i + 1 < 32 && sig[i] == 0) {
         i++; // skip leading zeroes
     }
     if (sig[i] >= 0x80) { // put zero in output if MSB set
@@ -285,7 +285,7 @@ int ecc_sig_to_der(const uint8_t* sig, uint8_t* der)
 
     // process S
     i = 32;
-    while (sig[i] == 0 && i < 64) {
+    while (i + 1 < 64 && sig[i] == 0) {
         i++; // skip leading zeroes
     }
     if (sig[i] >= 0x80) { // put zero in output if MSB set

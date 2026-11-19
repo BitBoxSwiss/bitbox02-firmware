@@ -247,7 +247,7 @@ pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> 
     }
 }
 
-pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
+pub fn multisig_get_by_hash(hash: &[u8; 32]) -> Option<String> {
     let mut name = [0u8; MULTISIG_NAME_MAX_LEN + 1];
     match unsafe {
         bitbox02_sys::memory_multisig_get_by_hash(hash.as_ptr(), name.as_mut_ptr().cast())

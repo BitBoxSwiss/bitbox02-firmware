@@ -249,7 +249,10 @@ fn validate_keypath(
             )
             .or(Err(Error::InvalidInput))?;
         }
-        ValidatedScriptConfig::Multisig { .. } | ValidatedScriptConfig::Policy { .. } => {
+        ValidatedScriptConfig::Multisig { .. } => {
+            keypath::validate_address_multisig(keypath, mode).or(Err(Error::InvalidInput))?;
+        }
+        ValidatedScriptConfig::Policy { .. } => {
             keypath::validate_address_policy(keypath, mode).or(Err(Error::InvalidInput))?;
         }
     }
@@ -1047,9 +1050,17 @@ async fn _process(
                 let displayed_source_amount = format_amount(coin_params, format_unit, total_value)?;
                 payment_request::user_verify(hal, &payment_request, &displayed_source_amount)
                     .await?;
+                let source_account = match &validated_script_configs[0] {
+                    ValidatedScriptConfigWithKeypath {
+                        keypath,
+                        config: ValidatedScriptConfig::SimpleType(_),
+                    } => Some(keypath[2]),
+                    _ => None,
+                };
                 match payment_request::validate_btc(
                     hal,
                     coin_params,
+                    source_account,
                     &payment_request,
                     total_value,
                     &address()?,
@@ -2624,6 +2635,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_validate_keypath_multisig() {
+        use keypath::ReceiveSpend::{Receive, Spend};
+
+        let params = super::super::params::get(pb::BtcCoin::Btc);
+        let multisig = pb::btc_script_config::Multisig::default();
+        let config = ValidatedScriptConfigWithKeypath {
+            keypath: &[45 + HARDENED],
+            config: ValidatedScriptConfig::Multisig {
+                name: "test multisig".into(),
+                multisig: &multisig,
+            },
+        };
+        for (branch, mode, expected) in [
+            (0, Receive, Ok(())),
+            (1, Receive, Ok(())),
+            (5000, Receive, Err(Error::InvalidInput)),
+            (5000, Spend, Ok(())),
+        ] {
+            assert_eq!(
+                validate_keypath(params, &config, &[45 + HARDENED, branch, 0], mode),
+                expected,
+            );
+        }
+    }
+
     #[async_test::test]
     pub async fn test_sign_init_fail() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
@@ -3280,6 +3317,77 @@ mod tests {
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
+    }
+
+    #[async_test::test]
+    async fn test_process_payment_request_refund_account() {
+        mock_unlocked();
+        let coin = pb::BtcCoin::Btc;
+        let coin_params = super::super::params::get(coin);
+        for refund_account in [10 + HARDENED, 11 + HARDENED] {
+            let transaction = new_transaction(coin).await;
+            let init_request = transaction.borrow().init_request();
+            let mut hal = TestingHal::new();
+            let keypath = vec![49 + HARDENED, coin_params.bip44_coin, refund_account, 1, 42];
+            let address = super::super::derive_address_simple(
+                &mut hal,
+                coin,
+                SimpleType::P2wpkhP2sh,
+                &keypath,
+                Compute::Once,
+            )
+            .await
+            .unwrap();
+            {
+                let mut transaction = transaction.borrow_mut();
+                let output = &mut transaction.outputs[0];
+                output.payment_request_index = Some(0);
+                let output_address = common::Payload {
+                    output_type: pb::BtcOutputType::try_from(output.r#type).unwrap(),
+                    data: output.payload.clone(),
+                }
+                .address(coin_params)
+                .unwrap();
+                let mut payment_request = pb::BtcPaymentRequestRequest {
+                    recipient_name: "Test Merchant".into(),
+                    total_amount: output.value,
+                    memos: vec![Memo {
+                        memo: Some(memo::Memo::RefundMemo(memo::RefundMemo {
+                            address,
+                            address_derivation: Some(memo::refund_memo::AddressDerivation::Btc(
+                                memo::coin_purchase_memo::BtcAddressDerivation {
+                                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                                        script_config: Some(pb::BtcScriptConfig {
+                                            config: Some(
+                                                pb::btc_script_config::Config::SimpleType(
+                                                    SimpleType::P2wpkhP2sh as _,
+                                                ),
+                                            ),
+                                        }),
+                                        keypath,
+                                    }),
+                                },
+                            )),
+                        })),
+                    }],
+                    ..Default::default()
+                };
+                payment_request::tst_sign_payment_request_btc(
+                    coin,
+                    &mut payment_request,
+                    output.value,
+                    &output_address,
+                );
+                transaction.payment_request = Some(payment_request);
+            }
+            mock_host_responder(transaction);
+            let result = process(&mut hal, &init_request).await;
+            if refund_account == 10 + HARDENED {
+                assert!(result.is_ok());
+            } else {
+                assert_eq!(result, Err(Error::InvalidInput));
+            }
+        }
     }
 
     #[cfg(feature = "app-ethereum")]

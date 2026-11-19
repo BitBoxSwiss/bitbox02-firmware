@@ -178,14 +178,22 @@ async fn verify_standard_total_fee(
 async fn verify_payment_request_recipient(
     hal: &mut impl crate::hal::Hal,
     params: &Params,
+    source_keypath: &[u32],
     payment_request: &pb::BtcPaymentRequestRequest,
     displayed_source_amount: &str,
     output_value: &BigUint,
     output_address: &str,
 ) -> Result<(), Error> {
     payment_request::user_verify(hal, payment_request, displayed_source_amount).await?;
-    match payment_request::validate_eth(hal, params, payment_request, output_value, output_address)
-        .await
+    match payment_request::validate_eth(
+        hal,
+        params,
+        source_keypath,
+        payment_request,
+        output_value,
+        output_address,
+    )
+    .await
     {
         Ok(()) => Ok(()),
         Err(_) => {
@@ -383,6 +391,7 @@ async fn verify_erc20_transaction(
         verify_payment_request_recipient(
             hal,
             params,
+            request.keypath(),
             payment_request,
             &displayed_source_amount,
             &erc20_value,
@@ -454,6 +463,7 @@ async fn verify_standard_transaction(
         verify_payment_request_recipient(
             hal,
             params,
+            request.keypath(),
             payment_request,
             &displayed_source_amount,
             &amount_value,
@@ -737,7 +747,9 @@ mod tests {
 
     // Base payment request fixture for ETH-side swap tests.
     fn make_eth_swap_payment_request() -> pb::BtcPaymentRequestRequest {
-        pb::BtcPaymentRequestRequest {
+        use pb::btc_payment_request_request::{Memo, memo};
+
+        let mut request = pb::BtcPaymentRequestRequest {
             recipient_name: "Test Merchant".into(),
             memos: vec![pb::btc_payment_request_request::Memo {
                 memo: Some(pb::btc_payment_request_request::memo::Memo::CoinPurchaseMemo(
@@ -764,7 +776,18 @@ mod tests {
             nonce: vec![],
             total_amount: 0,
             signature: vec![],
-        }
+        };
+        request.memos.push(Memo {
+            memo: Some(memo::Memo::RefundMemo(memo::RefundMemo {
+                address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
+                address_derivation: Some(memo::refund_memo::AddressDerivation::Eth(
+                    memo::coin_purchase_memo::EthAddressDerivation {
+                        keypath: vec![44 + HARDENED, 60 + HARDENED, HARDENED, 0, 0],
+                    },
+                )),
+            })),
+        });
+        request
     }
 
     #[test]
@@ -1365,25 +1388,27 @@ mod tests {
             },
         ];
 
+        let mut request = pb::EthSignEip1559Request {
+            keypath: KEYPATH.to_vec(),
+            nonce: hex!("1fdc").to_vec(),
+            max_priority_fee_per_gas: b"".to_vec(),
+            max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+            gas_limit: hex!("5208").to_vec(),
+            recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+            value: value.to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 1,
+            address_case: pb::EthAddressCase::Mixed as _,
+            data_length: 0,
+            payment_request: Some(payment_request),
+        };
+
         let mut mock_hal = TestingHal::new();
         assert_eq!(
             process(
                 &mut mock_hal,
-                &Transaction::Eip1559(&pb::EthSignEip1559Request {
-                    keypath: KEYPATH.to_vec(),
-                    nonce: hex!("1fdc").to_vec(),
-                    max_priority_fee_per_gas: b"".to_vec(),
-                    max_fee_per_gas: hex!("0165a0bc00").to_vec(),
-                    gas_limit: hex!("5208").to_vec(),
-                    recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
-                    value: value.to_vec(),
-                    data: b"".to_vec(),
-                    host_nonce_commitment: None,
-                    chain_id: 1,
-                    address_case: pb::EthAddressCase::Mixed as _,
-                    data_length: 0,
-                    payment_request: Some(payment_request),
-                }),
+                &Transaction::Eip1559(&request),
             ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
@@ -1391,6 +1416,12 @@ mod tests {
             }))
         );
         assert_eq!(mock_hal.ui.screens, expected_screens);
+
+        request.keypath[4] = 1;
+        assert_eq!(
+            process(&mut TestingHal::new(), &Transaction::Eip1559(&request)).await,
+            Err(Error::InvalidInput)
+        );
     }
 
     #[async_test::test]
@@ -1444,25 +1475,27 @@ mod tests {
             },
         ];
 
+        let mut request = pb::EthSignEip1559Request {
+            keypath: KEYPATH.to_vec(),
+            nonce: hex!("2367").to_vec(),
+            max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+            max_fee_per_gas: hex!("027aca1a80").to_vec(),
+            gas_limit: hex!("01d048").to_vec(),
+            recipient: hex!("dac17f958d2ee523a2206206994597c13d831ec7").to_vec(),
+            value: b"".to_vec(),
+            data: data.to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 1,
+            address_case: pb::EthAddressCase::Mixed as _,
+            data_length: 0,
+            payment_request: Some(payment_request),
+        };
+
         let mut mock_hal = TestingHal::new();
         assert_eq!(
             process(
                 &mut mock_hal,
-                &Transaction::Eip1559(&pb::EthSignEip1559Request {
-                    keypath: KEYPATH.to_vec(),
-                    nonce: hex!("2367").to_vec(),
-                    max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
-                    max_fee_per_gas: hex!("027aca1a80").to_vec(),
-                    gas_limit: hex!("01d048").to_vec(),
-                    recipient: hex!("dac17f958d2ee523a2206206994597c13d831ec7").to_vec(),
-                    value: b"".to_vec(),
-                    data: data.to_vec(),
-                    host_nonce_commitment: None,
-                    chain_id: 1,
-                    address_case: pb::EthAddressCase::Mixed as _,
-                    data_length: 0,
-                    payment_request: Some(payment_request),
-                }),
+                &Transaction::Eip1559(&request),
             ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
@@ -1470,6 +1503,12 @@ mod tests {
             }))
         );
         assert_eq!(mock_hal.ui.screens, expected_screens);
+
+        request.keypath[4] = 1;
+        assert_eq!(
+            process(&mut TestingHal::new(), &Transaction::Eip1559(&request)).await,
+            Err(Error::InvalidInput)
+        );
     }
 
     async fn erc20_transfer_screens(contract: [u8; 20], eip1559: bool, value: u64) -> Vec<Screen> {

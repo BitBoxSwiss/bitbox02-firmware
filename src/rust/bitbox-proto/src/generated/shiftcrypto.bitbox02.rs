@@ -914,7 +914,7 @@ pub struct BtcPaymentRequestRequest {
 pub mod btc_payment_request_request {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Memo {
-        #[prost(oneof = "memo::Memo", tags = "1, 2")]
+        #[prost(oneof = "memo::Memo", tags = "1, 2, 3")]
         pub memo: ::core::option::Option<memo::Memo>,
     }
     /// Nested message and enum types in `Memo`.
@@ -963,12 +963,33 @@ pub mod btc_payment_request_request {
                 Btc(BtcAddressDerivation),
             }
         }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct RefundMemo {
+            #[prost(string, tag = "1")]
+            pub address: ::prost::alloc::string::String,
+            /// Derivation info is not part of the SLIP-24 sighash.
+            #[prost(oneof = "refund_memo::AddressDerivation", tags = "2, 3")]
+            pub address_derivation: ::core::option::Option<refund_memo::AddressDerivation>,
+        }
+        /// Nested message and enum types in `RefundMemo`.
+        pub mod refund_memo {
+            /// Derivation info is not part of the SLIP-24 sighash.
+            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            pub enum AddressDerivation {
+                #[prost(message, tag = "2")]
+                Eth(super::coin_purchase_memo::EthAddressDerivation),
+                #[prost(message, tag = "3")]
+                Btc(super::coin_purchase_memo::BtcAddressDerivation),
+            }
+        }
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Memo {
             #[prost(message, tag = "1")]
             TextMemo(TextMemo),
             #[prost(message, tag = "2")]
             CoinPurchaseMemo(CoinPurchaseMemo),
+            #[prost(message, tag = "3")]
+            RefundMemo(RefundMemo),
         }
     }
 }

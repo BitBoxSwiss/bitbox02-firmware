@@ -232,7 +232,7 @@ pub async fn address_multisig(
     display: bool,
 ) -> Result<Response, Error> {
     let coin_params = params::get(coin);
-    keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
+    keypath::validate_address_multisig(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
     multisig::validate(hal, multisig, account_keypath).await?;
@@ -1128,6 +1128,20 @@ mod tests {
                     },
                 ]
             );
+
+            for display in [false, true] {
+                let mut req = req.clone();
+                req.display = display;
+                req.keypath[account_keypath.len()] = 0;
+                assert!(process_pub(&mut mock_hal, &req).await.is_ok());
+                for branch in [2, 5000, HARDENED - 1] {
+                    req.keypath[account_keypath.len()] = branch;
+                    assert_eq!(
+                        process_pub(&mut mock_hal, &req).await,
+                        Err(Error::InvalidInput),
+                    );
+                }
+            }
         }
     }
 

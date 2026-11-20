@@ -462,6 +462,22 @@ static void test_refresh_after_unlock_while_idle(void** state)
     _test_refresh_after_unlock(true, false);
 }
 
+static void test_sig_to_der(void** state)
+{
+    (void)state;
+    uint8_t sig[64] = {0};
+    uint8_t der[U2F_MAX_EC_SIG_SIZE] = {0};
+    const uint8_t zero[] = {0x30, 0x06, 0x02, 0x01, 0x00, 0x02, 0x01, 0x00};
+    assert_int_equal(_sig_to_der(sig, der), sizeof(zero));
+    assert_memory_equal(der, zero, sizeof(zero));
+
+    sig[31] = 0x80;
+    sig[63] = 0x01;
+    const uint8_t padded[] = {0x30, 0x07, 0x02, 0x02, 0x00, 0x80, 0x02, 0x01, 0x01};
+    assert_int_equal(_sig_to_der(sig, der), sizeof(padded));
+    assert_memory_equal(der, padded, sizeof(padded));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -480,6 +496,7 @@ int main(void)
         cmocka_unit_test(test_refresh_after_unlock_during_hww_workflow),
         cmocka_unit_test(test_refresh_after_unlock_during_u2f_workflow),
         cmocka_unit_test(test_refresh_after_unlock_while_idle),
+        cmocka_unit_test(test_sig_to_der),
     };
     return cmocka_run_group_tests(tests, _setup, NULL);
 }

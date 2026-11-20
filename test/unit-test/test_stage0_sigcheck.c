@@ -40,6 +40,7 @@ static bool _assert_message_not_header_prefix;
 static bool _zero_first_signature_in_reverse_pass;
 static uint8_t _forward_valid_mask;
 static uint8_t _reverse_valid_mask;
+static uint16_t _verify_failure_status;
 static uint8_t _call_count;
 static uint8_t _call_order[BB02_STAGE1_ROOT_KEY_COUNT * 2u];
 
@@ -213,6 +214,7 @@ static void _reset_script(uint8_t forward_valid_mask, uint8_t reverse_valid_mask
     _zero_first_signature_in_reverse_pass = false;
     _forward_valid_mask = forward_valid_mask;
     _reverse_valid_mask = reverse_valid_mask;
+    _verify_failure_status = 1;
     _call_count = 0;
     memset(_call_order, 0xff, sizeof(_call_order));
 }
@@ -324,7 +326,7 @@ static uint8_t _key_index(const uint8_t* public_key)
     return 0;
 }
 
-uint8_t __wrap_pukcc_ecdsa_verify(
+uint16_t __wrap_pukcc_ecdsa_verify(
     const uint8_t* public_key,
     const uint8_t* signature,
     const uint8_t* message,
@@ -353,7 +355,8 @@ uint8_t __wrap_pukcc_ecdsa_verify(
 
     const bool digest_accepted =
         _accept_any_digest || memcmp(message, _accepted_digest, BB02_STAGE1_SIGNED_DIGEST_LEN) == 0;
-    return digest_accepted && (valid_mask & (uint8_t)(1u << key_idx)) != 0 ? 0 : 1;
+    return digest_accepted && (valid_mask & (uint8_t)(1u << key_idx)) != 0 ? 0
+                                                                           : _verify_failure_status;
 }
 
 static void _assert_call_order(void)
@@ -536,6 +539,25 @@ static void test_stage1_sigcheck_image_ok_accepts_three_signatures(void** state)
 {
     (void)state;
     _assert_result(0x07, 0x07, sectrue_u32);
+}
+
+static void test_stage1_sigcheck_image_ok_checks_full_verification_status(void** state)
+{
+    (void)state;
+    for (uint8_t bit = 0; bit < 16; bit++) {
+        for (uint8_t valid_count = 0; valid_count <= BB02_STAGE1_ROOT_KEY_COUNT; valid_count++) {
+            const uint8_t valid_mask = (uint8_t)((1u << valid_count) - 1u);
+            _reset_image();
+            _reset_script(valid_mask, valid_mask);
+            _verify_failure_status = (uint16_t)(1u << bit);
+
+            const secbool_u32 expected =
+                valid_count >= BB02_STAGE1_SIGNATURE_THRESHOLD ? sectrue_u32 : secfalse_u32;
+            assert_int_equal(stage1_sigcheck_image_ok(&_header, _pubkeys), expected);
+            _assert_sha_calls();
+            _assert_call_order();
+        }
+    }
 }
 
 static void test_stage1_sigcheck_image_ok_rejects_inconsistent_passes(void** state)
@@ -742,6 +764,7 @@ int main(void)
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_one_signature),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_accepts_two_signatures),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_accepts_three_signatures),
+        cmocka_unit_test(test_stage1_sigcheck_image_ok_checks_full_verification_status),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_rejects_inconsistent_passes),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_requires_nonzero_verified_signatures),
         cmocka_unit_test(test_stage1_sigcheck_image_ok_checks_all_signature_bytes),

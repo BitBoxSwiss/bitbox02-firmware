@@ -1150,7 +1150,7 @@ class SendMessage:
             sign(bitbox02.btc.TBTC, keypath, script_config)
 
         def sign_external_service(purpose: int) -> None:
-            keypath = [purpose + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            keypath = [purpose, 0 + HARDENED, 0 + HARDENED, 0, 0]
             script_config = bitbox02.btc.BTCScriptConfig(
                 simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
             )
@@ -1161,8 +1161,9 @@ class SendMessage:
         choices = (
             ("Mainnet", sign_mainnet),
             ("Testnet", sign_testnet),
-            ("External service (m/45')", lambda: sign_external_service(45)),
-            ("External service (m/48')", lambda: sign_external_service(48)),
+            ("External service (m/45')", lambda: sign_external_service(45 + HARDENED)),
+            ("External service (m/48')", lambda: sign_external_service(48 + HARDENED)),
+            ("External service (m/49)", lambda: sign_external_service(49)),
         )
         choice = ask_user(choices)
         if callable(choice):

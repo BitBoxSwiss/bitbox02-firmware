@@ -97,6 +97,9 @@ async fn xpub(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
+    if keypath.is_empty() {
+        return Err(Error::InvalidInput);
+    }
     let params = params::get(coin);
     let is_unusual =
         keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support).is_err();
@@ -610,6 +613,18 @@ mod tests {
             display: false,
             output: Some(Output::XpubType(XPubType::Xpub as _)),
         };
+
+        let mut root_req = req.clone();
+        root_req.keypath.clear();
+        for display in [false, true] {
+            root_req.display = display;
+            let mut mock_hal = TestingHal::new();
+            assert_eq!(
+                process_pub(&mut mock_hal, &root_req).await,
+                Err(Error::InvalidInput)
+            );
+            assert!(mock_hal.ui.screens.is_empty());
+        }
 
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();

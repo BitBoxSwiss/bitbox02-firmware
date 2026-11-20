@@ -7,6 +7,8 @@ recorded separately.
 ## Firmware
 
 ### Unreleased
+- Reject master xpub exports at `m/` through the Bitcoin API
+- Allow Bitcoin message signing with external service keypaths starting with unhardened `m/49`
 
 ### v9.29.0
 - Require wallet-owned refund addresses for SwapKit

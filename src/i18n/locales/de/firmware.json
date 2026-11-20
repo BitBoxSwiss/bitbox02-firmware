@@ -256,6 +256,7 @@
   "mnemonic": {
     "backToWords": "Zurück zu\nRecovery-Wörtern",
     "cancelRestore": "Wiederherstellung\nabbrechen",
+    "confirmBackToWords": "Zurück zu\nRecovery-Wörtern?",
     "choose": "Wählen",
     "confirmCancel": {
       "body": "Wiederherstellung\nabbrechen?",

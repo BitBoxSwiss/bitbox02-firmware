@@ -2,11 +2,13 @@
 
 use alloc::borrow::ToOwned;
 use alloc::ffi::CString;
+use alloc::vec::Vec;
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
 use crate::{LvHandle, LvLabelLongMode, LvObj, LvPoint, ObjExt, class, ffi};
 use util::strings::{optional_cstr_from_ptr, str_to_cstr_vec_zeroizing};
+use zeroize::Zeroizing;
 
 pub type LvLabelTextError = super::LvTextError;
 pub type LvLabel = LvHandle<class::LabelTag>;
@@ -16,6 +18,16 @@ pub trait LabelExt: ObjExt {
         let txt = str_to_cstr_vec_zeroizing(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
         unsafe { ffi::lv_label_set_text(self.as_ptr(), txt.as_ptr()) }
         Ok(())
+    }
+
+    fn copy_text_from(&self, source: &LvLabel) {
+        // The setter can dispatch callbacks, so stop borrowing LVGL storage before calling it.
+        let txt: Zeroizing<Vec<u8>> = unsafe {
+            let text =
+                optional_cstr_from_ptr(ffi::lv_label_get_text(source.as_ptr())).unwrap_or(c"");
+            Zeroizing::new(text.to_bytes_with_nul().to_vec())
+        };
+        unsafe { ffi::lv_label_set_text(self.as_ptr(), txt.as_ptr().cast()) }
     }
 
     fn set_text_static(&self, text: Option<&'static CStr>) {
@@ -105,3 +117,50 @@ impl LvHandle<class::LabelTag> {
 }
 
 impl LabelExt for LvHandle<class::LabelTag> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_copy_text_from_independent_storage() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = LvObj::new().unwrap();
+        let source = LvLabel::new(&screen).unwrap();
+        let destination = LvLabel::new(&screen).unwrap();
+
+        source.set_text("abandon").unwrap();
+        destination.set_text("old").unwrap();
+        destination.copy_text_from(&source);
+        source.set_text("zoo").unwrap();
+        assert_eq!(destination.get_text().unwrap().as_bytes(), b"abandon");
+
+        unsafe { source.delete() };
+        assert_eq!(destination.get_text().unwrap().as_bytes(), b"abandon");
+
+        unsafe {
+            screen.delete();
+            ffi::lv_display_delete(display.as_ptr());
+        }
+    }
+
+    #[test]
+    fn test_copy_text_from_self() {
+        let _lock = crate::test_util::lock_and_init();
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = LvObj::new().unwrap();
+        let label = LvLabel::new(&screen).unwrap();
+
+        for text in ["abandon", "zoo", ""] {
+            label.set_text(text).unwrap();
+            label.copy_text_from(&label);
+            assert_eq!(label.get_text().unwrap().as_bytes(), text.as_bytes());
+        }
+
+        unsafe {
+            screen.delete();
+            ffi::lv_display_delete(display.as_ptr());
+        }
+    }
+}

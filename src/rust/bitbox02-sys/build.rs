@@ -319,8 +319,6 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../bitbox02/src");
     emit_rerun_if_changed("../util/Cargo.toml");
     emit_rerun_if_changed("../util/src");
-    emit_rerun_if_changed("../bitbox-aes/Cargo.toml");
-    emit_rerun_if_changed("../bitbox-aes/src");
     emit_rerun_if_changed("../bitbox-framed-serial-link/Cargo.toml");
     emit_rerun_if_changed("../bitbox-framed-serial-link/src");
     emit_rerun_if_changed("../bitbox-bytequeue/Cargo.toml");

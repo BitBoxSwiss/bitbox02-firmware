@@ -36,6 +36,3 @@ mod xpubcache;
 // for `format!`
 #[macro_use]
 extern crate alloc;
-
-#[cfg(test)]
-extern crate bitbox_aes;

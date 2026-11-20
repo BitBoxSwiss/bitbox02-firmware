@@ -32,10 +32,6 @@ mod secp256k1;
 )]
 mod u2f_c_api;
 
-// Expose C interface defined in bitbox_aes
-#[cfg(feature = "firmware")]
-extern crate bitbox_aes;
-
 // Expose C interface defined in bitbox02_rust
 // Enable for firmware and for Nova bootloader (BitBox02 bootloader currently does not need it).
 #[cfg(any(

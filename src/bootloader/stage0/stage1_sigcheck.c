@@ -39,7 +39,7 @@ typedef struct {
     uint8_t invalid_mask;
 } sigcheck_masks_t;
 
-static uint8_t _is_zero_u8(uint8_t value)
+static uint8_t _is_zero_u32(uint32_t value)
 {
     const uint32_t v = value;
     return (uint8_t)(1U ^ ((v | (0U - v)) >> 31));
@@ -52,7 +52,7 @@ static secbool_u32 _secbool_from_bit(uint8_t bit)
 
 static secbool_u32 _secbool_u8_eq(uint8_t a, uint8_t b)
 {
-    return _secbool_from_bit(_is_zero_u8((uint8_t)(a ^ b)));
+    return _secbool_from_bit(_is_zero_u32((uint8_t)(a ^ b)));
 }
 
 static secbool_u32 _secbool_u8_ne(uint8_t a, uint8_t b)
@@ -164,7 +164,7 @@ static sigcheck_masks_t _check_signatures(
         const uint8_t key_idx = reverse ? (uint8_t)(BB02_STAGE1_ROOT_KEY_COUNT - 1U - i) : i;
         const uint8_t key_bit = (uint8_t)(1U << key_idx);
         const size_t signature_offset = (size_t)key_idx * BB02_STAGE1_SIGNATURE_LEN;
-        const uint8_t status = pukcc_ecdsa_verify(
+        const uint16_t status = pukcc_ecdsa_verify(
             pubkeys[key_idx],
             &signatures[signature_offset],
             digest,
@@ -179,8 +179,8 @@ static sigcheck_masks_t _check_signatures(
             signature_bits |= signature[j];
         }
         // Reject all-zero signatures even if PUKCC verification succeeds.
-        const uint8_t nonzero = (uint8_t)(_is_zero_u8(signature_bits) ^ 1U);
-        const uint8_t valid = (uint8_t)(_is_zero_u8(status) & nonzero);
+        const uint8_t nonzero = (uint8_t)(_is_zero_u32(signature_bits) ^ 1U);
+        const uint8_t valid = (uint8_t)(_is_zero_u32(status) & nonzero);
         const uint8_t invalid = (uint8_t)(valid ^ 1U);
         masks.valid_mask |= (uint8_t)((uint8_t)(0U - valid) & key_bit);
         masks.invalid_mask |= (uint8_t)((uint8_t)(0U - invalid) & key_bit);

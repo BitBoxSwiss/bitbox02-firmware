@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 
 use bitbox_hal::ui::TrinaryChoice;
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvAlign, LvButton, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel,
-    ObjExt,
+    self as lvgl, BitboxLabel, BitboxLabelLongMode, LabelExt, LvAlign, LvButton, LvObj,
+    LvOpacityLevel, ObjExt,
 };
 use util::futures::completion::Responder;
 
@@ -30,7 +30,7 @@ fn add_button(
         .add_click_cb(move || responder.resolve(choice))
         .expect("failed to register choice callback");
 
-    let button_label = LvLabel::new(&button).unwrap();
+    let button_label = BitboxLabel::new(&button).unwrap();
     button_label.set_text(label).unwrap();
     button_label.set_style_text_font(
         lvgl::fonts::INTER_BOLD_32,
@@ -62,9 +62,9 @@ pub fn build_trinary_choice_screen(
     screen.set_style_pad_left(50, 0);
     screen.set_style_pad_row(24, 0);
 
-    let title = LvLabel::new(&screen).unwrap();
+    let title = BitboxLabel::new(&screen).unwrap();
     title.set_width(380);
-    title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title.set_long_mode(BitboxLabelLongMode::Wrap);
     title.set_text(message).unwrap();
     title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(

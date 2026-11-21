@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::{rc::Rc, string::String, vec::Vec};
+use core::ffi::CStr;
 
 use bitbox_hal::ui::{CanCancel, EnterStringParams, UserAbort, WordlistEntryAbort};
 use bitbox_lvgl::{
-    self as lvgl, KeyboardExt, LabelExt, LvAlign, LvButton, LvButtonmatrixCtrl, LvKeyboard,
-    LvKeyboardMapEntry, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, LvPart, LvTextarea,
-    ObjExt, TextareaExt, class,
+    self as lvgl, BitboxKeyboard, BitboxKeyboardMapEntry, BitboxLabel, BitboxLabelLongMode,
+    BitboxTextarea, KeyboardExt, LabelExt, LvAlign, LvButton, LvButtonmatrixCtrl, LvObj,
+    LvOpacityLevel, LvPart, ObjExt, TextareaExt, class,
 };
 use util::futures::completion::Responder;
 
@@ -15,46 +16,22 @@ use super::keypad::build_keypad;
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
-/// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string. Reads LVGL's
-/// buffer in place — `TextareaExt::get_text` would copy the content into an intermediate
-/// `CString` that is dropped without zeroizing. The single `push_str` into the empty string
-/// allocates exactly once, so no reallocation leaves an unzeroized copy behind either.
-fn snapshot_text(textarea: &LvTextarea) -> zeroize::Zeroizing<String> {
-    let mut snapshot = zeroize::Zeroizing::new(String::new());
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if !text.is_null() {
-        let text = unsafe { core::ffi::CStr::from_ptr(text) };
-        snapshot.push_str(text.to_str().expect("textarea content must be valid UTF-8"));
-    }
-    snapshot
+/// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string.
+/// Both the intermediate snapshot and the returned string are wiped on drop. Constructing
+/// the string in one allocation avoids leaving copies behind during reallocation.
+fn snapshot_text(textarea: &BitboxTextarea) -> zeroize::Zeroizing<String> {
+    textarea.with_text(|text| zeroize::Zeroizing::new(String::from(text)))
 }
 
-/// Whether the textarea is empty, read in place from LVGL's buffer — unlike [`snapshot_text`]
-/// this does not copy the (possibly secret) content to the heap.
-pub(super) fn textarea_is_empty(textarea: &LvTextarea) -> bool {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    text.is_null() || unsafe { *text == 0 }
+/// Whether the textarea is empty. The wrapper wipes its temporary text snapshot on drop.
+pub(super) fn textarea_is_empty(textarea: &BitboxTextarea) -> bool {
+    textarea.with_text(str::is_empty)
 }
 
-/// The textarea's length in bytes and its last byte, read in place from LVGL's buffer without
-/// copying the (possibly secret) content to the heap. The passphrase keyboard only enters ASCII,
-/// so bytes are characters.
-fn textarea_len_and_last(textarea: &LvTextarea) -> (usize, Option<u8>) {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if text.is_null() {
-        return (0, None);
-    }
-    let mut len = 0usize;
-    let mut last = 0u8;
-    loop {
-        let byte = unsafe { *text.add(len) } as u8;
-        if byte == 0 {
-            break;
-        }
-        last = byte;
-        len += 1;
-    }
-    (len, (len > 0).then_some(last))
+/// The textarea's length in bytes and its last byte. The passphrase keyboard only enters ASCII,
+/// so bytes are characters. The wrapper wipes its temporary text snapshot on drop.
+fn textarea_len_and_last(textarea: &BitboxTextarea) -> (usize, Option<u8>) {
+    textarea.with_text(|text| (text.len(), text.as_bytes().last().copied()))
 }
 
 /// Diameter of a circle masking one entered passphrase character.
@@ -89,148 +66,148 @@ impl KeyboardMode {
         }
     }
 
-    fn switch_label(self, special_chars: bool) -> &'static str {
+    fn switch_label(self, special_chars: bool) -> &'static CStr {
         match self {
-            Self::LowerCase => "ABC",
-            Self::UpperCase => "123",
+            Self::LowerCase => c"ABC",
+            Self::UpperCase => c"123",
             Self::Digits => {
                 if special_chars {
-                    "&?+"
+                    c"&?+"
                 } else {
-                    "abc"
+                    c"abc"
                 }
             }
-            Self::SpecialChars => "abc",
+            Self::SpecialChars => c"abc",
         }
     }
 
-    fn lvgl_mode(self) -> lvgl::LvKeyboardMode {
+    fn lvgl_mode(self) -> lvgl::BitboxKeyboardMode {
         match self {
-            Self::LowerCase => lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_1,
-            Self::UpperCase => lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_2,
-            Self::Digits => lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_3,
-            Self::SpecialChars => lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_4,
+            Self::LowerCase => lvgl::BitboxKeyboardMode::User1,
+            Self::UpperCase => lvgl::BitboxKeyboardMode::User2,
+            Self::Digits => lvgl::BitboxKeyboardMode::User3,
+            Self::SpecialChars => lvgl::BitboxKeyboardMode::User4,
         }
     }
 }
 
 const KEY_WIDTH_1: LvButtonmatrixCtrl = LvButtonmatrixCtrl::LV_BUTTONMATRIX_CTRL_WIDTH_1;
 
-const LOWERCASE_MAP: &[LvKeyboardMapEntry] = &[
-    LvKeyboardMapEntry::new(c"a"),
-    LvKeyboardMapEntry::new(c"b"),
-    LvKeyboardMapEntry::new(c"c"),
-    LvKeyboardMapEntry::new(c"d"),
-    LvKeyboardMapEntry::new(c"e"),
-    LvKeyboardMapEntry::new(c"f"),
-    LvKeyboardMapEntry::new(c"g"),
-    LvKeyboardMapEntry::new(c"h"),
-    LvKeyboardMapEntry::new(c"i"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"j"),
-    LvKeyboardMapEntry::new(c"k"),
-    LvKeyboardMapEntry::new(c"l"),
-    LvKeyboardMapEntry::new(c"m"),
-    LvKeyboardMapEntry::new(c"n"),
-    LvKeyboardMapEntry::new(c"o"),
-    LvKeyboardMapEntry::new(c"p"),
-    LvKeyboardMapEntry::new(c"q"),
-    LvKeyboardMapEntry::new(c"r"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"s"),
-    LvKeyboardMapEntry::new(c"t"),
-    LvKeyboardMapEntry::new(c"u"),
-    LvKeyboardMapEntry::new(c"v"),
-    LvKeyboardMapEntry::new(c"w"),
-    LvKeyboardMapEntry::new(c"x"),
-    LvKeyboardMapEntry::new(c"y"),
-    LvKeyboardMapEntry::new(c"z"),
-    LvKeyboardMapEntry::new(c""),
+const LOWERCASE_MAP: &[BitboxKeyboardMapEntry] = &[
+    BitboxKeyboardMapEntry::new(c"a"),
+    BitboxKeyboardMapEntry::new(c"b"),
+    BitboxKeyboardMapEntry::new(c"c"),
+    BitboxKeyboardMapEntry::new(c"d"),
+    BitboxKeyboardMapEntry::new(c"e"),
+    BitboxKeyboardMapEntry::new(c"f"),
+    BitboxKeyboardMapEntry::new(c"g"),
+    BitboxKeyboardMapEntry::new(c"h"),
+    BitboxKeyboardMapEntry::new(c"i"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"j"),
+    BitboxKeyboardMapEntry::new(c"k"),
+    BitboxKeyboardMapEntry::new(c"l"),
+    BitboxKeyboardMapEntry::new(c"m"),
+    BitboxKeyboardMapEntry::new(c"n"),
+    BitboxKeyboardMapEntry::new(c"o"),
+    BitboxKeyboardMapEntry::new(c"p"),
+    BitboxKeyboardMapEntry::new(c"q"),
+    BitboxKeyboardMapEntry::new(c"r"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"s"),
+    BitboxKeyboardMapEntry::new(c"t"),
+    BitboxKeyboardMapEntry::new(c"u"),
+    BitboxKeyboardMapEntry::new(c"v"),
+    BitboxKeyboardMapEntry::new(c"w"),
+    BitboxKeyboardMapEntry::new(c"x"),
+    BitboxKeyboardMapEntry::new(c"y"),
+    BitboxKeyboardMapEntry::new(c"z"),
+    BitboxKeyboardMapEntry::new(c""),
 ];
 
-const UPPERCASE_MAP: &[LvKeyboardMapEntry] = &[
-    LvKeyboardMapEntry::new(c"A"),
-    LvKeyboardMapEntry::new(c"B"),
-    LvKeyboardMapEntry::new(c"C"),
-    LvKeyboardMapEntry::new(c"D"),
-    LvKeyboardMapEntry::new(c"E"),
-    LvKeyboardMapEntry::new(c"F"),
-    LvKeyboardMapEntry::new(c"G"),
-    LvKeyboardMapEntry::new(c"H"),
-    LvKeyboardMapEntry::new(c"I"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"J"),
-    LvKeyboardMapEntry::new(c"K"),
-    LvKeyboardMapEntry::new(c"L"),
-    LvKeyboardMapEntry::new(c"M"),
-    LvKeyboardMapEntry::new(c"N"),
-    LvKeyboardMapEntry::new(c"O"),
-    LvKeyboardMapEntry::new(c"P"),
-    LvKeyboardMapEntry::new(c"Q"),
-    LvKeyboardMapEntry::new(c"R"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"S"),
-    LvKeyboardMapEntry::new(c"T"),
-    LvKeyboardMapEntry::new(c"U"),
-    LvKeyboardMapEntry::new(c"V"),
-    LvKeyboardMapEntry::new(c"W"),
-    LvKeyboardMapEntry::new(c"X"),
-    LvKeyboardMapEntry::new(c"Y"),
-    LvKeyboardMapEntry::new(c"Z"),
-    LvKeyboardMapEntry::new(c""),
+const UPPERCASE_MAP: &[BitboxKeyboardMapEntry] = &[
+    BitboxKeyboardMapEntry::new(c"A"),
+    BitboxKeyboardMapEntry::new(c"B"),
+    BitboxKeyboardMapEntry::new(c"C"),
+    BitboxKeyboardMapEntry::new(c"D"),
+    BitboxKeyboardMapEntry::new(c"E"),
+    BitboxKeyboardMapEntry::new(c"F"),
+    BitboxKeyboardMapEntry::new(c"G"),
+    BitboxKeyboardMapEntry::new(c"H"),
+    BitboxKeyboardMapEntry::new(c"I"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"J"),
+    BitboxKeyboardMapEntry::new(c"K"),
+    BitboxKeyboardMapEntry::new(c"L"),
+    BitboxKeyboardMapEntry::new(c"M"),
+    BitboxKeyboardMapEntry::new(c"N"),
+    BitboxKeyboardMapEntry::new(c"O"),
+    BitboxKeyboardMapEntry::new(c"P"),
+    BitboxKeyboardMapEntry::new(c"Q"),
+    BitboxKeyboardMapEntry::new(c"R"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"S"),
+    BitboxKeyboardMapEntry::new(c"T"),
+    BitboxKeyboardMapEntry::new(c"U"),
+    BitboxKeyboardMapEntry::new(c"V"),
+    BitboxKeyboardMapEntry::new(c"W"),
+    BitboxKeyboardMapEntry::new(c"X"),
+    BitboxKeyboardMapEntry::new(c"Y"),
+    BitboxKeyboardMapEntry::new(c"Z"),
+    BitboxKeyboardMapEntry::new(c""),
 ];
 
-const DIGITS_MAP: &[LvKeyboardMapEntry] = &[
-    LvKeyboardMapEntry::new(c"1"),
-    LvKeyboardMapEntry::new(c"2"),
-    LvKeyboardMapEntry::new(c"3"),
-    LvKeyboardMapEntry::new(c"4"),
-    LvKeyboardMapEntry::new(c"5"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"6"),
-    LvKeyboardMapEntry::new(c"7"),
-    LvKeyboardMapEntry::new(c"8"),
-    LvKeyboardMapEntry::new(c"9"),
-    LvKeyboardMapEntry::new(c"0"),
-    LvKeyboardMapEntry::new(c""),
+const DIGITS_MAP: &[BitboxKeyboardMapEntry] = &[
+    BitboxKeyboardMapEntry::new(c"1"),
+    BitboxKeyboardMapEntry::new(c"2"),
+    BitboxKeyboardMapEntry::new(c"3"),
+    BitboxKeyboardMapEntry::new(c"4"),
+    BitboxKeyboardMapEntry::new(c"5"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"6"),
+    BitboxKeyboardMapEntry::new(c"7"),
+    BitboxKeyboardMapEntry::new(c"8"),
+    BitboxKeyboardMapEntry::new(c"9"),
+    BitboxKeyboardMapEntry::new(c"0"),
+    BitboxKeyboardMapEntry::new(c""),
 ];
 
-const SPECIAL_CHARS_MAP: &[LvKeyboardMapEntry] = &[
-    LvKeyboardMapEntry::new(c" "),
-    LvKeyboardMapEntry::new(c"!"),
-    LvKeyboardMapEntry::new(c"\""),
-    LvKeyboardMapEntry::new(c"#"),
-    LvKeyboardMapEntry::new(c"$"),
-    LvKeyboardMapEntry::new(c"%"),
-    LvKeyboardMapEntry::new(c"&"),
-    LvKeyboardMapEntry::new(c"'"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"("),
-    LvKeyboardMapEntry::new(c")"),
-    LvKeyboardMapEntry::new(c"*"),
-    LvKeyboardMapEntry::new(c"+"),
-    LvKeyboardMapEntry::new(c","),
-    LvKeyboardMapEntry::new(c"-"),
-    LvKeyboardMapEntry::new(c"."),
-    LvKeyboardMapEntry::new(c"/"),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c":"),
-    LvKeyboardMapEntry::new(c";"),
-    LvKeyboardMapEntry::new(c"<"),
-    LvKeyboardMapEntry::new(c"="),
-    LvKeyboardMapEntry::new(c">"),
-    LvKeyboardMapEntry::new(c"?"),
-    LvKeyboardMapEntry::new(c"^"),
-    LvKeyboardMapEntry::new(c"["),
-    LvKeyboardMapEntry::new(c"\n"),
-    LvKeyboardMapEntry::new(c"\\"),
-    LvKeyboardMapEntry::new(c"]"),
-    LvKeyboardMapEntry::new(c"@"),
-    LvKeyboardMapEntry::new(c"_"),
-    LvKeyboardMapEntry::new(c"{"),
-    LvKeyboardMapEntry::new(c"|"),
-    LvKeyboardMapEntry::new(c"}"),
-    LvKeyboardMapEntry::new(c""),
+const SPECIAL_CHARS_MAP: &[BitboxKeyboardMapEntry] = &[
+    BitboxKeyboardMapEntry::new(c" "),
+    BitboxKeyboardMapEntry::new(c"!"),
+    BitboxKeyboardMapEntry::new(c"\""),
+    BitboxKeyboardMapEntry::new(c"#"),
+    BitboxKeyboardMapEntry::new(c"$"),
+    BitboxKeyboardMapEntry::new(c"%"),
+    BitboxKeyboardMapEntry::new(c"&"),
+    BitboxKeyboardMapEntry::new(c"'"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"("),
+    BitboxKeyboardMapEntry::new(c")"),
+    BitboxKeyboardMapEntry::new(c"*"),
+    BitboxKeyboardMapEntry::new(c"+"),
+    BitboxKeyboardMapEntry::new(c","),
+    BitboxKeyboardMapEntry::new(c"-"),
+    BitboxKeyboardMapEntry::new(c"."),
+    BitboxKeyboardMapEntry::new(c"/"),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c":"),
+    BitboxKeyboardMapEntry::new(c";"),
+    BitboxKeyboardMapEntry::new(c"<"),
+    BitboxKeyboardMapEntry::new(c"="),
+    BitboxKeyboardMapEntry::new(c">"),
+    BitboxKeyboardMapEntry::new(c"?"),
+    BitboxKeyboardMapEntry::new(c"^"),
+    BitboxKeyboardMapEntry::new(c"["),
+    BitboxKeyboardMapEntry::new(c"\n"),
+    BitboxKeyboardMapEntry::new(c"\\"),
+    BitboxKeyboardMapEntry::new(c"]"),
+    BitboxKeyboardMapEntry::new(c"@"),
+    BitboxKeyboardMapEntry::new(c"_"),
+    BitboxKeyboardMapEntry::new(c"{"),
+    BitboxKeyboardMapEntry::new(c"|"),
+    BitboxKeyboardMapEntry::new(c"}"),
+    BitboxKeyboardMapEntry::new(c""),
 ];
 
 const LOWERCASE_CTRL_MAP: &[LvButtonmatrixCtrl] = &[KEY_WIDTH_1; 26];
@@ -238,30 +215,26 @@ const UPPERCASE_CTRL_MAP: &[LvButtonmatrixCtrl] = &[KEY_WIDTH_1; 26];
 const DIGITS_CTRL_MAP: &[LvButtonmatrixCtrl] = &[KEY_WIDTH_1; 10];
 const SPECIAL_CHARS_CTRL_MAP: &[LvButtonmatrixCtrl] = &[KEY_WIDTH_1; 31];
 
-fn configure_keyboard_maps(keyboard: &LvKeyboard) {
+fn configure_keyboard_maps(keyboard: &BitboxKeyboard) {
     keyboard.set_map(
-        lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_1,
+        lvgl::BitboxKeyboardMode::User1,
         LOWERCASE_MAP,
         LOWERCASE_CTRL_MAP,
     );
     keyboard.set_map(
-        lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_2,
+        lvgl::BitboxKeyboardMode::User2,
         UPPERCASE_MAP,
         UPPERCASE_CTRL_MAP,
     );
+    keyboard.set_map(lvgl::BitboxKeyboardMode::User3, DIGITS_MAP, DIGITS_CTRL_MAP);
     keyboard.set_map(
-        lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_3,
-        DIGITS_MAP,
-        DIGITS_CTRL_MAP,
-    );
-    keyboard.set_map(
-        lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_USER_4,
+        lvgl::BitboxKeyboardMode::User4,
         SPECIAL_CHARS_MAP,
         SPECIAL_CHARS_CTRL_MAP,
     );
 }
 
-fn add_button<F>(parent: &LvObj, width: i32, height: i32, label: &str, cb: F)
+fn add_button<F>(parent: &LvObj, width: i32, height: i32, label: &'static CStr, cb: F)
 where
     F: FnMut() + 'static,
 {
@@ -275,8 +248,8 @@ where
         .add_click_cb(cb)
         .expect("failed to register click callback");
 
-    let button_label = LvLabel::new(&button).unwrap();
-    button_label.set_text(label).unwrap();
+    let button_label = BitboxLabel::new(&button).unwrap();
+    button_label.set_text_static(Some(label));
     button_label.set_style_text_font(
         lvgl::fonts::INTER_BOLD_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
@@ -287,9 +260,9 @@ where
 
 /// Adds the standard entry-screen title label (32px regular, standard content width, wrapping).
 fn add_title(screen: &LvObj, text: &str) {
-    let title = LvLabel::new(screen).unwrap();
+    let title = BitboxLabel::new(screen).unwrap();
     title.set_width(380);
-    title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title.set_long_mode(BitboxLabelLongMode::Wrap);
     title.set_text(text).unwrap();
     title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
@@ -299,10 +272,9 @@ fn add_title(screen: &LvObj, text: &str) {
 }
 
 /// Adds the standard entry text field (380×72; masked with `*` bullets when `hide`).
-fn add_textarea(screen: &LvObj, preset: &str, hide: bool) -> LvTextarea {
-    let textarea = LvTextarea::new(screen).unwrap();
+fn add_textarea(screen: &LvObj, preset: &str, hide: bool) -> BitboxTextarea {
+    let textarea = BitboxTextarea::new(screen).unwrap();
     textarea.set_size(380, 72);
-    textarea.set_one_line(true);
     textarea
         .set_text(preset)
         .expect("preset must not contain NUL");
@@ -325,7 +297,6 @@ fn add_textarea(screen: &LvObj, preset: &str, hide: bool) -> LvTextarea {
         textarea
             .set_password_bullet("*")
             .expect("valid password bullet");
-        textarea.set_password_show_time(0);
     }
     textarea
 }
@@ -458,17 +429,6 @@ fn set_nav_button_enabled(button: &LvButton, icon: &LvObj, enabled: bool) {
     }
 }
 
-/// Runs `f` on the textarea's content, borrowed in place from LVGL's buffer — unlike
-/// [`snapshot_text`] this makes no copy of the (possibly secret) content.
-fn with_textarea_text<R>(textarea: &LvTextarea, f: impl FnOnce(&str) -> R) -> R {
-    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
-    if text.is_null() {
-        return f("");
-    }
-    let text = unsafe { core::ffi::CStr::from_ptr(text) };
-    f(text.to_str().expect("textarea content must be valid UTF-8"))
-}
-
 /// The BIP39 English word at `idx`, or `None` if out of range. The wordlist is public
 /// compiled-in data, so the returned `&'static str` needs no zeroizing.
 fn bip39_word(idx: u16) -> Option<&'static str> {
@@ -515,12 +475,12 @@ fn wordlist_matches(wordlist: &[u16], prefix: &str) -> WordlistMatch {
     }
 }
 
-/// Adds the visible word entry display: the standard entry field, centred (via a `flex_grow`
+/// Adds the visible word entry display: a zeroizing label, centred (via a `flex_grow`
 /// wrapper, like the passphrase screen's masked display) in the space the screen's flex flow
 /// leaves between the title and the bottom-anchored keyboard region.
 ///
-/// Returns the textarea (the display row's child 0) that the input widgets operate on.
-fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
+/// Returns the label (the display row's child 0) that the input widgets update.
+fn add_word_display(screen: &LvObj, preset: &str) -> Rc<BitboxLabel> {
     let display = LvObj::with_parent(screen).unwrap();
     display.set_size(380, 72);
     display.set_style_flex_grow(1, 0);
@@ -540,28 +500,25 @@ fn add_word_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
     display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
     display.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
 
-    let textarea = add_textarea(&display, preset, false);
     // The field is display-only: a tap must not move the insertion cursor into the middle of
     // the word (letters always append; backspace always deletes the last one).
-    textarea.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+    assert!(preset.len() <= 8 && preset.bytes().all(|byte| byte.is_ascii_lowercase()));
+    let label = BitboxLabel::new(&display).unwrap();
+    label.set_text(preset).unwrap();
+    label.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
     // No entry box on this screen: the letters sit directly on the background, centred, in the
-    // same bold 48px the mnemonic review screen shows the words in. The standard field's 72px
-    // box (16px paddings) cannot hold that line height, so the field sizes to its content.
-    textarea.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
-    textarea.set_style_border_width(0, 0);
-    textarea.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
-    textarea.set_style_text_font(
+    // same bold 48px the mnemonic review screen shows the words in. Size to the line's height.
+    label.set_width(380);
+    label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
+    label.set_style_text_font(
         lvgl::fonts::INTER_BOLD_48,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
-    textarea.set_style_pad_top(0, 0);
-    textarea.set_style_pad_bottom(0, 0);
-    textarea.set_height(lvgl::ffi::LV_SIZE_CONTENT as i32);
-    Rc::new(textarea)
+    Rc::new(label)
 }
 
-/// The BIP39 recovery-word entry screen: title ("x of y"), the word being typed in the standard
-/// entry field (recovery words are shown in plaintext — reading the word back is the point of
+/// The BIP39 recovery-word entry screen: title ("x of y"), the word being typed in a zeroizing
+/// label (recovery words are shown in plaintext — reading the word back is the point of
 /// the entry), the letters-only keyboard and a backspace/confirm navigation row.
 ///
 /// The keyboard only ever offers letters that extend the entry towards one of the
@@ -588,40 +545,38 @@ pub fn build_wordlist_screen(
 
     add_title(&screen, params.title);
 
-    let textarea = add_word_display(&screen, preset);
-    // Wordlist words are lowercase ASCII, at most 8 letters; refuse anything else at the widget
-    // level too (the key filtering already guarantees it for touch input).
-    textarea.set_accepted_chars(Some(c"abcdefghijklmnopqrstuvwxyz"));
-    textarea.set_max_length(8);
-
+    let word_display = add_word_display(&screen, preset);
     let wordlist: Rc<[u16]> = wordlist.into();
 
     // BitBox02 parity: a typed letter that leaves exactly one candidate autocompletes the whole
-    // word. This runs from the keyboard's insert path, not the textarea change callback: only
-    // insertions may autocomplete (completing after a deletion would trap backspace in an
-    // undo-redo loop right after it deletes an autocompleted letter), and the textarea callback
-    // cannot mutate the textarea anyway (that would re-enter it). The `set_text` here fires the
-    // change callback below, which then relays the completed state to the keys and buttons.
-    let autocomplete_textarea = Rc::clone(&textarea);
-    let autocomplete_wordlist = Rc::clone(&wordlist);
-    let autocomplete: Rc<dyn Fn()> = Rc::new(move || {
-        let unique = with_textarea_text(autocomplete_textarea.as_ref(), |prefix| {
-            wordlist_matches(&autocomplete_wordlist, prefix)
-                .unique
-                .filter(|word| word.len() > prefix.len())
-        });
-        if let Some(word) = unique {
-            autocomplete_textarea
-                .set_text(word)
-                .expect("wordlist words contain no NUL");
+    // word. Only insertions may autocomplete: completing after a deletion would trap backspace
+    // in an undo-redo loop right after it deletes an autocompleted letter. The label's change
+    // callback below relays the completed state to the keys and buttons without mutating it.
+    let insert_display = Rc::clone(&word_display);
+    let insert_wordlist = Rc::clone(&wordlist);
+    let insert = Rc::new(move |text: &str| {
+        let current = insert_display.get_text().unwrap();
+        // Wordlist words are lowercase ASCII, at most 8 letters; refuse anything else here too
+        // (the key filtering already guarantees it for touch input).
+        if current.to_bytes().len() + text.len() > 8
+            || !text.bytes().all(|byte| byte.is_ascii_lowercase())
+        {
+            return;
         }
+        let mut prefix = zeroize::Zeroizing::new(Vec::with_capacity(8));
+        prefix.extend_from_slice(current.to_bytes());
+        prefix.extend_from_slice(text.as_bytes());
+        let prefix = core::str::from_utf8(&prefix).unwrap();
+        let word = wordlist_matches(&insert_wordlist, prefix)
+            .unique
+            .unwrap_or(prefix);
+        insert_display.set_text(word).unwrap();
     });
 
     // Keyboard and navigation row are bottom-anchored like on the passphrase screen (see
     // `build_passphrase_screen`), with the keyboard sitting 50px higher over the navigation
     // row here.
-    let keyboard =
-        super::keyboard::build_wordlist_keyboard(&screen, Rc::clone(&textarea), autocomplete);
+    let keyboard = super::keyboard::build_wordlist_keyboard(&screen, insert);
     keyboard.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
     keyboard.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, -(82 + 20 + 50));
 
@@ -641,12 +596,14 @@ pub fn build_wordlist_screen(
     let allow_back_out = matches!(can_cancel, CanCancel::Yes);
     let backspace = build_nav_button(&actions, NavIcon::Back);
     let backspace_icon = style_nav_button_disabled(&backspace);
-    let delete_textarea = Rc::clone(&textarea);
+    let delete_display = Rc::clone(&word_display);
     let back_responder = responder.clone();
     backspace
         .add_click_cb(move || {
-            if !textarea_is_empty(delete_textarea.as_ref()) {
-                delete_textarea.delete_char();
+            let text = delete_display.get_text().unwrap();
+            let text = text.to_str().unwrap();
+            if !text.is_empty() {
+                delete_display.set_text(&text[..text.len() - 1]).unwrap();
             } else if allow_back_out {
                 back_responder.resolve(Err(WordlistEntryAbort::Back));
             }
@@ -669,31 +626,31 @@ pub fn build_wordlist_screen(
     let accept = build_nav_button(&actions, NavIcon::Confirm);
     let accept_icon = style_nav_button_disabled(&accept);
     {
-        let textarea = Rc::clone(&textarea);
+        let word_display = Rc::clone(&word_display);
         accept
             .add_click_cb(move || {
-                responder.resolve(Ok(snapshot_text(textarea.as_ref())));
+                let text = word_display.get_text().unwrap();
+                responder.resolve(Ok(zeroize::Zeroizing::new(String::from(
+                    text.to_str().unwrap(),
+                ))));
             })
             .expect("failed to register confirm callback");
     }
 
     // Relay the word-entry state — which letters may come next and whether the entry is a
     // complete word — from the wordlist to the keys and buttons on every content change.
-    let refresh_textarea = Rc::clone(&textarea);
-    let refresh = Rc::new(move || {
-        let (len, matches) = with_textarea_text(refresh_textarea.as_ref(), |prefix| {
-            (prefix.len(), wordlist_matches(&wordlist, prefix))
-        });
+    let refresh_display = Rc::clone(&word_display);
+    let refresh = move || {
+        let text = refresh_display.get_text().unwrap();
+        let prefix = text.to_str().unwrap();
+        let (len, matches) = (prefix.len(), wordlist_matches(&wordlist, prefix));
         super::keyboard::set_enabled_letters(&keyboard, matches.next_letters);
         set_nav_button_enabled(&backspace, &backspace_icon, len > 0 || allow_back_out);
         set_nav_button_enabled(&accept, &accept_icon, matches.complete);
-    });
+    };
     refresh();
-    let refresh_cb = Rc::clone(&refresh);
-    textarea
-        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
-            refresh_cb()
-        })
+    word_display
+        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, refresh)
         .expect("failed to register wordlist refresh callback");
 
     screen
@@ -782,7 +739,7 @@ pub fn build_pin_screen(
 ///
 /// Returns the invisible storage/event textarea (the display row's child 0) that the input
 /// widgets operate on.
-fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
+fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<BitboxTextarea> {
     let display = LvObj::with_parent(screen).unwrap();
     display.set_size(380, 72);
     // Fill the whole area between the title and the (bottom-anchored) keyboard, so the centred
@@ -837,7 +794,7 @@ fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
         dot.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
         dots.push(dot);
     }
-    let last_char_label = LvLabel::new(&display).unwrap();
+    let last_char_label = BitboxLabel::new(&display).unwrap();
     last_char_label.set_style_text_color(lvgl::color::white(), 0);
     last_char_label.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_48,
@@ -848,7 +805,7 @@ fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
     // even one — the font's natural 59px line height would nudge the circles by 1px whenever
     // the label appears or hides.
     last_char_label.set_height(60);
-    last_char_label.set_text("").unwrap();
+    last_char_label.set_text_static(Some(c""));
     last_char_label.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
 
     let display_textarea = Rc::clone(&textarea);
@@ -875,7 +832,10 @@ fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
                     .expect("entered text contains no NUL");
                 last_char_label.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
             }
-            None => last_char_label.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN),
+            None => {
+                last_char_label.set_text_static(Some(c""));
+                last_char_label.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
+            }
         }
     });
     refresh_display();
@@ -931,13 +891,12 @@ pub fn build_enter_string_screen(
 
     let textarea = Rc::new(textarea);
 
-    let keyboard = LvKeyboard::new(&screen).unwrap();
+    let keyboard = BitboxKeyboard::new(&screen).unwrap();
     keyboard.set_width(380);
     keyboard.set_height(260);
     keyboard.set_style_flex_grow(1, 0);
     // No extra margin: LVGL's flex sizing does not subtract margins when distributing
     // flex_grow space, so a margin here overflows the screen's bottom padding.
-    keyboard.set_popovers(false);
     let show_keyboard_switch = !params.number_input;
     let initial_keyboard_mode = if params.number_input {
         None
@@ -950,11 +909,11 @@ pub fn build_enter_string_screen(
         configure_keyboard_maps(&keyboard);
         keyboard.set_mode(mode.lvgl_mode());
     } else {
-        keyboard.set_mode(lvgl::LvKeyboardMode::LV_KEYBOARD_MODE_NUMBER);
+        keyboard.set_mode(lvgl::BitboxKeyboardMode::Number);
     }
-    // Safe because the textarea and keyboard are siblings on the same screen and remain alive
-    // until the whole screen is popped.
-    unsafe { keyboard.set_textarea(Some(textarea.as_ref())) };
+    keyboard
+        .bind_textarea(textarea.as_ref())
+        .expect("failed to bind keyboard");
     // Discard the key selection once an interaction ends (after the class handler has processed
     // a legitimate click): LVGL keeps the lastly clicked key selected forever, and a press
     // sliding in from the Delete/switch buttons below reaches the keyboard without a PRESSED
@@ -1008,10 +967,8 @@ pub fn build_enter_string_screen(
         switch_button.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, 0);
         switch_button.set_style_border_width(2, 0);
         switch_button.set_style_border_color(lvgl::color::white(), 0);
-        let switch_button_label = LvLabel::new(&switch_button).unwrap();
-        switch_button_label
-            .set_text(keyboard_mode.switch_label(allow_special_chars))
-            .unwrap();
+        let switch_button_label = BitboxLabel::new(&switch_button).unwrap();
+        switch_button_label.set_text_static(Some(keyboard_mode.switch_label(allow_special_chars)));
         switch_button_label.set_style_text_font(
             lvgl::fonts::INTER_BOLD_32,
             lvgl::LvState::LV_STATE_DEFAULT as u32,
@@ -1023,8 +980,7 @@ pub fn build_enter_string_screen(
                 keyboard_mode = keyboard_mode.next(allow_special_chars);
                 keyboard.set_mode(keyboard_mode.lvgl_mode());
                 switch_button_label
-                    .set_text(keyboard_mode.switch_label(allow_special_chars))
-                    .expect("valid switch label");
+                    .set_text_static(Some(keyboard_mode.switch_label(allow_special_chars)));
             })
             .expect("failed to register keyboard switch callback");
     }
@@ -1034,7 +990,7 @@ pub fn build_enter_string_screen(
         &input_controls,
         if show_keyboard_switch { 184 } else { 380 },
         56,
-        "Delete",
+        c"Delete",
         move || delete_textarea.delete_char(),
     );
 
@@ -1224,7 +1180,7 @@ mod tests {
             self.screen.child(1).expect("entry display")
         }
 
-        fn textarea(&self) -> LvTextarea {
+        fn textarea(&self) -> BitboxTextarea {
             self.entry_display()
                 .child(0)
                 .expect("textarea")
@@ -1259,7 +1215,13 @@ mod tests {
         }
 
         fn text(&self) -> zeroize::Zeroizing<String> {
-            snapshot_text(&self.textarea())
+            let entry = self.entry_display().child(0).unwrap();
+            if entry.has_class::<class::LabelTag>() {
+                let label = entry.try_downcast::<class::LabelTag>().unwrap();
+                zeroize::Zeroizing::new(String::from(label.get_text().unwrap().to_str().unwrap()))
+            } else {
+                snapshot_text(&self.textarea())
+            }
         }
 
         fn keyboard(&self) -> LvObj {
@@ -1402,6 +1364,55 @@ mod tests {
             pump_for(40);
             unsafe { core::ptr::read(&self.screen).delete() };
         }
+    }
+
+    #[test]
+    fn test_generic_textarea_cursor_scrolling_and_masking() {
+        let _lock = lock_and_init();
+        let params = EnterStringParams {
+            title: "Name",
+            ..Default::default()
+        };
+        let mut harness = Harness::with_params(&params, CanCancel::Yes, "ab");
+        let textarea = harness
+            .screen
+            .child(1)
+            .unwrap()
+            .try_downcast::<class::TextareaTag>()
+            .unwrap();
+        let keyboard = harness
+            .screen
+            .child(2)
+            .unwrap()
+            .try_downcast::<class::KeyboardTag>()
+            .unwrap();
+        let label = textarea.get_label().unwrap();
+        let area = coords(&label);
+        harness.touch.tap(area.x1, (area.y1 + area.y2) / 2);
+        assert_eq!(textarea.get_cursor_pos(), 0);
+        let area = coords(&keyboard);
+        harness.touch.tap(area.x1 + 25, area.y1 + 35);
+        assert_eq!(textarea.get_text().unwrap().to_str().unwrap(), "aab");
+        assert_eq!(textarea.get_cursor_pos(), 1);
+        textarea
+            .set_text("abcdefghijklmnopqrstuvwxyz0123456789")
+            .unwrap();
+        pump_for(40);
+        let scrolled = coords(&label);
+        let field = coords(&textarea);
+        let caret = coords(&textarea.child(1).unwrap());
+        assert!(scrolled.x1 < field.x1);
+        assert!(caret.x1 > field.x1 && caret.x2 < field.x2);
+        textarea.set_cursor_pos(0);
+        pump_for(40);
+        assert!(coords(&label).x1 > field.x1);
+        textarea.set_password_mode(true);
+        pump_for(40);
+        assert_eq!(
+            label.get_text().unwrap().to_str().unwrap(),
+            "************************************"
+        );
+        assert_eq!(textarea.get_text().unwrap().to_bytes().len(), 36);
     }
 
     #[test]
@@ -2375,6 +2386,7 @@ mod tests {
             harness.touch.push(x, y, false);
             pump_for(120);
             assert!(Harness::hidden(&preview));
+            assert_eq!(label.get_text().unwrap().to_str().unwrap(), "");
         }
         assert_eq!(harness.text().as_str(), "sc");
     }

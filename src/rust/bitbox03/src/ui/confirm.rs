@@ -3,7 +3,8 @@
 use alloc::string::String;
 use bitbox_hal::ui::{ConfirmParams, MAX_CONFIRM_BODY_SIZE, UserAbort};
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvObjFlag, LvOpacityLevel, ObjExt,
+    self as lvgl, BitboxLabel, BitboxLabelLongMode, LabelExt, LvObj, LvObjFlag, LvOpacityLevel,
+    ObjExt,
 };
 use util::futures::completion::Responder;
 use zeroize::Zeroizing;
@@ -46,9 +47,9 @@ pub fn build_confirm_screen(
     screen.set_style_pad_left(50, 0);
     screen.set_style_pad_row(24, 0);
 
-    let title = LvLabel::new(&screen).unwrap();
+    let title = BitboxLabel::new(&screen).unwrap();
     title.set_width(380);
-    title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    title.set_long_mode(BitboxLabelLongMode::Wrap);
     title.set_text(params.title).unwrap();
     title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
@@ -70,9 +71,9 @@ pub fn build_confirm_screen(
     body_container.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
     body_container.add_flag(LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
 
-    let body = LvLabel::new(&body_container).unwrap();
+    let body = BitboxLabel::new(&body_container).unwrap();
     body.set_width(380);
-    body.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+    body.set_long_mode(BitboxLabelLongMode::Wrap);
     body.set_text(&truncate_body(params.body)).unwrap();
     body.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_32,

@@ -23,8 +23,8 @@ use alloc::vec::Vec;
 use core::cell::Cell;
 
 use bitbox_lvgl::{
-    self as lvgl, CanvasExt, LabelExt, LvCanvas, LvHandle, LvImageDsc, LvLabel, LvObj, LvObjFlag,
-    LvOpacityLevel, LvSlider, ObjExt, class,
+    self as lvgl, BitboxLabel, CanvasExt, LabelExt, LvCanvas, LvHandle, LvImageDsc, LvObj,
+    LvObjFlag, LvOpacityLevel, LvSlider, ObjExt, class,
 };
 use core::ptr::NonNull;
 
@@ -132,8 +132,8 @@ pub fn build_slide_to_confirm(parent: &LvObj, on_confirm: impl FnMut() + 'static
     root.set_style_pad_right(0, 0);
     root.set_style_pad_row(10, 0);
 
-    let label = LvLabel::new(&root).unwrap();
-    label.set_text("Slide to confirm").unwrap();
+    let label = BitboxLabel::new(&root).unwrap();
+    label.set_text_static(Some(c"Slide to confirm"));
     label.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_24,
         lvgl::LvState::LV_STATE_DEFAULT as u32,

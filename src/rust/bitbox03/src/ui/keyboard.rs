@@ -336,7 +336,7 @@ fn apply_mode(widgets: &Widgets, mode: Mode) {
 /// The pressed-key preview balloon (a canvas with the balloon bitmap plus the character label).
 struct Preview {
     root: LvObj,
-    label: LvLabel,
+    label: lvgl::LvZeroizingLabel,
     /// The (row, key) the preview currently shows, to skip redundant updates from the
     /// once-per-input-period `LV_EVENT_PRESSING` stream.
     shown: Cell<Option<(usize, u32)>>,
@@ -369,7 +369,7 @@ impl Preview {
             LvCanvas::new(&root, data, header.width, header.height).expect("key preview canvas");
         canvas.align(lvgl::LvAlign::LV_ALIGN_TOP_MID, 0, 0);
 
-        let label = LvLabel::new(&root).unwrap();
+        let label = lvgl::LvZeroizingLabel::new(&root, 1).unwrap();
         label.set_style_text_color(lvgl::color::white(), 0);
         label.set_style_text_font(lvgl::fonts::INTER_BOLD_48, 0);
         label.align(lvgl::LvAlign::LV_ALIGN_TOP_MID, 0, PREVIEW_LABEL_Y);
@@ -399,6 +399,7 @@ impl Preview {
     }
 
     fn hide(&self) {
+        self.label.set_text("").unwrap();
         self.shown.set(None);
         self.root.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
     }
@@ -492,24 +493,22 @@ fn build_container(parent: &LvObj, height: i32) -> LvObj {
 
 /// Wires a key-row buttonmatrix's input behaviour: the jet-out preview over the pressed key
 /// while pressed (hidden again if the finger slides off it, which also discards the selection),
-/// insertion of the selected key's character into `textarea` on release over it (`CLICK_TRIG`),
+/// passing the selected key's character to `insert` on release over it (`CLICK_TRIG`),
 /// and discarding the selection once the interaction ends. `count_of_row` resolves the row's
-/// current key count (layouts with mode switching change it per call); `after_insert` runs
-/// after each inserted character (and only then — not on deletions or programmatic changes).
+/// current key count (layouts with mode switching change it per call). `insert` only runs for
+/// typed characters — not on deletions or programmatic changes.
 fn wire_key_row<F>(
     container: &LvObj,
     row: usize,
-    textarea: &Rc<LvTextarea>,
+    insert: Rc<dyn Fn(&str)>,
     preview: &Rc<Preview>,
     count_of_row: F,
-    after_insert: Option<Rc<dyn Fn()>>,
 ) where
     F: Fn(usize) -> usize + Clone + 'static,
 {
     let matrix = matrix_handle(container, row);
     {
         let matrix_cb = matrix_handle(container, row);
-        let textarea = Rc::clone(textarea);
         let count_of_row = count_of_row.clone();
         matrix
             .add_event_cb(LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
@@ -517,10 +516,7 @@ fn wire_key_row<F>(
                 if (id as usize) < count_of_row(row)
                     && let Some(text) = matrix_cb.get_button_text(id)
                 {
-                    let _ = textarea.add_text(text.to_str().expect("key text is ASCII"));
-                    if let Some(after_insert) = &after_insert {
-                        after_insert();
-                    }
+                    insert(text.to_str().expect("key text is ASCII"));
                 }
             })
             .expect("failed to register key callback");
@@ -648,13 +644,15 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
     // active layout, so they are resolved through the mode cell on every event.
     for row in 0..ROWS {
         let mode = Rc::clone(&mode);
+        let textarea = Rc::clone(&textarea);
         wire_key_row(
             &container,
             row,
-            &textarea,
+            Rc::new(move |text| {
+                let _ = textarea.add_text(text);
+            }),
             &preview,
             move |row| row_count(*mode.borrow(), row),
-            None,
         );
     }
 
@@ -721,22 +719,16 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
 /// Builds the letters-only keyboard for BIP39 wordlist (recovery word) entry and appends it to
 /// `parent`: the three lowercase QWERTY letter rows, without the digit row and the caps-lock /
 /// space / symbols function row — no digit, space, capital or special character occurs in a
-/// BIP39 word. Typed characters are inserted into `textarea`; the jet-out preview and
+/// BIP39 word. Typed characters are passed to `insert`; the jet-out preview and
 /// slide-off-to-cancel behave as on the passphrase keyboard. All keys start enabled; the caller
 /// filters them with [`set_enabled_letters`].
 ///
-/// `after_insert` runs after each letter inserted by a key (and only then — the entry screen
-/// autocompletes there, which it must not do for deletions and cannot do from a textarea
-/// `VALUE_CHANGED` callback, where mutating the textarea would recursively re-enter that
-/// callback).
+/// `insert` runs for each letter typed by a key (and only then — the entry screen
+/// autocompletes there, which it must not do for deletions).
 ///
 /// Child order: `WORDLIST_ROWS` key-row buttonmatrices, preview balloon
 /// ([`WORDLIST_CHILD_INDEX_PREVIEW`]).
-pub fn build_wordlist_keyboard(
-    parent: &LvObj,
-    textarea: Rc<LvTextarea>,
-    after_insert: Rc<dyn Fn()>,
-) -> LvObj {
+pub fn build_wordlist_keyboard(parent: &LvObj, insert: Rc<dyn Fn(&str)>) -> LvObj {
     let container = build_container(parent, WORDLIST_KEYBOARD_HEIGHT);
 
     for (row, letters) in WORDLIST_ROW_LETTERS.iter().enumerate() {
@@ -765,14 +757,9 @@ pub fn build_wordlist_keyboard(
     let preview = Rc::new(Preview::build(&container));
 
     for row in 0..WORDLIST_ROWS {
-        wire_key_row(
-            &container,
-            row,
-            &textarea,
-            &preview,
-            |row| WORDLIST_ROW_LETTERS[row].len(),
-            Some(Rc::clone(&after_insert)),
-        );
+        wire_key_row(&container, row, Rc::clone(&insert), &preview, |row| {
+            WORDLIST_ROW_LETTERS[row].len()
+        });
     }
 
     container

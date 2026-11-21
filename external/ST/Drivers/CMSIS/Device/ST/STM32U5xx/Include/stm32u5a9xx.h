@@ -4138,11 +4138,11 @@ typedef struct
 
 /* Specific ADC4 */
 #define ADC4_CFGR1_EXTSEL_Pos               (6UL)
-#define ADC4_CFGR1_EXTSEL_Msk               (0x7UL << ADC4_CFGR1_EXTSEL_Pos)    /*!< 0x000003E0 */
+#define ADC4_CFGR1_EXTSEL_Msk               (0x7UL << ADC4_CFGR1_EXTSEL_Pos)    /*!< 0x000001C0 */
 #define ADC4_CFGR1_EXTSEL                   ADC4_CFGR1_EXTSEL_Msk               /*!< ADC External trigger selection for regular group */
-#define ADC4_CFGR1_EXTSEL_0                 (0x01UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000020 */
-#define ADC4_CFGR1_EXTSEL_1                 (0x02UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000040 */
-#define ADC4_CFGR1_EXTSEL_2                 (0x04UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000080 */
+#define ADC4_CFGR1_EXTSEL_0                 (0x01UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000040 */
+#define ADC4_CFGR1_EXTSEL_1                 (0x02UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000080 */
+#define ADC4_CFGR1_EXTSEL_2                 (0x04UL << ADC4_CFGR1_EXTSEL_Pos)   /*!< 0x00000100 */
 
 #define ADC4_CFGR1_CHSELRMOD_Pos           (21UL)
 #define ADC4_CFGR1_CHSELRMOD_Msk           (0x1UL << ADC4_CFGR1_CHSELRMOD_Pos)  /*!< 0x00200000 */
@@ -5940,7 +5940,7 @@ typedef struct
 #define RNG_HTCR_HTCFG_Msk                  (0xFFFFFFFFUL << RNG_HTCR_HTCFG_Pos)    /*!< 0xFFFFFFFF */
 #define RNG_HTCR_HTCFG                      RNG_HTCR_HTCFG_Msk
 /********************  RNG Nist Compliance Values  *******************/
-#define RNG_CR_NIST_VALUE                   (0x00F10F00U)
+#define RNG_CR_NIST_VALUE                   (0x00F11F00U)
 #define RNG_HTCR_NIST_VALUE                 (0x92F3U)
 #define RNG_NSCR_NIST_VALUE                 (0x1609U)
 
@@ -22174,33 +22174,33 @@ typedef struct
 #define RCC_CCIPR3_LPUART1SEL_1             (0x2UL << RCC_CCIPR3_LPUART1SEL_Pos)     /*!< 0x00000002 */
 #define RCC_CCIPR3_LPUART1SEL_2             (0x4UL << RCC_CCIPR3_LPUART1SEL_Pos)     /*!< 0x00000004 */
 #define RCC_CCIPR3_SPI3SEL_Pos              (3UL)
-#define RCC_CCIPR3_SPI3SEL_Msk              (0x3UL << RCC_CCIPR3_SPI3SEL_Pos)        /*!< 0x00000008 */
+#define RCC_CCIPR3_SPI3SEL_Msk              (0x3UL << RCC_CCIPR3_SPI3SEL_Pos)        /*!< 0x00000018 */
 #define RCC_CCIPR3_SPI3SEL                  RCC_CCIPR3_SPI3SEL_Msk                   /*!< SPI3SEL[1:0]: bits (SPI3 Kernel Clock Source Selection) */
 #define RCC_CCIPR3_SPI3SEL_0                (0x1UL << RCC_CCIPR3_SPI3SEL_Pos)        /*!< 0x00000008 */
 #define RCC_CCIPR3_SPI3SEL_1                (0x2UL << RCC_CCIPR3_SPI3SEL_Pos)        /*!< 0x00000010 */
 #define RCC_CCIPR3_I2C3SEL_Pos              (6UL)
-#define RCC_CCIPR3_I2C3SEL_Msk              (0x3UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x00000300 */
+#define RCC_CCIPR3_I2C3SEL_Msk              (0x3UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x000000C0 */
 #define RCC_CCIPR3_I2C3SEL                  RCC_CCIPR3_I2C3SEL_Msk                   /*!< I2C3SEL[1:0]: bits (I2C3 Kernel Clock Source Selection) */
-#define RCC_CCIPR3_I2C3SEL_0                (0x1UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x00000100 */
-#define RCC_CCIPR3_I2C3SEL_1                (0x2UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x00000200 */
+#define RCC_CCIPR3_I2C3SEL_0                (0x1UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x00000040 */
+#define RCC_CCIPR3_I2C3SEL_1                (0x2UL << RCC_CCIPR3_I2C3SEL_Pos)        /*!< 0x00000080 */
 #define RCC_CCIPR3_LPTIM34SEL_Pos           (8UL)
-#define RCC_CCIPR3_LPTIM34SEL_Msk           (0x3UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x0000E000 */
+#define RCC_CCIPR3_LPTIM34SEL_Msk           (0x3UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x00000300 */
 #define RCC_CCIPR3_LPTIM34SEL               RCC_CCIPR3_LPTIM34SEL_Msk                /*!< LPTIM34SEL[1:0]: bits (LPTIM3 and LPTIM4 Kernel Clock Source Selection) */
-#define RCC_CCIPR3_LPTIM34SEL_0             (0x1UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x00002000 */
-#define RCC_CCIPR3_LPTIM34SEL_1             (0x2UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x00004000 */
+#define RCC_CCIPR3_LPTIM34SEL_0             (0x1UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x00000100 */
+#define RCC_CCIPR3_LPTIM34SEL_1             (0x2UL << RCC_CCIPR3_LPTIM34SEL_Pos)     /*!< 0x00000200 */
 #define RCC_CCIPR3_LPTIM1SEL_Pos            (10UL)
-#define RCC_CCIPR3_LPTIM1SEL_Msk            (0x3UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x0000E000 */
+#define RCC_CCIPR3_LPTIM1SEL_Msk            (0x3UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x00000C00 */
 #define RCC_CCIPR3_LPTIM1SEL                RCC_CCIPR3_LPTIM1SEL_Msk                 /*!< LPTIM1SEL[1:0]: bits (LPTIM1 Kernel Clock Source Selection) */
-#define RCC_CCIPR3_LPTIM1SEL_0              (0x1UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x00002000 */
-#define RCC_CCIPR3_LPTIM1SEL_1              (0x2UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x00004000 */
+#define RCC_CCIPR3_LPTIM1SEL_0              (0x1UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x00000400 */
+#define RCC_CCIPR3_LPTIM1SEL_1              (0x2UL << RCC_CCIPR3_LPTIM1SEL_Pos)      /*!< 0x00000800 */
 #define RCC_CCIPR3_ADCDACSEL_Pos            (12UL)
-#define RCC_CCIPR3_ADCDACSEL_Msk            (0x7UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00030000 */
+#define RCC_CCIPR3_ADCDACSEL_Msk            (0x7UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00007000 */
 #define RCC_CCIPR3_ADCDACSEL                RCC_CCIPR3_ADCDACSEL_Msk                 /*!< ADCDACSEL[2:0]: bits (ADC1, ADC4 and DAC1 Kernel Clock Source Selection) */
-#define RCC_CCIPR3_ADCDACSEL_0              (0x1UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00010000 */
-#define RCC_CCIPR3_ADCDACSEL_1              (0x2UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00020000 */
-#define RCC_CCIPR3_ADCDACSEL_2              (0x4UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00040000 */
+#define RCC_CCIPR3_ADCDACSEL_0              (0x1UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00001000 */
+#define RCC_CCIPR3_ADCDACSEL_1              (0x2UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00002000 */
+#define RCC_CCIPR3_ADCDACSEL_2              (0x4UL << RCC_CCIPR3_ADCDACSEL_Pos)      /*!< 0x00004000 */
 #define RCC_CCIPR3_DAC1SEL_Pos              (15UL)
-#define RCC_CCIPR3_DAC1SEL_Msk              (0x1UL << RCC_CCIPR3_DAC1SEL_Pos)        /*!< 0x00300000 */
+#define RCC_CCIPR3_DAC1SEL_Msk              (0x1UL << RCC_CCIPR3_DAC1SEL_Pos)        /*!< 0x00008000 */
 #define RCC_CCIPR3_DAC1SEL                  RCC_CCIPR3_DAC1SEL_Msk                   /*!< DAC1 Sample & Hold Clock Source Selection */
 #define RCC_CCIPR3_ADF1SEL_Pos              (16UL)
 #define RCC_CCIPR3_ADF1SEL_Msk              (0x7UL << RCC_CCIPR3_ADF1SEL_Pos)       /*!< 0x00070000 */
@@ -27255,7 +27255,7 @@ typedef struct
 #define USB_OTG_GRXSTSP_DPID_Msk                 (0x3U << USB_OTG_GRXSTSP_DPID_Pos)            /*!< 0x00018000 */
 #define USB_OTG_GRXSTSP_DPID                     USB_OTG_GRXSTSP_DPID_Msk                      /*!< Data PID */
 #define USB_OTG_GRXSTSP_PKTSTS_Pos               (17UL)
-#define USB_OTG_GRXSTSP_PKTSTS_Msk               (0xFU << USB_OTG_GRXSTSP_PKTSTS_Pos)          /*!< 0x001E0000 */
+#define USB_OTG_GRXSTSP_PKTSTS_Msk               (0xFUL << USB_OTG_GRXSTSP_PKTSTS_Pos)         /*!< 0x001E0000 */
 #define USB_OTG_GRXSTSP_PKTSTS                   USB_OTG_GRXSTSP_PKTSTS_Msk                    /*!< Packet status */
 #define USB_OTG_GRXSTSP_FRMNUM_Pos               (21UL)
 #define USB_OTG_GRXSTSP_FRMNUM_Msk               (0xFU << USB_OTG_GRXSTSP_FRMNUM_Pos)          /*!< 0x01E00000 */
@@ -27488,10 +27488,10 @@ typedef struct
 
 /********************  Bit definition for USB_OTG_GLPMCFG register  ********************/
 #define USB_OTG_GLPMCFG_LPMEN_Pos                (0UL)
-#define USB_OTG_GLPMCFG_LPMEN_Msk                (0x1U << USB_OTG_GLPMCFG_LPMEN_Pos)          /*!< 0x00000001 */
+#define USB_OTG_GLPMCFG_LPMEN_Msk                (0x1UL << USB_OTG_GLPMCFG_LPMEN_Pos)         /*!< 0x00000001 */
 #define USB_OTG_GLPMCFG_LPMEN                    USB_OTG_GLPMCFG_LPMEN_Msk                    /* LPM support enable  */
 #define USB_OTG_GLPMCFG_LPMACK_Pos               (1UL)
-#define USB_OTG_GLPMCFG_LPMACK_Msk               (0x1U << USB_OTG_GLPMCFG_LPMACK_Pos)         /*!< 0x00000002 */
+#define USB_OTG_GLPMCFG_LPMACK_Msk               (0x1UL << USB_OTG_GLPMCFG_LPMACK_Pos)        /*!< 0x00000002 */
 #define USB_OTG_GLPMCFG_LPMACK                   USB_OTG_GLPMCFG_LPMACK_Msk                   /* LPM Token acknowledge enable*/
 #define USB_OTG_GLPMCFG_BESL_Pos                 (2UL)
 #define USB_OTG_GLPMCFG_BESL_Msk                 (0xFU << USB_OTG_GLPMCFG_BESL_Pos)           /*!< 0x0000003C */
@@ -27530,7 +27530,7 @@ typedef struct
 #define USB_OTG_GLPMCFG_LPMRCNTSTS_Msk           (0x7U << USB_OTG_GLPMCFG_LPMRCNTSTS_Pos)     /*!< 0x0E000000 */
 #define USB_OTG_GLPMCFG_LPMRCNTSTS               USB_OTG_GLPMCFG_LPMRCNTSTS_Msk               /* LPM retry count status */
 #define USB_OTG_GLPMCFG_ENBESL_Pos               (28UL)
-#define USB_OTG_GLPMCFG_ENBESL_Msk               (0x1U << USB_OTG_GLPMCFG_ENBESL_Pos)         /*!< 0x10000000 */
+#define USB_OTG_GLPMCFG_ENBESL_Msk               (0x1UL << USB_OTG_GLPMCFG_ENBESL_Pos)        /*!< 0x10000000 */
 #define USB_OTG_GLPMCFG_ENBESL                   USB_OTG_GLPMCFG_ENBESL_Msk                   /* Enable best effort service latency */
 
 /********************  Bit definition for USB_OTG_DIEPEACHMSK1 register  ********************/
@@ -28586,9 +28586,6 @@ typedef struct
 #define I2C_CR1_ANFOFF_Pos                  (12UL)
 #define I2C_CR1_ANFOFF_Msk                  (0x1UL << I2C_CR1_ANFOFF_Pos)           /*!< 0x00001000 */
 #define I2C_CR1_ANFOFF                      I2C_CR1_ANFOFF_Msk                      /*!< Analog noise filter OFF */
-#define I2C_CR1_SWRST_Pos                   (13UL)
-#define I2C_CR1_SWRST_Msk                   (0x1UL << I2C_CR1_SWRST_Pos)            /*!< 0x00002000 */
-#define I2C_CR1_SWRST                       I2C_CR1_SWRST_Msk                       /*!< Software reset */
 #define I2C_CR1_TXDMAEN_Pos                 (14UL)
 #define I2C_CR1_TXDMAEN_Msk                 (0x1UL << I2C_CR1_TXDMAEN_Pos)          /*!< 0x00004000 */
 #define I2C_CR1_TXDMAEN                     I2C_CR1_TXDMAEN_Msk                     /*!< DMA transmission requests enable */

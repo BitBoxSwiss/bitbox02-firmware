@@ -52,6 +52,7 @@ class Manifest(TypedDict):
     firmware: str
     bootloader: str
     stage0: int
+    stage1_monotonic: int
 
 
 class VersionInfo(TypedDict):
@@ -237,9 +238,10 @@ def load_manifest(manifest_path: str | os.PathLike[str]) -> Manifest:
         value = manifest.get(key)
         if not isinstance(value, str) or not RELEASE_VERSION_RE.match(value):
             raise ValueError("Manifest entry '{}' must be a semver string like v1.2.3".format(key))
-    stage0 = manifest.get("stage0")
-    if not isinstance(stage0, int) or isinstance(stage0, bool) or stage0 < 0 or stage0 > 0xFFFF:
-        raise ValueError("Manifest entry 'stage0' must be an integer in the uint16_t range")
+    for key in ("stage0", "stage1_monotonic"):
+        value = manifest.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 0xFFFF:
+            raise ValueError(f"Manifest entry '{key}' must be an integer in the uint16_t range")
     return cast(Manifest, manifest)
 
 
@@ -289,6 +291,7 @@ def write_cmake_vars(
     path: str | os.PathLike[str],
     firmware_info: VersionInfo,
     bootloader_info: VersionInfo,
+    stage1_monotonic: int,
     git_firmware_version_string: str,
     git_bootloader_version_string: str,
 ) -> None:
@@ -299,6 +302,7 @@ def write_cmake_vars(
         set(FIRMWARE_VERSION_FULL "{firmware_version_full}")
         set(BOOTLOADER_VERSION_FULL "{bootloader_version_full}")
         set(BOOTLOADER_VERSION_HAS_METADATA {bootloader_has_metadata})
+        set(STAGE1_MONOTONIC_VERSION {stage1_monotonic})
         """
     ).format(
         git_firmware_version_string=cmake_quote(git_firmware_version_string),
@@ -306,6 +310,7 @@ def write_cmake_vars(
         bootloader_version_full=cmake_quote(bootloader_info["full"]),
         firmware_version_full=cmake_quote(firmware_info["full"]),
         bootloader_has_metadata="TRUE" if bootloader_info["has_metadata"] else "FALSE",
+        stage1_monotonic=stage1_monotonic,
     )
     write_file(path, contents)
 
@@ -380,6 +385,7 @@ def generate_headers(
             cmake_vars_out,
             firmware_info,
             bootloader_info,
+            manifest["stage1_monotonic"],
             git_firmware_version_string,
             git_bootloader_version_string,
         )

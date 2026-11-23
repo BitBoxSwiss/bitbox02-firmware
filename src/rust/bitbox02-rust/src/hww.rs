@@ -734,7 +734,7 @@ mod tests {
                 vec![
                     Screen::Confirm {
                         title: "".into(),
-                        body: "Restore backup?".into(),
+                        body: "Restore from\nmicroSD backup?".into(),
                         longtouch: false,
                     },
                     Screen::Confirm {

@@ -16,8 +16,8 @@ pub async fn from_file(
     hal: &mut impl crate::hal::Hal,
     request: &pb::RestoreBackupRequest,
 ) -> Result<Response, Error> {
-    // This is a separate screen because 'Restore backup?' does not fit in the title field.
-    let body = crate::tr!(hal, "Restore backup?");
+    // This is a separate screen because 'Restore from microSD backup?' does not fit in the title field.
+    let body = crate::tr!(hal, "Restore from\nmicroSD backup?");
     hal.ui()
         .confirm(&ConfirmParams {
             body: &body,

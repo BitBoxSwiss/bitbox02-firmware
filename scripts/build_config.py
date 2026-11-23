@@ -249,7 +249,7 @@ def save_config(path: Path, config: Config) -> None:
 
 def build_dir(config: Config, profile: str | None = None, root: Path = ROOT) -> Path:
     if config.product == "bitbox03":
-        return root / "build-bitbox03-cargo"
+        return root / "build-bitbox03-cargo" / config.board
     return root / f"build-{config.product}-cmake-{profile or config.profile}"
 
 

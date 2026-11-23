@@ -13,6 +13,14 @@ from scripts import build_config
 
 
 class TestBuildConfig(unittest.TestCase):
+    def test_bitbox03_board_image_paths(self) -> None:
+        for board in ("dev-kit", "testboard"):
+            with self.subTest(board=board):
+                config = replace(build_config.defaults("bitbox03"), board=board)
+                image = build_config.image_info(config, "firmware", root=Path("."))
+                target = Path("build-bitbox03-cargo") / board / build_config.CARGO_TARGET
+                self.assertEqual(image.elf, target / "release" / "bitbox03-firmware")
+
     def test_bootloader_modes(self) -> None:
         modes = (
             ("no", "yes", "development"),

@@ -35,6 +35,9 @@ typedef struct {
 // Each of the three groups can occupy roughly a third of the width.
 static const UG_S16 _group_width = SCREEN_WIDTH / 3;
 
+static UG_FONT _font_small;
+static UG_FONT _font_small_fallback;
+
 static UG_U16 _char_width(const UG_FONT* font, char chr)
 {
     UG_U16 width = 0;
@@ -312,7 +315,7 @@ static void _set_alphabet_internal(
     if (len < 12) {
         data->font = &font_password_12;
     } else {
-        data->font = &font_password_9;
+        data->font = &_font_small;
     }
 
     size_t a = 0;
@@ -434,7 +437,15 @@ component_t* trinary_input_char_create(
     }
     memset(component, 0, sizeof(component_t));
 
-    data->font = &font_password_9;
+    // The ASCII-only keyboard fits a 9-pixel line with a 2-pixel descent.
+    _font_small_fallback = *font_password_9.fallback;
+    _font_small_fallback.line_height = 9;
+    _font_small_fallback.base_line = 2;
+    _font_small = font_password_9;
+    _font_small.line_height = 9;
+    _font_small.base_line = 2;
+    _font_small.fallback = &_font_small_fallback;
+    data->font = &_font_small;
     component->data = data;
     component->parent = parent;
     component->f = &_component_functions;

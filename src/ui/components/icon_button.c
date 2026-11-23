@@ -8,6 +8,7 @@
 #include <hardfault.h>
 #include <screen.h>
 #include <touch/gestures.h>
+#include <ui/fonts/regular_11.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
@@ -36,19 +37,23 @@ static void _render(component_t* component)
     uint16_t y = 0;
     uint16_t x = 0;
     const uint16_t arrow_height = 5;
+    const uint16_t title_baseline = font_regular_11.line_height - font_regular_11.base_line;
     const uint16_t check_width =
         IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
     switch (data->type) {
     case ICON_BUTTON_CHECK:
         x = SCREEN_WIDTH * 15 / 16;
         x -= check_width;
+        y = title_baseline - IMAGE_DEFAULT_CHECKMARK_HEIGHT;
         break;
     case ICON_BUTTON_CROSS:
         x = SCREEN_WIDTH / 16;
+        y = title_baseline - (IMAGE_DEFAULT_CROSS_HEIGHT + 1);
         break;
     case ICON_BUTTON_NEXT:
         x = SCREEN_WIDTH * 15 / 16;
         x -= arrow_height;
+        y = title_baseline - (arrow_height * 2 - 1);
         break;
     default:
         break;
@@ -62,7 +67,7 @@ static void _render(component_t* component)
     } else {
         // vertical animation
         if (data->location == top_slider) {
-            y = data->active_count / SCALE + 1;
+            y += data->active_count / SCALE;
         } else {
             y = SCREEN_HEIGHT - data->active_count / SCALE - IMAGE_DEFAULT_ARROW_HEIGHT - 1 + 1;
         }

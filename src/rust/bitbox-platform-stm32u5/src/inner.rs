@@ -2,7 +2,7 @@
 
 use bitbox_mcu_stm32u5 as _;
 #[cfg(feature = "stm32u5a9")]
-use bitbox_mcu_stm32u5::pac::RCC;
+use bitbox_mcu_stm32u5::pac::{RCC, rcc::regs};
 use cortex_m_rt::exception;
 #[cfg(feature = "stm32u5a9")]
 use cortex_m_rt::pre_init;
@@ -37,28 +37,21 @@ fn SysTick() {
 #[cfg(feature = "stm32u5a9")]
 #[pre_init]
 unsafe fn system_init() {
-    let rcc = unsafe { &*RCC::PTR };
-
     // Reset the RCC clock configuration to the default reset state.
-    rcc.cr().write(|w| w.msison().enabled());
-    rcc.cfgr1().write(|w| unsafe { w.bits(0) });
-    rcc.cfgr2().write(|w| unsafe { w.bits(0) });
-    rcc.cfgr3().write(|w| unsafe { w.bits(0) });
-    rcc.cr().modify(|_, w| {
-        w.hseon()
-            .disabled()
-            .csson()
-            .disabled()
-            .hsion()
-            .disabled()
-            .pll1on()
-            .disabled()
-            .pll2on()
-            .disabled()
-            .pll3on()
-            .disabled()
+    // RCC_CR resets to 0x35 with both MSIS and MSIK enabled.
+    RCC.cr().write_value(regs::Cr(0x35));
+    RCC.cfgr1().write_value(regs::Cfgr1(0));
+    RCC.cfgr2().write_value(regs::Cfgr2(0));
+    RCC.cfgr3().write_value(regs::Cfgr3(0));
+    RCC.cr().modify(|w| {
+        w.set_hseon(false);
+        w.set_csson(false);
+        w.set_hsion(false);
+        w.set_pllon(0, false);
+        w.set_pllon(1, false);
+        w.set_pllon(2, false);
     });
-    rcc.pll1cfgr().write(|w| unsafe { w.bits(0) });
-    rcc.cr().modify(|_, w| w.hsebyp().not_bypassed());
-    rcc.cier().write(|w| unsafe { w.bits(0) });
+    RCC.pll1cfgr().write_value(regs::Pll1cfgr(0));
+    RCC.cr().modify(|w| w.set_hsebyp(false));
+    RCC.cier().write_value(regs::Cier(0));
 }

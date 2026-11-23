@@ -324,6 +324,7 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           fetch-tags: true
+          submodules: recursive
 
       - name: Install system dependencies
         run: brew install cbindgen bindgen hidapi

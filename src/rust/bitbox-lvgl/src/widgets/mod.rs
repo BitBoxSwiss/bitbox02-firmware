@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+//! LVGL widget wrappers (`Lv*`) and custom Rust widgets (`Bitbox*`).
+
 pub mod arc;
 pub mod bar;
 pub mod button;
@@ -41,7 +43,7 @@ mod tests {
         assert_image_ext::<canvas::LvCanvas>();
         assert_arc_ext::<spinner::LvSpinner>();
         assert_bar_ext::<slider::LvSlider>();
-        assert_buttonmatrix_ext::<keyboard::LvKeyboard>();
+        assert_buttonmatrix_ext::<keyboard::BitboxKeyboard>();
         assert_spangroup_ext::<span::LvSpangroup>();
     }
 

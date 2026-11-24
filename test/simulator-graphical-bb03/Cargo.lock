@@ -393,6 +393,7 @@ dependencies = [
  "grounded",
  "tracing",
  "util",
+ "zeroize",
 ]
 
 [[package]]

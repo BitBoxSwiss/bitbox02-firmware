@@ -60,7 +60,7 @@ macro_rules! impl_lv_class {
 }
 
 impl_lv_class!(ObjTag, lv_obj_class);
-impl_lv_class!(LabelTag, lv_label_class);
+impl_lv_class!(LabelTag, bitbox_lv_label_class);
 impl_lv_class!(ImageTag, lv_image_class);
 impl_lv_class!(CanvasTag, lv_canvas_class);
 impl_lv_class!(ArcTag, lv_arc_class);
@@ -69,9 +69,9 @@ impl_lv_class!(ButtonTag, lv_button_class);
 impl_lv_class!(BarTag, lv_bar_class);
 impl_lv_class!(SliderTag, lv_slider_class);
 impl_lv_class!(SpangroupTag, lv_spangroup_class);
-impl_lv_class!(TextareaTag, lv_textarea_class);
+impl_lv_class!(TextareaTag, bitbox_lv_textarea_class);
 impl_lv_class!(ButtonmatrixTag, lv_buttonmatrix_class);
-impl_lv_class!(KeyboardTag, lv_keyboard_class);
+impl_lv_class!(KeyboardTag, bitbox_lv_keyboard_class);
 impl_lv_class!(LineTag, lv_line_class);
 
 #[cfg(test)]

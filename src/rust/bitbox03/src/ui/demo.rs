@@ -5,7 +5,8 @@
 //! press-invert feedback and take no action; the top-right corner close button dismisses the demo.
 
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvObjFlag, LvOpacityLevel, ObjExt,
+    self as lvgl, BitboxLabel, BitboxLabelLongMode, LabelExt, LvObj, LvObjFlag, LvOpacityLevel,
+    ObjExt,
 };
 use util::futures::completion::Responder;
 
@@ -23,10 +24,10 @@ pub fn build_demo_screen(responder: Responder<()>) -> LvObj {
     screen.set_style_pad_right(50, 0);
     screen.set_style_pad_row(40, 0);
 
-    let title = LvLabel::new(&screen).unwrap();
+    let title = BitboxLabel::new(&screen).unwrap();
     title.set_width(380);
-    title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
-    title.set_text("Navigation buttons").unwrap();
+    title.set_long_mode(BitboxLabelLongMode::Wrap);
+    title.set_text_static(Some(c"Navigation buttons"));
     title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_32,
@@ -62,10 +63,10 @@ pub fn build_demo_screen(responder: Responder<()>) -> LvObj {
     // flag so it sits in the column flow (centred) instead of the corner, and wire no action.
     build_close_button(&screen).remove_flag(LvObjFlag::LV_OBJ_FLAG_FLOATING);
 
-    let hint = LvLabel::new(&screen).unwrap();
+    let hint = BitboxLabel::new(&screen).unwrap();
     hint.set_width(380);
-    hint.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
-    hint.set_text("Tap to preview. Close with the X.").unwrap();
+    hint.set_long_mode(BitboxLabelLongMode::Wrap);
+    hint.set_text_static(Some(c"Tap to preview. Close with the X."));
     hint.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     hint.set_style_text_font(
         lvgl::fonts::INTER_REGULAR_32,

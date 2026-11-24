@@ -34,8 +34,6 @@ pub use ffi::lv_image_align_t as LvImageAlign;
 pub use ffi::lv_image_dsc_t as LvImageDsc;
 pub use ffi::lv_indev_state_t as LvIndevState;
 pub use ffi::lv_indev_type_t as LvIndevType;
-pub use ffi::lv_keyboard_mode_t as LvKeyboardMode;
-pub use ffi::lv_label_long_mode_t as LvLabelLongMode;
 pub use ffi::lv_layout_t as LvLayout;
 pub use ffi::lv_log_level_t as LvLogLevel;
 pub use ffi::lv_obj_flag_t as LvObjFlag;
@@ -60,6 +58,8 @@ pub mod indev;
 pub mod log;
 pub mod style;
 pub mod system;
+mod text;
+pub use text::ZeroizingText;
 #[cfg(test)]
 mod test_util;
 pub mod tick;
@@ -80,8 +80,10 @@ pub use widgets::canvas::CanvasExt;
 pub use widgets::canvas::{LvCanvas, LvCanvasCreateError};
 pub use widgets::class;
 pub use widgets::image::ImageExt;
-pub use widgets::keyboard::{KeyboardExt, LvKeyboard, LvKeyboardMapEntry, keyboard_def_event_cb};
-pub use widgets::label::{LabelExt, LvLabel, LvLabelTextError};
+pub use widgets::keyboard::{
+    BitboxKeyboard, BitboxKeyboardMapEntry, BitboxKeyboardMode, KeyboardExt,
+};
+pub use widgets::label::{BitboxLabel, BitboxLabelLongMode, BitboxLabelTextError, LabelExt};
 pub use widgets::line::LvLine;
 pub use widgets::obj;
 pub use widgets::obj::LvObj;
@@ -89,5 +91,5 @@ pub use widgets::obj::{LvHandle, LvTypeError, ObjExt};
 pub use widgets::slider::{LvSlider, SliderExt};
 pub use widgets::span::{LvSpan, LvSpanTextError, LvSpangroup, SpangroupExt};
 pub use widgets::spinner::{LvSpinner, SpinnerExt};
-pub use widgets::textarea::{LvTextarea, LvTextareaTextError, TextareaExt};
+pub use widgets::textarea::{BitboxTextarea, BitboxTextareaTextError, TextareaExt};
 pub use widgets::{LvEventRegistrationError, LvMapError, LvTextError};

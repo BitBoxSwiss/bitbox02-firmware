@@ -155,6 +155,7 @@ name = "bitbox-board-stm32u5a9j-dk"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk-sys",
+ "bitbox-platform-stm32u5",
  "bitbox-platform-stm32u5-sys",
 ]
 
@@ -176,8 +177,7 @@ dependencies = [
 name = "bitbox-board-testboard"
 version = "0.1.0"
 dependencies = [
- "bitbox-platform-stm32u5-sys",
- "embassy-stm32",
+ "bitbox-platform-stm32u5",
 ]
 
 [[package]]
@@ -316,6 +316,7 @@ dependencies = [
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5-sys",
  "cortex-m-rt",
+ "embassy-stm32",
 ]
 
 [[package]]

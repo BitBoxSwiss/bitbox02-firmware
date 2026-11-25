@@ -13,8 +13,16 @@ test = false
 doctest = false
 
 [features]
-stm32u5a9 = ["bitbox-mcu-stm32u5/stm32u5a9", "bitbox-platform-stm32u5-sys/stm32u5a9"]
-stm32u5g9 = ["bitbox-mcu-stm32u5/stm32u5g9", "bitbox-platform-stm32u5-sys/stm32u5g9"]
+stm32u5a9 = [
+    "embassy-stm32/stm32u5a9nj",
+    "bitbox-mcu-stm32u5/stm32u5a9",
+    "bitbox-platform-stm32u5-sys/stm32u5a9",
+]
+stm32u5g9 = [
+    "embassy-stm32/stm32u5g9zj",
+    "bitbox-mcu-stm32u5/stm32u5g9",
+    "bitbox-platform-stm32u5-sys/stm32u5g9",
+]
 
 [dependencies]
 bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5", default-features = false }
@@ -23,3 +31,6 @@ bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }
 # firmware from debugger / non-bootloader environments. Not strictly necessary
 # in release builds.
 cortex-m-rt = { version = "0.7", features = ["set-sp", "set-vtor", "device"]}
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+embassy-stm32 = { version = "0.6.0", default-features = false }

@@ -173,7 +173,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitbox-board-stm32u5g9j-tb"
+name = "bitbox-board-testboard"
 version = "0.1.0"
 dependencies = [
  "bitbox-platform-stm32u5-sys",
@@ -519,7 +519,7 @@ name = "bitbox03-boot0"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
- "bitbox-board-stm32u5g9j-tb",
+ "bitbox-board-testboard",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -532,7 +532,7 @@ name = "bitbox03-boot1"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
- "bitbox-board-stm32u5g9j-tb",
+ "bitbox-board-testboard",
  "bitbox-boot-utils",
  "bitbox-debug",
  "bitbox-platform-stm32u5",
@@ -546,7 +546,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
- "bitbox-board-stm32u5g9j-tb",
+ "bitbox-board-testboard",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",
  "bitbox-platform-stm32u5-sys",
@@ -562,7 +562,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk",
  "bitbox-board-stm32u5a9j-dk-build",
- "bitbox-board-stm32u5g9j-tb",
+ "bitbox-board-testboard",
  "bitbox-debug",
  "bitbox-mcu-stm32u5",
  "bitbox-platform-stm32u5",

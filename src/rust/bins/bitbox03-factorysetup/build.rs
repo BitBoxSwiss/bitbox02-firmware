@@ -4,7 +4,7 @@ fn generate_memory_x(out_dir: &Path) {
     #[cfg(feature = "board-stm32u5a9j-dk")]
     use bitbox_board_stm32u5a9j_dk::memory;
     #[cfg(feature = "board-stm32u5g9j-tb")]
-    use bitbox_board_stm32u5g9j_tb::memory;
+    use bitbox_board_testboard::memory;
 
     let contents = format!(
         concat!(

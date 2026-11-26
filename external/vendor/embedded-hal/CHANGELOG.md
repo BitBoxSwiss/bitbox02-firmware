@@ -7,43 +7,231 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [v0.2.7] - 2022-02-09
+No unreleased changes yet.
+
+## [v1.0.0] - 2023-12-28
+
+- gpio: remove `ToggleableOutputPin`, move `toggle()` to `StatefulOutputPin`.
+
+## [v1.0.0-rc.3] - 2023-12-14
+
+- gpio: require `&mut self` in `InputPin` and `StatefulOutputPin`.
+
+## [v1.0.0-rc.2] - 2023-11-28
+
+- Minor document fixes.
+- Add #[inline] hints to most of `embedded-hal` functions.
+- pwm: rename `get_max_duty_cycle` to `max_duty_cycle`.
+- delay: Rename `DelayUs` to `DelayNs`
+- delay: Add `DelayNs::delay_ns()`
+- delay: Add default impls of `delay_ms` and `delay_us` based on `delay_ns`.
+- delay: Make the default impl of `delay_ms` more efficient, it now does less calls to the underlying `delay_ns` (previously `delay_us`).
+- spi: Rename `Operation::DelayUs` to `Operation::DelayNs`, with nanosecond precision.
+
+## [v1.0.0-rc.1] - 2023-08-15
+
+- The Minimum Supported Rust Version (MSRV) is now 1.60.0
+- Add optional `defmt` 0.3 support.
+- Remove serial traits, the replacement is the `embedded-io` crate.
+- Added `+ ?Sized` to all blanket impls.
+
+## [v1.0.0-alpha.11] - 2023-07-04
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
 
 ### Added
+- spi: added `Operation::DelayUs(u32)`.
 
-- Backport CAN interface from the upcoming 1.0 release.
+### Removed
+- spi: removed read-only and write-only traits.
 
-## [v0.2.6] - 2021-08-03
+## [v1.0.0-alpha.10] - 2023-04-04
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
 
 ### Added
+- Added `pwm::SetDutyCycle` trait.
 
-Backported non-breaking changes from the upcoming 1.0 release:
+### Changed
+- gpio: add `ErrorKind` enum for consistency with other traits and for future extensibility. No kinds are defined for now.
+- delay: make infallible.
+- i2c: remove `_iter()` methods.
+- i2c: add default implementations for all methods based on `transaction()`.
+- i2c: document guidelines for shared bus usage.
+- spi: SpiDevice transaction now takes an operation slice instead of a closure
 
+## [v1.0.0-alpha.9] - 2022-09-28
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Changed
+- The `embedded-hal` crate now contains blocking traits only. Import paths no longer contain `::blocking`.
+
+### Added
+- Implement `PartialOrd`, `Ord`, `Hash` for `can::StandardId`, `can::ExtendedId` and `can::Id` according to CAN bus arbitration rules
+- Implement `Eq` for `i2c::Operation`
+- Implement `PartialOrd`, `Ord`, `Hash` for `can::StandardId`, `can::ExtendedId` and `can::Id` according to CAN bus arbitration rules.
+
+### Fixed
+- Fixed documentation for `wait_for_rising_edge`.
+
+### Removed
+- `digital::blocking::IoPin` traits. See: [#340], [#397].
+- `nb` traits are now available in a separate [`embedded-hal-nb`] crate.
+- `spi::blocking::ExclusiveDevice` and `spi::blocking::ExclusiveDeviceError`. These have been moved to a separate [`embedded-hal-bus`] crate.
+- Moved CAN traits to a separate [`embedded-can`] crate.
+
+[`embedded-can`]: https://crates.io/crates/embedded-can
+[`embedded-hal-nb`]: https://crates.io/crates/embedded-hal-nb
+[`embedded-hal-bus`]: https://crates.io/crates/embedded-hal-bus
+[#340]: https://github.com/rust-embedded/embedded-hal/issues/340
+[#397]: https://github.com/rust-embedded/embedded-hal/issues/397
+
+## [v1.0.0-alpha.8] - 2022-04-15
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Changed
+- The Minimum Supported Rust Version (MSRV) is now 1.59.0
+- `spi`: unify all traits into `SpiReadBus`, `SpiWriteBus` and `SpiBus` (read-write).
+- `spi`: Add `SpiDevice` trait to represent a single device in a (possibly shared) bus, with managed chip-select (CS) pin.
+- `spi`: Clarify that implementations are allowed to return before operations are finished, add `flush` to wait until finished.
+
+### Removed
+- ADC traits: `adc::nb::OneShot` and `adc::nb::Channel`.
+
+## [v1.0.0-alpha.7] - 2022-02-09
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Added
+- `Error` traits for CAN, SPI, I2C and Serial are implemented for `Infallible`.
+
+### Fixed
+- Fixed blanket impl of `DelayUs` not covering the `delay_ms` method.
+
+### Changed
+- `spi`: traits now enforce all impls on the same struct (e.g. `Transfer` and `Write`) have the same `Error` type.
+- `digital`: traits now enforce all impls on the same struct have the same `Error` type.
+- `serial`: traits now enforce all impls on the same struct have the same `Error` type.
+- `i2c`: traits now enforce all impls on the same struct have the same `Error` type.
+- `i2c`: unify all traits into a single `I2c` trait.
+
+### Removed
+- Traits with unconstrained associated types and their modules (See: [#324], [#354]):
+    - `capture::Capture`
+    - `pwm::Pwm`
+    - `pwm::PwmPin`
+    - `qei::Qei`
+    - `timer::Cancel`
+    - `timer::CountDown`
+    - `timer::Periodic`
+    - `watchdog::Disable`
+    - `watchdog::Enable`
+    - `watchdog::Watchdog`
+
+
+[#324]: https://github.com/rust-embedded/embedded-hal/pull/324/
+[#354]: https://github.com/rust-embedded/embedded-hal/pull/354
+
+## [v1.0.0-alpha.6] - 2021-11-19
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Changed
+- Use `u8` as default SPI as Serial Word type
+- The Minimum Supported Rust Version (MSRV) is now 1.46.0
+- Require all SPI and Serial word types to be `Copy`.
+
+### Added
+- Added `Can` Controller Area Network traits.
+- `Error` traits for SPI, I2C and Serial traits. The error types used in those must
+  implement these `Error` traits, which implies providing a conversion to a common
+  set of error kinds. Generic drivers using these interfaces can then convert the errors
+  to this common set to act upon them.
+
+### Removed
+- Removed `DelayMs` in favor of `DelayUs` with `u32` as type for clarity.
+
+## [v1.0.0-alpha.5] - 2021-09-11
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Added
+- Added `IoPin` trait for pins that can change between being inputs or outputs
+  dynamically.
+- Added `Debug` to all spi mode types.
+- Add impls of all traits for references (`&T` or `&mut T` depending on the trait) when `T` implements the trait.
+- SPI: Added blocking `Read` trait and `Read` transactional operation
+- SPI: Added blocking `Transfer` trait with separate buffers (single-buffer `Transfer` has been renamed `TransferInplace`)
+
+### Changed
+- Swap PWM channel arguments to references
+- All trait methods have been renamed to remove the `try_` prefix (i.e. `try_send` -> `send`) for consistency.
+- Moved all traits into two submodules for each feature depending on the execution model: `blocking` and `nb` (non-blocking). For example, the spi traits can now be found under `embedded_hal::spi::blocking` or `embedded_hal::spi::nb`.
+- Execution-model-independent definitions have been moved into the feature module. For example, SPI `Phase` is now defined in `embedded_hal::spi::Phase`. For convenience, these definitions are reexported in both of its blocking and non-blocking submodules.
+- Re-export `nb::{block!, Error, Result}` to avoid version mismatches. These should be used instead of
+  importing the `nb` crate directly in dependent crates.
+- `blocking::Serial`: renamed `bwrite_all` to `write`, `bflush` to `flush.
+- Removed `prelude` to avoid method name conflicts between different flavors (blocking, nb) of the same trait. Traits must now be manually imported.
+- Removed the various `Default` marker traits.
+- Removed `&[W]` returned slice in `spi::blocking::Transfer`.
+- Require all associated error types to implement `core::fmt::Debug`.
+
+### Removed
+- Removed random number generation (`rng`) traits in favor of [rand_core](https://crates.io/crates/rand_core).
+
+## [v1.0.0-alpha.4] - 2020-11-11
+
+### Fixed
+- Support for I2C addressing modes in `Transactional` I2C traits.
+
+## [v1.0.0-alpha.3] - 2020-11-04
+
+### Added
 - `Transactional` SPI interface for executing groups of SPI transactions.
 - `Transactional` I2C interface for executing groups of I2C transactions.
+
+
+## [v1.0.0-alpha.2] - 2020-10-16
+
+*** This is (also) an alpha release with breaking changes (sorry) ***
+
+### Added
 - 10-bit addressing mode for I2C traits.
-- `set_state` method for `OutputPin` using an input `PinState` value.
-- `IoPin` trait for pins that can change between being inputs or outputs
-  dynamically.
-
-
-## [v0.2.5] - 2021-04-28
+- `try_set_state` method for `OutputPin` using an input `PinState` value.
 
 ### Changed
 
-- Updated `nb` dependency to version `0.1.3` to ensure compatibility with `nb` version `1.0`.
+- I2C addressing modes are now selected via an `AddressMode` type parameter.
+  The trait features implementations for marker types `SevenBitAddress` and
+  `TenBitAddress`. `SevenBitAddress` is the default mode so this is not a
+  breaking change.
+- The method `try_write` from the trait `blocking::i2c::WriteIter` trait
+  has been renamed `try_write_iter` for consistency.
+- Updated `nb` dependency to version `1`.
+- The watchdog API now uses move semantics. See [PR](https://github.com/rust-embedded/embedded-hal/pull/222).
+- The ADC `Channel` trait now uses a stateful method to get the IDs.
 
+## [v1.0.0-alpha.1] - 2020-06-16
 
-## [v0.2.4] - 2020-06-17
+*** This is an alpha release with breaking changes (sorry) ***
+
+### Added
+- A nonblocking trait for interfacing with random number generation hardware.
 
 ### Changed
-
-- Fix for `dyn` traits in fmt.rs
-- Remove `#![deny(warnings)]`, now imposed y CI
-- Updates stm32f30x from 0.6.0 to 0.8.0
-- Fix the input pin v2->v1 compatibility shim constructor, where `OldInputPin::new`
-  was incorrectly implemented for `v1::OutputPin` values.
-
+- All traits have been marked as proven (`unproven` feature has been removed).
+- All trait methods have been made fallible.
+- All trait methods have been renamed `try_*` (i.e. `try_send`) for consistency.
+- The `Capture`, `Pwm`, `PwmPin` and `Qei` traits have been moved into their own
+  `capture`, `pwm` and `qei` modules for consistency.
+- Void has been replaced with `core::convert::Infallible` which should be used
+  in trait implementations where methods cannot fail.
+- A new [process](https://github.com/rust-embedded/embedded-hal#how-to-add-a-new-trait)
+  has been adopted for the addition of traits to the embedded-hal.
+- The ADC `Channel` trait now uses a constant to represent the IDs.
+- The minimum supported Rust version is 1.35 due to [this issue](https://github.com/rust-lang/rust/issues/54973).
 
 ## [v0.2.3] - 2019-05-09
 
@@ -111,7 +299,7 @@ Backported non-breaking changes from the upcoming 1.0 release:
 
 ### Changed
 
-- Re-export most / unchanged traits from embedded-hal v0.2.x to allow inter-operation between HAL
+- Re-export most / unchanged traits from embedded-hal v0.2.x to allow interoperation between HAL
   implementations and drivers that are using different minor versions.
 
 ## [v0.1.2] - 2018-02-14
@@ -130,11 +318,22 @@ Backported non-breaking changes from the upcoming 1.0 release:
 
 Initial release
 
-[Unreleased]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.7...v0.2.x
-[v0.2.7]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.6...v0.2.7
-[v0.2.6]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.5...v0.2.6
-[v0.2.5]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.4...v0.2.5
-[v0.2.4]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.3...v0.2.4
+[Unreleased]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0...HEAD
+[v1.0.0]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-rc.3...v1.0.0
+[v1.0.0-rc.3]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-rc.2...v1.0.0-rc.3
+[v1.0.0-rc.2]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-rc.1...v1.0.0-rc.2
+[v1.0.0-rc.1]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.11...v1.0.0-rc.1
+[v1.0.0-alpha.11]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.10...v1.0.0-alpha.11
+[v1.0.0-alpha.10]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.9...v1.0.0-alpha.10
+[v1.0.0-alpha.9]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.8...v1.0.0-alpha.9
+[v1.0.0-alpha.8]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.7...v1.0.0-alpha.8
+[v1.0.0-alpha.7]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.6...v1.0.0-alpha.7
+[v1.0.0-alpha.6]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.5...v1.0.0-alpha.6
+[v1.0.0-alpha.5]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.4...v1.0.0-alpha.5
+[v1.0.0-alpha.4]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.3...v1.0.0-alpha.4
+[v1.0.0-alpha.3]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.2...v1.0.0-alpha.3
+[v1.0.0-alpha.2]: https://github.com/rust-embedded/embedded-hal/compare/v1.0.0-alpha.1...v1.0.0-alpha.2
+[v1.0.0-alpha.1]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.3...v1.0.0-alpha.1
 [v0.2.3]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/rust-embedded/embedded-hal/compare/v0.2.0...v0.2.1

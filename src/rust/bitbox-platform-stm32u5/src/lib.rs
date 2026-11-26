@@ -7,3 +7,8 @@ pub mod flash;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 mod inner;
+
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+pub use embassy_stm32::{Config, Peripherals};
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+pub use inner::init;

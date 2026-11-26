@@ -1,0 +1,183 @@
+
+use crate::metadata::ir::*;
+pub(crate) static REGISTERS: IR = IR {
+    blocks: &[Block {
+        name: "Rifsc",
+        extends: None,
+        description: Some("Resource isolation framework security controller."),
+        items: &[
+            BlockItem {
+                name: "risc_cr",
+                description: Some("RIFSC RISC slave control register."),
+                array: None,
+                byte_offset: 0x0,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("RiscCr"),
+                }),
+            },
+            BlockItem {
+                name: "risc_seccfgr",
+                description: Some("RIFSC RISC slave security configuration register."),
+                array: Some(Array::Regular(RegularArray { len: 6, stride: 4 })),
+                byte_offset: 0x10,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("Cfgr"),
+                }),
+            },
+            BlockItem {
+                name: "risc_privcfgr",
+                description: Some("RIFSC RISC slave privilege configuration register."),
+                array: Some(Array::Regular(RegularArray { len: 6, stride: 4 })),
+                byte_offset: 0x30,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("Cfgr"),
+                }),
+            },
+            BlockItem {
+                name: "risc_rcfglockr",
+                description: Some("RIFSC RISC slave resource configuration lock register."),
+                array: Some(Array::Regular(RegularArray { len: 6, stride: 4 })),
+                byte_offset: 0x50,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("Cfgr"),
+                }),
+            },
+            BlockItem {
+                name: "rimc_cr",
+                description: Some("RIFSC RIMC master control register."),
+                array: None,
+                byte_offset: 0xc00,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("RimcCr"),
+                }),
+            },
+            BlockItem {
+                name: "rimc_attr",
+                description: Some("RIFSC RIMC master attribute register."),
+                array: Some(Array::Regular(RegularArray { len: 12, stride: 4 })),
+                byte_offset: 0xc10,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::ReadWrite,
+                    bit_size: 32,
+                    fieldset: Some("RimcAttr"),
+                }),
+            },
+            BlockItem {
+                name: "ppsr",
+                description: Some("RIFSC peripheral protection status register."),
+                array: Some(Array::Regular(RegularArray { len: 6, stride: 4 })),
+                byte_offset: 0xfb0,
+                inner: BlockItemInner::Register(Register {
+                    access: Access::Read,
+                    bit_size: 32,
+                    fieldset: Some("Cfgr"),
+                }),
+            },
+        ],
+    }],
+    fieldsets: &[
+        FieldSet {
+            name: "Cfgr",
+            extends: None,
+            description: Some("RIFSC configuration register for 32 peripherals."),
+            bit_size: 32,
+            fields: &[Field {
+                name: "cfg",
+                description: Some("Configuration bit for peripheral N."),
+                bit_offset: BitOffset::Regular(RegularBitOffset { offset: 0 }),
+                bit_size: 1,
+                array: Some(Array::Regular(RegularArray { len: 32, stride: 1 })),
+                enumm: None,
+            }],
+        },
+        FieldSet {
+            name: "RimcAttr",
+            extends: None,
+            description: Some("RIFSC RIMC master attribute register."),
+            bit_size: 32,
+            fields: &[
+                Field {
+                    name: "mcid",
+                    description: Some("Master compartment ID."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 4 }),
+                    bit_size: 3,
+                    array: None,
+                    enumm: None,
+                },
+                Field {
+                    name: "msec",
+                    description: Some("Master secure attribute."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 8 }),
+                    bit_size: 1,
+                    array: None,
+                    enumm: None,
+                },
+                Field {
+                    name: "mpriv",
+                    description: Some("Master privilege attribute."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 9 }),
+                    bit_size: 1,
+                    array: None,
+                    enumm: None,
+                },
+                Field {
+                    name: "mlock",
+                    description: Some("Master lock. When set, this master attribute register cannot be modified."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 16 }),
+                    bit_size: 1,
+                    array: None,
+                    enumm: None,
+                },
+            ],
+        },
+        FieldSet {
+            name: "RimcCr",
+            extends: None,
+            description: Some("RIFSC RIMC master control register."),
+            bit_size: 32,
+            fields: &[
+                Field {
+                    name: "glock",
+                    description: Some("Global lock. When set, all writes to RIFSC RIMC registers are ignored."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 0 }),
+                    bit_size: 1,
+                    array: None,
+                    enumm: None,
+                },
+                Field {
+                    name: "dapcid",
+                    description: Some("Debug access port compartment ID."),
+                    bit_offset: BitOffset::Regular(RegularBitOffset { offset: 8 }),
+                    bit_size: 3,
+                    array: None,
+                    enumm: None,
+                },
+            ],
+        },
+        FieldSet {
+            name: "RiscCr",
+            extends: None,
+            description: Some("RIFSC RISC slave control register."),
+            bit_size: 32,
+            fields: &[Field {
+                name: "glock",
+                description: Some("Global lock. When set, all writes to RIFSC RISC registers are ignored."),
+                bit_offset: BitOffset::Regular(RegularBitOffset { offset: 0 }),
+                bit_size: 1,
+                array: None,
+                enumm: None,
+            }],
+        },
+    ],
+    enums: &[],
+};

@@ -1,0 +1,20 @@
+[package]
+name = "embedded-storage-async"
+version = "0.4.2"
+authors = [
+    "Mathias Koch <mk@blackbird.online>",
+    "Ulf Lilleengen <lulf@redhat.com>",
+    "Dario Nieuwenhuis <dirbaio@dirbaio.net>",
+    "Diego Barrios Romero <eldruin@gmail.com>",
+]
+edition.workspace = true
+rust-version.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["storage"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[dependencies]
+embedded-storage = { version = "0.3.1", path = "../embedded-storage" }

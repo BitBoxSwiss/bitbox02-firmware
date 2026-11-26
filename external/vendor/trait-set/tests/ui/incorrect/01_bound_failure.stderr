@@ -1,0 +1,23 @@
+error[E0277]: `RefCell<u8>` cannot be shared between threads safely
+  --> $DIR/01_bound_failure.rs:13:10
+   |
+13 |     test(RefCell::new(10u8));
+   |     ---- ^^^^^^^^^^^^^^^^^^ `RefCell<u8>` cannot be shared between threads safely
+   |     |
+   |     required by a bound introduced by this call
+   |
+   = help: the trait `Sync` is not implemented for `RefCell<u8>`
+note: required because of the requirements on the impl of `ThreadSafe` for `RefCell<u8>`
+  --> $DIR/01_bound_failure.rs:6:1
+   |
+6  | / trait_set! {
+7  | |     pub trait ThreadSafe = Send + Sync;
+   | |               ^^^^^^^^^^
+8  | | }
+   | |_^
+note: required by a bound in `test`
+  --> $DIR/01_bound_failure.rs:10:12
+   |
+10 | fn test<T: ThreadSafe>(_t: T) {}
+   |            ^^^^^^^^^^ required by this bound in `test`
+   = note: this error originates in the macro `trait_set` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -27,7 +27,7 @@ def run(command: list[str], cwd: Path = ROOT) -> None:
     # GNU make puts short flags first, followed by a space and other options.
     # Preserve an empty first field so long options are not treated as short flags.
     flags = os.environ.get("MAKEFLAGS", "").split(" ", 1)[0]
-    if "n" in flags:
+    if not flags.startswith("--") and "=" not in flags and "n" in flags:
         return
     # Keep GNU make's jobserver available to recursive backend builds.
     subprocess.run(command, cwd=cwd, check=True, close_fds=False)
@@ -66,10 +66,11 @@ def build_image(config: Config, image: str) -> None:
     run([str(ROOT / "scripts/bootstrap-cargo-config")])
     # Execute Cargo from src/rust so it loads the vendored dependency configuration.
     suffix = "-release" if profile == "release" else ""
+    board = "stm32u5g9j-tb" if config.board == "testboard" else "stm32u5a9j-dk"
     run(
         [
             "cargo",
-            f"{info.name}-stm32u5a9j-dk{suffix}",
+            f"{info.name}-{board}{suffix}",
             *shlex.split(os.environ.get("CARGOFLAGS", "")),
             "--target-dir",
             str(build_dir(config)),

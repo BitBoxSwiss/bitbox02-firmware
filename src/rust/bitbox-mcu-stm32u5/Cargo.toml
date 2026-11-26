@@ -12,5 +12,9 @@ license = "Apache-2.0"
 test = false
 doctest = false
 
-[dependencies]
-stm32u5 = { version = "0.16", features = ["stm32u5a9"] }
+[features]
+stm32u5a9 = ["stm32-metapac/stm32u5a9nj"]
+stm32u5g9 = ["stm32-metapac/stm32u5g9zj"]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+stm32-metapac = { version = "21.0.0", features = ["rt"] }

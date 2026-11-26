@@ -1,0 +1,17 @@
+[package]
+name = "embedded-storage"
+version = "0.3.2"
+authors = [
+    "Mathias Koch <mk@blackbird.online>",
+]
+edition.workspace = true
+rust-version.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["storage"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[dependencies]
+defmt = { version = "1", optional = true }

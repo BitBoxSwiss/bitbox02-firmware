@@ -1,0 +1,9 @@
+# ------------------------------------------------------------------------
+#                      r u s t f m t   -   C O N F I G
+# ========================================================================
+# Maximum width of each line.
+max_width = 80
+# Number of spaces per tab.
+tab_spaces = 4
+
+newline_style = "Unix"

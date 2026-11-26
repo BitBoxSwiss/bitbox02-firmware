@@ -1,0 +1,36 @@
+[package]
+name = "stm32-fmc"
+version = "0.4.0"
+authors = ["Richard Meadows <richard@richard.fish>"]
+edition = "2018"
+categories = ["embedded", "hardware-support", "no-std"]
+description = "Hardware Abstraction Layer for STM32 Memory Controllers (FMC/FSMC)"
+keywords = ["stm32", "fmc", "sdram", "memory"]
+repository = "https://github.com/stm32-rs/stm32-fmc"
+license = "MIT/Apache-2.0"
+readme = "README.md"
+exclude = [".gitignore"]
+
+[package.metadata.docs.rs]
+features = ["sdram", "nand"]
+
+[dependencies.log]
+version = "^0.4.8"
+default-features = false
+optional = true
+
+[dependencies.defmt]
+version = "0.3"
+optional = true
+
+[dependencies]
+embedded-hal = { version = "1.0" }
+
+[dev-dependencies]
+paste = "1.0"
+
+[features]
+trace-register-values = []
+sdram = []
+nand = []
+default = ["sdram", "nand"]

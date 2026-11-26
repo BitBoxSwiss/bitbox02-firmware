@@ -12,6 +12,7 @@ members = [
     "bitbox-board-stm32u5a9j-dk",
     "bitbox-board-stm32u5a9j-dk-build",
     "bitbox-board-stm32u5a9j-dk-sys",
+    "bitbox-board-testboard",
     "bitbox-boot-utils",
     "bitbox-bytequeue",
     "bitbox-core-utils",
@@ -72,6 +73,10 @@ grounded = { version = "0.2.0", default-features = false, features = ["critical-
 critical-section = { version = "1.2.0", default-features = false }
 
 [patch.crates-io]
+# Backport safe STM32U5 clock initialization to 0.6.0.
+# Upstream fix: https://github.com/embassy-rs/embassy/commit/8227ad514b3643f16926a6696c9805511726a79b
+# Drop this override once a release also handles the Range 1 clock steps in ST RM0456 § 10.5.4.
+embassy-stm32 = { git = "https://github.com/BitBoxSwiss/embassy.git", rev = "10fb4f5df2234094c9529f9d30519f0ed7f6f7f3" }
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "08309db569ff5b93e9e77165984e32ebb22de277" }
 
 [profile.release]

@@ -239,6 +239,11 @@ jobs:
           - {target: bootloader-stage1, product: bitbox03, edition: multi}
           - {target: factorysetup, product: bitbox03, edition: multi}
           - {target: firmware, product: bitbox03, edition: multi}
+          - {target: bootloader-stage0, product: bitbox03, board: testboard, edition: multi}
+          - {target: bootloader-stage1, product: bitbox03, board: testboard, edition: multi}
+          - {target: factorysetup, product: bitbox03, board: testboard, edition: multi}
+          - {target: firmware, product: bitbox03, board: testboard, edition: multi}
+          - {target: firmware, product: bitbox03, board: testboard, edition: multi, debug: 'yes'}
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -259,7 +264,7 @@ jobs:
         run: make bootstrap
 
       - name: Configure product
-        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }} --embed-stage1 ${{ matrix.embed-stage1 || 'no' }}"
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} ${{ matrix.board && format('--board {0}', matrix.board) || '' }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug || 'no' }} --locked ${{ matrix.locked || 'no' }} --development ${{ matrix.development || 'yes' }} --embed-stage1 ${{ matrix.embed-stage1 || 'no' }}"
 
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
@@ -271,8 +276,8 @@ jobs:
       - name: Print hashes
         run: |
           {
-            for dir in build*/bin build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug \
-                build-bitbox03-cargo/thumbv8m.main-none-eabihf/release; do
+            for dir in build*/bin build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/debug \
+                build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/release; do
               if [ -d "$dir" ]; then
                 find "$dir" -maxdepth 1 -type f -print0
               fi
@@ -284,14 +289,14 @@ jobs:
         if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.product}}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-embed-stage1-${{ matrix.embed-stage1 || 'no' }}-${{github.sha}}.bin
+          name: ${{matrix.product}}${{ matrix.board && format('-{0}', matrix.board) || '' }}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-embed-stage1-${{ matrix.embed-stage1 || 'no' }}-${{github.sha}}.bin
           path: |
             build*/bin/*.bin
             build*/bin/*.elf
             build*/bin/*.map
             build*/bin/simulator*
-            build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug/bitbox03-*
-            build-bitbox03-cargo/thumbv8m.main-none-eabihf/release/bitbox03-*
+            build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/debug/bitbox03-*
+            build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/release/bitbox03-*
 
       - name: Package graphical simulator
         if: matrix.target == 'simulator-graphical'

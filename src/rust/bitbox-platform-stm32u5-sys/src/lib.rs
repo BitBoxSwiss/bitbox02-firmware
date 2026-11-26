@@ -8,12 +8,8 @@
 //! provides the reset handler, vector table, stack setup, `.data`/`.bss`
 //! initialization and the call into Rust `main`.
 //!
-//! The remaining `SystemInit()` work that must happen before normal runtime
-//! startup is implemented in `bitbox-platform-stm32u5` using
-//! `cortex_m_rt::pre_init`. This crate only exports the CMSIS clock globals and
-//! lookup tables that the ST HAL still references. It intentionally does not
-//! provide `SystemInit()`, `SystemCoreClockUpdate()` or any reset/startup
-//! handler from ST's C template.
+//! Board initialization configures the clocks with Embassy before starting ST HAL.
+//! This crate supplies the CMSIS clock globals and lookup tables that HAL reads.
 
 #![no_std]
 #![allow(non_upper_case_globals)]

@@ -1,0 +1,23 @@
+[package]
+name = "trait-set"
+version = "0.3.0"
+authors = ["Igor Aleksanov <popzxc@yandex.ru>"]
+edition = "2018"
+repository = "https://github.com/popzxc/trait-set"
+documentation = "https://docs.rs/trait-set"
+readme = "README.md"
+license = "MIT"
+keywords = ["trait", "alias", "helpers", "utils"]
+categories = ["rust-patterns"]
+description = "Support for trait alias feature on stable Rust."
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0"
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+trybuild = "1.0"

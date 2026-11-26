@@ -3,6 +3,11 @@ include = [{ path = "../../../.cargo/config.local.toml", optional = true }]
 [source.crates-io]
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/BitBoxSwiss/embassy.git?rev=10fb4f5df2234094c9529f9d30519f0ed7f6f7f3"]
+git = "https://github.com/BitBoxSwiss/embassy.git"
+rev = "10fb4f5df2234094c9529f9d30519f0ed7f6f7f3"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/probe-rs/rtt-target.git?rev=08309db569ff5b93e9e77165984e32ebb22de277"]
 git = "https://github.com/probe-rs/rtt-target.git"
 rev = "08309db569ff5b93e9e77165984e32ebb22de277"
@@ -30,3 +35,12 @@ bitbox03-factorysetup-stm32u5a9j-dk = "build -p bitbox03-factorysetup --target=t
 bitbox03-factorysetup-stm32u5a9j-dk-release = "build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
 bitbox03-firmware-stm32u5a9j-dk = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
 bitbox03-firmware-stm32u5a9j-dk-release = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
+
+bitbox03-boot0-stm32u5g9j-tb = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --features board-stm32u5g9j-tb,rtt"
+bitbox03-boot0-stm32u5g9j-tb-release = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5g9j-tb"
+bitbox03-boot1-stm32u5g9j-tb = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --features board-stm32u5g9j-tb,rtt"
+bitbox03-boot1-stm32u5g9j-tb-release = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5g9j-tb"
+bitbox03-factorysetup-stm32u5g9j-tb = "build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --features board-stm32u5g9j-tb"
+bitbox03-factorysetup-stm32u5g9j-tb-release = "build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --release --features board-stm32u5g9j-tb"
+bitbox03-firmware-stm32u5g9j-tb = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features board-stm32u5g9j-tb,rtt"
+bitbox03-firmware-stm32u5g9j-tb-release = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --release --features board-stm32u5g9j-tb"

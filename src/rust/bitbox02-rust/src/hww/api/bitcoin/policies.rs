@@ -94,15 +94,18 @@ async fn is_our_key(
 /// `@NUM/**` is equivalent o `@NUM/<0;1>/*`.
 /// The derivation numbers are checked to be distinct and unhardened.
 fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
-    fn validate_no_leading_zero(num: &str) -> Result<(), ()> {
-        if num.len() > 1 && num.starts_with('0') {
+    fn validate_decimal(num: &str) -> Result<(), ()> {
+        if num.is_empty()
+            || !num.bytes().all(|byte| byte.is_ascii_digit())
+            || (num.len() > 1 && num.starts_with('0'))
+        {
             Err(())
         } else {
             Ok(())
         }
     }
     let (left, right) = pk.strip_prefix('@').ok_or(())?.split_once('/').ok_or(())?;
-    validate_no_leading_zero(left)?;
+    validate_decimal(left)?;
     let (receive_index, change_index): (u32, u32) = match right {
         "**" => (0, 1),
         right => {
@@ -113,8 +116,8 @@ fn parse_wallet_policy_pk(pk: &str) -> Result<(usize, u32, u32), ()> {
                 .ok_or(())?
                 .split_once(';')
                 .ok_or(())?;
-            validate_no_leading_zero(left_number_str)?;
-            validate_no_leading_zero(right_number_str)?;
+            validate_decimal(left_number_str)?;
+            validate_decimal(right_number_str)?;
             (
                 left_number_str.parse().or(Err(()))?,
                 right_number_str.parse().or(Err(()))?,
@@ -922,6 +925,18 @@ mod tests {
             parse_wallet_policy_pk("@50/<100;101>/*"),
             Ok((50, 100, 101))
         );
+        assert_eq!(
+            parse_wallet_policy_pk("@0/<0;2147483647>/*"),
+            Ok((0, 0, HARDENED - 1))
+        );
+
+        for invalid in [
+            "", "+0", "+1", "+01", "00", "01", "-1", " 1", "1 ", "１", "a",
+        ] {
+            assert!(parse_wallet_policy_pk(&format!("@{invalid}/**")).is_err());
+            assert!(parse_wallet_policy_pk(&format!("@0/<{invalid};2>/*")).is_err());
+            assert!(parse_wallet_policy_pk(&format!("@0/<2;{invalid}>/*")).is_err());
+        }
 
         assert!(parse_wallet_policy_pk("@00/**").is_err());
         assert!(parse_wallet_policy_pk("@01/**").is_err());

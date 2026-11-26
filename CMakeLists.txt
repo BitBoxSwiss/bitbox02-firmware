@@ -356,8 +356,6 @@ else()
   include(CTest)
   add_subdirectory(test/unit-test)
   add_subdirectory(test/simulator)
-  add_subdirectory(test/simulator-graphical)
-  add_subdirectory(test/simulator-graphical-bb03)
 endif()
 
 #-----------------------------------------------------------------------------

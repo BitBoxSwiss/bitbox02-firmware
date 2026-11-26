@@ -8,6 +8,9 @@ edition = "2024"
 description = "Rust bindings for C code in bitbox02-firmware"
 license = "Apache-2.0"
 
+[features]
+app-u2f = []
+
 [dependencies]
 util = {path = "../util"}
 fatfs-sys = { path = "../fatfs-sys" }

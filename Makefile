@@ -67,14 +67,15 @@ simulator:
 	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator
 simulator-graphical:
-	$(MAKE) build-build-noasan
-	$(MAKE) -C build-build-noasan simulator-graphical
-simulator-graphical-bb03:
-	$(MAKE) build-build-noasan
-	$(MAKE) -C build-build-noasan simulator-graphical-bb03
+	./scripts/bootstrap-cargo-config
+	RUSTC_BOOTSTRAP=1 MACOSX_DEPLOYMENT_TARGET="$${MACOSX_DEPLOYMENT_TARGET:-11}" CFLAGS="$(CFLAGS) -fstack-protector-strong" \
+		cargo build --locked $(filter-out --locked,$(CARGOFLAGS)) --manifest-path test/simulator-graphical/Cargo.toml --no-default-features --features product-$(PRODUCT),edition-$(EDITION) --profile $(if $(filter yes,$(DEBUG)),dev,release)
 run-simulator:
 	$(MAKE) simulator
 	./build-build-noasan/bin/simulator
+run-simulator-graphical:
+	$(MAKE) simulator-graphical
+	./test/simulator-graphical/target/$(if $(filter yes,$(DEBUG)),debug,release)/simulator-graphical $(SIMULATOR_ARGS)
 unit-test:
 	$(MAKE) build-build
 	$(MAKE) -C build-build
@@ -127,7 +128,7 @@ prepare-tidy:
 	$(MAKE) build-build
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target
+	rm -rf build build-debug build-build build-build-noasan build-bitbox02-cmake-* build-bitbox02nova-cmake-* build-bitbox03-cargo src/rust/target test/simulator-graphical/target
 distclean: clean
 	rm -rf .venv
 
@@ -138,8 +139,8 @@ vendor-rust-deps:
 # Mark all command aliases phony, including generated image/variant names.
 .PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(FLASH_IMAGES)) $(addprefix run-,$(IMAGES))
 .PHONY: config bootstrap debug-server \
-	build-build build-build-noasan simulator simulator-graphical simulator-graphical-bb03 \
-	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
+	build-build build-build-noasan simulator simulator-graphical \
+	run-simulator run-simulator-graphical unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
 	run-valgrind-on-unit-tests flash-dev-firmware \
 	rtt-client dockerinit dockerpull dockerdev dockerrel generate-protobufs \
 	generate-atecc608-config ci prepare-tidy clean distclean vendor-rust-deps

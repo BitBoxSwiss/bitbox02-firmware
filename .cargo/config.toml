@@ -3,8 +3,7 @@ include = [{ path = "config.local.toml", optional = true }]
 
 [build]
 # Use our own copy of libsecp256k1-zpk instead of the one bundled with secp256k1-sys, also in `cargo
-# test` and other cargo-based builds. This is replicated in src/CMakeLists.txt,
-# test/simulator-graphical*/CMakeLists.txt for CMake-based builds.
+# test` and other cargo-based builds. This is replicated in CMakeLists.txt for CMake-based builds.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 # The compact SHA-2 backend saves ~3kB (measured when first enabled).
 # See https://github.com/RustCrypto/hashes/pull/686.

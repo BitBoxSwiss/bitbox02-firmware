@@ -3,10 +3,38 @@ name = "simulator-graphical"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["product-bitbox02", "edition-multi"]
+product-bitbox02 = ["dep:bitbox02", "dep:bitbox02-rust-c"]
+product-bitbox02nova = ["dep:bitbox02", "dep:bitbox02-rust-c"]
+product-bitbox03 = ["dep:bitbox03", "dep:bitbox-lvgl", "dep:rand"]
+edition-multi = [
+    "bitbox02-rust/app-bitcoin",
+    "bitbox02-rust/app-litecoin",
+    "bitbox02-rust/app-ethereum",
+    "bitbox02-rust/app-cardano",
+    "bitbox02-rust/app-u2f",
+    "bitbox02-rust-c?/app-bitcoin",
+    "bitbox02-rust-c?/app-litecoin",
+    "bitbox02-rust-c?/app-ethereum",
+    "bitbox02-rust-c?/app-cardano",
+    "bitbox02-rust-c?/app-u2f",
+    "bitbox03?/app-u2f",
+    "bitbox-platform-host/app-u2f",
+]
+edition-btc-only = [
+    "bitbox02-rust/app-bitcoin",
+    "bitbox02-rust-c?/app-bitcoin",
+]
+
 [dependencies]
+bitbox-hal = { path = "../../src/rust/bitbox-hal" }
+bitbox03 = { path = "../../src/rust/bitbox03", optional = true }
+bitbox-lvgl = { path = "../../src/rust/bitbox-lvgl", optional = true }
+rand = { version = "0.9.2", optional = true }
 bitbox02-rust = { path="../../src/rust/bitbox02-rust", features=["simulator-graphical"] }
-bitbox02-rust-c = { path="../../src/rust/bitbox02-rust-c", features=["simulator-graphical"] }
-bitbox02 = { path="../../src/rust/bitbox02", features=["simulator-graphical"] }
+bitbox02-rust-c = { path="../../src/rust/bitbox02-rust-c", features=["simulator-graphical"], optional = true }
+bitbox02 = { path="../../src/rust/bitbox02", features=["simulator-graphical"], optional = true }
 bitbox-platform-host = { path = "../../src/rust/bitbox-platform-host", features = ["simulator-graphical"] }
 winit = "0.30.12"
 tracing = {version = "0.1.41", features=["log"]}
@@ -16,6 +44,10 @@ femtovg = "0.19.1"
 glutin = "0.32.3"
 glutin-winit = "0.5.0"
 clap = { version = "4.5.48", features = ["derive"] }
-hex = "0.4.3"
 util = { path = "../../src/rust/util" }
 critical-section = {version = "1.2", features = ["std"]}
+
+[dev-dependencies]
+async_test = { path = "../../src/rust/async_test" }
+bitbox-u2fhid = { path = "../../src/rust/bitbox-u2fhid" }
+prost = "0.14.4"

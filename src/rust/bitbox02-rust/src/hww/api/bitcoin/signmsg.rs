@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
 
 use super::Error;
+use super::MAX_KEYPATH_DEPTH;
 use super::pb;
 
 use pb::BtcCoin;
@@ -22,7 +23,6 @@ use bitcoin::consensus::encode::{VarInt, serialize};
 use util::bip32::HARDENED;
 
 const MAX_MESSAGE_SIZE: usize = 1024;
-const MAX_KEYPATH_DEPTH: usize = 10;
 const EXTERNAL_SERVICE_PURPOSE_M45: u32 = 45 + HARDENED;
 const EXTERNAL_SERVICE_PURPOSE_M48: u32 = 48 + HARDENED;
 const EXTERNAL_SERVICE_PURPOSE_M49: u32 = 49;
@@ -209,8 +209,13 @@ mod tests {
                 3,
                 4,
                 5,
+                5 + HARDENED,
+                6,
+                6 + HARDENED,
+                7,
+                7 + HARDENED,
             ];
-            for depth in 1..=MAX_KEYPATH_DEPTH {
+            for depth in 1..=15 {
                 assert!(validate_external_service_keypath(&keypath[..depth]).is_ok());
             }
             assert_eq!(

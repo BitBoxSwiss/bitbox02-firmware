@@ -253,7 +253,7 @@ pub async fn confirm_extended(
 
 /// Validate a m-of-n multisig account. This includes checking that:
 /// - 0 < m <= n <= 15
-/// - the keypath conforms to bip48 for p2wsh: m/48'/coin'/account'/script_type'
+/// - the account keypath is within the supported depth limit.
 /// - our designated xpub is actually ours (corresponds to the xpub of the currenty unlocked
 ///   keystore).
 /// - no two xpubs are the same.
@@ -264,6 +264,9 @@ pub async fn validate(
     multisig: &Multisig,
     keypath: &[u32],
 ) -> Result<(), Error> {
+    if keypath.len() > super::MAX_KEYPATH_DEPTH {
+        return Err(Error::InvalidInput);
+    }
     if multisig.xpubs.len() < 2 || multisig.xpubs.len() > MAX_SIGNERS {
         return Err(Error::InvalidInput);
     }
@@ -340,7 +343,8 @@ mod tests {
     use super::*;
     use hex_lit::hex;
 
-    use crate::keystore::testing::mock_unlocked_using_mnemonic;
+    use crate::hal::testing::TestingHal;
+    use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use bip32::parse_xpub;
     use util::bip32::HARDENED;
 
@@ -693,6 +697,53 @@ mod tests {
             alias.parent_fingerprint[0] ^= 1;
             invalid.xpubs.push(alias);
             assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
+        }
+    }
+
+    #[async_test::test]
+    async fn test_validate_keypath_depth() {
+        mock_unlocked();
+        let keypath = vec![u32::MAX; 15];
+        let mut hal = TestingHal::new();
+        let our_xpub =
+            crate::keystore::get_xpub(&mut hal, &keypath, crate::keystore::Compute::Once)
+                .await
+                .unwrap();
+        let multisig = Multisig {
+            threshold: 1,
+            xpubs: vec![
+                parse_xpub("xpub6FMWuwbCA9KhoRzAMm63ZhLspk5S2DM5sePo8J8mQhcS1xyMbAqnc7Q7UescVEVFCS6qBMQLkEJWQ9Z3aDPgBov5nFUYxsJhwumsxM4npSo").unwrap(),
+                our_xpub.into(),
+            ],
+            our_xpub_index: 1,
+            script_type: ScriptType::P2wsh as _,
+        };
+        validate(&mut hal, &multisig, &keypath).await.unwrap();
+
+        let hash = get_hash(BtcCoin::Tbtc, &multisig, SortXpubs::Yes, &keypath).unwrap();
+        hal.memory.multisig_set_by_hash(&hash, "Test").unwrap();
+        let mut address_keypath = keypath;
+        address_keypath.extend([0, 9999]);
+        assert!(
+            super::super::address_multisig(
+                &mut hal,
+                BtcCoin::Tbtc,
+                &multisig,
+                &address_keypath,
+                true,
+            )
+            .await
+            .is_ok()
+        );
+
+        for depth in [16, 255] {
+            let mut hal = TestingHal::new();
+            assert_eq!(
+                validate(&mut hal, &multisig, &vec![u32::MAX; depth]).await,
+                Err(Error::InvalidInput),
+            );
+            assert_eq!(hal.securechip.get_event_counter(), 0);
+            assert!(hal.ui.screens.is_empty());
         }
     }
 

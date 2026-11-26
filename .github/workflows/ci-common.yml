@@ -69,7 +69,7 @@ jobs:
         run: PYTHONPATH=py/bitbox02 python3 -m unittest discover -s py/bitbox02/tests
 
       - name: Run build configuration tests
-        run: python3 -m unittest discover -s test/scripts -p test_build_config.py
+        run: python3 -m unittest discover -s test/scripts -p 'test_*config.py'
 
   lint-src:
     runs-on: ubuntu-22.04
@@ -233,8 +233,10 @@ jobs:
           - {target: factorysetup, product: bitbox02, edition: multi}
           - {target: firmware, product: bitbox02, edition: multi, debug: 'yes'}
           - {target: simulator, product: bitbox02, edition: multi}
-          - {target: simulator-graphical, product: bitbox02, edition: multi}
-          - {target: simulator-graphical-bb03, product: bitbox02, edition: multi}
+          - {target: simulator-graphical, product: bitbox02, edition: multi, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox02nova, edition: btc-only, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox03, edition: multi, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox03, edition: multi, debug: 'yes'}
           - {target: bootloader-stage0, product: bitbox03, edition: multi}
           - {target: bootloader-stage1, product: bitbox03, edition: multi}
           - {target: factorysetup, product: bitbox03, edition: multi}
@@ -269,6 +271,7 @@ jobs:
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes
+        if: matrix.target != 'simulator-graphical'
         run: |
           {
             for dir in build*/bin build-bitbox03-cargo/thumbv8m.main-none-eabihf/debug \
@@ -296,24 +299,29 @@ jobs:
       - name: Package graphical simulator
         if: matrix.target == 'simulator-graphical'
         run: |
-          build-build-noasan/bin/simulator-graphical --help
-          tar -czf simulator-graphical-linux-x86_64.tar.gz -C build-build-noasan/bin simulator-graphical
+          simulator_dir=test/simulator-graphical/target/${{ matrix.debug == 'yes' && 'debug' || 'release' }}
+          "$simulator_dir/simulator-graphical" --help
+          sha256sum "$simulator_dir/simulator-graphical"
+          tar -czf simulator-graphical-linux-x86_64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}.tar.gz -C "$simulator_dir" simulator-graphical
 
       - name: Upload graphical simulator
         if: matrix.target == 'simulator-graphical'
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-graphical-linux-x86_64-${{ github.sha }}
-          path: simulator-graphical-linux-x86_64.tar.gz
+          name: simulator-graphical-linux-x86_64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}-${{ github.sha }}
+          path: simulator-graphical-linux-x86_64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}.tar.gz
           if-no-files-found: error
 
   # Build simulators for macos aarch64
   build-macos:
     strategy:
       matrix:
-        target:
-          - simulator
-          - simulator-graphical
+        include:
+          - {target: simulator, product: bitbox02, edition: multi, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox02, edition: multi, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox02nova, edition: btc-only, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox03, edition: multi, debug: 'no'}
+          - {target: simulator-graphical, product: bitbox03, edition: multi, debug: 'yes'}
     runs-on: macos-15
     steps:
       - name: Clone the repo
@@ -340,10 +348,14 @@ jobs:
       - name: install prost-build-proto
         run: cargo install --path tools/prost-build-proto --locked
 
+      - name: Configure product
+        run: make config CONFIG_ARGS="--product ${{ matrix.product }} --edition ${{ matrix.edition }} --debug ${{ matrix.debug }}"
+
       - name: Build ${{ matrix.target }}
         run: make -j$(($(sysctl -n hw.ncpu)+1)) ${{ matrix.target }}
 
       - name: Print hashes
+        if: matrix.target != 'simulator-graphical'
         run: sha256sum build*/bin/*
 
       - name: Upload artifact
@@ -357,15 +369,17 @@ jobs:
       - name: Package graphical simulator
         if: matrix.target == 'simulator-graphical'
         run: |
-          build-build-noasan/bin/simulator-graphical --help
-          tar -czf simulator-graphical-macos-aarch64.tar.gz -C build-build-noasan/bin simulator-graphical
+          simulator_dir=test/simulator-graphical/target/${{ matrix.debug == 'yes' && 'debug' || 'release' }}
+          "$simulator_dir/simulator-graphical" --help
+          sha256sum "$simulator_dir/simulator-graphical"
+          tar -czf simulator-graphical-macos-aarch64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}.tar.gz -C "$simulator_dir" simulator-graphical
 
       - name: Upload graphical simulator
         if: matrix.target == 'simulator-graphical'
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-graphical-macos-aarch64-${{ github.sha }}
-          path: simulator-graphical-macos-aarch64.tar.gz
+          name: simulator-graphical-macos-aarch64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}-${{ github.sha }}
+          path: simulator-graphical-macos-aarch64-${{ matrix.product }}-${{ matrix.edition }}-${{ matrix.debug == 'yes' && 'debug' || 'release' }}.tar.gz
           if-no-files-found: error
 
   doc:

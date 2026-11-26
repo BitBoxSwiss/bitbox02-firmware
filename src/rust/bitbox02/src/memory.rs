@@ -337,6 +337,11 @@ fn fake_memory_factoryreset() {
 }
 
 #[cfg(feature = "simulator-graphical")]
+pub fn fake_bitbox02() {
+    assert!(unsafe { bitbox02_sys::fake_memory_bitbox02() });
+}
+
+#[cfg(feature = "simulator-graphical")]
 pub fn fake_nova() -> bool {
     unsafe { bitbox02_sys::fake_memory_nova() }
 }

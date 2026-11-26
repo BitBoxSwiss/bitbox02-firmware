@@ -296,14 +296,58 @@ build it, run:
 make simulator
 ```
 
-### Build the graphical simulator
+### Build and run the graphical simulator
 
-The Multi edition firmware can be built as a graphical simulator for linux and
-macos. To build it, run:
+The graphical simulator runs on Linux and macOS. It uses the saved `PRODUCT`, `EDITION`, and
+`DEBUG` settings from `make config`, with command-line overrides taking precedence. Defaults
+are `PRODUCT=bitbox02`, `EDITION=multi`, and `DEBUG=no`.
 
 ```sh
-make simulator-graphical
+make run-simulator-graphical
+make run-simulator-graphical PRODUCT=bitbox03 EDITION=btc-only DEBUG=yes
 ```
+
+Use `./scripts/dev_exec.sh make ...` when invoking these commands from the host.
+Use `make simulator-graphical` to build without launching.
+`make run-simulator-graphical` builds and launches the configured graphical simulator. The executable is
+`test/simulator-graphical/target/release/simulator-graphical`, or under `target/debug` with `DEBUG=yes`.
+Switching settings does not require cleaning.
+`DEBUG=yes` builds Cargo's debug profile and `DEBUG=no` builds release. BitBox02 and
+`bitbox02nova` use the slider interface and report their respective identities; `bitbox03` uses
+the touchscreen interface. `EDITION=btc-only` excludes Litecoin, Ethereum, and Cardano. Board,
+probe, and firmware-only settings do not affect simulation.
+
+The graphical Make targets invoke Cargo directly, without CMake.
+
+Both interfaces accept `--preseed`, `--unlock`, `--passphrase`, and `--port`:
+
+- `--preseed` installs the existing test seed with an empty password (see `--help` for the phrase).
+- The simulator starts locked. `--unlock` requires `--preseed` and unlocks using an empty BIP39
+  passphrase. `--passphrase` enables the optional passphrase prompt for subsequent workflows.
+- `--port` changes the TCP port from the default 15423.
+
+For a release build, pass startup options directly to the executable:
+
+```sh
+./test/simulator-graphical/target/release/simulator-graphical --preseed --unlock --port 15424
+```
+
+Use `SIMULATOR_ARGS` to pass the same options when building and launching through Make:
+
+```sh
+make run-simulator-graphical SIMULATOR_ARGS="--preseed --unlock --port 15424"
+```
+
+For BitBox02/Nova, choose the orientation with the top or bottom slider before connecting a
+client. Move the cursor along the device edges to slide, or to the right of the screen to pinch.
+For BitBox03, use the left mouse button to tap and drag. Both windows can be resized.
+
+`make run-simulator` builds and launches the headless simulator.
+
+For direct Cargo builds, defaults select BitBox02/Multi. Other selections require
+`--no-default-features --features product-<product>,edition-<edition>`. For BitBox02/Nova, the edition
+feature also configures the native C code. Cargo uses the simulator crate's own `target/` directory,
+separate from the firmware workspace.
 
 ### Flash instructions
 
@@ -413,16 +457,22 @@ To view the results, open `build-bitbox02-cmake-relwithdebinfo/docs/html/index.h
 
 #### Debugging using the simulator
 
-Run it with:
+Build and run the headless simulator with:
 
 ```sh
-./build-build-noasan/bin/simulator
+make run-simulator
 ```
 
-or the following if you built the graphical one:
+Or run a release build of the graphical simulator with:
 
 ```sh
-./build-build-noasan/bin/simulator-graphical --preseed
+./test/simulator-graphical/target/release/simulator-graphical --preseed
+```
+
+To build and launch it in one step:
+
+```sh
+make run-simulator-graphical SIMULATOR_ARGS="--preseed"
 ```
 
 This launches a server simulating the firmware. The send_message tool can

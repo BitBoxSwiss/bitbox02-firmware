@@ -83,6 +83,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "empty_create",
     "fake_memory_factoryreset",
     "fake_memory_nova",
+    "fake_memory_bitbox02",
     "hid_hww_read",
     "hid_hww_write_poll",
     "hid_u2f_read",
@@ -377,6 +378,9 @@ pub fn main() -> BuildResult<()> {
     emit_bindgen_env_rerun_if_changed(&target);
     let cross_compiling = target.starts_with("thumb");
 
+    // Keep host unit tests Multi when Cargo enables every feature.
+    let btc_only = !cfg!(feature = "app-u2f");
+
     let lv_conf = manifest_dir.join("../bitbox-lvgl-sys/lv_conf.h");
     let mut target_definitions = if cross_compiling {
         vec!["-D__SAMD51J20A__".to_owned()]
@@ -384,7 +388,12 @@ pub fn main() -> BuildResult<()> {
         vec![
             "-DTESTING".to_owned(),
             "-D_UNIT_TEST_".to_owned(),
-            "-DPRODUCT_BITBOX_MULTI=1".to_owned(),
+            if btc_only {
+                "-DPRODUCT_BITBOX_BTCONLY=1"
+            } else {
+                "-DPRODUCT_BITBOX_MULTI=1"
+            }
+            .to_owned(),
         ]
     };
     target_definitions.extend([
@@ -476,7 +485,10 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
+    let mut definitions = vec![format!(
+        "-DAPP_U2F={}",
+        u8::from(cross_compiling || cfg!(feature = "app-u2f"))
+    )];
     definitions.extend(target_definitions);
     if warnings_as_errors {
         definitions.push("-Werror".to_owned());

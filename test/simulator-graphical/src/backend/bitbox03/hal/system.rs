@@ -8,7 +8,7 @@ impl hal::system::System for BitBox03System {
     async fn startup() {}
 
     fn is_btconly(&mut self) -> bool {
-        false
+        cfg!(feature = "edition-btc-only")
     }
 
     fn reboot(&mut self) -> ! {

@@ -7,6 +7,11 @@ use grounded::uninit::GroundedCell;
 
 use crate::{LvLogLevel, ffi};
 
+pub use crate::ffi::{
+    LV_LOG_LEVEL_ERROR, LV_LOG_LEVEL_INFO, LV_LOG_LEVEL_NONE, LV_LOG_LEVEL_TRACE,
+    LV_LOG_LEVEL_USER, LV_LOG_LEVEL_WARN,
+};
+
 type LogCb = Box<dyn Fn(LvLogLevel, &CStr) + Send + Sync + 'static>;
 
 static LOG_CB: GroundedCell<Option<LogCb>> = GroundedCell::const_init();

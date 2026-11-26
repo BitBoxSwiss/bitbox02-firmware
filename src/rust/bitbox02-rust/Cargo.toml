@@ -108,14 +108,7 @@ testing = [
 
 c-unit-testing = ["bitbox-secp256k1/c-unit-testing"]
 
-simulator-graphical = [
-  "bitbox02/simulator-graphical",
-  "app-bitcoin",
-  "app-litecoin",
-  "app-ethereum",
-  "app-cardano",
-  "firmware",
-]
+simulator-graphical = ["bitbox02/simulator-graphical", "firmware"]
 
 firmware = []
 

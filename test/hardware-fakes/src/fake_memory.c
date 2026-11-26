@@ -72,6 +72,16 @@ void fake_memory_factoryreset(void)
     "\x1e\x4a\xa8\x36\x4e\x93\x5c\x07\x85\xe4\xf8\x91\x20\x83\x07\xd8\x32\xf7\x88\x17\x2e\x4b\xf6" \
     "\x16\x21\xde\x6d\xf9\xec\x3c\x21\x5f"
 
+bool fake_memory_bitbox02(void)
+{
+    chunk_shared_t shared = {0};
+    memory_read_shared_bootdata_fake(shared.bytes);
+    shared.fields.platform = MEMORY_PLATFORM_BITBOX02;
+    // The host securechip fake only supports Optiga password stretching.
+    shared.fields.securechip_type = MEMORY_SECURECHIP_TYPE_OPTIGA;
+    return memory_write_to_address_fake(FLASH_SHARED_DATA_START, 0, shared.bytes);
+}
+
 bool fake_memory_nova(void)
 {
     chunk_shared_t shared = {0};

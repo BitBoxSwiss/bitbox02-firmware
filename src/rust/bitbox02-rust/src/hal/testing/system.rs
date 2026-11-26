@@ -35,6 +35,8 @@ impl crate::hal::System for TestingSystem {
         panic!("reboot called")
     }
 
+    fn reboot_after_reset(&mut self) {}
+
     fn reboot_to_bootloader(&mut self) -> ! {
         panic!("reboot_to_bootloader called")
     }

@@ -16,7 +16,7 @@ pub enum rust_memory_securechip_type_t {
     RUST_MEMORY_SECURECHIP_TYPE_OPTIGA = 1,
 }
 
-#[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
+#[cfg(not(any(feature = "c-unit-testing", feature = "simulator")))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_main_loop() -> ! {
     let mut hal = crate::HalImpl::new();

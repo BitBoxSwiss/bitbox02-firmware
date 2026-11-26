@@ -336,7 +336,7 @@ fn fake_memory_factoryreset() {
     unsafe { bitbox02_sys::fake_memory_factoryreset() }
 }
 
-#[cfg(feature = "simulator-graphical")]
+#[cfg(feature = "simulator")]
 pub fn fake_nova() -> bool {
     unsafe { bitbox02_sys::fake_memory_nova() }
 }
@@ -353,7 +353,7 @@ fn set_bootloader_hash_fake(hash: &[u8; 32]) {
     unsafe { bitbox02_sys::memory_set_bootloader_hash_fake(hash.as_ptr()) }
 }
 
-#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
+#[cfg(any(feature = "testing", feature = "simulator"))]
 pub(crate) fn memory_setup(random_fn: unsafe extern "C" fn(*mut u8)) -> bool {
     unsafe {
         static mut MEMORY_IFS: bitbox02_sys::memory_interface_functions_t =

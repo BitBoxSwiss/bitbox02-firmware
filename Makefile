@@ -67,14 +67,15 @@ simulator:
 	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator
 simulator-graphical:
-	$(MAKE) build-build-noasan
-	$(MAKE) -C build-build-noasan simulator-graphical
+	$(MAKE) simulator
 simulator-graphical-bb03:
 	$(MAKE) build-build-noasan
 	$(MAKE) -C build-build-noasan simulator-graphical-bb03
 run-simulator:
 	$(MAKE) simulator
-	./build-build-noasan/bin/simulator
+	./build-build-noasan/bin/simulator $(SIMULATOR_ARGS)
+run-simulator-graphical:
+	$(MAKE) run-simulator SIMULATOR_ARGS="$(SIMULATOR_ARGS)"
 unit-test:
 	$(MAKE) build-build
 	$(MAKE) -C build-build
@@ -139,7 +140,7 @@ vendor-rust-deps:
 .PHONY: $(BUILD_TARGETS) $(addprefix flash-,$(FLASH_IMAGES)) $(addprefix run-,$(IMAGES))
 .PHONY: config bootstrap debug-server \
 	build-build build-build-noasan simulator simulator-graphical simulator-graphical-bb03 \
-	run-simulator unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
+	run-simulator run-simulator-graphical unit-test run-unit-tests run-rust-unit-tests run-rust-clippy \
 	run-valgrind-on-unit-tests flash-dev-firmware \
 	rtt-client dockerinit dockerpull dockerdev dockerrel generate-protobufs \
 	generate-atecc608-config ci prepare-tidy clean distclean vendor-rust-deps

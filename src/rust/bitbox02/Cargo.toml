@@ -37,10 +37,11 @@ bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 testing = ["util/testing"]
 # Enables UI stubs for rust unit tests
 unit-testing = []
-# Active when the Rust code is compiled to be linked into the C unit tests and simulator.
+# Active when the Rust code is compiled to be linked into the C unit tests.
 c-unit-testing = []
-# Active when building for the graphical simulator
-simulator-graphical = []
+# Active when building the simulator
+simulator = []
+simulator-graphical = ["simulator"]
 
 app-ethereum = []
 app-bitcoin = []

@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use bitbox02_sys::SD_MAX_FILE_SIZE;
 use util::strings::str_to_cstr_vec;
 
-#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
+#[cfg(any(feature = "testing", feature = "simulator"))]
 pub fn format() -> bool {
     unsafe { bitbox02_sys::sd_format() }
 }

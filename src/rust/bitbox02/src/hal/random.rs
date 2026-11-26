@@ -5,13 +5,13 @@ use bitbox_hal::Random;
 pub struct BitBox02Random;
 
 impl Random for BitBox02Random {
-    // C simulator still uses this.
-    #[cfg(any(feature = "c-unit-testing", feature = "simulator-graphical"))]
+    // Host simulations and C tests cannot read factory flash.
+    #[cfg(any(feature = "c-unit-testing", feature = "simulator"))]
     fn factory_randomness(&mut self) -> &'static [u8; 32] {
         &[0; 32]
     }
 
-    #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
+    #[cfg(not(any(feature = "c-unit-testing", feature = "simulator")))]
     #[inline(always)]
     fn factory_randomness(&mut self) -> &'static [u8; 32] {
         let addr =

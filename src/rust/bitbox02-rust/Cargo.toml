@@ -108,8 +108,8 @@ testing = [
 
 c-unit-testing = ["bitbox-secp256k1/c-unit-testing"]
 
-simulator-graphical = [
-  "bitbox02/simulator-graphical",
+simulator = [
+  "bitbox02/simulator",
   "app-bitcoin",
   "app-litecoin",
   "app-ethereum",
@@ -118,6 +118,9 @@ simulator-graphical = [
 ]
 
 firmware = []
+
+# Compatibility for the separate BitBox03 graphical simulator.
+simulator-graphical = ["simulator"]
 
 [dev-dependencies]
 async_test = { path = "../async_test" }

@@ -15,8 +15,11 @@ zeroize = { workspace = true }
 
 [features]
 app-u2f = ["bitbox-hal/app-u2f"]
-simulator-graphical = []
+simulator = []
 testing = []
+
+# Compatibility for the separate BitBox03 graphical simulator.
+simulator-graphical = ["simulator"]
 
 [dev-dependencies]
 async_test = { path = "../async_test" }

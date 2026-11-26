@@ -1,24 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use clap::Parser;
 use femtovg::{Canvas, ImageFlags, ImageId, ImageSource, Paint, Path, renderer::OpenGl};
 use image::{DynamicImage, GenericImage, Rgba, RgbaImage};
 
 use std::collections::VecDeque;
 use std::error::Error;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::{
-    Arc, LazyLock, Mutex,
-    atomic::{AtomicBool, AtomicU32, Ordering},
-    mpsc,
-    mpsc::TryRecvError,
+    LazyLock, Mutex,
+    atomic::{AtomicBool, Ordering},
 };
-use std::task::Poll::Ready;
 use std::thread;
-use std::time::Duration;
+
+use crate::core::{GraphicalHal, SimulatorCore, TICK_INTERVAL};
 
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalSize};
@@ -35,17 +30,8 @@ use glutin::display::{GetGlDisplay, GlDisplay};
 use glutin::surface::{GlSurface, Surface, SurfaceAttributesBuilder, WindowSurface};
 use glutin_winit::DisplayBuilder;
 
-use tracing::{debug, error, info};
-use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
-
 use bitbox02::ui::ugui::UG_COLOR;
-use bitbox02_rust::hal::{Eeprom, Hal, Memory, System};
-use util::bb02_async::block_on;
-
-// Explicitly link library for its C exports
-extern crate bitbox02_rust_c;
-
-type SimulatorHal = bitbox02::hal::BitBox02Hal<bitbox_platform_host::timer::HostTimer>;
+use tracing::{debug, info};
 
 static BG: &[u8; 325362] = include_bytes!("../bg.png");
 
@@ -58,46 +44,6 @@ const SCREEN_HEIGHT: usize = bitbox02::screen::SCREEN_HEIGHT as usize;
 const WINDOW_LOGICAL_WIDTH_ORIGINAL: usize =
     SCREEN_WIDTH + 2 * MARGIN + PADDING_LEFT + PADDING_RIGHT;
 const WINDOW_LOGICAL_HEIGHT_ORIGINAL: usize = SCREEN_HEIGHT + 2 * MARGIN + 2 * PADDING_TOP_BOTTOM;
-
-pub fn handle_stream_reader(
-    mut stream: TcpStream,
-    inbound_in: mpsc::Sender<[u8; 64]>,
-    counter: Arc<AtomicU32>,
-) {
-    let mut buf = [0; 1024];
-    while let Ok(len) = stream.read(&mut buf) {
-        if len == 0 {
-            // Client disconnected
-            break;
-        }
-        for i in 0..len / 64 {
-            let mut data: [u8; 64] = [0; 64];
-            //debug!("rx [{}]", hex::encode(&data[..]));
-            data.copy_from_slice(&buf[64 * i..64 * (i + 1)]);
-            inbound_in.send(data).unwrap();
-        }
-    }
-    drop(inbound_in);
-    info!("TCP Stream: Disconnected read");
-    counter.fetch_sub(1, Ordering::SeqCst);
-}
-
-pub fn handle_stream_writer(
-    mut stream: TcpStream,
-    outbound_out: mpsc::Receiver<[u8; 64]>,
-    counter: Arc<AtomicU32>,
-) {
-    for item in outbound_out.iter() {
-        //debug!("tx [{}]", hex::encode(item));
-        if stream.write_all(&item[..]).is_err() {
-            // Client disconnected while writing
-            break;
-        }
-    }
-    drop(outbound_out);
-    info!("TCP Stream: Disconnected write");
-    counter.fetch_sub(1, Ordering::SeqCst);
-}
 
 /// Screen frame buffer
 static SCREEN_FB: LazyLock<Mutex<DynamicImage>> = LazyLock::new(|| {
@@ -136,49 +82,6 @@ fn clear_fn() {
 
 fn mirror_fn(_: bool) {
     MIRROR.fetch_xor(true, Ordering::Relaxed);
-}
-
-static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
-
-fn init_hww(
-    preseed: bool,
-) -> Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>> {
-    bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
-    bitbox02::screen::splash();
-
-    // BitBox02 simulation initialization
-    info!("USB setup success");
-
-    info!("HWW setup success");
-
-    if !bitbox02::sd::format() {
-        error!("ERROR, sd card setup failed");
-        return None;
-    }
-
-    info!("Sd card setup: success");
-
-    bitbox02::testing::mock_memory();
-    bitbox02::memory::fake_nova();
-    info!("Memory setup: success");
-
-    let mut hal = SimulatorHal::new();
-    block_on(bitbox02_rust::secp256k1::init(&mut hal)).unwrap();
-
-    if preseed {
-        let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
-        let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        block_on(bitbox02_rust::keystore::encrypt_and_store_seed(
-            &mut hal, &seed, "",
-        ))
-        .unwrap();
-        hal.memory().set_initialized().unwrap();
-    }
-
-    hal.eeprom().setup();
-    hal.eeprom().init();
-
-    Some(bitbox02_rust::hww::transport::hww_transport::<SimulatorHal>())
 }
 
 #[derive(Debug)]
@@ -226,15 +129,12 @@ struct App {
     pinch: bool,
     mouse_last_x: i32,
     mouse_last_y: i32,
-    outbound_in: Option<mpsc::Sender<[u8; 64]>>,
-    inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
-    startup_task: Option<util::bb02_async::Task<'static, ()>>,
-    transport: Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>>,
-    started_at: std::time::Instant,
+    core: SimulatorCore<GraphicalHal>,
+    error: Option<std::io::Error>,
 }
 
-impl Default for App {
-    fn default() -> App {
+impl App {
+    fn new(core: SimulatorCore<GraphicalHal>) -> App {
         App {
             window: Default::default(),
             surface: Default::default(),
@@ -247,11 +147,8 @@ impl Default for App {
             pinch: false,
             mouse_last_x: 0,
             mouse_last_y: 0,
-            outbound_in: Default::default(),
-            inbound_out: Default::default(),
-            startup_task: Default::default(),
-            transport: Default::default(),
-            started_at: std::time::Instant::now(),
+            core,
+            error: None,
         }
     }
 }
@@ -406,7 +303,6 @@ fn emit_slider_event(slider: &mut Slider, updated: SliderUpdate, slider_source: 
 #[derive(Debug)]
 enum UserEvent {
     WakeUp,
-    NewConnection(mpsc::Sender<[u8; 64]>, mpsc::Receiver<[u8; 64]>),
 }
 
 impl ApplicationHandler<UserEvent> for App {
@@ -626,66 +522,18 @@ impl ApplicationHandler<UserEvent> for App {
 
     // Since the firmware code is very non-threadsafe all firmware code is called from user events
     // in the main thread.
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::WakeUp => {
-                let now_ms = self.started_at.elapsed().as_millis() as u64;
-                // Read data from TCP client
-                let mut inbound_out = self.inbound_out.take();
-                let mut disconnected = false;
-                if let Some(inbound_out) = &mut inbound_out {
-                    loop {
-                        match inbound_out.try_recv() {
-                            Ok(data) => {
-                                if let Some(transport) = self.transport.as_mut() {
-                                    transport.handle_report(&data, now_ms);
-                                }
-                            }
-                            Err(TryRecvError::Disconnected) => {
-                                // Drop the outbound channel
-                                let _ = self.outbound_in.take();
-                                disconnected = true;
-                                break;
-                            }
-                            Err(TryRecvError::Empty) => {
-                                break;
-                            }
-                        }
+                match self.core.tick() {
+                    Ok(true) => {}
+                    result => {
+                        self.error = result.err();
+                        event_loop.exit();
+                        return;
                     }
                 }
-                if !disconnected {
-                    self.inbound_out = inbound_out;
-                }
-                if let Some(transport) = self.transport.as_mut() {
-                    transport.tick(now_ms);
-                }
-                // Send data to TCP Client
-                loop {
-                    if let Some(data) = self
-                        .transport
-                        .as_mut()
-                        .and_then(|transport| transport.pull_report())
-                    {
-                        if let Some(outbound_in) = &mut self.outbound_in {
-                            if outbound_in.send(data).is_err() {
-                                info!("writer thread died and closed channel");
-                                let _ = self.outbound_in.take();
-                            }
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                // Business logic
-                bitbox02_rust::async_usb::spin();
                 bitbox02::screen::process(bitbox02_rust::async_usb::is_processing_request());
-
-                if let Some(ref mut task) = self.startup_task {
-                    if let Ready(_startup) = util::bb02_async::spin(task) {
-                        ACCEPTING_CONNECTIONS.store(true, Ordering::Relaxed);
-                        self.startup_task = None;
-                    }
-                }
 
                 if let Some(window) = &self.window
                     && let Some(canvas) = &mut self.canvas
@@ -701,139 +549,30 @@ impl ApplicationHandler<UserEvent> for App {
                     window.request_redraw();
                 }
             }
-            UserEvent::NewConnection(outbound_in, inbound_out) => {
-                self.outbound_in.replace(outbound_in);
-                self.inbound_out.replace(inbound_out);
-                info!("Accepted connection")
-            }
         }
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        self.startup_task = Some(Box::pin(
-            bitbox02::hal::system::BitBox02System::<bitbox_platform_host::timer::HostTimer>::startup(),
-        ));
     }
 }
 
-#[derive(Debug)]
-struct AppError(String);
-
-impl Error for AppError {}
-
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl AppError {
-    pub fn new(msg: &str) -> AppError {
-        AppError(msg.into())
-    }
-}
-
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// Pre seed the simulated bitbox with empty password and the following bip39 seed phrase "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
-    #[arg(long)]
-    preseed: bool,
-    /// TCP port to listen on for the host connection.
-    #[arg(long, default_value_t = 15423)]
-    port: u16,
-}
-
-pub fn main() -> Result<(), Box<dyn Error>> {
-    // Enable debug output with environment variable RUST_LOG=debug
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .from_env_lossy();
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(filter)
-        .init();
-
-    info!("Change log level with environment variable. e.g. RUST_LOG=debug");
-
-    let args = Args::parse();
-
-    let mut app = App::default();
-    app.transport = init_hww(args.preseed);
-    if app.transport.is_none() {
-        return Err(Box::new(AppError::new("Failed to init hww")));
-    }
+pub fn run(args: &crate::Args) -> Result<(), Box<dyn Error>> {
+    bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
+    bitbox02::screen::splash();
+    let mut app = App::new(SimulatorCore::new(args)?);
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
-    event_loop.set_control_flow(ControlFlow::Poll);
-
-    // "Accept incoming connections" thread
-    thread::spawn({
-        let el_proxy = event_loop.create_proxy();
-        let Ok(listener) = TcpListener::bind(("0.0.0.0", args.port)) else {
-            return Err(Box::new(AppError::new("Failed to bind to address!")));
-        };
-        move || {
-            // Use this counter to ensure that we only connect to a single client.
-            let counter = Arc::new(AtomicU32::new(0));
-
-            for stream in listener.incoming() {
-                if ACCEPTING_CONNECTIONS.load(Ordering::Relaxed)
-                    && counter.compare_exchange(0, 2, Ordering::Acquire, Ordering::Relaxed) == Ok(0)
-                {
-                    let Ok(stream) = stream else {
-                        counter.store(0, Ordering::Relaxed);
-                        error!("Error with stream");
-                        continue;
-                    };
-                    let Ok(stream_clone) = stream.try_clone() else {
-                        counter.store(0, Ordering::Relaxed);
-                        error!("Error with cloning stream");
-                        continue;
-                    };
-                    // Channel for communicating from HWW to client
-                    let (outbound_in, outbound_out) = mpsc::channel();
-                    // Channel for communicating from Client to HWW
-                    let (inbound_in, inbound_out) = mpsc::channel();
-                    // Inform the main event loop about the new connection
-                    if el_proxy
-                        .send_event(UserEvent::NewConnection(outbound_in, inbound_out))
-                        .is_err()
-                    {
-                        // Event loop has quit
-                        return;
-                    }
-                    thread::spawn({
-                        let counter = Arc::clone(&counter);
-                        move || handle_stream_reader(stream_clone, inbound_in, counter)
-                    });
-                    thread::spawn({
-                        let counter = Arc::clone(&counter);
-                        move || handle_stream_writer(stream, outbound_out, counter)
-                    });
-                } else {
-                    info!("Busy, won't accept new clients",);
-                }
-            }
+    event_loop.set_control_flow(ControlFlow::Wait);
+    let proxy = event_loop.create_proxy();
+    thread::spawn(move || {
+        while proxy.send_event(UserEvent::WakeUp).is_ok() {
+            thread::sleep(TICK_INTERVAL);
         }
     });
-
-    // Wake up main event loop
-    thread::spawn({
-        let el_proxy = event_loop.create_proxy();
-        move || {
-            loop {
-                if el_proxy.send_event(UserEvent::WakeUp).is_err() {
-                    // Event loop has quit
-                    return;
-                }
-                std::thread::sleep(Duration::from_micros(5000));
-            }
-        }
-    });
-
     event_loop.run_app(&mut app)?;
-
+    if let Some(error) = app.error.take() {
+        return Err(error.into());
+    }
     Ok(())
 }

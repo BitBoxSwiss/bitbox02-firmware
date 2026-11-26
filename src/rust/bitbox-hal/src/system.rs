@@ -20,6 +20,9 @@ pub trait System {
 
     fn is_btconly(&mut self) -> bool;
     fn reboot(&mut self) -> !;
+    fn reboot_after_reset(&mut self) {
+        self.reboot();
+    }
     fn reboot_to_bootloader(&mut self) -> !;
     fn reset_ble(&mut self);
 }

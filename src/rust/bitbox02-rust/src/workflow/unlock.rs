@@ -246,10 +246,10 @@ async fn unlock_bip39_with_passphrase<H: crate::hal::Hal>(
                 mnemonic_passphrase,
                 // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
                 // simulator.
-                #[cfg(any(feature = "c-unit-testing", feature = "simulator-graphical"))]
+                #[cfg(any(feature = "c-unit-testing", feature = "simulator"))]
                 async || {},
                 // we yield every time to keep the processing time per iteration to a minimum.
-                #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
+                #[cfg(not(any(feature = "c-unit-testing", feature = "simulator")))]
                 futures_lite::future::yield_now,
             ),
         )

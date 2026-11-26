@@ -3,7 +3,7 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
-#[cfg(any(test, feature = "c-unit-testing", feature = "simulator-graphical"))]
+#[cfg(any(test, feature = "c-unit-testing", feature = "simulator"))]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate std;
@@ -16,12 +16,12 @@ extern crate std;
 #[macro_use]
 extern crate alloc;
 
-#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
+#[cfg(any(feature = "testing", feature = "simulator"))]
 pub mod testing;
 
 pub mod da14531_handler;
 pub mod da14531_protocol;
-#[cfg(feature = "simulator-graphical")]
+#[cfg(feature = "simulator")]
 pub mod event;
 pub mod hal;
 pub mod hid_hww;
@@ -123,15 +123,15 @@ pub fn reboot_to_bootloader() -> ! {
     loop {}
 }
 
-#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+#[cfg(any(feature = "testing", feature = "c-unit-testing", feature = "simulator"))]
 pub fn print_stdout(msg: &str) {
-    let msg = util::strings::str_to_cstr_vec(msg).unwrap();
+    let msg = util::strings::str_to_cstr_vec_zeroizing(msg).unwrap();
     unsafe {
         bitbox02_sys::printf(c"%s".as_ptr(), msg.as_ptr());
     }
 }
 
-#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+#[cfg(any(feature = "testing", feature = "c-unit-testing", feature = "simulator"))]
 pub fn println_stdout(msg: &str) {
     let msg = util::strings::str_to_cstr_vec(msg).unwrap();
     unsafe {

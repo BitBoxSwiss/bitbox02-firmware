@@ -288,8 +288,9 @@ Pass `-j<N>` to speed up a build, for example `make -j8 firmware`. Top-level ali
 
 ### Build the simulator
 
-The Multi edition firmware can be built as a simulator for linux and macos. To
-build it, run:
+The Multi edition firmware can be built as a Rust simulator for Linux and macOS.
+The same executable supports automated headless operation and the graphical UI.
+To build it, run:
 
 ```sh
 make simulator
@@ -297,12 +298,18 @@ make simulator
 
 ### Build the graphical simulator
 
-The Multi edition firmware can be built as a graphical simulator for linux and
-macos. To build it, run:
+The graphical mode is the default in `make simulator`. Start it with:
 
 ```sh
-make simulator-graphical
+make run-simulator
 ```
+
+`make simulator-graphical` remains an alias for `make simulator`, and
+`make run-simulator-graphical` is an alias for `make run-simulator`. Run without a
+window using `make run-simulator SIMULATOR_ARGS="--nogui"`. Both run aliases accept
+`SIMULATOR_ARGS`, for example `make run-simulator SIMULATOR_ARGS="--preseed --port 15424"`.
+The executable includes GUI dependencies, but headless mode does not initialize
+a window system or OpenGL and does not require a display server.
 
 ### Flash instructions
 
@@ -412,16 +419,16 @@ To view the results, open `build-bitbox02-cmake-relwithdebinfo/docs/html/index.h
 
 #### Debugging using the simulator
 
-Run it with:
+Start with the graphical UI and no seed:
 
 ```sh
 ./build-build-noasan/bin/simulator
 ```
 
-or the following if you built the graphical one:
+or start headlessly:
 
 ```sh
-./build-build-noasan/bin/simulator-graphical --preseed
+./build-build-noasan/bin/simulator --nogui
 ```
 
 This launches a server simulating the firmware. The send_message tool can
@@ -429,14 +436,24 @@ connect to it with:
 
     ./py/send_message.py --simulator
 
-Both simulators can load the following seed:
+Both modes can load the following seed:
 
     boring mistake dish oyster truth pigeon viable emerge sort crash wire
     portion cannon couple enact box walk height pull today solid off enable
     tide
 
-The graphical simulator does it with the flag `--preseed`. The original
-simulator loads it if you restore from mnemonic.
+Both modes start without a seed. The flag `--preseed` loads it at startup in either
+mode. Headless mode also uses it when restoring from mnemonic, approves
+confirmations automatically, and uses empty passwords and passphrases. GUI mode
+uses the device UI, including the orientation prompt.
+
+`--port` selects the TCP port (default: 15423). SIGINT and SIGTERM stop the
+simulator; SIGHUP disconnects the current client while keeping the simulator and
+wallet state alive. Headless reset returns without rebooting, allowing integration
+tests to continue. Both modes accept the test payment-request identities; production
+firmware excludes them.
+
+See [simulator tests](test/simulator/README.md) for the compatibility checks.
 
 
 #### Debugging and RTT

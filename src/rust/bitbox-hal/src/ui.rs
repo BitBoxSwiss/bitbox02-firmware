@@ -88,6 +88,12 @@ pub enum CanCancel {
     Yes,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum MnemonicWorkflow {
+    Restore,
+    Confirm,
+}
+
 pub trait Progress {
     /// Set progress as a fraction. `denominator` must be non-zero and
     /// `numerator <= denominator`.
@@ -101,6 +107,12 @@ pub trait Ui {
     type Progress: Progress;
     type Empty: Empty;
     type UnlockAnimation;
+
+    /// Delimits mnemonic prompts for UIs that present them as a single transcript.
+    /// Cancellation can drop the UI without calling `mnemonic_workflow_end`.
+    fn mnemonic_workflow_begin(&mut self, _workflow: MnemonicWorkflow) {}
+
+    fn mnemonic_workflow_end(&mut self) {}
 
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;

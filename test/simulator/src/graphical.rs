@@ -13,7 +13,8 @@ use std::sync::{
 };
 use std::thread;
 
-use crate::core::{GraphicalHal, SimulatorCore, TICK_INTERVAL};
+use crate::core::{SimulatorCore, TICK_INTERVAL};
+use crate::hal::GraphicalHal;
 
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalSize};

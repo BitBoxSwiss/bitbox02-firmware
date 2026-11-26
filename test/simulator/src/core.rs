@@ -10,7 +10,6 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use util::bb02_async::{Task, block_on};
 
-pub type GraphicalHal = bitbox02::hal::BitBox02Hal<bitbox_platform_host::timer::HostTimer>;
 pub const TICK_INTERVAL: Duration = Duration::from_millis(5);
 pub const MNEMONIC: &str = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
 const REPORTS_PER_TICK: usize = 64;
@@ -49,6 +48,9 @@ impl Connection {
                     if self.received == self.input.len() {
                         transport.handle_report(&self.input, now_ms);
                         self.received = 0;
+                        if crate::hal::reset_requested() {
+                            break;
+                        }
                     }
                 }
                 Err(err) if err.kind() == io::ErrorKind::WouldBlock => break,
@@ -232,12 +234,22 @@ impl<H: Hal + Default + 'static> SimulatorCore<H> {
             self.disconnect();
         }
         self.transport.tick(now_ms);
+        bitbox02_rust::async_usb::spin();
+        if crate::hal::take_reset_request() {
+            self.disconnect();
+            let mut hal = H::default();
+            hal.eeprom().setup();
+            hal.eeprom().init();
+            if !self.headless {
+                bitbox02::ui::screen_process_waiting_switch_to_lockscreen();
+            }
+            return Ok(true);
+        }
         if let Some(connection) = self.connection.as_mut()
             && connection.write(&mut self.transport).is_err()
         {
             self.disconnect();
         }
-        bitbox02_rust::async_usb::spin();
         Ok(true)
     }
 }

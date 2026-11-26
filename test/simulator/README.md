@@ -16,6 +16,11 @@ SIGINT and SIGTERM stop the simulator. SIGHUP disconnects the current client;
 the process and wallet state survive, and another client can connect. SIGHUP
 without a client has no effect.
 
+Reset deletes the wallet and closes the client connection in both modes. The
+simulator stays running and accepts a new connection with a fresh session.
+`--preseed` applies only at startup, so reconnecting after reset leaves the wallet
+unseeded.
+
 ## Compatibility tests
 
 After building, run from the repository root with the Python dependencies installed:
@@ -32,6 +37,8 @@ alternate executable. The transcript fixtures were captured from the C simulator
 only the random pairing code and selected port are normalized.
 Terminal transcripts are checked on both platforms; the redirected-output fixture
 uses Linux's C stdio buffering.
+Reset is checked separately because it now disconnects instead of returning on the
+existing session.
 
 `--legacy` skips scenarios the C executable does not support. `--record` explicitly
 updates the transcript fixtures when testing a reference executable.

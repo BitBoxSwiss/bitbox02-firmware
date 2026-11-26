@@ -2,6 +2,7 @@
 
 mod core;
 mod graphical;
+mod hal;
 mod headless;
 mod signals;
 

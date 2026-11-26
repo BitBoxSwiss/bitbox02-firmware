@@ -224,9 +224,6 @@ class SimulatorTests(unittest.TestCase):
         api.show_mnemonic()
         api.show_mnemonic()
         api._eth_msg_query(payment_request(), expected_response="sign")
-        self.assertTrue(api.reset())
-        self.assertFalse(api.device_info()["initialized"])
-        api.set_device_name("After reset")
         output = simulator.stop()
         # The Noise pairing code is random; retain its screen and exact layout.
         output = re.sub(
@@ -303,9 +300,43 @@ class SimulatorTests(unittest.TestCase):
         self.assertTrue(api.device_info()["initialized"])
         api.show_mnemonic()
         self.assertTrue(api.reset())
+        api.close()
+        api = simulator.api()
+        self.addCleanup(api.close)
+        self.assertFalse(api.device_info()["initialized"])
         restore(api)
         self.assertTrue(api.device_info()["initialized"])
+        api.show_mnemonic()
         simulator.stop()
+
+    def test_reset_disconnect(self):
+        if LEGACY:
+            self.skipTest("C simulator keeps the reset connection open")
+        for preseed in (False, True):
+            with self.subTest(preseed=preseed):
+                simulator = self.simulator(*(["--preseed"] if preseed else []))
+                api = simulator.api()
+                self.addCleanup(api.close)
+                self.assertEqual(api.device_info()["initialized"], preseed)
+                default_name = api.device_info()["name"]
+                for _ in range(2):
+                    if not api.device_info()["initialized"]:
+                        restore(api)
+                    api.set_device_name("Before reset")
+                    request = hww_pb2.Request()
+                    request.reset.SetInParent()
+                    with self.assertRaisesRegex(OSError, "Simulator disconnected"):
+                        api._msg_query(request)
+                    with self.assertRaises(OSError):
+                        api.device_info()
+                    self.assertIsNone(simulator.process.poll())
+                    api.close()
+                    api = simulator.api()
+                    self.addCleanup(api.close)
+                    info = api.device_info()
+                    self.assertFalse(info["initialized"])
+                    self.assertEqual(info["name"], default_name)
+                simulator.stop()
 
     def test_payment_request_identities(self):
         simulator = self.simulator()

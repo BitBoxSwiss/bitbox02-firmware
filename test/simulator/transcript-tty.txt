@@ -147,21 +147,5 @@ STATUS SCREEN START
 TITLE: Transaction
 confirmed
 STATUS SCREEN END
-CONFIRM SCREEN START
-TITLE: Delete
-BODY: Delete your wallet
-from this device?
-CONFIRM SCREEN END
-STATUS SCREEN START
-TITLE: Wallet deleted
-from this device
-STATUS SCREEN END
-CONFIRM SCREEN START
-TITLE: Name
-BODY: After reset
-CONFIRM SCREEN END
-STATUS SCREEN START
-TITLE: Success
-STATUS SCREEN END
 
 Got term/int signal, exiting

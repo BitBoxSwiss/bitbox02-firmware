@@ -449,9 +449,10 @@ uses the device UI, including the orientation prompt.
 
 `--port` selects the TCP port (default: 15423). SIGINT and SIGTERM stop the
 simulator; SIGHUP disconnects the current client while keeping the simulator and
-wallet state alive. Headless reset returns without rebooting, allowing integration
-tests to continue. Both modes accept the test payment-request identities; production
-firmware excludes them.
+wallet state alive. Reset deletes the wallet and disconnects the client in both
+modes; reconnect to use the simulator again. The process stays running, and
+`--preseed` is not reapplied after reset. Both modes accept the test payment-request
+identities; production firmware excludes them.
 
 See [simulator tests](test/simulator/README.md) for the compatibility checks.
 

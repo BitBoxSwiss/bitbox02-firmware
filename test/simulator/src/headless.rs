@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use bitbox_hal::Ui;
 use bitbox_hal::ui::{
     CanCancel, ConfirmParams, EnterStringParams, Font, MnemonicWorkflow, TrinaryChoice, UserAbort,
     WordlistEntryAbort,
 };
-use bitbox_hal::{Hal, System, Ui};
 use bitbox02::ui::log;
 use std::time::Duration;
 use zeroize::Zeroizing;
 
-use crate::core::{GraphicalHal, MNEMONIC, SimulatorCore, TICK_INTERVAL};
+use crate::core::{MNEMONIC, SimulatorCore, TICK_INTERVAL};
+
+type HeadlessHal = crate::hal::SimulatorHal<HeadlessUi, false>;
 
 #[derive(Default)]
 pub struct HeadlessUi {
@@ -212,78 +214,6 @@ impl Ui for HeadlessUi {
     }
 }
 
-#[derive(Default)]
-pub struct HeadlessSystem {
-    inner: bitbox02::hal::system::BitBox02System<bitbox_platform_host::timer::HostTimer>,
-}
-
-impl System for HeadlessSystem {
-    async fn startup() {}
-
-    fn communication_timeout_reset(&mut self, value: i16) {
-        self.inner.communication_timeout_reset(value);
-    }
-
-    fn is_btconly(&mut self) -> bool {
-        self.inner.is_btconly()
-    }
-
-    fn reboot(&mut self) -> ! {
-        self.inner.reboot()
-    }
-
-    fn reboot_to_bootloader(&mut self) -> ! {
-        self.inner.reboot_to_bootloader()
-    }
-
-    fn reboot_after_reset(&mut self) {}
-
-    fn reset_ble(&mut self) {
-        self.inner.reset_ble();
-    }
-}
-
-#[derive(Default)]
-pub struct HeadlessHal {
-    inner: GraphicalHal,
-    ui: HeadlessUi,
-    system: HeadlessSystem,
-}
-
-impl Hal for HeadlessHal {
-    type Ui = HeadlessUi;
-    type Random = <GraphicalHal as Hal>::Random;
-    type Sd = <GraphicalHal as Hal>::Sd;
-    type SecureChip = <GraphicalHal as Hal>::SecureChip;
-    type Memory = <GraphicalHal as Hal>::Memory;
-    type Eeprom = <GraphicalHal as Hal>::Eeprom;
-    type System = HeadlessSystem;
-
-    fn as_mut(
-        &mut self,
-    ) -> bitbox_hal::HalSubsystems<
-        '_,
-        Self::Ui,
-        Self::Random,
-        Self::Sd,
-        Self::SecureChip,
-        Self::Memory,
-        Self::Eeprom,
-        Self::System,
-    > {
-        let inner = self.inner.as_mut();
-        bitbox_hal::HalSubsystems {
-            ui: &mut self.ui,
-            random: inner.random,
-            sd: inner.sd,
-            securechip: inner.securechip,
-            memory: inner.memory,
-            eeprom: inner.eeprom,
-            system: &mut self.system,
-        }
-    }
-}
-
 pub fn run(args: &crate::Args) -> std::io::Result<()> {
     let mut core = SimulatorCore::<HeadlessHal>::new(args)?;
     while core.tick()? {
@@ -357,10 +287,5 @@ mod tests {
             .await
             .map_err(|_| ())
             .unwrap();
-    }
-
-    #[test]
-    fn test_reboot_after_reset() {
-        HeadlessSystem::default().reboot_after_reset();
     }
 }

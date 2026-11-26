@@ -5,6 +5,9 @@ use sha3::{Digest, Keccak256};
 const RLP_SMALL_TAG: u8 = 0xc0;
 const RLP_LARGE_TAG: u8 = 0xf7;
 
+// Three length bytes cover the 1 MiB calldata limit and transaction overhead.
+const MAX_ENCODED_TRANSACTION_SIZE: u32 = 0x00ff_ffff;
+
 use core::future::Future;
 use core::pin::Pin;
 
@@ -327,16 +330,16 @@ impl Write for Counter {
     }
 }
 
-fn hash_header<W: Write>(writer: &mut W, small_tag: u8, large_tag: u8, len: u16) {
+fn hash_header<W: Write>(writer: &mut W, small_tag: u8, large_tag: u8, len: u32) {
     // According to the RLP spec., buffer headers are encoded differently for lengths below and
     // above 55 (for >55, length of length is encoded).
     if len <= 55 {
         writer.write(&[small_tag + len as u8]);
-    } else if len <= 0xff {
-        writer.write(&[large_tag + 1, len as u8]);
     } else {
-        writer.write(&[large_tag + 2]);
-        writer.write(&len.to_be_bytes());
+        let bytes = len.to_be_bytes();
+        let bytes = &bytes[(len.leading_zeros() / 8) as usize..];
+        writer.write(&[large_tag + bytes.len() as u8]);
+        writer.write(bytes);
     }
 }
 
@@ -357,7 +360,7 @@ async fn hash_producer<W: Write>(
     // hash header
     let len = producer.len();
     if len != 1 || producer.first_byte().await? > 0x7f {
-        hash_header(writer, 0x80, 0xb7, len as _);
+        hash_header(writer, 0x80, 0xb7, len);
     }
     writer.write_producer(producer).await
 }
@@ -419,14 +422,14 @@ pub async fn compute_legacy(params: &mut ParamsLegacy<'_>) -> Result<[u8; 32], E
     let mut counter = Counter(0);
     hash_params_legacy(&mut counter, params).await?;
 
-    if counter.0 > 0xffff {
+    if counter.0 > MAX_ENCODED_TRANSACTION_SIZE {
         // Don't support bigger than this for now.
         return Err(Error::InvalidInput);
     }
 
     // 2) hash len and encoded tx elements
     let mut hasher = Hasher(Keccak256::new());
-    hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0 as u16);
+    hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0);
     hash_params_legacy(&mut hasher, params).await?;
     Ok(hasher.0.finalize().into())
 }
@@ -441,7 +444,7 @@ pub async fn compute_eip1559(params: &mut ParamsEIP1559<'_>) -> Result<[u8; 32],
     let mut counter = Counter(0);
     hash_params_eip1559(&mut counter, params).await?;
 
-    if counter.0 > 0xffff {
+    if counter.0 > MAX_ENCODED_TRANSACTION_SIZE {
         // Don't support bigger than this for now.
         return Err(Error::InvalidInput);
     }
@@ -449,7 +452,7 @@ pub async fn compute_eip1559(params: &mut ParamsEIP1559<'_>) -> Result<[u8; 32],
     // 2) hash len and encoded tx elements
     let mut hasher = Hasher(Keccak256::new());
     hasher.write(&[0x02]); // prefix the rlp encoding with transaction type before hashing
-    hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0 as u16);
+    hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0);
     hash_params_eip1559(&mut hasher, params).await?;
     Ok(hasher.0.finalize().into())
 }
@@ -651,6 +654,110 @@ pub mod tests {
                 );
                 clear_chunk_responder();
             }
+        }
+    }
+
+    #[test]
+    fn test_hash_header_length_boundaries() {
+        for (length, expected) in [
+            (0, &[0x80][..]),
+            (55, &[0xb7][..]),
+            (56, &[0xb8, 0x38][..]),
+            (255, &[0xb8, 0xff][..]),
+            (256, &[0xb9, 0x01, 0x00][..]),
+            (65_535, &[0xb9, 0xff, 0xff][..]),
+            (65_536, &[0xba, 0x01, 0x00, 0x00][..]),
+            (0x00ff_ffff, &[0xba, 0xff, 0xff, 0xff][..]),
+            (0x0100_0000, &[0xbb, 0x01, 0x00, 0x00, 0x00][..]),
+            (u32::MAX, &[0xbb, 0xff, 0xff, 0xff, 0xff][..]),
+        ] {
+            let mut hasher = Hasher(Keccak256::new());
+            hash_header(&mut hasher, 0x80, 0xb7, length);
+            let actual: [u8; 32] = hasher.0.finalize().into();
+            let expected: [u8; 32] = Keccak256::digest(expected).into();
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[async_test::test]
+    async fn test_compute_large_streaming_data() {
+        // The outer list crosses its length boundary before the data string does.
+        for (length, list_header, data_header) in [
+            (65_502, &[0xf9, 0xff, 0xff][..], &[0xb9, 0xff, 0xde][..]),
+            (
+                65_503,
+                &[0xfa, 0x01, 0x00, 0x00][..],
+                &[0xb9, 0xff, 0xdf][..],
+            ),
+            (
+                65_535,
+                &[0xfa, 0x01, 0x00, 0x20][..],
+                &[0xb9, 0xff, 0xff][..],
+            ),
+            (
+                65_536,
+                &[0xfa, 0x01, 0x00, 0x22][..],
+                &[0xba, 0x01, 0x00, 0x00][..],
+            ),
+            (
+                1_048_576,
+                &[0xfa, 0x10, 0x00, 0x22][..],
+                &[0xba, 0x10, 0x00, 0x00][..],
+            ),
+        ] {
+            let data = vec![0x42; length];
+            setup_chunk_responder(data.clone());
+
+            let mut encoded = list_header.to_vec();
+            encoded.extend([0x80, 0x02, 0x82, 0x52, 0x08, 0x94]);
+            encoded.extend([0x11; 20]);
+            encoded.push(0x03);
+            encoded.extend_from_slice(data_header);
+            encoded.extend_from_slice(&data);
+            encoded.extend([0x01, 0x80, 0x80]);
+            let expected: [u8; 32] = Keccak256::digest(&encoded).into();
+            let mut producer = ChunkingProducer::from_host(length as u32);
+            assert_eq!(
+                compute_legacy(&mut ParamsLegacy {
+                    nonce: &[],
+                    gas_price: &[2],
+                    gas_limit: &[0x52, 0x08],
+                    recipient: &[0x11; 20],
+                    value: &[3],
+                    data: &mut producer,
+                    chain_id: 1,
+                })
+                .await
+                .unwrap(),
+                expected,
+            );
+
+            let mut encoded = vec![0x02];
+            encoded.extend_from_slice(list_header);
+            encoded.extend([0x01, 0x80, 0x01, 0x02, 0x82, 0x52, 0x08, 0x94]);
+            encoded.extend([0x11; 20]);
+            encoded.push(0x03);
+            encoded.extend_from_slice(data_header);
+            encoded.extend_from_slice(&data);
+            encoded.push(0xc0);
+            let expected: [u8; 32] = Keccak256::digest(&encoded).into();
+            let mut producer = ChunkingProducer::from_host(length as u32);
+            assert_eq!(
+                compute_eip1559(&mut ParamsEIP1559 {
+                    chain_id: 1,
+                    nonce: &[],
+                    max_priority_fee_per_gas: &[1],
+                    max_fee_per_gas: &[2],
+                    gas_limit: &[0x52, 0x08],
+                    recipient: &[0x11; 20],
+                    value: &[3],
+                    data: &mut producer,
+                })
+                .await
+                .unwrap(),
+                expected,
+            );
+            clear_chunk_responder();
         }
     }
 

@@ -2474,7 +2474,9 @@ mod tests {
     #[async_test::test]
     async fn test_streaming_large_data_legacy_chunk_request_count() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        let test_data: Vec<u8> = (0..10_000u32).map(|i| (i % 256) as u8).collect();
+        let test_data: Vec<u8> = (0..MAX_STREAMING_DATA_LENGTH)
+            .map(|i| (i % 256) as u8)
+            .collect();
 
         let chunk_request_count = setup_counting_chunk_responder(test_data);
         mock_unlocked();
@@ -2493,7 +2495,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 10_000,
+                data_length: MAX_STREAMING_DATA_LENGTH,
             }),
         )
         .await;
@@ -2503,13 +2505,18 @@ mod tests {
             Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
             other => panic!("expected Ok(Sign), got {:?}", other),
         }
-        assert_eq!(chunk_request_count.get(), 3);
+        assert_eq!(
+            chunk_request_count.get(),
+            MAX_STREAMING_DATA_LENGTH.div_ceil(4096) as usize,
+        );
     }
 
     #[async_test::test]
     async fn test_streaming_large_data_eip1559_chunk_request_count() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        let test_data: Vec<u8> = (0..12_000u32).map(|i| (i % 256) as u8).collect();
+        let test_data: Vec<u8> = (0..MAX_STREAMING_DATA_LENGTH)
+            .map(|i| (i % 256) as u8)
+            .collect();
 
         let chunk_request_count = setup_counting_chunk_responder(test_data);
         mock_unlocked();
@@ -2528,7 +2535,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 12_000,
+                data_length: MAX_STREAMING_DATA_LENGTH,
                 payment_request: None,
             }),
         )
@@ -2539,6 +2546,9 @@ mod tests {
             Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
             other => panic!("expected Ok(Sign), got {:?}", other),
         }
-        assert_eq!(chunk_request_count.get(), 3);
+        assert_eq!(
+            chunk_request_count.get(),
+            MAX_STREAMING_DATA_LENGTH.div_ceil(4096) as usize,
+        );
     }
 }

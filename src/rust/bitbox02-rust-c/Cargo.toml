@@ -78,10 +78,12 @@ firmware = [
 # Only to be enabled in Rust unit tests.
 testing = ["bitbox02-rust/testing", "bitbox02/testing"]
 
-# Active when the Rust code is compiled to be linked into the C unit tests and simulator.
+# Active when the Rust code is compiled to be linked into the C unit tests.
 c-unit-testing = ["bitbox02-rust/c-unit-testing", "bitbox02/c-unit-testing", "util/c-unit-testing"]
 
-simulator-graphical = [
+simulator = [
+  "bitbox02-rust/simulator",
+  "bitbox02/simulator",
   "app-bitcoin",
   "app-litecoin",
   "app-ethereum",
@@ -119,3 +121,6 @@ app-cardano = [
 factory-setup = ["bitbox02/factory-setup"]
 
 rtt = ["util/rtt"]
+
+# Compatibility for the separate BitBox03 graphical simulator.
+simulator-graphical = ["simulator"]

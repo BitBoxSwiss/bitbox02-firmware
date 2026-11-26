@@ -233,7 +233,6 @@ jobs:
           - {target: factorysetup, product: bitbox02, edition: multi}
           - {target: firmware, product: bitbox02, edition: multi, debug: 'yes'}
           - {target: simulator, product: bitbox02, edition: multi}
-          - {target: simulator-graphical, product: bitbox02, edition: multi}
           - {target: simulator-graphical-bb03, product: bitbox02, edition: multi}
           - {target: bootloader-stage0, product: bitbox03, edition: multi}
           - {target: bootloader-stage1, product: bitbox03, edition: multi}
@@ -286,7 +285,7 @@ jobs:
           } | xargs -0 -r sha256sum
 
       - name: Upload artifact
-        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
+        if: github.event_name == 'push' && matrix.target != 'simulator' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.product}}${{ matrix.board && format('-{0}', matrix.board) || '' }}-${{matrix.edition}}-${{matrix.target}}${{ matrix.debug == 'yes' && '-debug' || '' }}-locked-${{ matrix.locked || 'no' }}-development-${{ matrix.development || 'yes' }}-embed-stage1-${{ matrix.embed-stage1 || 'no' }}-${{github.sha}}.bin
@@ -298,18 +297,24 @@ jobs:
             build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/debug/bitbox03-*
             build-bitbox03-cargo/*/thumbv8m.main-none-eabihf/release/bitbox03-*
 
-      - name: Package graphical simulator
-        if: matrix.target == 'simulator-graphical'
+      - name: Validate and package simulator
+        if: matrix.target == 'simulator'
         run: |
-          build-build-noasan/bin/simulator-graphical --help
-          tar -czf simulator-graphical-linux-x86_64.tar.gz -C build-build-noasan/bin simulator-graphical
+          build-build-noasan/bin/simulator --help
+          PYTHONPATH=py/bitbox02 .venv/bin/python test/simulator/test_simulator.py -v
+          cargo test --manifest-path test/simulator/Cargo.toml -- --test-threads 1
+          simulator_version="$(build-build-noasan/bin/simulator --version)"
+          cp build-build-noasan/bin/simulator "build-build-noasan/bin/$simulator_version"
+          tar -czf simulator-linux-x86_64.tar.gz -C build-build-noasan/bin simulator
 
-      - name: Upload graphical simulator
-        if: matrix.target == 'simulator-graphical'
+      - name: Upload simulator
+        if: matrix.target == 'simulator'
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-graphical-linux-x86_64-${{ github.sha }}
-          path: simulator-graphical-linux-x86_64.tar.gz
+          name: simulator-linux-x86_64-${{ github.sha }}
+          path: |
+            simulator-linux-x86_64.tar.gz
+            build-build-noasan/bin/bitbox02-multi-*-simulator1.0.0-linux-amd64
           if-no-files-found: error
 
   # Build simulators for macos aarch64
@@ -318,7 +323,6 @@ jobs:
       matrix:
         target:
           - simulator
-          - simulator-graphical
     runs-on: macos-15
     steps:
       - name: Clone the repo
@@ -351,26 +355,19 @@ jobs:
       - name: Print hashes
         run: sha256sum build*/bin/*
 
-      - name: Upload artifact
-        if: github.event_name == 'push' && matrix.target != 'simulator-graphical' && !cancelled()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.target}}-apple-aarch64-darwin-${{github.sha}}.bin
-          path: |
-            build*/bin/simulator*
-
-      - name: Package graphical simulator
-        if: matrix.target == 'simulator-graphical'
+      - name: Validate and package simulator
+        if: matrix.target == 'simulator'
         run: |
-          build-build-noasan/bin/simulator-graphical --help
-          tar -czf simulator-graphical-macos-aarch64.tar.gz -C build-build-noasan/bin simulator-graphical
+          build-build-noasan/bin/simulator --help
+          PYTHONPATH=py/bitbox02 .venv/bin/python test/simulator/test_simulator.py -v
+          tar -czf simulator-macos-aarch64.tar.gz -C build-build-noasan/bin simulator
 
-      - name: Upload graphical simulator
-        if: matrix.target == 'simulator-graphical'
+      - name: Upload simulator
+        if: matrix.target == 'simulator'
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-graphical-macos-aarch64-${{ github.sha }}
-          path: simulator-graphical-macos-aarch64.tar.gz
+          name: simulator-macos-aarch64-${{ github.sha }}
+          path: simulator-macos-aarch64.tar.gz
           if-no-files-found: error
 
   doc:

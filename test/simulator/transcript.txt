@@ -1,0 +1,151 @@
+Restored from recovery words below:
+boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
+boring
+mistake
+dish
+oyster
+truth
+pigeon
+viable
+emerge
+sort
+crash
+wire
+portion
+cannon
+couple
+enact
+box
+walk
+height
+pull
+today
+solid
+off
+enable
+tide
+Words confirmed
+boring
+mistake
+dish
+oyster
+truth
+pigeon
+viable
+emerge
+sort
+crash
+wire
+portion
+cannon
+couple
+enact
+box
+walk
+height
+pull
+today
+solid
+off
+enable
+tide
+Words confirmed
+USB setup success
+HWW setup success
+Sd card setup success
+Memory setup success
+Listening on port <port>
+Socket connection setup success
+CONFIRM SCREEN START
+TITLE: Pairing code
+BODY: AAAAA AAAAA
+AAAAA AAAAA
+CONFIRM SCREEN END
+CONFIRM SCREEN START
+TITLE: Name
+BODY: Simulator contract
+CONFIRM SCREEN END
+STATUS SCREEN START
+TITLE: Success
+STATUS SCREEN END
+CONFIRM SCREEN START
+TITLE: Is now?
+BODY: Tue 2023-11-14
+22:13
+CONFIRM SCREEN END
+STATUS SCREEN START
+TITLE: Recovery words
+valid
+STATUS SCREEN END
+ENTER SCREEN START
+TITLE: Set password
+ENTER SCREEN END
+ENTER SCREEN START
+TITLE: Repeat password
+ENTER SCREEN END
+CONFIRM SCREEN START
+TITLE: WARNING
+BODY: Your password
+ has fewer than
+ 4 characters.
+Continue?
+CONFIRM SCREEN END
+STATUS SCREEN START
+TITLE: Success
+STATUS SCREEN END
+ENTER SCREEN START
+TITLE: Unlock device
+ENTER SCREEN END
+CONFIRM SCREEN START
+TITLE: Warning
+BODY: DO NOT share your
+recovery words with
+anyone!
+CONFIRM SCREEN END
+CONFIRM SCREEN START
+TITLE: Recovery
+words
+BODY: Please write down
+the following words
+CONFIRM SCREEN END
+STATUS SCREEN START
+TITLE: Backup created
+STATUS SCREEN END
+ENTER SCREEN START
+TITLE: Unlock device
+ENTER SCREEN END
+CONFIRM SCREEN START
+TITLE: Warning
+BODY: DO NOT share your
+recovery words with
+anyone!
+CONFIRM SCREEN END
+CONFIRM SCREEN START
+TITLE: Recovery
+words
+BODY: Please write down
+the following words
+CONFIRM SCREEN END
+STATUS SCREEN START
+TITLE: Backup created
+STATUS SCREEN END
+CONFIRM SCREEN START
+TITLE: 
+BODY: Sign transaction on
+
+Ethereum
+CONFIRM SCREEN END
+CONFIRM TRANSACTION ADDRESS SCREEN START
+AMOUNT: 1 ETH
+ADDRESS: Test Merchant
+CONFIRM TRANSACTION ADDRESS SCREEN END
+CONFIRM TRANSACTION FEE SCREEN START
+AMOUNT: 1.000126 ETH
+FEE: 0.000126 ETH
+CONFIRM TRANSACTION FEE SCREEN END
+STATUS SCREEN START
+TITLE: Transaction
+confirmed
+STATUS SCREEN END
+
+Got term/int signal, exiting

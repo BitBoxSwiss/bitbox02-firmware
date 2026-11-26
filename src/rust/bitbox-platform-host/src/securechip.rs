@@ -3,7 +3,7 @@
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 
-#[cfg(all(feature = "simulator-graphical", not(feature = "testing")))]
+#[cfg(all(feature = "simulator", not(feature = "testing")))]
 use bitbox_hal::Timer;
 
 use bitcoin::hashes::Hash;
@@ -137,7 +137,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
 
         // Keep KDF completion visibly delayed on the host so unlock animation start/play can be
         // manually tested in the graphical simulators.
-        #[cfg(all(feature = "simulator-graphical", not(feature = "testing")))]
+        #[cfg(all(feature = "simulator", not(feature = "testing")))]
         crate::timer::HostTimer::delay_for(core::time::Duration::from_millis(1000)).await;
 
         Ok(Box::new(zeroize::Zeroizing::new(

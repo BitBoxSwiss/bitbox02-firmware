@@ -5,7 +5,7 @@
         test,
         feature = "testing",
         feature = "c-unit-testing",
-        feature = "simulator-graphical"
+        feature = "simulator"
     ),
     path = "securechip/imp_fake.rs"
 )]

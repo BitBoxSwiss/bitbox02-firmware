@@ -61,8 +61,10 @@ Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and
 
 ### Simulator
 
-To test without hardware there are two kinds of simulators. One with GUI and
-one without. See more details in [BUILD.md](BUILD.md#build-the-simulator).
+To test without hardware, build the simulator with `make simulator`. It runs
+with the graphical device UI and no seed by default. Pass `--nogui` for headless
+mode or `--preseed` to load the simulator seed. See
+[BUILD.md](BUILD.md#build-the-simulator) for details.
 
 <p align="center"><img src="./doc/bb02-simulator-graphical.png" /></p>
 

@@ -47,14 +47,14 @@ const IDENTITIES: &[Identity] = &[
         public_key: &hex!("02442ae21ca5da50d367a4b8bbd64ae71377ae2b4c1ceef8f8ebe43280aa158f17"),
         requires_refund: true,
     },
-    #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+    #[cfg(any(feature = "testing", feature = "c-unit-testing", feature = "simulator"))]
     Identity {
         name: "Test Merchant",
         // private_key: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),
         requires_refund: false,
     },
-    #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+    #[cfg(any(feature = "testing", feature = "c-unit-testing", feature = "simulator"))]
     Identity {
         name: "Test Swap",
         public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),

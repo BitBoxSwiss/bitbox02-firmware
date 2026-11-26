@@ -5,11 +5,9 @@ use core::time::Duration;
 pub struct BitBox02Timer;
 
 impl bitbox_hal::timer::Timer for BitBox02Timer {
-    // Active in C simulator.
+    // C unit tests have no timer executor.
     #[cfg(feature = "c-unit-testing")]
-    async fn delay_for(_duration: Duration) {
-        // Do not delay in (non-graphical) simulator and Rust unit tests.
-    }
+    async fn delay_for(_duration: Duration) {}
 
     // Active in production firmware.
     #[cfg(not(feature = "c-unit-testing"))]

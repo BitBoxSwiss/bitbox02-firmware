@@ -21,14 +21,14 @@ pub mod i18n;
 pub mod keystore;
 #[cfg(all(
     feature = "firmware",
-    not(any(feature = "c-unit-testing", feature = "simulator-graphical"))
+    not(any(feature = "c-unit-testing", feature = "simulator"))
 ))]
 pub mod main_loop;
 pub mod reset;
 pub mod secp256k1;
 #[cfg(feature = "app-u2f")]
 mod u2f;
-mod version;
+pub mod version;
 pub mod workflow;
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 mod xpubcache;

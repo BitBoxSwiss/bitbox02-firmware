@@ -54,6 +54,9 @@ impl<Timer: bitbox_hal::timer::Timer> System for BitBox02System<Timer> {
         crate::reboot_to_bootloader()
     }
 
+    #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+    fn reboot_after_reset(&mut self) {}
+
     fn reset_ble(&mut self) {
         crate::reset_ble()
     }

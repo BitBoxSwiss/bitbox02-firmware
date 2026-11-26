@@ -11,7 +11,7 @@ pub fn process(frame: &USB_FRAME) -> bool {
     unsafe { bitbox02_sys::usb_packet_process(frame as *const _) }
 }
 
-#[cfg(feature = "simulator-graphical")]
+#[cfg(feature = "simulator")]
 pub fn process_from_report(packet: &[u8; 64]) -> bool {
     let mut frame = core::mem::MaybeUninit::<USB_FRAME>::uninit();
     unsafe {

@@ -68,6 +68,18 @@ pub async fn show_and_confirm_mnemonic(
     words: &[&str],
     language: Language,
 ) -> Result<(), UserAbort> {
+    hal_ui.mnemonic_workflow_begin(crate::hal::ui::MnemonicWorkflow::Confirm);
+    let result = show_and_confirm_mnemonic_inner(hal_ui, hal_random, words, language).await;
+    hal_ui.mnemonic_workflow_end();
+    result
+}
+
+async fn show_and_confirm_mnemonic_inner(
+    hal_ui: &mut impl crate::hal::Ui,
+    hal_random: &mut impl crate::hal::Random,
+    words: &[&str],
+    language: Language,
+) -> Result<(), UserAbort> {
     let body = bitbox_i18n::format!(language, "{} words follow", &[&words.len().to_string()]);
     hal_ui
         .confirm(&ConfirmParams {
@@ -282,6 +294,16 @@ pub async fn get(
 
 /// Retrieve a localized BIP39 mnemonic sentence of 12 or 24 words from the user.
 pub async fn get_with_language(
+    hal_ui: &mut impl crate::hal::Ui,
+    language: Language,
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+    hal_ui.mnemonic_workflow_begin(crate::hal::ui::MnemonicWorkflow::Restore);
+    let result = get_with_language_inner(hal_ui, language).await;
+    hal_ui.mnemonic_workflow_end();
+    result
+}
+
+async fn get_with_language_inner(
     hal_ui: &mut impl crate::hal::Ui,
     language: Language,
 ) -> Result<zeroize::Zeroizing<String>, UserAbort> {

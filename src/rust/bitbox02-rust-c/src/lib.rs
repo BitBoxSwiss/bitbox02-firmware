@@ -23,11 +23,9 @@ mod firmware_c_api;
 mod secp256k1;
 
 #[cfg(feature = "app-u2f")]
-// Stubs for C unit tests and C simulator - these are currently compiled and linked but they don't
-// actually have to spawn/poll futures. The C simulator does not contain U2F, and the unit tests
-// don't contain an executor.
+// Host builds do not run the U2F executor.
 #[cfg_attr(
-    any(feature = "c-unit-testing", feature = "simulator-graphical"),
+    any(feature = "c-unit-testing", feature = "simulator"),
     path = "u2f_c_api_stubs.rs"
 )]
 mod u2f_c_api;
@@ -115,7 +113,7 @@ const _: [(); 0] = [(); (BITBOX02_MEMORY_SPI_BLE_FIRMWARE_2_ADDR
         test,
         feature = "testing",
         feature = "c-unit-testing",
-        feature = "simulator-graphical"
+        feature = "simulator"
     ))
 ))]
 #[panic_handler]

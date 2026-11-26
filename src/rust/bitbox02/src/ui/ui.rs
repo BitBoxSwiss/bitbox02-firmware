@@ -136,6 +136,9 @@ pub async fn trinary_input_string(
     can_cancel: bool,
     preset: &str,
 ) -> Result<zeroize::Zeroizing<String>, ()> {
+    #[cfg(feature = "simulator")]
+    super::log::enter_string(params.title);
+
     // Shared between the async context and the c callback
     struct SharedState {
         waker: Option<Waker>,
@@ -247,6 +250,9 @@ pub async fn trinary_input_string(
 /// Returns `ConfirmResponse::Approved` if the user accepts,
 /// `ConfirmResponse::Cancelled` if the user rejects.
 pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
+    #[cfg(feature = "simulator")]
+    super::log::confirm(params.title, params.body);
+
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
     // Shared between the async context and the c callback
@@ -332,6 +338,9 @@ pub fn screen_process() {
 }
 
 pub fn status_create(text: &str, status_success: bool) -> Component {
+    #[cfg(feature = "simulator")]
+    super::log::status(text);
+
     let component = unsafe {
         bitbox02_sys::status_create(
             display_str_to_cstr_vec(text, &Font::Regular11).as_ptr(), // copied in C
@@ -642,6 +651,9 @@ pub async fn trinary_choice(
 }
 
 pub async fn confirm_transaction_address(amount: &str, address: &str) -> ConfirmResponse {
+    #[cfg(feature = "simulator")]
+    super::log::transaction_address(amount, address);
+
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
     // Shared between the async context and the c callback
@@ -703,6 +715,9 @@ pub async fn confirm_transaction_address(amount: &str, address: &str) -> Confirm
 }
 
 pub async fn confirm_swap(title: &str, from: &str, to: &str) -> ConfirmResponse {
+    #[cfg(feature = "simulator")]
+    super::log::swap(title, from, to);
+
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
     // Shared between the async context and the c callback
@@ -765,6 +780,9 @@ pub async fn confirm_swap(title: &str, from: &str, to: &str) -> ConfirmResponse 
 }
 
 pub async fn confirm_transaction_fee(amount: &str, fee: &str, longtouch: bool) -> ConfirmResponse {
+    #[cfg(feature = "simulator")]
+    super::log::transaction_fee(amount, fee);
+
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
     // Shared between the async context and the c callback

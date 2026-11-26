@@ -1,19 +1,52 @@
 # SPDX-License-Identifier: Apache-2.0
 
-add_executable(simulator EXCLUDE_FROM_ALL simulator.c)
+#-----------------------------------------------------------------------------
+# Rust simulator (graphical by default, headless with --nogui)
+#
 
-# asan must be first library in linking order
-target_link_libraries(simulator PRIVATE
-    $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
-    $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
-    c-unit-tests_rust_c
-    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
-)
+set(RUST_BINARY_DIR ${CMAKE_BINARY_DIR}/src/rust)
 
+if(SANITIZE_ADDRESS OR SANITIZE_UNDEFINED)
+    string(APPEND RUSTFLAGS " -Zexternal-clangrt -Cdefault-linker-libraries=y")
+    # When building with address sanitizer it is important that llvm/clang is
+    # the same version as rustcs llvm. On macos this can be achieved by
+    # installing llvm from brew and then prepend the path to its binary dir to
+    # PATH. By default rust uses `cc` as linker, but this will pick the system llvm.
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        string(APPEND RUSTFLAGS " -Clinker=clang")
+    endif()
+endif()
+if(SANITIZE_ADDRESS)
+    string(APPEND RUSTFLAGS " -Clink-arg=-fsanitize=address -Zsanitizer=address")
+endif()
+if(SANITIZE_UNDEFINED)
+    string(APPEND RUSTFLAGS " -Clink-arg=-fsanitize=undefined")
+endif()
+
+execute_process(COMMAND rustc --print host-tuple OUTPUT_VARIABLE LLVM_HOST_TUPLE OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# Supplying llvm host tuple is necessary for address sanitization and doesn't
+# hurt during regular builds.
 add_custom_command(
-    TARGET simulator POST_BUILD
-    COMMAND ${CMAKE_STRIP} simulator
-    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-    COMMENT "\nStripping simulator binary"
+    OUTPUT dummy ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator
+    COMMAND
+      ${CMAKE_COMMAND} -E env
+      MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      RUSTFLAGS=${RUSTFLAGS}
+      CFLAGS=${CARGO_C_FLAGS}
+      RUSTC_BOOTSTRAP=1
+      cargo build ${CARGO_ENV_FLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
+    COMMAND
+      ${CMAKE_COMMAND} -E copy
+      ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/release/simulator
+      ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator
+    DEPENDS rust-cbindgen
+    WORKING_DIRECTORY ${RUST_BINARY_DIR}
+    VERBATIM
 )
+
+add_custom_target(simulator
+    DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator
+)
+
+add_custom_target(simulator-graphical DEPENDS simulator)

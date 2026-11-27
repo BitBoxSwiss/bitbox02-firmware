@@ -178,7 +178,7 @@ static void pukcc_self_test(void)
 }
 
 // Returns 0 on success
-uint8_t pukcc_ecdsa_verify(
+uint16_t pukcc_ecdsa_verify(
     const uint8_t* public_key,
     const uint8_t* signature,
     const uint8_t* message,

@@ -27,7 +27,7 @@ typedef struct {
     uint8_t test_signature[PUKCC_ECC_PARAM_LEN * 2];
 } PUKCC_CURVE_256_X;
 
-uint8_t pukcc_ecdsa_verify(
+uint16_t pukcc_ecdsa_verify(
     const uint8_t* public_key,
     const uint8_t* signature,
     const uint8_t* message,

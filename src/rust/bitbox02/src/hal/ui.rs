@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use core::marker::PhantomData;
 use core::time::Duration;
 
+use alloc::vec::Vec;
 use bitbox_hal::Ui;
 use bitbox_hal::ui::{
-    CanCancel, ConfirmParams, Empty as HalEmpty, EnterStringParams, Font, Progress as HalProgress,
-    TrinaryChoice, UserAbort,
+    CanCancel, ConfirmParams, Empty as HalEmpty, EnterStringParams, Font, MnemonicQuizAbort,
+    Progress as HalProgress, TrinaryChoice, UserAbort,
 };
 
 pub struct BitBox02Ui<Timer = super::timer::BitBox02Timer> {
@@ -29,6 +30,16 @@ pub struct BitBox02Empty {
 }
 
 impl HalEmpty for BitBox02Empty {}
+
+/// Appends the extra "review all words" choice for the mnemonic-word quiz menu and returns the
+/// extended list together with that choice's index. The menu pages one choice per screen, so
+/// reviewing the words is offered as a last menu entry rather than a dedicated control.
+fn choices_with_show_words<'a>(choices: &[&'a str], back_to_words: &'a str) -> (Vec<&'a str>, u8) {
+    let mut all = choices.to_vec();
+    all.push(back_to_words);
+    let show_words_idx = (all.len() - 1) as u8;
+    (all, show_words_idx)
+}
 
 fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
@@ -301,21 +312,36 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         }
     }
 
-    async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
-        let cancel_confirm_title =
-            bitbox_i18n::tr!(crate::memory::get_device_language(), "Recovery\nwords");
+    async fn quiz_mnemonic_word(
+        &mut self,
+        choices: &[&str],
+        word_idx: usize,
+        num_words: usize,
+    ) -> Result<u8, MnemonicQuizAbort> {
+        let language = crate::memory::get_device_language();
+        let cancel_confirm_title = bitbox_i18n::tr!(language, "Recovery\nwords");
+        let back_to_words = bitbox_i18n::tr!(language, "Back to\nrecovery words");
+        let title = bitbox_i18n::format!(
+            language,
+            "{} of {}",
+            &[&(word_idx + 1).to_string(), &num_words.to_string()],
+        );
+        let (choices, show_words_idx) = choices_with_show_words(choices, &back_to_words);
         match crate::ui::menu(crate::ui::MenuParams {
-            words: choices,
-            title: Some(title),
+            words: &choices,
+            title: Some(&title),
             select_word: true,
             continue_on_last: false,
             cancel_confirm_title: Some(&cancel_confirm_title),
         })
         .await
         {
+            crate::ui::MenuResponse::SelectWord(choice_idx) if choice_idx == show_words_idx => {
+                Err(MnemonicQuizAbort::ShowWords)
+            }
             crate::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
             crate::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-            crate::ui::MenuResponse::Cancel => Err(UserAbort),
+            crate::ui::MenuResponse::Cancel => Err(MnemonicQuizAbort::Cancel),
         }
     }
 }
@@ -323,6 +349,18 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The "show words" menu entry must be the appended last choice; a wrong index would show
+    /// the words when the user picked a (correct or wrong) word, or vice versa.
+    #[test]
+    fn test_choices_with_show_words() {
+        for label in ["Back to\nrecovery words", "Review recovery words"] {
+            let label = String::from(label);
+            let (all, show_words_idx) = choices_with_show_words(&["a", "b", "c", "d", "e"], &label);
+            assert_eq!(all, vec!["a", "b", "c", "d", "e", label.as_str()]);
+            assert_eq!(show_words_idx, 5);
+        }
+    }
 
     #[test]
     fn test_to_bitbox02_font() {

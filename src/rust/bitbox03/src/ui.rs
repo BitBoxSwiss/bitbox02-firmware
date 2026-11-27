@@ -13,6 +13,7 @@ use util::futures::completion;
 
 pub mod choice;
 pub mod confirm;
+pub mod confirm_word;
 pub mod demo;
 pub mod enter_string;
 pub mod keyboard;
@@ -214,9 +215,9 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         words: &[&str],
         title: Option<&str>,
     ) -> Result<u8, bitbox_hal::ui::UserAbort> {
-        match self.menu_impl(words, title, 0).await {
+        match self.menu_impl(words, title).await {
             menu::MenuResult::Selected(choice_idx) => Ok(choice_idx),
-            menu::MenuResult::Cancel(_) => Err(bitbox_hal::ui::UserAbort),
+            menu::MenuResult::Cancel => Err(bitbox_hal::ui::UserAbort),
         }
     }
 
@@ -261,16 +262,34 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     async fn quiz_mnemonic_word(
         &mut self,
         choices: &[&str],
-        title: &str,
-    ) -> Result<u8, bitbox_hal::ui::UserAbort> {
-        let mut index = 0usize;
+        word_idx: usize,
+        num_words: usize,
+    ) -> Result<u8, bitbox_hal::ui::MnemonicQuizAbort> {
+        // A selection in progress when cancel is requested is restored if the user then
+        // declines to cancel.
+        let mut preselected = None;
         loop {
-            match self.menu_impl(choices, Some(title), index).await {
-                menu::MenuResult::Selected(choice_idx) => return Ok(choice_idx),
-                menu::MenuResult::Cancel(cancelled_index) => {
-                    index = cancelled_index;
+            let action = self
+                .with_result_screen(|responder| {
+                    confirm_word::build_confirm_word_screen(
+                        choices,
+                        word_idx,
+                        num_words,
+                        preselected,
+                        responder,
+                    )
+                })
+                .await;
+            match action {
+                confirm_word::ConfirmWordAction::Selected(choice_idx) => return Ok(choice_idx),
+                confirm_word::ConfirmWordAction::Back => {
+                    // The workflow asks for confirmation before showing the words.
+                    return Err(bitbox_hal::ui::MnemonicQuizAbort::ShowWords);
+                }
+                confirm_word::ConfirmWordAction::Cancel(selected) => {
+                    preselected = selected;
                     match recovery_words::confirm_recovery_words_cancel(self).await {
-                        Ok(()) => return Err(bitbox_hal::ui::UserAbort),
+                        Ok(()) => return Err(bitbox_hal::ui::MnemonicQuizAbort::Cancel),
                         Err(bitbox_hal::ui::UserAbort) => {}
                     }
                 }
@@ -414,14 +433,9 @@ impl<Timer> BitBox03Ui<Timer> {
 }
 
 impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
-    async fn menu_impl(
-        &mut self,
-        words: &[&str],
-        title: Option<&str>,
-        start_index: usize,
-    ) -> menu::MenuResult {
+    async fn menu_impl(&mut self, words: &[&str], title: Option<&str>) -> menu::MenuResult {
         assert!(!words.is_empty(), "menu requires at least one word");
-        let mut index = start_index.min(words.len() - 1);
+        let mut index = 0;
         loop {
             let action = self
                 .with_result_screen(|responder| {
@@ -440,7 +454,7 @@ impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
                         index.try_into().expect("menu supports at most 256 items"),
                     );
                 }
-                menu::MenuAction::Cancel => return menu::MenuResult::Cancel(index),
+                menu::MenuAction::Cancel => return menu::MenuResult::Cancel,
             }
         }
     }

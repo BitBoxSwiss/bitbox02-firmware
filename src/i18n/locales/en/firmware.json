@@ -256,6 +256,7 @@
   "mnemonic": {
     "backToWords": "Back to\nrecovery words",
     "cancelRestore": "Cancel restore",
+    "confirmBackToWords": "Go back to\nrecovery words?",
     "choose": "Choose",
     "confirmCancel": {
       "body": "Cancel restore?",

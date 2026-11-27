@@ -203,7 +203,7 @@
     },
     "restore": {
       "backupName": "Name: {}. ID: {}",
-      "confirmRestore": "Restore backup?",
+      "confirmRestore": "Restore from\nmicroSD backup?",
       "error": "Could not\nrestore backup",
       "invalidWords": "Recovery words\ninvalid",
       "isNow": "Is now?",

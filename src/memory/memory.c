@@ -1044,7 +1044,12 @@ bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
         const multisig_configuration_t* multisig = &chunk->fields.multisig_configs[i];
         if (MEMEQ(multisig->hash, hash, sizeof(multisig->hash))) {
             if (name_out != NULL) {
-                snprintf(name_out, sizeof(multisig->name), "%s", multisig->name);
+                snprintf(
+                    name_out,
+                    sizeof(multisig->name),
+                    "%.*s",
+                    (int)sizeof(multisig->name) - 1,
+                    multisig->name);
             }
             return true;
         }

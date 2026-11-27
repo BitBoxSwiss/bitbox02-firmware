@@ -72,7 +72,7 @@ async fn is_our_key(
     hal: &mut impl crate::hal::Hal,
     key: &pb::KeyOriginInfo,
     our_root_fingerprint: &[u8],
-) -> Result<bool, ()> {
+) -> Result<bool, Error> {
     match key {
         pb::KeyOriginInfo {
             root_fingerprint,
@@ -80,6 +80,9 @@ async fn is_our_key(
             xpub: Some(xpub),
             ..
         } if root_fingerprint.as_slice() == our_root_fingerprint => {
+            if keypath.len() > super::MAX_KEYPATH_DEPTH {
+                return Err(Error::InvalidInput);
+            }
             let our_xpub = crate::keystore::get_xpub(hal, keypath, crate::keystore::Compute::Once)
                 .await?
                 .serialize(None)?;
@@ -906,6 +909,44 @@ mod tests {
         Policy {
             policy: policy.into(),
             keys: keys.to_vec(),
+        }
+    }
+
+    #[async_test::test]
+    async fn test_parse_keypath_depth() {
+        mock_unlocked();
+        let keypath = vec![u32::MAX; 15];
+        let key = make_our_key(&keypath).await;
+        let mut address_keypath = keypath;
+        address_keypath.extend([0, 0]);
+        for policy_str in ["wsh(pk(@0/**))", "tr(@0/**)"] {
+            let policy = make_policy(policy_str, core::slice::from_ref(&key));
+            let mut hal = crate::hal::testing::TestingHal::new();
+            let parsed = parse(&mut hal, &policy, BtcCoin::Tbtc).await.unwrap();
+            parsed
+                .confirm(
+                    &mut hal,
+                    "Register",
+                    super::super::params::get(BtcCoin::Tbtc),
+                    "Test",
+                    Mode::Advanced,
+                )
+                .await
+                .unwrap();
+            parsed.derive_at_keypath(&address_keypath).unwrap();
+        }
+
+        for depth in [16, 255] {
+            let mut invalid_key = key.clone();
+            invalid_key.keypath.resize(depth, HARDENED);
+            let policy = make_policy("wsh(pk(@0/**))", &[invalid_key]);
+            let mut hal = crate::hal::testing::TestingHal::new();
+            assert!(matches!(
+                parse(&mut hal, &policy, BtcCoin::Tbtc).await,
+                Err(Error::InvalidInput),
+            ));
+            assert_eq!(hal.securechip.get_event_counter(), 0);
+            assert!(hal.ui.screens.is_empty());
         }
     }
 

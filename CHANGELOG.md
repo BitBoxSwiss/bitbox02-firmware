@@ -9,6 +9,9 @@ recorded separately.
 ### Unreleased
 - Reject master xpub exports at `m/` through the Bitcoin API
 - Allow Bitcoin message signing with external service keypaths starting with unhardened `m/49`
+- Bitcoin: limit xpub exports, multisig account paths, and device-owned policy origins to 15
+  keypath components
+- Bitcoin: allow external service message signing keypaths up to 15 components
 
 ### v9.29.0
 - Require wallet-owned refund addresses for SwapKit

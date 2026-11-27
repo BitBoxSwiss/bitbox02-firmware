@@ -39,6 +39,8 @@ use pb::response::Response;
 
 use alloc::string::String;
 
+const MAX_KEYPATH_DEPTH: usize = 15;
+
 /// Like `hww::next_request`, but for Bitcoin requests/responses.
 pub async fn next_request(response: pb::btc_response::Response) -> Result<Request, Error> {
     let request = crate::hww::next_request(pb::response::Response::Btc(pb::BtcResponse {
@@ -97,7 +99,7 @@ async fn xpub(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    if keypath.is_empty() {
+    if keypath.is_empty() || keypath.len() > MAX_KEYPATH_DEPTH {
         return Err(Error::InvalidInput);
     }
     let params = params::get(coin);
@@ -374,6 +376,49 @@ mod tests {
     use alloc::vec::Vec;
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bip32::HARDENED;
+
+    #[async_test::test]
+    async fn test_xpub_keypath_depth() {
+        mock_unlocked();
+        for depth in [14, 15] {
+            let keypath = vec![u32::MAX; depth];
+            let expected =
+                keystore::get_xpub(&mut TestingHal::new(), &keypath, keystore::Compute::Once)
+                    .await
+                    .unwrap()
+                    .serialize_str(XPubType::Xpub)
+                    .unwrap();
+            for display in [false, true] {
+                let mut hal = TestingHal::new();
+                assert_eq!(
+                    xpub(&mut hal, BtcCoin::Btc, XPubType::Xpub, &keypath, display).await,
+                    Ok(Response::Pub(pb::PubResponse {
+                        r#pub: expected.clone(),
+                    })),
+                );
+                assert!(!hal.ui.screens.is_empty());
+            }
+        }
+        for depth in [16, 255] {
+            for display in [false, true] {
+                let mut hal = TestingHal::new();
+                assert_eq!(
+                    xpub(
+                        &mut hal,
+                        BtcCoin::Btc,
+                        XPubType::Xpub,
+                        &vec![HARDENED; depth],
+                        display,
+                    )
+                    .await,
+                    Err(Error::InvalidInput),
+                );
+                assert!(hal.ui.screens.is_empty());
+                assert_eq!(hal.securechip.get_event_counter(), 0);
+            }
+        }
+    }
+
     #[async_test::test]
     pub async fn test_xpub() {
         struct Test<'a> {

@@ -318,11 +318,14 @@ struct Counter(u32);
 
 impl Write for Counter {
     fn write(&mut self, data: &[u8]) {
-        self.0 += data.len() as u32;
+        self.0 = self.0.saturating_add(u32::try_from(data.len()).unwrap());
     }
 
     async fn write_producer(&mut self, producer: &mut dyn DataProducer) -> Result<(), Error> {
-        self.0 += producer.len();
+        self.0 = self
+            .0
+            .checked_add(producer.len())
+            .ok_or(Error::InvalidInput)?;
         Ok(())
     }
 }
@@ -542,6 +545,76 @@ pub mod tests {
     }
 
     const DATA_THRESHOLD: usize = 6144;
+
+    #[async_test::test]
+    async fn test_counter_length_overflow() {
+        let mut counter = Counter(u32::MAX - 1);
+        counter.write(&[0, 0]);
+        assert_eq!(counter.0, u32::MAX);
+        counter.write(&[0]);
+        assert_eq!(counter.0, u32::MAX);
+        assert_eq!(
+            counter
+                .write_producer(&mut ChunkingProducer::from_host(1))
+                .await,
+            Err(Error::InvalidInput),
+        );
+
+        let mut counter = Counter(10);
+        counter
+            .write_producer(&mut ChunkingProducer::from_host(u32::MAX - 10))
+            .await
+            .unwrap();
+        assert_eq!(counter.0, u32::MAX);
+        counter.write(&[0]);
+        assert_eq!(counter.0, u32::MAX);
+    }
+
+    #[async_test::test]
+    async fn test_compute_rejects_overflowing_lengths() {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(|_| panic!("oversized transaction requested data")));
+        for data_length in [
+            u32::MAX - 255,
+            u32::MAX - 34,
+            u32::MAX - 33,
+            u32::MAX - 32,
+            u32::MAX - 31,
+            u32::MAX - 1,
+            u32::MAX,
+        ] {
+            let mut producer = ChunkingProducer::from_host(data_length);
+            assert_eq!(
+                compute_legacy(&mut ParamsLegacy {
+                    nonce: &[],
+                    gas_price: &[2],
+                    gas_limit: &[0x52, 0x08],
+                    recipient: &[0x11; 20],
+                    value: &[3],
+                    data: &mut producer,
+                    chain_id: 1,
+                })
+                .await,
+                Err(Error::InvalidInput),
+            );
+            let mut producer = ChunkingProducer::from_host(data_length);
+            assert_eq!(
+                compute_eip1559(&mut ParamsEIP1559 {
+                    chain_id: 1,
+                    nonce: &[],
+                    max_priority_fee_per_gas: &[1],
+                    max_fee_per_gas: &[2],
+                    gas_limit: &[0x52, 0x08],
+                    recipient: &[0x11; 20],
+                    value: &[3],
+                    data: &mut producer,
+                })
+                .await,
+                Err(Error::InvalidInput),
+            );
+        }
+        clear_chunk_responder();
+    }
 
     #[async_test::test]
     async fn test_compute_eip1559() {
